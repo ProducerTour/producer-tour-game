@@ -25,15 +25,6 @@ router.get('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       take: parseInt(limit as string),
       skip: parseInt(offset as string),
       include: { producer: true },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        firstName: true,
-        lastName: true,
-        createdAt: true,
-        producer: true,
-      },
     });
 
     const total = await prisma.user.count({ where });

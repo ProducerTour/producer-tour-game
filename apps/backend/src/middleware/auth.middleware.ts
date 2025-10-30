@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { PrismaClient, UserRole } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
+
+type UserRole = 'ADMIN' | 'WRITER' | 'LEGAL';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -60,6 +62,6 @@ export const requireRole = (...roles: UserRole[]) => {
   };
 };
 
-export const requireAdmin = requireRole(UserRole.ADMIN);
-export const requireWriter = requireRole(UserRole.WRITER, UserRole.ADMIN);
-export const requireLegal = requireRole(UserRole.LEGAL, UserRole.ADMIN);
+export const requireAdmin = requireRole('ADMIN');
+export const requireWriter = requireRole('WRITER', 'ADMIN');
+export const requireLegal = requireRole('LEGAL', 'ADMIN');
