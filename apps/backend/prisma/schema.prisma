@@ -1,0 +1,236 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  WRITER
+  LEGAL
+}
+
+enum ProType {
+  BMI
+  ASCAP
+  SESAC
+  OTHER
+}
+
+enum StatementStatus {
+  UPLOADED
+  PROCESSING
+  PROCESSED
+  PUBLISHED
+  ERROR
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CONTACTED
+}
+
+enum ApplicationTier {
+  PRIORITY_A
+  PRIORITY_B
+  PRIORITY_C
+  PRIORITY_D
+}
+
+enum OpportunityStatus {
+  OPEN
+  ON_HOLD
+  CLOSED
+}
+
+enum OpportunityPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+// Models
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      UserRole @default(WRITER)
+  firstName String?
+  lastName  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  producer         Producer?
+  statementItems   StatementItem[]
+  publishedStatements Statement[] @relation("PublishedBy")
+  applications     Application[]
+
+  @@map("users")
+}
+
+model Producer {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  producerName   String
+  ipiNumber      String?
+  proAffiliation ProType?
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  statementItems StatementItem[]
+
+  @@index([ipiNumber])
+  @@index([proAffiliation])
+  @@map("producers")
+}
+
+model Statement {
+  id                String          @id @default(cuid())
+  proType           ProType
+  filename          String
+  filePath          String?
+  status            StatementStatus @default(UPLOADED)
+  uploadDate        DateTime        @default(now())
+  publishedAt       DateTime?
+  publishedById     String?
+  totalRevenue      Decimal         @default(0) @db.Decimal(12, 2)
+  totalPerformances Int             @default(0)
+  statementPeriod   String?
+  periodStart       DateTime?
+  periodEnd         DateTime?
+  metadata          Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  publishedBy User?           @relation("PublishedBy", fields: [publishedById], references: [id])
+  items       StatementItem[]
+
+  @@index([proType])
+  @@index([status])
+  @@index([uploadDate])
+  @@map("statements")
+}
+
+model StatementItem {
+  id            String   @id @default(cuid())
+  statementId   String
+  workTitle     String
+  userId        String
+  producerId    String
+  revenue       Decimal  @db.Decimal(12, 2)
+  performances  Int      @default(0)
+  periodStart   DateTime?
+  periodEnd     DateTime?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  statement Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  producer  Producer  @relation(fields: [producerId], references: [id], onDelete: Cascade)
+
+  @@index([statementId])
+  @@index([userId])
+  @@index([producerId])
+  @@index([workTitle])
+  @@map("statement_items")
+}
+
+model Application {
+  id               String            @id @default(cuid())
+  userId           String?
+  name             String
+  email            String
+  phone            String?
+  social           String?
+  primaryLink      String
+  otherLinks       String?
+  pro              String?
+  distributor      String?
+  catalogSize      String
+  placements       String
+  royalties        String
+  readiness        Json? // Array of readiness items
+  engagement       String
+  needs            Json? // Array of selected needs
+  notes            String?
+  score            Int               @default(0)
+  tier             ApplicationTier?
+  status           ApplicationStatus @default(PENDING)
+  internalNotes    String?
+  submittedAt      DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([status])
+  @@index([tier])
+  @@index([score])
+  @@map("applications")
+}
+
+model Opportunity {
+  id           String              @id @default(cuid())
+  title        String
+  brief        String              @db.Text
+  genres       Json? // Array of genres
+  budget       String?
+  deadline     DateTime?
+  contact      String?
+  link         String?
+  status       OpportunityStatus   @default(OPEN)
+  priority     OpportunityPriority @default(MEDIUM)
+  notes        String?             @db.Text
+  tags         Json? // Array of tags
+  displayOrder Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([status])
+  @@index([priority])
+  @@index([deadline])
+  @@map("opportunities")
+}
+
+model Consultation {
+  id            String   @id @default(cuid())
+  companyName   String
+  contactName   String
+  email         String
+  phone         String?
+  title         String?
+  website       String?
+  businessType  String?
+  companySize   String?
+  budget        String?
+  services      Json? // Array of services
+  projectScope  String?  @db.Text
+  timeline      String?
+  volumeNeeds   String?
+  additionalInfo String? @db.Text
+  hearAbout     String?
+  status        String   @default("new")
+  internalNotes String?  @db.Text
+  submittedAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@map("consultations")
+}

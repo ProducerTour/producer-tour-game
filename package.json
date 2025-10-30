@@ -1,0 +1,26 @@
+{
+  "name": "producer-tour-platform",
+  "version": "1.0.0",
+  "description": "Music publishing royalty management platform",
+  "private": true,
+  "workspaces": [
+    "apps/backend",
+    "apps/frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=apps/backend\" \"npm run dev --workspace=apps/frontend\"",
+    "build": "npm run build --workspaces",
+    "backend": "npm run dev --workspace=apps/backend",
+    "frontend": "npm run dev --workspace=apps/frontend",
+    "db:studio": "npm run db:studio --workspace=apps/backend",
+    "db:migrate": "npm run db:migrate --workspace=apps/backend",
+    "db:generate": "npm run db:generate --workspace=apps/backend",
+    "typecheck": "npm run typecheck --workspaces"
+  },
+  "keywords": ["music", "publishing", "royalties", "PRO"],
+  "author": "Producer Tour",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
