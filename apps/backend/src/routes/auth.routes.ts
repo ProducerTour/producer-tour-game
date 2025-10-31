@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
@@ -44,14 +44,17 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    const jwtOptions: SignOptions = {
+      expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as string,
+    };
     const token = jwt.sign(
       {
         userId: user.id,
         email: user.email,
         role: user.role,
       },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      process.env.JWT_SECRET || 'fallback-secret',
+      jwtOptions
     );
 
     res.json({
@@ -106,14 +109,17 @@ router.post('/register', async (req: Request, res: Response) => {
     });
 
     // Generate token
+    const jwtOptions: SignOptions = {
+      expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as string,
+    };
     const token = jwt.sign(
       {
         userId: user.id,
         email: user.email,
         role: user.role,
       },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      process.env.JWT_SECRET || 'fallback-secret',
+      jwtOptions
     );
 
     res.status(201).json({
