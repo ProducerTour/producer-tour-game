@@ -8,6 +8,7 @@ Modern music publishing royalty management platform built with React and Node.js
 - 👥 **Multi-Role Dashboards** - Admin, Writer, and Legal portals
 - 💰 **Income Tracking** - Real-time royalty aggregation and reporting
 - 📝 **Publishing Tools** - Deal simulator, contracts, split sheets
+- 🎵 **Publishing Tracker** - Track placements, manage credits, submit to PROs, and monitor performance analytics
 - 🎯 **Opportunities Portal** - Live briefs and applications
 - 📈 **Analytics** - Comprehensive reporting and insights
 
@@ -57,6 +58,46 @@ producer-tour-react/
 │       └── package.json
 └── package.json          # Root workspace
 ```
+
+## Publishing Tracker
+
+The Publishing Tracker is a comprehensive tool for managing music publishing data, placements, and submissions.
+
+### Features
+
+#### 1. Placements Management
+- Track song placements across multiple platforms (Spotify, Apple Music, Amazon Music, YouTube Music)
+- Monitor streaming performance with real-time metrics
+- Spotify track lookup integration for easy placement creation
+- Filter and search placements by title, artist, or status
+- Status tracking: Active, Pending, Completed
+
+#### 2. Credits Management
+- Document songwriting and production credits
+- Track IPI numbers for PRO registration
+- Manage publishing splits and ownership percentages
+- Role-based credit tracking (Producer, Composer, Writer, etc.)
+
+#### 3. PRO Submissions
+- Submit publishing data to ASCAP, BMI, and SESAC
+- Track submission history and dates
+- Streamlined workflow for maintaining PRO compliance
+
+#### 4. Performance Analytics
+- Platform distribution analysis
+- Top performing tracks dashboard
+- Streaming metrics aggregation
+- Visual performance indicators
+
+### Usage
+
+Access the Publishing Tracker from the admin dashboard at `/admin/publishing-tracker`. The tool provides:
+
+- **Dashboard Overview**: View total placements, cumulative streams, and documented credits
+- **Placements Tab**: Add, edit, and monitor song placements with streaming data
+- **Credits Tab**: Manage songwriter and producer credits with split percentages
+- **Submissions Tab**: Submit data to PROs (ASCAP, BMI, SESAC)
+- **Analytics Tab**: Analyze performance across platforms and tracks
 
 ## Getting Started
 

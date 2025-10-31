@@ -29,12 +29,22 @@ export class BMIParser {
     // Parse CSV using PapaParse (similar to PHP fgetcsv)
     const parseResult = Papa.parse<CSVRow>(csvContent, {
       header: true,
-      skipEmptyLines: true,
+      skipEmptyLines: 'greedy',
       transformHeader: (header) => header.trim(),
+      delimitersToGuess: [',', '\t', '|', ';'],
     });
 
+    // Log all errors for debugging
     if (parseResult.errors.length > 0) {
-      throw new Error(`CSV Parse Error: ${parseResult.errors[0].message}`);
+      console.log('CSV Parse Warnings:', parseResult.errors.map(e => `${e.type}: ${e.message}`));
+    }
+
+    // Only throw on critical errors, ignore field count mismatches
+    const criticalErrors = parseResult.errors.filter(
+      (error) => error.type !== 'FieldMismatch' && error.type !== 'TooFewFields' && error.type !== 'TooManyFields'
+    );
+    if (criticalErrors.length > 0) {
+      throw new Error(`CSV Parse Error: ${criticalErrors[0].message}`);
     }
 
     const data = parseResult.data;

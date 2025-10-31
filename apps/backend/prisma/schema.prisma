@@ -58,6 +58,23 @@ enum OpportunityPriority {
   LOW
 }
 
+enum PlacementStatus {
+  ACTIVE
+  PENDING
+  COMPLETED
+}
+
+enum StreamingPlatform {
+  SPOTIFY
+  APPLE_MUSIC
+  AMAZON_MUSIC
+  YOUTUBE_MUSIC
+  TIDAL
+  DEEZER
+  SOUNDCLOUD
+  OTHER
+}
+
 // Models
 model User {
   id        String   @id @default(cuid())
@@ -66,6 +83,7 @@ model User {
   role      UserRole @default(WRITER)
   firstName String?
   lastName  String?
+  ipiNumber String?  // IPI/CAE number for PRO registration
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -74,6 +92,10 @@ model User {
   statementItems   StatementItem[]
   publishedStatements Statement[] @relation("PublishedBy")
   applications     Application[]
+  placements       Placement[]
+  credits          Credit[]
+  proSubmissions   ProSubmission[]
+  advanceScenarios AdvanceScenario[]
 
   @@map("users")
 }
@@ -126,22 +148,24 @@ model Statement {
 }
 
 model StatementItem {
-  id            String   @id @default(cuid())
-  statementId   String
-  workTitle     String
-  userId        String
-  producerId    String
-  revenue       Decimal  @db.Decimal(12, 2)
-  performances  Int      @default(0)
-  periodStart   DateTime?
-  periodEnd     DateTime?
-  metadata      Json?
-  createdAt     DateTime @default(now())
+  id              String   @id @default(cuid())
+  statementId     String
+  workTitle       String
+  userId          String
+  producerId      String?   // Optional - not all writers have producers
+  revenue         Decimal  @db.Decimal(12, 2)
+  performances    Int      @default(0)
+  splitPercentage Decimal? @default(100.00) @db.Decimal(5, 2) // Writer's percentage share (0.00-100.00)
+  writerIpiNumber String?  // IPI number at time of assignment
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  metadata        Json?
+  createdAt       DateTime @default(now())
 
   // Relations
   statement Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  producer  Producer  @relation(fields: [producerId], references: [id], onDelete: Cascade)
+  producer  Producer? @relation(fields: [producerId], references: [id], onDelete: Cascade)
 
   @@index([statementId])
   @@index([userId])
@@ -233,4 +257,106 @@ model Consultation {
   @@index([email])
   @@index([status])
   @@map("consultations")
+}
+
+model Placement {
+  id              String            @id @default(cuid())
+  userId          String
+  title           String
+  artist          String
+  platform        StreamingPlatform @default(OTHER)
+  releaseDate     DateTime
+  isrc            String?
+  spotifyTrackId  String?
+  streams         Int               @default(0)
+  estimatedStreams Boolean          @default(false) // Flag for estimated vs real
+  status          PlacementStatus   @default(PENDING)
+  lastSyncedAt    DateTime?
+  metadata        Json? // Store additional track info (album, image, etc.)
+  notes           String?           @db.Text
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isrc])
+  @@index([spotifyTrackId])
+  @@index([platform])
+  @@index([status])
+  @@map("placements")
+}
+
+model Credit {
+  id              String   @id @default(cuid())
+  userId          String
+  songTitle       String
+  role            String   // Producer, Composer, Writer, etc.
+  ipiNumber       String?
+  splitPercentage Decimal  @db.Decimal(5, 2) // 0.00 to 100.00
+  metadata        Json? // Additional credit information
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([songTitle])
+  @@index([ipiNumber])
+  @@map("credits")
+}
+
+model ProSubmission {
+  id           String   @id @default(cuid())
+  userId       String
+  proName      ProType // ASCAP, BMI, SESAC
+  submittedAt  DateTime
+  placementIds Json? // Array of placement IDs submitted
+  metadata     Json? // Additional submission details
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([proName])
+  @@index([submittedAt])
+  @@map("pro_submissions")
+}
+
+model AdvanceScenario {
+  id                    String   @id @default(cuid())
+  userId                String
+  scenarioName          String   // User's name for this scenario
+
+  // Input parameters
+  catalogSize           Int      // Number of songs in catalog
+  monthlyRoyalties      Decimal  @db.Decimal(12, 2) // Average monthly royalties
+  contractLength        Int      // In months
+  artistIncome          Int      // Percentage (0-100) - income paid to artist during term
+  includeNewReleases    Boolean  @default(false) // Include future releases
+  switchDistributors    Boolean  @default(false) // Willing to switch distributors
+
+  // Calculated outputs (stored for historical reference)
+  upfrontAdvance        Decimal  @db.Decimal(12, 2)
+  newReleaseAdvance     Decimal? @db.Decimal(12, 2) // Only if includeNewReleases = true
+  optionAdvance         Decimal? @db.Decimal(12, 2)
+  recoupmentRate        Int      // Percentage (0-100)
+  estimatedTotal        Decimal  @db.Decimal(12, 2)
+
+  notes                 String?  @db.Text
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("advance_scenarios")
 }

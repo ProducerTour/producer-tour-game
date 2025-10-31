@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { spotifyService } from '../services/spotify.service';
 
 const router = Router();
 
@@ -92,6 +93,85 @@ router.post('/publishing-simulator', (req: Request, res: Response) => {
   } catch (error) {
     console.error('Publishing simulator error:', error);
     res.status(500).json({ error: 'Calculation failed' });
+  }
+});
+
+/**
+ * POST /api/tools/spotify/search
+ * Search for tracks on Spotify
+ * Body: { query: string, limit?: number }
+ */
+router.post('/spotify/search', async (req: Request, res: Response) => {
+  try {
+    const { query, limit = 10 } = req.body;
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({ error: 'Query parameter is required' });
+    }
+
+    const tracks = await spotifyService.searchTracks(query.trim(), limit);
+    const formattedTracks = tracks.map((track) => spotifyService.formatTrackData(track));
+
+    res.json({
+      success: true,
+      count: formattedTracks.length,
+      tracks: formattedTracks,
+    });
+  } catch (error) {
+    console.error('Spotify search error:', error);
+    res.status(500).json({ error: 'Failed to search Spotify' });
+  }
+});
+
+/**
+ * POST /api/tools/spotify/isrc
+ * Lookup track by ISRC code
+ * Body: { isrc: string }
+ */
+router.post('/spotify/isrc', async (req: Request, res: Response) => {
+  try {
+    const { isrc } = req.body;
+
+    if (!isrc || typeof isrc !== 'string' || isrc.trim().length === 0) {
+      return res.status(400).json({ error: 'ISRC code is required' });
+    }
+
+    const track = await spotifyService.getTrackByISRC(isrc.trim());
+
+    if (!track) {
+      return res.status(404).json({ error: 'Track not found for ISRC code' });
+    }
+
+    res.json({
+      success: true,
+      track: spotifyService.formatTrackData(track),
+    });
+  } catch (error) {
+    console.error('ISRC lookup error:', error);
+    res.status(500).json({ error: 'Failed to lookup ISRC code' });
+  }
+});
+
+/**
+ * GET /api/tools/spotify/track/:trackId
+ * Get track details by Spotify track ID
+ */
+router.get('/spotify/track/:trackId', async (req: Request, res: Response) => {
+  try {
+    const { trackId } = req.params;
+
+    if (!trackId || trackId.trim().length === 0) {
+      return res.status(400).json({ error: 'Track ID is required' });
+    }
+
+    const track = await spotifyService.getTrackById(trackId);
+    res.json({
+      success: true,
+      track: spotifyService.formatTrackData(track),
+    });
+  } catch (error) {
+    console.error('Track lookup error:', error);
+    res.status(500).json({ error: 'Failed to get track details' });
   }
 });
 

@@ -2,11 +2,19 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/auth.store';
 
 // Pages
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import WriterDashboard from './pages/WriterDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import OpportunitiesPage from './pages/OpportunitiesPage';
 import ApplicationPage from './pages/ApplicationPage';
+import PubDealSimulatorPage from './pages/PubDealSimulatorPage';
+import ConsultationFormPage from './pages/ConsultationFormPage';
+import CaseStudyPage from './pages/CaseStudyPage';
+import RoyaltyPortalPage from './pages/RoyaltyPortalPage';
+import OpportunitiesToolPage from './pages/OpportunitiesToolPage';
+import PublishingTrackerToolPage from './pages/PublishingTrackerToolPage';
+import AdvanceEstimatorToolPage from './pages/AdvanceEstimatorToolPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -32,6 +40,15 @@ function App() {
         <Route path="/apply" element={<ApplicationPage />} />
         <Route path="/opportunities" element={<OpportunitiesPage />} />
 
+        {/* Tool Routes */}
+        <Route path="/tools/pub-deal-simulator" element={<PubDealSimulatorPage />} />
+        <Route path="/tools/consultation" element={<ConsultationFormPage />} />
+        <Route path="/tools/case-study" element={<CaseStudyPage />} />
+        <Route path="/tools/royalty-portal" element={<RoyaltyPortalPage />} />
+        <Route path="/tools/opportunities" element={<OpportunitiesToolPage />} />
+        <Route path="/tools/publishing-tracker" element={<PublishingTrackerToolPage />} />
+        <Route path="/tools/advance-estimator" element={<AdvanceEstimatorToolPage />} />
+
         <Route
           path="/dashboard"
           element={
@@ -50,7 +67,7 @@ function App() {
           }
         />
 
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<LandingPage />} />
       </Routes>
     </BrowserRouter>
   );

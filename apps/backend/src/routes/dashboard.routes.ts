@@ -157,30 +157,108 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    const [totalWriters, totalStatements, totalRevenue, recentStatements] =
-      await Promise.all([
-        prisma.user.count({ where: { role: 'WRITER' } }),
-        prisma.statement.count(),
-        prisma.statementItem.aggregate({ _sum: { revenue: true } }),
-        prisma.statement.findMany({
-          take: 5,
-          orderBy: { uploadDate: 'desc' },
-          select: {
-            id: true,
-            proType: true,
-            filename: true,
-            status: true,
-            totalRevenue: true,
-            uploadDate: true,
-          },
-        }),
-      ]);
+    const [
+      totalWriters,
+      totalStatements,
+      processedStatements,
+      totalRevenue,
+      uniqueWorks,
+      recentStatements,
+      proBreakdown,
+      monthlyRevenue
+    ] = await Promise.all([
+      // Total writers
+      prisma.user.count({ where: { role: 'WRITER' } }),
+
+      // Total statements
+      prisma.statement.count(),
+
+      // Processed statements (PROCESSED or PUBLISHED)
+      prisma.statement.count({
+        where: {
+          status: { in: ['PROCESSED', 'PUBLISHED'] }
+        }
+      }),
+
+      // Total revenue
+      prisma.statementItem.aggregate({ _sum: { revenue: true } }),
+
+      // Unique works (songs)
+      prisma.statementItem.groupBy({
+        by: ['workTitle']
+      }),
+
+      // Recent statements
+      prisma.statement.findMany({
+        take: 5,
+        orderBy: { uploadDate: 'desc' },
+        select: {
+          id: true,
+          proType: true,
+          filename: true,
+          status: true,
+          totalRevenue: true,
+          uploadDate: true,
+        },
+      }),
+
+      // PRO breakdown
+      prisma.statement.groupBy({
+        by: ['proType'],
+        _count: true,
+        _sum: {
+          totalRevenue: true
+        }
+      }),
+
+      // Monthly revenue (last 12 months)
+      prisma.statementItem.findMany({
+        select: {
+          revenue: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    // Process monthly revenue data
+    const monthlyData = new Map<string, number>();
+    const now = new Date();
+
+    // Initialize last 12 months with zero
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      monthlyData.set(key, 0);
+    }
+
+    // Aggregate actual revenue
+    monthlyRevenue.forEach((item) => {
+      const date = item.createdAt;
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (monthlyData.has(key)) {
+        monthlyData.set(key, (monthlyData.get(key) || 0) + Number(item.revenue));
+      }
+    });
+
+    const revenueTimeline = Array.from(monthlyData.entries()).map(([month, revenue]) => ({
+      month,
+      revenue: Number(revenue.toFixed(2))
+    }));
 
     res.json({
       totalWriters,
       totalStatements,
+      processedStatements,
       totalRevenue: totalRevenue._sum.revenue || 0,
+      uniqueWorks: uniqueWorks.length,
       recentStatements,
+      proBreakdown: proBreakdown.map(p => ({
+        proType: p.proType,
+        count: p._count,
+        revenue: Number(p._sum.totalRevenue || 0)
+      })),
+      revenueTimeline
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);

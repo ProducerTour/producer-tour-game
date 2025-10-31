@@ -4,18 +4,21 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export const api = axios.create({
   baseURL: `${API_URL}/api`,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
-// Request interceptor - add auth token
+// Request interceptor - add auth token and content type
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Set Content-Type to application/json for non-FormData requests
+    if (!(config.data instanceof FormData)) {
+      config.headers['Content-Type'] = 'application/json';
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -60,6 +63,9 @@ export const dashboardApi = {
 };
 
 export const statementApi = {
+  getStatements: (params?: any) =>
+    api.get('/statements', { params }),
+
   list: (params?: any) =>
     api.get('/statements', { params }),
 
@@ -70,10 +76,11 @@ export const statementApi = {
     const formData = new FormData();
     formData.append('statement', file);
     formData.append('proType', proType);
-    return api.post('/statements/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    return api.post('/statements/upload', formData);
   },
+
+  assignWriters: (id: string, assignments: Record<string, string>) =>
+    api.post(`/statements/${id}/assign-writers`, { assignments }),
 
   publish: (id: string) =>
     api.post(`/statements/${id}/publish`),
@@ -124,4 +131,91 @@ export const applicationApi = {
 export const toolsApi = {
   publishingSimulator: (data: any) =>
     api.post('/tools/publishing-simulator', data),
+
+  // Spotify integration
+  spotifySearch: (query: string, limit: number = 10) =>
+    api.post('/tools/spotify/search', { query, limit }),
+
+  spotifyLookupISRC: (isrc: string) =>
+    api.post('/tools/spotify/isrc', { isrc }),
+
+  spotifyGetTrack: (trackId: string) =>
+    api.get(`/tools/spotify/track/${trackId}`),
+};
+
+export const placementApi = {
+  list: (params?: any) =>
+    api.get('/placements', { params }),
+
+  get: (id: string) =>
+    api.get(`/placements/${id}`),
+
+  create: (data: any) =>
+    api.post('/placements', data),
+
+  update: (id: string, data: any) =>
+    api.put(`/placements/${id}`, data),
+
+  delete: (id: string) =>
+    api.delete(`/placements/${id}`),
+
+  getAnalytics: () =>
+    api.get('/placements/analytics'),
+};
+
+export const creditApi = {
+  list: (params?: any) =>
+    api.get('/credits', { params }),
+
+  get: (id: string) =>
+    api.get(`/credits/${id}`),
+
+  create: (data: any) =>
+    api.post('/credits', data),
+
+  update: (id: string, data: any) =>
+    api.put(`/credits/${id}`, data),
+
+  delete: (id: string) =>
+    api.delete(`/credits/${id}`),
+};
+
+export const proSubmissionApi = {
+  list: (params?: any) =>
+    api.get('/pro-submissions', { params }),
+
+  getLatest: () =>
+    api.get('/pro-submissions/latest'),
+
+  get: (id: string) =>
+    api.get(`/pro-submissions/${id}`),
+
+  create: (data: any) =>
+    api.post('/pro-submissions', data),
+
+  update: (id: string, data: any) =>
+    api.put(`/pro-submissions/${id}`, data),
+
+  delete: (id: string) =>
+    api.delete(`/pro-submissions/${id}`),
+};
+
+export const advanceScenarioApi = {
+  list: (params?: any) =>
+    api.get('/advance-scenarios', { params }),
+
+  get: (id: string) =>
+    api.get(`/advance-scenarios/${id}`),
+
+  calculate: (data: any) =>
+    api.post('/advance-scenarios/calculate', data),
+
+  create: (data: any) =>
+    api.post('/advance-scenarios', data),
+
+  update: (id: string, data: any) =>
+    api.put(`/advance-scenarios/${id}`, data),
+
+  delete: (id: string) =>
+    api.delete(`/advance-scenarios/${id}`),
 };

@@ -1,0 +1,172 @@
+/**
+ * Spotify Web API Service
+ * Handles authentication and track lookup via Spotify API
+ */
+
+import axios, { AxiosInstance } from 'axios';
+
+interface SpotifyTrack {
+  id: string;
+  name: string;
+  artists: Array<{
+    name: string;
+    id: string;
+  }>;
+  album: {
+    name: string;
+    release_date: string;
+    images: Array<{
+      url: string;
+      height: number;
+      width: number;
+    }>;
+  };
+  external_ids: {
+    isrc?: string;
+  };
+  preview_url: string | null;
+  explicit: boolean;
+  duration_ms: number;
+  popularity: number;
+}
+
+interface SpotifySearchResponse {
+  tracks: {
+    items: SpotifyTrack[];
+    total: number;
+  };
+}
+
+class SpotifyService {
+  private clientId: string;
+  private clientSecret: string;
+  private accessToken: string | null = null;
+  private tokenExpiry: number = 0;
+  private baseURL = 'https://api.spotify.com/v1';
+  private authURL = 'https://accounts.spotify.com/api/token';
+  private axiosInstance: AxiosInstance;
+
+  constructor() {
+    this.clientId = process.env.SPOTIFY_CLIENT_ID || '';
+    this.clientSecret = process.env.SPOTIFY_CLIENT_SECRET || '';
+
+    if (!this.clientId || !this.clientSecret) {
+      throw new Error('Spotify Client ID and Secret must be set in environment variables');
+    }
+
+    this.axiosInstance = axios.create({
+      baseURL: this.baseURL,
+    });
+  }
+
+  /**
+   * Get or refresh Spotify access token using Client Credentials flow
+   */
+  private async getAccessToken(): Promise<string> {
+    // Return cached token if still valid
+    if (this.accessToken && Date.now() < this.tokenExpiry) {
+      return this.accessToken;
+    }
+
+    try {
+      const response = await axios.post(this.authURL, 'grant_type=client_credentials', {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')}`,
+        },
+      });
+
+      this.accessToken = response.data.access_token;
+      // Token expires in 3600 seconds, refresh at 90% of that time
+      this.tokenExpiry = Date.now() + response.data.expires_in * 900;
+
+      return this.accessToken;
+    } catch (error) {
+      console.error('Failed to get Spotify access token:', error);
+      throw new Error('Failed to authenticate with Spotify API');
+    }
+  }
+
+  /**
+   * Search for tracks by query string
+   * Supports: track name, artist, album, ISRC code
+   */
+  async searchTracks(query: string, limit: number = 10): Promise<SpotifyTrack[]> {
+    try {
+      const token = await this.getAccessToken();
+
+      const response = await this.axiosInstance.get<SpotifySearchResponse>('/search', {
+        params: {
+          q: query,
+          type: 'track',
+          limit: Math.min(limit, 50), // Spotify max is 50
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.data.tracks.items;
+    } catch (error) {
+      console.error('Spotify search error:', error);
+      throw new Error('Failed to search Spotify tracks');
+    }
+  }
+
+  /**
+   * Get track details by ISRC code
+   */
+  async getTrackByISRC(isrc: string): Promise<SpotifyTrack | null> {
+    try {
+      const tracks = await this.searchTracks(`isrc:${isrc}`, 1);
+      return tracks.length > 0 ? tracks[0] : null;
+    } catch (error) {
+      console.error('ISRC lookup error:', error);
+      throw new Error('Failed to lookup ISRC code');
+    }
+  }
+
+  /**
+   * Get track details by track ID
+   */
+  async getTrackById(trackId: string): Promise<SpotifyTrack> {
+    try {
+      const token = await this.getAccessToken();
+
+      const response = await this.axiosInstance.get<SpotifyTrack>(`/tracks/${trackId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Spotify track lookup error:', error);
+      throw new Error('Failed to get track details');
+    }
+  }
+
+  /**
+   * Format track data for frontend consumption
+   */
+  formatTrackData(track: SpotifyTrack) {
+    return {
+      id: track.id,
+      title: track.name,
+      artist: track.artists.map((a) => a.name).join(', '),
+      album: track.album.name,
+      releaseDate: track.album.release_date,
+      isrc: track.external_ids.isrc || null,
+      preview: track.preview_url,
+      explicit: track.explicit,
+      duration: track.duration_ms,
+      popularity: track.popularity,
+      image: track.album.images[0]?.url || null,
+      spotifyUrl: `https://open.spotify.com/track/${track.id}`,
+    };
+  }
+}
+
+// Export singleton instance
+export const spotifyService = new SpotifyService();
+export default SpotifyService;

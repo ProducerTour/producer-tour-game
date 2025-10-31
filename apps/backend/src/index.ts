@@ -15,6 +15,10 @@ import dashboardRoutes from './routes/dashboard.routes';
 import toolsRoutes from './routes/tools.routes';
 import opportunityRoutes from './routes/opportunity.routes';
 import applicationRoutes from './routes/application.routes';
+import placementsRoutes from './routes/placements.routes';
+import creditsRoutes from './routes/credits.routes';
+import proSubmissionsRoutes from './routes/pro-submissions.routes';
+import advanceScenariosRoutes from './routes/advance-scenarios.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -59,6 +63,10 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/tools', toolsRoutes);
 app.use('/api/opportunities', opportunityRoutes);
 app.use('/api/applications', applicationRoutes);
+app.use('/api/placements', placementsRoutes);
+app.use('/api/credits', creditsRoutes);
+app.use('/api/pro-submissions', proSubmissionsRoutes);
+app.use('/api/advance-scenarios', advanceScenariosRoutes);
 
 // Error handling
 app.use(notFoundHandler);

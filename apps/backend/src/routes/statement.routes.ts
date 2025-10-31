@@ -3,37 +3,12 @@ import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.middleware';
 import { StatementParserFactory } from '../parsers';
-import multer from 'multer';
+import { UploadedFile } from 'express-fileupload';
 import path from 'path';
 import fs from 'fs/promises';
 
 const router = Router();
 const prisma = new PrismaClient();
-
-// File upload configuration
-const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../uploads/statements');
-    await fs.mkdir(uploadDir, { recursive: true });
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only CSV files are allowed'));
-    }
-  },
-});
 
 /**
  * POST /api/statements/upload
@@ -43,11 +18,18 @@ router.post(
   '/upload',
   authenticate,
   requireAdmin,
-  upload.single('statement'),
   async (req: AuthRequest, res: Response) => {
     try {
-      if (!req.file) {
+      // Check if file was uploaded
+      if (!req.files || !req.files.statement) {
         return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const uploadedFile = req.files.statement as UploadedFile;
+
+      // Validate file type
+      if (!uploadedFile.name.endsWith('.csv') && uploadedFile.mimetype !== 'text/csv') {
+        return res.status(400).json({ error: 'Only CSV files are allowed' });
       }
 
       const { proType } = req.body;
@@ -55,26 +37,43 @@ router.post(
         return res.status(400).json({ error: 'Invalid PRO type' });
       }
 
+      // Create upload directory
+      const uploadDir = path.join(__dirname, '../../uploads/statements');
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      // Generate unique filename
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      const filename = 'statement-' + uniqueSuffix + path.extname(uploadedFile.name);
+      const filePath = path.join(uploadDir, filename);
+
+      // Save file to disk
+      await uploadedFile.mv(filePath);
+
       // Read file content
-      const csvContent = await fs.readFile(req.file.path, 'utf-8');
+      const csvContent = await fs.readFile(filePath, 'utf-8');
 
       // Parse statement
       const parseResult = await StatementParserFactory.parse(
         proType,
         csvContent,
-        req.file.originalname
+        uploadedFile.name
       );
 
-      // Create statement record
+      // Create statement record with parsed items stored in metadata
       const statement = await prisma.statement.create({
         data: {
           proType,
-          filename: req.file.originalname,
-          filePath: req.file.path,
-          status: 'PROCESSED',
+          filename: uploadedFile.name,
+          filePath: filePath,
+          status: 'UPLOADED', // Changed to UPLOADED - needs writer assignment before PROCESSED
           totalRevenue: parseResult.totalRevenue,
           totalPerformances: parseResult.totalPerformances,
-          metadata: parseResult.metadata,
+          metadata: {
+            ...parseResult.metadata,
+            parsedItems: parseResult.items, // Store parsed items for later assignment
+            songs: Array.from(parseResult.songs.values()),
+            warnings: parseResult.warnings,
+          },
         },
       });
 
@@ -84,6 +83,7 @@ router.post(
           songCount: parseResult.songCount,
           totalRevenue: parseResult.totalRevenue,
           totalPerformances: parseResult.totalPerformances,
+          itemCount: parseResult.items.length,
           songs: Array.from(parseResult.songs.values()),
           warnings: parseResult.warnings,
         },
@@ -125,9 +125,15 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
       },
     });
 
+    // Add itemCount to each statement for easier access
+    const statementsWithCount = statements.map(statement => ({
+      ...statement,
+      itemCount: statement._count.items,
+    }));
+
     const total = await prisma.statement.count({ where });
 
-    res.json({ statements, total });
+    res.json({ statements: statementsWithCount, total });
   } catch (error) {
     console.error('Get statements error:', error);
     res.status(500).json({ error: 'Failed to fetch statements' });
@@ -166,8 +172,51 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 });
 
 /**
+ * POST /api/statements/:id/assign-writers
+ * Assign writers to statement items (Admin only)
+ * Body: { assignments: { [songTitle]: userId } }
+ */
+router.post(
+  '/:id/assign-writers',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { assignments } = req.body; // { "Song Title": "userId123", ... }
+
+      if (!assignments || typeof assignments !== 'object') {
+        return res.status(400).json({ error: 'Invalid assignments format' });
+      }
+
+      const statement = await prisma.statement.findUnique({ where: { id } });
+      if (!statement) {
+        return res.status(404).json({ error: 'Statement not found' });
+      }
+
+      // Store assignments in metadata
+      const updatedStatement = await prisma.statement.update({
+        where: { id },
+        data: {
+          status: 'PROCESSED', // Mark as processed after assignments
+          metadata: {
+            ...(statement.metadata as any),
+            writerAssignments: assignments,
+          },
+        },
+      });
+
+      res.json(updatedStatement);
+    } catch (error) {
+      console.error('Assign writers error:', error);
+      res.status(500).json({ error: 'Failed to assign writers' });
+    }
+  }
+);
+
+/**
  * POST /api/statements/:id/publish
- * Publish statement to writers (Admin only)
+ * Publish statement to writers - creates StatementItems (Admin only)
  */
 router.post(
   '/:id/publish',
@@ -177,16 +226,84 @@ router.post(
     try {
       const { id } = req.params;
 
-      const statement = await prisma.statement.update({
+      const statement = await prisma.statement.findUnique({ where: { id } });
+      if (!statement) {
+        return res.status(404).json({ error: 'Statement not found' });
+      }
+
+      const metadata = statement.metadata as any;
+      const parsedItems = metadata.parsedItems || [];
+      const assignments = metadata.writerAssignments || {};
+
+      // Validate that all items have writers assigned
+      const unassignedSongs = parsedItems
+        .map((item: any) => item.workTitle)
+        .filter((title: string) => {
+          const songAssignments = assignments[title];
+          return !songAssignments || !Array.isArray(songAssignments) || songAssignments.length === 0;
+        });
+
+      if (unassignedSongs.length > 0) {
+        return res.status(400).json({
+          error: 'Not all songs have writers assigned',
+          unassignedSongs: unassignedSongs.slice(0, 5), // Show first 5
+        });
+      }
+
+      // Create StatementItems with assigned writers
+      // Note: One song can have multiple writers with different splits
+      const createPromises: any[] = [];
+
+      parsedItems.forEach((item: any) => {
+        const songAssignments = assignments[item.workTitle] || [];
+
+        // Create one StatementItem per writer assignment
+        songAssignments.forEach((assignment: any) => {
+          // Calculate this writer's revenue share based on split percentage
+          const splitPercentage = parseFloat(assignment.splitPercentage) || 100;
+          const writerRevenue = (parseFloat(item.revenue) * splitPercentage) / 100;
+
+          createPromises.push(
+            prisma.statementItem.create({
+              data: {
+                statementId: id,
+                userId: assignment.userId,
+                workTitle: item.workTitle,
+                revenue: writerRevenue,
+                performances: item.performances,
+                splitPercentage: splitPercentage,
+                writerIpiNumber: assignment.ipiNumber || null,
+                metadata: {
+                  ...item.metadata,
+                  originalTotalRevenue: parseFloat(item.revenue), // Store original total before split
+                },
+              },
+            })
+          );
+        });
+      });
+
+      // Use transaction to create all items and update statement
+      await prisma.$transaction([
+        ...createPromises,
+        prisma.statement.update({
+          where: { id },
+          data: {
+            status: 'PUBLISHED',
+            publishedAt: new Date(),
+            publishedById: req.user!.id,
+          },
+        }),
+      ]);
+
+      const updatedStatement = await prisma.statement.findUnique({
         where: { id },
-        data: {
-          status: 'PUBLISHED',
-          publishedAt: new Date(),
-          publishedById: req.user!.id,
+        include: {
+          _count: { select: { items: true } },
         },
       });
 
-      res.json(statement);
+      res.json(updatedStatement);
     } catch (error) {
       console.error('Publish statement error:', error);
       res.status(500).json({ error: 'Failed to publish statement' });
