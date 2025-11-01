@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import './PublicNavigation.css';
+import logo from '@/assets/images/logos/451293708_472378049044476_4990757197796537602_n.jpg';
 
 interface PublicNavigationProps {
   transparent?: boolean;
@@ -22,11 +23,12 @@ export default function PublicNavigation({ transparent = false }: PublicNavigati
         <div className="public-nav-inner">
           {/* Logo and Brand */}
           <Link to="/" className="public-nav-logo">
-            <div className="logo-icon">
-              <span>PT</span>
-            </div>
+            <img
+              src={logo}
+              alt="Producer Tour"
+              className="h-10 w-auto"
+            />
             <div className="logo-text">
-              <h1>Producer Tour</h1>
               <p>Publishing Platform</p>
             </div>
           </Link>
