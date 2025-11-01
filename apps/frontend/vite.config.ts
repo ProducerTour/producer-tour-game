@@ -8,6 +8,9 @@ export default defineConfig({
       '@': '/src',
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+  },
   define: {
     // Make environment variables available at build time
     'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL),
