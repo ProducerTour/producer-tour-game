@@ -4,10 +4,13 @@ import PublicNavigation from '../components/PublicNavigation';
 import './LandingPage.css';
 
 // Producer data
+// Add images by importing them and adding to the image field:
+// import producerPhoto from '@/assets/images/carousel/producers/your-image.jpg';
 const producersData = [
   {
     name: "Alex Rivera",
     genre: "Electronic/House",
+    image: undefined, // Add your imported image here
     gradient: "135deg, #3b82f6, #2563eb",
     stats: [
       { value: "2.5M", label: "Streams" },
@@ -18,6 +21,7 @@ const producersData = [
   {
     name: "Jordan Lee",
     genre: "Hip-Hop/Trap",
+    image: undefined, // Add your imported image here
     gradient: "135deg, #06b6d4, #0891b2",
     stats: [
       { value: "5.2M", label: "Streams" },
@@ -28,6 +32,7 @@ const producersData = [
   {
     name: "Sam Chen",
     genre: "Lo-Fi/Ambient",
+    image: undefined, // Add your imported image here
     gradient: "135deg, #ec4899, #db2777",
     stats: [
       { value: "8.7M", label: "Streams" },
@@ -38,6 +43,7 @@ const producersData = [
   {
     name: "Maya Patel",
     genre: "Indie/Pop",
+    image: undefined, // Add your imported image here
     gradient: "135deg, #f59e0b, #d97706",
     stats: [
       { value: "3.9M", label: "Streams" },
@@ -257,7 +263,11 @@ export default function LandingPage() {
                     <div className="producer-card">
                       <div
                         className="producer-image"
-                        style={{background: `linear-gradient(${producer.gradient})`}}
+                        style={
+                          producer.image
+                            ? { backgroundImage: `url(${producer.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                            : { background: `linear-gradient(${producer.gradient})` }
+                        }
                       ></div>
                       <div className="producer-info">
                         <h3>{producer.name}</h3>
