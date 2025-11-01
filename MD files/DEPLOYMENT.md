@@ -29,9 +29,10 @@ git push -u origin main
 1. Go to https://render.com
 2. Click **New** → **Blueprint**
 3. Connect your GitHub repository
-4. Render will detect `apps/backend/render.yaml`
-5. Click **Apply** - this creates both database and web service
-6. Wait for deployment to complete (~5 minutes)
+4. Render will detect `render.yaml` at the repository root
+5. Review the generated resources (`producer-tour-frontend`, `producer-tour-api`, and `producer-tour-db`)
+6. Provide values for manual env vars when prompted (e.g. `VITE_API_URL`, `CORS_ORIGIN`)
+7. Click **Apply Blueprint** and wait for Render to finish provisioning (~5 minutes)
 
 ### Option B: Manual Setup
 
@@ -56,11 +57,11 @@ git push -u origin main
    - **Root Directory:** Leave blank
    - **Build Command:**
      ```bash
-     cd apps/backend && npm install && npm run build && npx prisma generate
+     npm install --no-optional && npm run build:backend && npm run db:generate --workspace=apps/backend
      ```
    - **Start Command:**
      ```bash
-     cd apps/backend && npm start
+     npm run start --workspace=apps/backend
      ```
    - **Plan:** `Starter ($7/mo)` or `Free` for testing
 
@@ -71,10 +72,32 @@ git push -u origin main
    DATABASE_URL=[paste Internal Database URL from step 7 above]
    JWT_SECRET=[generate random string - use: openssl rand -base64 32]
    JWT_EXPIRES_IN=7d
-   CORS_ORIGIN=https://your-vercel-url.vercel.app
+   CORS_ORIGIN=https://your-frontend-domain
    ```
 
 5. Click **Create Web Service**
+
+#### Create Static Site (Frontend)
+
+1. Click **New** → **Static Site**
+2. Connect the same GitHub repo
+3. Configure:
+   - **Name:** `producer-tour-frontend`
+   - **Branch:** `main`
+   - **Build Command:**
+     ```bash
+     npm install --no-optional && npm run build:frontend
+     ```
+   - **Publish Directory:** `apps/frontend/dist`
+4. Add Environment Variables:
+   ```
+   VITE_API_URL=https://your-render-api.onrender.com
+   ```
+5. Add custom route for SPA fallback:
+   - Type: `Rewrite`
+   - Source: `/*`
+   - Destination: `/index.html`
+6. Click **Create Static Site**
 
 #### Run Database Migrations
 
@@ -98,13 +121,12 @@ git push -u origin main
 1. Go to https://vercel.com
 2. Click **New Project**
 3. Import your GitHub repository
-4. Configure:
+4. Vercel will read the root `vercel.json` and auto-fill the project settings. Confirm the detected values match:
+   - **Build Command:** `npm run build:frontend`
+   - **Output Directory:** `apps/frontend/dist`
    - **Framework Preset:** Vite
-   - **Root Directory:** `apps/frontend`
-   - **Build Command:** `npm run build`
-   - **Output Directory:** `dist`
 
-5. Add Environment Variable:
+5. Add Environment Variable (Project Settings → Environment Variables):
    ```
    VITE_API_URL=https://your-render-api.onrender.com
    ```
@@ -125,12 +147,15 @@ vercel
 
 ## Step 4: Configure CORS
 
-After Vercel deploys, you'll get a URL like `https://producer-tour.vercel.app`
+After your frontend is live, copy its public URL:
 
-1. Go to Render dashboard
+- Vercel example: `https://producer-tour.vercel.app`
+- Render static example: `https://producer-tour-frontend.onrender.com`
+
+1. Go to the Render dashboard
 2. Open your `producer-tour-api` service
-3. Go to **Environment** tab
-4. Update `CORS_ORIGIN` to your Vercel URL
+3. Go to the **Environment** tab
+4. Update `CORS_ORIGIN` to the frontend URL you copied (no trailing slash)
 5. Save changes (will trigger redeploy)
 
 ---
@@ -172,7 +197,7 @@ JWT_SECRET=your-super-secret-key-here
 JWT_EXPIRES_IN=7d
 NODE_ENV=production
 PORT=3000
-CORS_ORIGIN=https://your-frontend.vercel.app
+CORS_ORIGIN=https://your-frontend-domain
 ```
 
 ### Frontend (.env)

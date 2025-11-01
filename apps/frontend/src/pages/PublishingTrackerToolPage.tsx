@@ -416,6 +416,12 @@ export default function PublishingTrackerToolPage() {
                 </button>
               </div>
 
+              {error && (
+                <div className="rounded-lg border border-red-500/40 bg-red-500/10 text-red-300 px-4 py-3">
+                  {error}
+                </div>
+              )}
+
               {loading ? (
                 <div className="text-center py-12 text-slate-400">
                   <p>Loading placements...</p>

@@ -160,8 +160,11 @@ export default function WriterDashboard() {
                             fill="#8884d8"
                             dataKey="value"
                           >
-                            {getProBreakdown().map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            {getProBreakdown().map((item, index) => (
+                              <Cell
+                                key={`cell-${item?.name ?? index}`}
+                                fill={COLORS[index % COLORS.length]}
+                              />
                             ))}
                           </Pie>
                           <Tooltip
@@ -280,21 +283,6 @@ function StatCard({ title, value, subtitle, color }: { title: string; value: str
       <p className="text-3xl font-bold text-white mb-1">{value}</p>
       <p className="text-xs text-gray-400">{subtitle}</p>
     </div>
-  );
-}
-
-function TabButton({ active, onClick, children }: any) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-        active
-          ? 'border-primary-500 text-primary-400'
-          : 'border-transparent text-gray-400 hover:text-gray-300'
-      }`}
-    >
-      {children}
-    </button>
   );
 }
 

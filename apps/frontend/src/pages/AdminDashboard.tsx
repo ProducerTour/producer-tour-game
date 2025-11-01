@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dashboardApi, statementApi, userApi } from '../lib/api';
+import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Navigation from '../components/Navigation';
 import ToolsHub from '../components/ToolsHub';
@@ -274,7 +275,7 @@ function StatementsTab() {
 
 function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   // assignments: { "Song Title": [{ userId, ipiNumber, splitPercentage }, ...], ... }
-  const [assignments, setAssignments] = useState<Record<string, Array<{ userId: string; ipiNumber: string; splitPercentage: number }>>>({});
+  const [assignments, setAssignments] = useState<WriterAssignmentsPayload>({});
   const [assignAllWriter, setAssignAllWriter] = useState<string>('');
   const [saving, setSaving] = useState(false);
 
@@ -429,8 +430,6 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
             {parsedSongs.map((song: any, songIndex: number) => {
               const songAssignments = assignments[song.title] || [{ userId: '', ipiNumber: '', splitPercentage: 100 }];
               const splitTotal = getSplitTotal(song.title);
-              const hasValidAssignments = songAssignments.every(a => a.userId);
-
               return (
                 <div key={songIndex} className="bg-slate-700/30 rounded-lg p-4 space-y-3">
                   <div className="flex items-start justify-between">
@@ -973,8 +972,11 @@ function AnalyticsTab() {
                       fill="#8884d8"
                       dataKey="revenue"
                     >
-                      {stats.proBreakdown.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      {stats.proBreakdown.map((breakdown: any, index: number) => (
+                        <Cell
+                          key={`cell-${breakdown.proType ?? index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
                       ))}
                     </Pie>
                     <Tooltip

@@ -18,7 +18,6 @@ export default function OpportunitiesToolPage() {
   const navigate = useNavigate();
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');

@@ -62,6 +62,14 @@ export const dashboardApi = {
     api.get('/dashboard/stats'),
 };
 
+export type WriterAssignment = {
+  userId: string;
+  ipiNumber?: string;
+  splitPercentage: number;
+};
+
+export type WriterAssignmentsPayload = Record<string, WriterAssignment[]>;
+
 export const statementApi = {
   getStatements: (params?: any) =>
     api.get('/statements', { params }),
@@ -79,7 +87,7 @@ export const statementApi = {
     return api.post('/statements/upload', formData);
   },
 
-  assignWriters: (id: string, assignments: Record<string, string>) =>
+  assignWriters: (id: string, assignments: WriterAssignmentsPayload) =>
     api.post(`/statements/${id}/assign-writers`, { assignments }),
 
   publish: (id: string) =>
