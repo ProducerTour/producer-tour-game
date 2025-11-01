@@ -2,15 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import PublicNavigation from '../components/PublicNavigation';
 import './LandingPage.css';
+import nullyBeats from '@/assets/images/carousel/producers/DSC03658.webp';
+
 
 // Producer data
 // Add images by importing them and adding to the image field:
 // import producerPhoto from '@/assets/images/carousel/producers/your-image.jpg';
 const producersData = [
   {
-    name: "Alex Rivera",
-    genre: "Electronic/House",
-    image: undefined, // Add your imported image here
+    name: "Nully Beats",
+    genre: "Rap/R&B",
+    image: nullyBeats, // Add your imported image here
     gradient: "135deg, #3b82f6, #2563eb",
     stats: [
       { value: "2.5M", label: "Streams" },
