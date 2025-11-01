@@ -1,6 +1,0 @@
-# Deployment blueprint moved
-#
-# The Render blueprint now lives at the repository root in `render.yaml` so it
-# can cover both the frontend static site and the backend API in a single
-# configuration. This placeholder file remains only to avoid breaking older
-# documentation links.
