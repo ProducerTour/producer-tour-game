@@ -1,0 +1,13 @@
+# Ignore backend files for Vercel (frontend only)
+apps/backend
+.renderignore
+render.yaml
+.env
+.env.*
+!.env.example
+node_modules
+dist
+.git
+.gitignore
+README.md
+*.md
