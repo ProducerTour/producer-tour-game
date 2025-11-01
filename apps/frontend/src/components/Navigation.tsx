@@ -1,6 +1,6 @@
 import { useAuthStore } from '../store/auth.store';
 import { useState } from 'react';
-import logo from '@/assets/images/logos/451293708_472378049044476_4990757197796537602_n.jpg';
+import logoDark from '@/assets/images/logos/454655140_472377855711162_1823171071538786267_n.jpg';
 
 interface NavigationProps {
   activeTab?: string;
@@ -23,7 +23,7 @@ export default function Navigation({ activeTab, onTabChange, tabs }: NavigationP
             <div className="flex-shrink-0 flex items-center">
               <div className="flex items-center gap-3">
                 <img
-                  src={logo}
+                  src={logoDark}
                   alt="Producer Tour"
                   className="h-10 w-auto"
                 />

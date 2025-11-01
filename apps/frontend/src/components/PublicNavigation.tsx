@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './PublicNavigation.css';
-import logo from '@/assets/images/logos/451293708_472378049044476_4990757197796537602_n.jpg';
+import logoLight from '@/assets/images/logos/451293708_472378049044476_4990757197796537602_n.jpg';
+import logoDark from '@/assets/images/logos/454655140_472377855711162_1823171071538786267_n.jpg';
 
 interface PublicNavigationProps {
   transparent?: boolean;
@@ -9,6 +10,26 @@ interface PublicNavigationProps {
 
 export default function PublicNavigation({ transparent = false }: PublicNavigationProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  // Track theme changes
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' || 'dark';
+    setTheme(savedTheme);
+
+    // Listen for theme changes
+    const observer = new MutationObserver(() => {
+      const isDark = !document.body.classList.contains('light-mode');
+      setTheme(isDark ? 'dark' : 'light');
+    });
+
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const navLinks = [
     { name: 'Home', href: '/' },
@@ -24,7 +45,7 @@ export default function PublicNavigation({ transparent = false }: PublicNavigati
           {/* Logo and Brand */}
           <Link to="/" className="public-nav-logo">
             <img
-              src={logo}
+              src={theme === 'dark' ? logoDark : logoLight}
               alt="Producer Tour"
               className="h-10 w-auto"
             />
