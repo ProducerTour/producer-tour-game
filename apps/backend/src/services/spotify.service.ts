@@ -40,6 +40,7 @@ interface SpotifySearchResponse {
 class SpotifyService {
   private clientId: string;
   private clientSecret: string;
+  private enabled: boolean;
   private accessToken: string | null = null;
   private tokenExpiry: number = 0;
   private baseURL = 'https://api.spotify.com/v1';
@@ -49,9 +50,13 @@ class SpotifyService {
   constructor() {
     this.clientId = process.env.SPOTIFY_CLIENT_ID || '';
     this.clientSecret = process.env.SPOTIFY_CLIENT_SECRET || '';
+    this.enabled = Boolean(this.clientId && this.clientSecret);
 
-    if (!this.clientId || !this.clientSecret) {
-      throw new Error('Spotify Client ID and Secret must be set in environment variables');
+    if (!this.enabled) {
+      console.warn(
+        'SpotifyService: SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET were not found. ' +
+          'Spotify lookup features will be disabled until these environment variables are set.'
+      );
     }
 
     this.axiosInstance = axios.create({
@@ -59,10 +64,22 @@ class SpotifyService {
     });
   }
 
+  isEnabled() {
+    return this.enabled;
+  }
+
+  private assertEnabled() {
+    if (!this.enabled) {
+      throw new Error('Spotify integration is disabled. Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to enable it.');
+    }
+  }
+
   /**
    * Get or refresh Spotify access token using Client Credentials flow
    */
   private async getAccessToken(): Promise<string> {
+    this.assertEnabled();
+
     // Return cached token if still valid
     if (this.accessToken && Date.now() < this.tokenExpiry) {
       return this.accessToken;

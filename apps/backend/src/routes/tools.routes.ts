@@ -109,6 +109,12 @@ router.post('/spotify/search', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Query parameter is required' });
     }
 
+    if (!spotifyService.isEnabled()) {
+      return res.status(503).json({
+        error: 'Spotify integration is disabled. Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to enable search.',
+      });
+    }
+
     const tracks = await spotifyService.searchTracks(query.trim(), limit);
     const formattedTracks = tracks.map((track) => spotifyService.formatTrackData(track));
 
@@ -134,6 +140,12 @@ router.post('/spotify/isrc', async (req: Request, res: Response) => {
 
     if (!isrc || typeof isrc !== 'string' || isrc.trim().length === 0) {
       return res.status(400).json({ error: 'ISRC code is required' });
+    }
+
+    if (!spotifyService.isEnabled()) {
+      return res.status(503).json({
+        error: 'Spotify integration is disabled. Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to enable lookup.',
+      });
     }
 
     const track = await spotifyService.getTrackByISRC(isrc.trim());
@@ -162,6 +174,12 @@ router.get('/spotify/track/:trackId', async (req: Request, res: Response) => {
 
     if (!trackId || trackId.trim().length === 0) {
       return res.status(400).json({ error: 'Track ID is required' });
+    }
+
+    if (!spotifyService.isEnabled()) {
+      return res.status(503).json({
+        error: 'Spotify integration is disabled. Set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to enable lookup.',
+      });
     }
 
     const track = await spotifyService.getTrackById(trackId);
