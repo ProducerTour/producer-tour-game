@@ -41,7 +41,7 @@ export class ASCAPParser {
 
     // Only throw on critical errors, ignore field count mismatches
     const criticalErrors = parseResult.errors.filter(
-      (error) => error.type !== 'FieldMismatch' && error.type !== 'TooFewFields' && error.type !== 'TooManyFields'
+      (error) => !['FieldMismatch', 'TooFewFields', 'TooManyFields', 'Quotes', 'Delimiter'].includes(error.type as string)
     );
     if (criticalErrors.length > 0) {
       throw new Error(`CSV Parse Error: ${criticalErrors[0].message}`);
