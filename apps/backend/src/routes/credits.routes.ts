@@ -1,6 +1,6 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -12,7 +12,7 @@ router.use(authenticate);
  * GET /api/credits
  * Get all credits for the authenticated user
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
 
@@ -40,7 +40,7 @@ router.get('/', async (req: Request, res: Response) => {
  * GET /api/credits/:id
  * Get a specific credit by ID
  */
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;
@@ -75,7 +75,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * Create a new credit
  * Body: { songTitle, role, ipiNumber?, splitPercentage, metadata?, notes? }
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
 
@@ -127,7 +127,7 @@ router.post('/', async (req: Request, res: Response) => {
  * PUT /api/credits/:id
  * Update a credit
  */
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;
@@ -186,7 +186,7 @@ router.put('/:id', async (req: Request, res: Response) => {
  * DELETE /api/credits/:id
  * Delete a credit
  */
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;

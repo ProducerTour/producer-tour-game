@@ -1,6 +1,6 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -78,7 +78,7 @@ function calculateAdvance(params: {
  * GET /api/advance-scenarios
  * Get all advance scenarios for the authenticated user
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
 
@@ -106,7 +106,7 @@ router.get('/', async (req: Request, res: Response) => {
  * GET /api/advance-scenarios/:id
  * Get a specific advance scenario by ID
  */
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;
@@ -141,7 +141,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * Calculate advance estimate without saving
  * Body: { catalogSize, monthlyRoyalties, contractLength, artistIncome, includeNewReleases, switchDistributors }
  */
-router.post('/calculate', async (req: Request, res: Response) => {
+router.post('/calculate', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
 
@@ -200,7 +200,7 @@ router.post('/calculate', async (req: Request, res: Response) => {
  * Create and save a new advance scenario
  * Body: { scenarioName, catalogSize, monthlyRoyalties, contractLength, artistIncome, includeNewReleases, switchDistributors, notes? }
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
 
@@ -268,7 +268,7 @@ router.post('/', async (req: Request, res: Response) => {
  * PUT /api/advance-scenarios/:id
  * Update an advance scenario
  */
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;
@@ -353,7 +353,7 @@ router.put('/:id', async (req: Request, res: Response) => {
  * DELETE /api/advance-scenarios/:id
  * Delete an advance scenario
  */
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;

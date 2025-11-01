@@ -44,9 +44,8 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const jwtOptions: SignOptions = {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    };
+    const expiresIn = (process.env.JWT_EXPIRES_IN ?? '7d') as SignOptions['expiresIn'];
+    const jwtOptions: SignOptions = { expiresIn };
     const token = jwt.sign(
       {
         userId: user.id,
@@ -109,9 +108,8 @@ router.post('/register', async (req: Request, res: Response) => {
     });
 
     // Generate token
-    const jwtOptions: SignOptions = {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    };
+    const expiresIn = (process.env.JWT_EXPIRES_IN ?? '7d') as SignOptions['expiresIn'];
+    const jwtOptions: SignOptions = { expiresIn };
     const token = jwt.sign(
       {
         userId: user.id,

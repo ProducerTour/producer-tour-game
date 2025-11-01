@@ -40,9 +40,10 @@ export class BMIParser {
     }
 
     // Only throw on critical errors, ignore field count mismatches
-    const criticalErrors = parseResult.errors.filter(
-      (error) => error.type !== 'FieldMismatch' && error.type !== 'TooFewFields' && error.type !== 'TooManyFields'
-    );
+    const criticalErrors = parseResult.errors.filter((error) => {
+      const errorType = error.type as string;
+      return !['FieldMismatch', 'TooFewFields', 'TooManyFields'].includes(errorType);
+    });
     if (criticalErrors.length > 0) {
       throw new Error(`CSV Parse Error: ${criticalErrors[0].message}`);
     }

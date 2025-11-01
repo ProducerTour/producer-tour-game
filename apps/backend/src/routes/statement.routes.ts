@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.middleware';
 import { StatementParserFactory } from '../parsers';
@@ -60,6 +60,16 @@ router.post(
       );
 
       // Create statement record with parsed items stored in metadata
+      const metadataPayload = {
+        ...parseResult.metadata,
+        parsedItems: parseResult.items.map((item) => ({
+          ...item,
+          metadata: item.metadata ?? {},
+        })),
+        songs: Array.from(parseResult.songs.values()),
+        warnings: parseResult.warnings,
+      } as unknown as Prisma.InputJsonValue;
+
       const statement = await prisma.statement.create({
         data: {
           proType,
@@ -68,12 +78,7 @@ router.post(
           status: 'UPLOADED', // Changed to UPLOADED - needs writer assignment before PROCESSED
           totalRevenue: parseResult.totalRevenue,
           totalPerformances: parseResult.totalPerformances,
-          metadata: {
-            ...parseResult.metadata,
-            parsedItems: parseResult.items, // Store parsed items for later assignment
-            songs: Array.from(parseResult.songs.values()),
-            warnings: parseResult.warnings,
-          },
+          metadata: metadataPayload,
         },
       });
 

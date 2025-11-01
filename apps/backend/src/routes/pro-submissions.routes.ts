@@ -1,6 +1,6 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -12,7 +12,7 @@ router.use(authenticate);
  * GET /api/pro-submissions
  * Get all PRO submissions for the authenticated user
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
 
@@ -40,7 +40,7 @@ router.get('/', async (req: Request, res: Response) => {
  * GET /api/pro-submissions/latest
  * Get the latest submission date for each PRO
  */
-router.get('/latest', async (req: Request, res: Response) => {
+router.get('/latest', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
 
@@ -76,7 +76,7 @@ router.get('/latest', async (req: Request, res: Response) => {
  * GET /api/pro-submissions/:id
  * Get a specific PRO submission by ID
  */
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;
@@ -111,7 +111,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * Create a new PRO submission record
  * Body: { proName, submittedAt, placementIds?, metadata?, notes? }
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
 
@@ -163,7 +163,7 @@ router.post('/', async (req: Request, res: Response) => {
  * PUT /api/pro-submissions/:id
  * Update a PRO submission
  */
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;
@@ -223,7 +223,7 @@ router.put('/:id', async (req: Request, res: Response) => {
  * DELETE /api/pro-submissions/:id
  * Delete a PRO submission
  */
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;

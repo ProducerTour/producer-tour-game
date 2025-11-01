@@ -1,6 +1,6 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -12,7 +12,7 @@ router.use(authenticate);
  * GET /api/placements
  * Get all placements for the authenticated user
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
 
@@ -40,7 +40,7 @@ router.get('/', async (req: Request, res: Response) => {
  * GET /api/placements/analytics
  * Get analytics data calculated from user's placements
  */
-router.get('/analytics', async (req: Request, res: Response) => {
+router.get('/analytics', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
 
@@ -101,7 +101,7 @@ router.get('/analytics', async (req: Request, res: Response) => {
  * GET /api/placements/:id
  * Get a specific placement by ID
  */
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;
@@ -136,7 +136,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * Create a new placement
  * Body: { title, artist, platform, releaseDate, isrc?, spotifyTrackId?, streams?, status?, metadata? }
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
 
@@ -194,7 +194,7 @@ router.post('/', async (req: Request, res: Response) => {
  * PUT /api/placements/:id
  * Update a placement
  */
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;
@@ -258,7 +258,7 @@ router.put('/:id', async (req: Request, res: Response) => {
  * DELETE /api/placements/:id
  * Delete a placement
  */
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
     const { id } = req.params;
