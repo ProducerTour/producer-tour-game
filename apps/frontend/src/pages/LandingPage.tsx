@@ -123,7 +123,7 @@ export default function LandingPage() {
   useEffect(() => {
     carouselInterval.current = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % producersData.length);
-    }, 6000);
+    }, 6000) as unknown as number;
 
     return () => {
       if (carouselInterval.current) clearInterval(carouselInterval.current);

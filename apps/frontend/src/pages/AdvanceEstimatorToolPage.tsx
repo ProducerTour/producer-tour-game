@@ -117,7 +117,7 @@ export default function AdvanceEstimatorToolPage() {
     debounceTimer.current = setTimeout(() => {
       setIsDebouncing(false);
       calculateAdvance();
-    }, 500);
+    }, 500) as unknown as number;
 
     // Cleanup on unmount
     return () => {
