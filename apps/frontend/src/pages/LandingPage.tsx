@@ -101,7 +101,7 @@ export default function LandingPage() {
   const [emailMessage, setEmailMessage] = useState<{type: 'success' | 'error' | '', text: string}>({type: '', text: ''});
 
   const heroRef = useRef<HTMLElement>(null);
-  const carouselInterval = useRef<NodeJS.Timeout>();
+  const carouselInterval = useRef<number>();
 
   // Theme toggle
   useEffect(() => {

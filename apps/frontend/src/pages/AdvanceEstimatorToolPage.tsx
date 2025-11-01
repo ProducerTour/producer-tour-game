@@ -100,7 +100,7 @@ export default function AdvanceEstimatorToolPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   // Debounce timer and pending state
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimer = useRef<number | null>(null);
   const [isDebouncing, setIsDebouncing] = useState(false);
 
   // Calculate on mount and when parameters change (with debounce)
