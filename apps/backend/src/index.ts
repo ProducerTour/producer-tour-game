@@ -28,23 +28,34 @@ const app: Express = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware - CORS Configuration
-const corsOrigins = [
+const allowedOrigins = [
   'http://localhost:5173', // Local development
   'http://localhost:3000',  // Local backend
-  process.env.CORS_ORIGIN,  // Production domain from env
-].filter(Boolean); // Remove undefined values
+  'https://website-frontend-producer-tour.vercel.app', // Main production domain
+];
 
 app.use(cors({
   origin: (origin, callback) => {
     console.log('CORS Check:');
     console.log('Request Origin:', origin);
-    console.log('Allowed Origins:', corsOrigins);
+    console.log('Allowed Static Origins:', allowedOrigins);
+
     // Allow requests with no origin (like mobile apps or Postman)
-    if (!origin || corsOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    if (!origin) {
+      return callback(null, true);
     }
+
+    // Allow static origins
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Allow Vercel preview deployments
+    if (origin.endsWith('-producer-tour.vercel.app')) {
+      return callback(null, true);
+    }
+
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
