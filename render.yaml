@@ -3,7 +3,7 @@ services:
     name: producer-tour-api
     env: node
     runtime: node
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npm run build:backend && npm run db:generate --workspace=apps/backend
     startCommand: npm run start --workspace=apps/backend
     healthCheckPath: /health
     envVars:
