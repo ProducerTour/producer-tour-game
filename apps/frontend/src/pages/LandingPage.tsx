@@ -18,10 +18,10 @@ const producersData = [
       { value: "2.5M", label: "Streams" },
       { value: "8", label: "Playlists" }
     ],
-    accomplishment: "Secured placement on Spotify's Summer Hits playlist with debut track"
+    accomplishment: "Producer, COO, and Head Developer of Producer Tour, 15+ years in music"
   },
   {
-    name: "Jordan Lee",
+    name: "Dxntemadeit",
     genre: "Hip-Hop/Trap",
     image: undefined, // Add your imported image here
     gradient: "135deg, #06b6d4, #0891b2",
@@ -32,8 +32,8 @@ const producersData = [
     accomplishment: "Collaborated with 3 charting artists, earned $50K in first 6 months"
   },
   {
-    name: "Sam Chen",
-    genre: "Lo-Fi/Ambient",
+    name: "Doc Rolds",
+    genre: "Multi-Genre",
     image: undefined, // Add your imported image here
     gradient: "135deg, #ec4899, #db2777",
     stats: [
@@ -43,7 +43,7 @@ const producersData = [
     accomplishment: "Album hit #2 on Lo-Fi charts, consistent monthly 100K+ listeners"
   },
   {
-    name: "Maya Patel",
+    name: "Zay Cartier",
     genre: "Indie/Pop",
     image: undefined, // Add your imported image here
     gradient: "135deg, #f59e0b, #d97706",
