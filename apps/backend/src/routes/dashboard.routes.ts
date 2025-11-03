@@ -8,6 +8,7 @@ const prisma = new PrismaClient();
 /**
  * GET /api/dashboard/summary
  * Get earnings summary for current user (Writer dashboard)
+ * WRITERS SEE: Net revenue (after commissions)
  */
 router.get('/summary', authenticate, async (req: AuthRequest, res: Response) => {
   try {
@@ -17,13 +18,13 @@ router.get('/summary', authenticate, async (req: AuthRequest, res: Response) => 
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    // Total earnings (all time)
+    // Total earnings (all time) - NET revenue (what writer actually receives)
     const totalEarnings = await prisma.statementItem.aggregate({
       where: { userId },
-      _sum: { revenue: true, performances: true },
+      _sum: { netRevenue: true, performances: true },
     });
 
-    // Year-to-date earnings
+    // Year-to-date earnings - NET
     const ytdEarnings = await prisma.statementItem.aggregate({
       where: {
         userId,
@@ -32,16 +33,16 @@ router.get('/summary', authenticate, async (req: AuthRequest, res: Response) => 
           { createdAt: { gte: yearStart } },
         ],
       },
-      _sum: { revenue: true },
+      _sum: { netRevenue: true },
     });
 
-    // Last month earnings
+    // Last month earnings - NET
     const lastMonthEarnings = await prisma.statementItem.aggregate({
       where: {
         userId,
         periodStart: { gte: lastMonthStart, lte: lastMonthEnd },
       },
-      _sum: { revenue: true },
+      _sum: { netRevenue: true },
     });
 
     // Total songs
@@ -51,9 +52,9 @@ router.get('/summary', authenticate, async (req: AuthRequest, res: Response) => 
     });
 
     res.json({
-      totalEarnings: totalEarnings._sum.revenue || 0,
-      yearToDate: ytdEarnings._sum.revenue || 0,
-      lastMonth: lastMonthEarnings._sum.revenue || 0,
+      totalEarnings: totalEarnings._sum.netRevenue || 0,
+      yearToDate: ytdEarnings._sum.netRevenue || 0,
+      lastMonth: lastMonthEarnings._sum.netRevenue || 0,
       totalPerformances: totalEarnings._sum.performances || 0,
       totalSongs: songsCount.length,
     });
@@ -66,6 +67,7 @@ router.get('/summary', authenticate, async (req: AuthRequest, res: Response) => 
 /**
  * GET /api/dashboard/songs
  * Get user's songs with aggregated earnings
+ * WRITERS SEE: Net revenue (after commissions)
  */
 router.get('/songs', authenticate, async (req: AuthRequest, res: Response) => {
   try {
@@ -76,7 +78,7 @@ router.get('/songs', authenticate, async (req: AuthRequest, res: Response) => {
       by: ['workTitle'],
       where: { userId },
       _sum: {
-        revenue: true,
+        netRevenue: true,
         performances: true,
       },
       _count: {
@@ -84,7 +86,7 @@ router.get('/songs', authenticate, async (req: AuthRequest, res: Response) => {
       },
       orderBy: {
         _sum: {
-          revenue: 'desc',
+          netRevenue: 'desc',
         },
       },
       take: parseInt(limit as string),
@@ -93,7 +95,7 @@ router.get('/songs', authenticate, async (req: AuthRequest, res: Response) => {
 
     const formattedSongs = songs.map((song) => ({
       title: song.workTitle,
-      totalRevenue: song._sum.revenue || 0,
+      totalRevenue: song._sum.netRevenue || 0,
       totalPerformances: song._sum.performances || 0,
       statementCount: song._count.id,
     }));
@@ -108,17 +110,18 @@ router.get('/songs', authenticate, async (req: AuthRequest, res: Response) => {
 /**
  * GET /api/dashboard/timeline
  * Get earnings timeline (monthly breakdown)
+ * WRITERS SEE: Net revenue (after commissions)
  */
 router.get('/timeline', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const { months = '12' } = req.query;
 
-    // Get statement items with period info
+    // Get statement items with period info - NET revenue for writers
     const items = await prisma.statementItem.findMany({
       where: { userId },
       select: {
-        revenue: true,
+        netRevenue: true,
         periodStart: true,
         createdAt: true,
       },
@@ -133,7 +136,7 @@ router.get('/timeline', authenticate, async (req: AuthRequest, res: Response) =>
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
       const current = monthlyData.get(monthKey) || 0;
-      monthlyData.set(monthKey, current + Number(item.revenue));
+      monthlyData.set(monthKey, current + Number(item.netRevenue));
     });
 
     const timeline = Array.from(monthlyData.entries())
@@ -150,6 +153,7 @@ router.get('/timeline', authenticate, async (req: AuthRequest, res: Response) =>
 /**
  * GET /api/dashboard/stats (Admin)
  * Get platform-wide statistics
+ * ADMIN SEES: BOTH gross and net revenue, plus commission breakdown
  */
 router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
   try {
@@ -161,11 +165,12 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
       totalWriters,
       totalStatements,
       processedStatements,
-      totalRevenue,
+      revenueStats,
       uniqueWorks,
       recentStatements,
       proBreakdown,
-      monthlyRevenue
+      monthlyRevenue,
+      commissionBreakdown
     ] = await Promise.all([
       // Total writers
       prisma.user.count({ where: { role: 'WRITER' } }),
@@ -180,8 +185,14 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
         }
       }),
 
-      // Total revenue
-      prisma.statementItem.aggregate({ _sum: { revenue: true } }),
+      // Revenue stats: gross, net, and commissions
+      prisma.statementItem.aggregate({
+        _sum: {
+          revenue: true,  // Gross revenue (before commission)
+          netRevenue: true,  // Net revenue (after commission)
+          commissionAmount: true  // Total commissions
+        }
+      }),
 
       // Unique works (songs)
       prisma.statementItem.groupBy({
@@ -198,6 +209,8 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
           filename: true,
           status: true,
           totalRevenue: true,
+          totalNet: true,
+          totalCommission: true,
           uploadDate: true,
         },
       }),
@@ -207,7 +220,9 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
         by: ['proType'],
         _count: true,
         _sum: {
-          totalRevenue: true
+          totalRevenue: true,
+          totalNet: true,
+          totalCommission: true
         }
       }),
 
@@ -215,50 +230,94 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
       prisma.statementItem.findMany({
         select: {
           revenue: true,
+          netRevenue: true,
+          commissionAmount: true,
           createdAt: true,
         },
         orderBy: { createdAt: 'asc' },
       }),
+
+      // Commission breakdown by recipient
+      prisma.statementItem.groupBy({
+        by: ['commissionRecipient'],
+        _sum: {
+          commissionAmount: true
+        },
+        where: {
+          commissionRecipient: { not: null }
+        }
+      })
     ]);
 
-    // Process monthly revenue data
-    const monthlyData = new Map<string, number>();
+    // Process monthly revenue data - track gross, net, and commission
+    const monthlyGross = new Map<string, number>();
+    const monthlyNet = new Map<string, number>();
+    const monthlyCommission = new Map<string, number>();
     const now = new Date();
 
     // Initialize last 12 months with zero
     for (let i = 11; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      monthlyData.set(key, 0);
+      monthlyGross.set(key, 0);
+      monthlyNet.set(key, 0);
+      monthlyCommission.set(key, 0);
     }
 
     // Aggregate actual revenue
     monthlyRevenue.forEach((item) => {
       const date = item.createdAt;
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      if (monthlyData.has(key)) {
-        monthlyData.set(key, (monthlyData.get(key) || 0) + Number(item.revenue));
+      if (monthlyGross.has(key)) {
+        monthlyGross.set(key, (monthlyGross.get(key) || 0) + Number(item.revenue));
+        monthlyNet.set(key, (monthlyNet.get(key) || 0) + Number(item.netRevenue));
+        monthlyCommission.set(key, (monthlyCommission.get(key) || 0) + Number(item.commissionAmount));
       }
     });
 
-    const revenueTimeline = Array.from(monthlyData.entries()).map(([month, revenue]) => ({
+    const revenueTimeline = Array.from(monthlyGross.entries()).map(([month, gross]) => ({
       month,
-      revenue: Number(revenue.toFixed(2))
+      revenue: Number(gross.toFixed(2)), // Gross for chart compatibility
+      grossRevenue: Number(gross.toFixed(2)),
+      netRevenue: Number((monthlyNet.get(month) || 0).toFixed(2)),
+      commission: Number((monthlyCommission.get(month) || 0).toFixed(2))
     }));
 
     res.json({
       totalWriters,
       totalStatements,
       processedStatements,
-      totalRevenue: totalRevenue._sum.revenue || 0,
+
+      // Revenue breakdown: gross, net, and commissions
+      totalRevenue: revenueStats._sum.revenue || 0,  // Gross
+      totalNet: revenueStats._sum.netRevenue || 0,  // Net (what writers receive)
+      totalCommission: revenueStats._sum.commissionAmount || 0,  // Total commissions
+
       uniqueWorks: uniqueWorks.length,
       recentStatements,
+
+      // PRO breakdown with gross, net, and commission
       proBreakdown: proBreakdown.map(p => ({
         proType: p.proType,
         count: p._count,
-        revenue: Number(p._sum.totalRevenue || 0)
+        revenue: Number(p._sum.totalRevenue || 0),  // Gross
+        netRevenue: Number(p._sum.totalNet || 0),  // Net
+        commission: Number(p._sum.totalCommission || 0)  // Commission
       })),
-      revenueTimeline
+
+      // Commission breakdown by recipient
+      commissionsByRecipient: commissionBreakdown.map(c => ({
+        recipient: c.commissionRecipient || 'Unknown',
+        totalCommission: Number(c._sum.commissionAmount || 0)
+      })),
+
+      revenueTimeline,
+
+      // Statement breakdown by PRO
+      statementsByPRO: proBreakdown.map(p => ({
+        proType: p.proType,
+        count: p._count
+      }))
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);

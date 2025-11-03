@@ -146,8 +146,13 @@ model Statement {
   uploadDate        DateTime        @default(now())
   publishedAt       DateTime?
   publishedById     String?
-  totalRevenue      Decimal         @default(0) @db.Decimal(12, 2)
+  totalRevenue      Decimal         @default(0) @db.Decimal(12, 2) // Gross revenue (before commission)
   totalPerformances Int             @default(0)
+
+  // Commission totals
+  totalCommission   Decimal         @default(0) @db.Decimal(12, 2) // Total commission amount
+  totalNet          Decimal         @default(0) @db.Decimal(12, 2) // Total net (after commission)
+
   statementPeriod   String?
   periodStart       DateTime?
   periodEnd         DateTime?
@@ -172,10 +177,17 @@ model StatementItem {
   workTitle       String
   userId          String
   producerId      String?   // Optional - not all writers have producers
-  revenue         Decimal  @db.Decimal(12, 2)
+  revenue         Decimal  @db.Decimal(12, 2) // Gross revenue (before commission)
   performances    Int      @default(0)
   splitPercentage Decimal? @default(100.00) @db.Decimal(5, 2) // Writer's percentage share (0.00-100.00)
   writerIpiNumber String?  // IPI number at time of assignment
+
+  // Commission tracking
+  commissionRate     Decimal  @default(0.00) @db.Decimal(5, 2) // Commission percentage (0.00-100.00)
+  commissionAmount   Decimal  @default(0.00) @db.Decimal(12, 2) // Calculated commission in dollars
+  commissionRecipient String? // Who receives commission (e.g., "Producer Tour", "Admin Fee")
+  netRevenue         Decimal  @default(0.00) @db.Decimal(12, 2) // Revenue after commission (what writer receives)
+
   periodStart     DateTime?
   periodEnd       DateTime?
   metadata        Json?
