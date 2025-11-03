@@ -1,9 +1,9 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { authenticate } from '../middleware/auth.middleware';
+import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -56,7 +56,7 @@ const upload = multer({
  * POST /api/documents/upload
  * Upload a new document
  */
-router.post('/upload', authenticate, upload.single('file'), async (req: Request, res: Response) => {
+router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequest, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -87,7 +87,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: Request,
         category,
         description: description || null,
         visibility: visibility || 'ADMIN_ONLY',
-        uploadedById: req.user!.userId,
+        uploadedById: req.user!.id,
         relatedUserId: relatedUserId || null,
         statementId: statementId || null,
         tags: tags ? JSON.parse(tags) : null
@@ -130,7 +130,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: Request,
  * GET /api/documents
  * List all documents (filtered by user permissions)
  */
-router.get('/', authenticate, async (req: Request, res: Response) => {
+router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { category, visibility, relatedUserId } = req.query;
     const isAdmin = req.user!.role === 'ADMIN';
@@ -155,8 +155,8 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
     // Non-admins can only see documents they uploaded or documents assigned to them
     if (!isAdmin) {
       where.OR = [
-        { uploadedById: req.user!.userId },
-        { relatedUserId: req.user!.userId },
+        { uploadedById: req.user!.id },
+        { relatedUserId: req.user!.id },
         { visibility: 'ALL_WRITERS' }
       ];
     }
@@ -207,7 +207,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
  * GET /api/documents/:id
  * Get a single document by ID
  */
-router.get('/:id', authenticate, async (req: Request, res: Response) => {
+router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const isAdmin = req.user!.role === 'ADMIN';
@@ -247,8 +247,8 @@ router.get('/:id', authenticate, async (req: Request, res: Response) => {
 
     // Check permissions
     const canAccess = isAdmin ||
-      document.uploadedById === req.user!.userId ||
-      document.relatedUserId === req.user!.userId ||
+      document.uploadedById === req.user!.id ||
+      document.relatedUserId === req.user!.id ||
       document.visibility === 'ALL_WRITERS';
 
     if (!canAccess) {
@@ -269,7 +269,7 @@ router.get('/:id', authenticate, async (req: Request, res: Response) => {
  * GET /api/documents/:id/download
  * Download a document
  */
-router.get('/:id/download', authenticate, async (req: Request, res: Response) => {
+router.get('/:id/download', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const isAdmin = req.user!.role === 'ADMIN';
@@ -284,8 +284,8 @@ router.get('/:id/download', authenticate, async (req: Request, res: Response) =>
 
     // Check permissions
     const canAccess = isAdmin ||
-      document.uploadedById === req.user!.userId ||
-      document.relatedUserId === req.user!.userId ||
+      document.uploadedById === req.user!.id ||
+      document.relatedUserId === req.user!.id ||
       document.visibility === 'ALL_WRITERS';
 
     if (!canAccess) {
@@ -308,7 +308,7 @@ router.get('/:id/download', authenticate, async (req: Request, res: Response) =>
  * PUT /api/documents/:id
  * Update document metadata (admin only)
  */
-router.put('/:id', authenticate, async (req: Request, res: Response) => {
+router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const {
@@ -367,7 +367,7 @@ router.put('/:id', authenticate, async (req: Request, res: Response) => {
  * DELETE /api/documents/:id
  * Delete a document (admin only)
  */
-router.delete('/:id', authenticate, async (req: Request, res: Response) => {
+router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
