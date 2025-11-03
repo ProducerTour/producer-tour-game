@@ -19,6 +19,7 @@ import placementsRoutes from './routes/placements.routes';
 import creditsRoutes from './routes/credits.routes';
 import proSubmissionsRoutes from './routes/pro-submissions.routes';
 import advanceScenariosRoutes from './routes/advance-scenarios.routes';
+import documentsRoutes from './routes/documents.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -96,6 +97,7 @@ app.use('/api/placements', placementsRoutes);
 app.use('/api/credits', creditsRoutes);
 app.use('/api/pro-submissions', proSubmissionsRoutes);
 app.use('/api/advance-scenarios', advanceScenariosRoutes);
+app.use('/api/documents', documentsRoutes);
 
 // Error handling
 app.use(notFoundHandler);

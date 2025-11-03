@@ -227,3 +227,39 @@ export const advanceScenarioApi = {
   delete: (id: string) =>
     api.delete(`/advance-scenarios/${id}`),
 };
+
+export const documentApi = {
+  list: (params?: any) =>
+    api.get('/documents', { params }),
+
+  get: (id: string) =>
+    api.get(`/documents/${id}`),
+
+  upload: (file: File, metadata: {
+    category: string;
+    description?: string;
+    visibility?: string;
+    relatedUserId?: string;
+    statementId?: string;
+    tags?: string[];
+  }) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', metadata.category);
+    if (metadata.description) formData.append('description', metadata.description);
+    if (metadata.visibility) formData.append('visibility', metadata.visibility);
+    if (metadata.relatedUserId) formData.append('relatedUserId', metadata.relatedUserId);
+    if (metadata.statementId) formData.append('statementId', metadata.statementId);
+    if (metadata.tags) formData.append('tags', JSON.stringify(metadata.tags));
+    return api.post('/documents/upload', formData);
+  },
+
+  download: (id: string) =>
+    api.get(`/documents/${id}/download`, { responseType: 'blob' }),
+
+  update: (id: string, data: any) =>
+    api.put(`/documents/${id}`, data),
+
+  delete: (id: string) =>
+    api.delete(`/documents/${id}`),
+};

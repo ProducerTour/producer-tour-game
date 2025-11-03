@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { dashboardApi, statementApi } from '../lib/api';
+import { dashboardApi, statementApi, documentApi } from '../lib/api';
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import Navigation from '../components/Navigation';
@@ -7,12 +7,13 @@ import Navigation from '../components/Navigation';
 const COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4'];
 
 export default function WriterDashboard() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents'>('overview');
 
   const writerTabs = [
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'songs', label: 'My Songs', icon: '🎵' },
     { id: 'statements', label: 'Statements', icon: '📄' },
+    { id: 'documents', label: 'Documents', icon: '📁' },
   ];
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
@@ -263,8 +264,136 @@ export default function WriterDashboard() {
                 )}
               </div>
             )}
+
+            {activeTab === 'documents' && <WriterDocumentsSection />}
           </div>
       </main>
+    </div>
+  );
+}
+
+function WriterDocumentsSection() {
+  const { data: documentsData, isLoading } = useQuery({
+    queryKey: ['writer-documents'],
+    queryFn: async () => {
+      const response = await documentApi.list();
+      return response.data;
+    }
+  });
+
+  const handleDownload = async (id: string, filename: string) => {
+    try {
+      const response = await documentApi.download(id);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download document');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getCategoryLabel = (category: string) => {
+    const labels: Record<string, string> = {
+      PRE_PROCESSED_STATEMENT: 'Pre-Processed Statement',
+      PROCESSED_STATEMENT: 'Processed Statement',
+      CONTRACT: 'Contract',
+      AGREEMENT: 'Agreement',
+      INVOICE: 'Invoice',
+      TAX_DOCUMENT: 'Tax Document',
+      OTHER: 'Other'
+    };
+    return labels[category] || category;
+  };
+
+  return (
+    <div>
+      <h3 className="text-lg font-medium text-white mb-4">My Documents</h3>
+      <p className="text-sm text-gray-400 mb-6">
+        Access your contracts, statements, and other important documents
+      </p>
+
+      {isLoading ? (
+        <div className="text-center text-gray-400 py-8">Loading...</div>
+      ) : documentsData?.documents?.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {documentsData.documents.map((doc: any) => (
+            <div
+              key={doc.id}
+              className="bg-slate-700/30 border border-slate-600 rounded-lg p-5 hover:border-primary-500/50 transition-all"
+            >
+              {/* Document Icon & Name */}
+              <div className="flex items-start gap-3 mb-3">
+                <div className="flex-shrink-0 w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-6 h-6 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-medium text-white truncate">{doc.originalName}</h4>
+                  <p className="text-xs text-gray-400 mt-1">{formatFileSize(doc.fileSize)}</p>
+                </div>
+              </div>
+
+              {/* Description */}
+              {doc.description && (
+                <p className="text-xs text-gray-400 mb-3 line-clamp-2">{doc.description}</p>
+              )}
+
+              {/* Category Badge */}
+              <div className="mb-3">
+                <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-500/20 text-blue-400">
+                  {getCategoryLabel(doc.category)}
+                </span>
+              </div>
+
+              {/* Upload Date */}
+              <p className="text-xs text-gray-500 mb-4">
+                Uploaded: {formatDate(doc.createdAt)}
+              </p>
+
+              {/* Download Button */}
+              <button
+                onClick={() => handleDownload(doc.id, doc.originalName)}
+                className="w-full px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                Download
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <svg className="mx-auto h-12 w-12 text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p className="text-gray-400">No documents available yet</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Documents will appear here when your admin uploads them
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,8 +5,9 @@ import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Navigation from '../components/Navigation';
 import ToolsHub from '../components/ToolsHub';
+import DocumentsTab from '../components/DocumentsTab';
 
-type TabType = 'statements' | 'writers' | 'analytics' | 'tools';
+type TabType = 'statements' | 'writers' | 'analytics' | 'documents' | 'tools';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('statements');
@@ -15,6 +16,7 @@ export default function AdminDashboard() {
     { id: 'statements', label: 'Statements', icon: '📊' },
     { id: 'writers', label: 'Writers', icon: '👥' },
     { id: 'analytics', label: 'Analytics', icon: '📈' },
+    { id: 'documents', label: 'Documents', icon: '📄' },
     { id: 'tools', label: 'Tools Hub', icon: '🛠️' },
   ];
 
@@ -31,6 +33,7 @@ export default function AdminDashboard() {
           {activeTab === 'statements' && <StatementsTab />}
           {activeTab === 'writers' && <WritersTab />}
           {activeTab === 'analytics' && <AnalyticsTab />}
+          {activeTab === 'documents' && <DocumentsTab />}
           {activeTab === 'tools' && <ToolsHub />}
         </div>
       </main>

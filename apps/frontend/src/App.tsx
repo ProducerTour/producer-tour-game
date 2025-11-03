@@ -15,6 +15,7 @@ import RoyaltyPortalPage from './pages/RoyaltyPortalPage';
 import OpportunitiesToolPage from './pages/OpportunitiesToolPage';
 import PublishingTrackerToolPage from './pages/PublishingTrackerToolPage';
 import AdvanceEstimatorToolPage from './pages/AdvanceEstimatorToolPage';
+import SettingsPage from './pages/SettingsPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -63,6 +64,15 @@ function App() {
           element={
             <PrivateRoute roles={['ADMIN']}>
               <AdminDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <PrivateRoute>
+              <SettingsPage />
             </PrivateRoute>
           }
         />
