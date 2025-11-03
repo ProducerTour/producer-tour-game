@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { dashboardApi, statementApi, documentApi } from '../lib/api';
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import Navigation from '../components/Navigation';
+import Sidebar from '../components/Sidebar';
 
 const COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4'];
 
@@ -63,14 +63,17 @@ export default function WriterDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <Navigation
+    <div className="flex h-screen bg-slate-900 overflow-hidden">
+      {/* Left Sidebar */}
+      <Sidebar
         activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab as 'overview' | 'songs' | 'statements')}
+        onTabChange={(tab) => setActiveTab(tab as 'overview' | 'songs' | 'statements' | 'documents')}
         tabs={writerTabs}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         {summaryLoading ? (
           <div className="text-center text-gray-400 py-12">Loading...</div>
@@ -267,6 +270,7 @@ export default function WriterDashboard() {
 
             {activeTab === 'documents' && <WriterDocumentsSection />}
           </div>
+        </div>
       </main>
     </div>
   );

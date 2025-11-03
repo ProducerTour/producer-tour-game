@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dashboardApi, statementApi, userApi } from '../lib/api';
 import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import Navigation from '../components/Navigation';
+import Sidebar from '../components/Sidebar';
 import ToolsHub from '../components/ToolsHub';
 import DocumentsTab from '../components/DocumentsTab';
 
@@ -22,15 +22,17 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <Navigation
+    <div className="flex h-screen bg-slate-900 overflow-hidden">
+      {/* Left Sidebar */}
+      <Sidebar
         activeTab={activeTab}
         onTabChange={(tab) => setActiveTab(tab as TabType)}
         tabs={adminTabs}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className={activeTab === 'tools' || activeTab === 'overview' ? '' : 'bg-slate-800 rounded-lg shadow-xl p-6'}>
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="p-8">
           {activeTab === 'overview' && <DashboardOverview />}
           {activeTab === 'statements' && <StatementsTab />}
           {activeTab === 'writers' && <WritersTab />}
