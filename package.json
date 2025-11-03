@@ -17,15 +17,11 @@
     "db:studio": "npm run db:studio --workspace=apps/backend",
     "db:migrate": "npm run db:migrate --workspace=apps/backend",
     "db:generate": "npm run db:generate --workspace=apps/backend",
-    "typecheck": "npm run typecheck --workspaces",
-    "start:render": "prisma migrate deploy && node apps/backend/dist/index.js"
+    "typecheck": "npm run typecheck --workspaces"
   },
   "keywords": ["music", "publishing", "royalties", "PRO"],
   "author": "Producer Tour",
   "license": "MIT",
-  "prisma": {
-    "schema": "apps/backend/prisma/schema.prisma"
-  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   }

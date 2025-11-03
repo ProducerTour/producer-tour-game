@@ -1,14 +1,14 @@
 import { Router, Response } from 'express';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.middleware';
 import { StatementParserFactory } from '../parsers';
 import { UploadedFile } from 'express-fileupload';
 import path from 'path';
 import fs from 'fs/promises';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 /**
  * POST /api/statements/upload

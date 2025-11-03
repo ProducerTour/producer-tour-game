@@ -9,9 +9,14 @@ export const api = axios.create({
 // Request interceptor - add auth token and content type
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Don't add token to public auth endpoints (login/register)
+    const isAuthEndpoint = config.url?.includes('/auth/login') || config.url?.includes('/auth/register');
+
+    if (!isAuthEndpoint) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
 
     // Set Content-Type to application/json for non-FormData requests
