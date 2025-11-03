@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -56,7 +56,7 @@ const upload = multer({
  * POST /api/documents/upload
  * Upload a new document
  */
-router.post('/upload', authMiddleware, upload.single('file'), async (req: Request, res: Response) => {
+router.post('/upload', authenticate, upload.single('file'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -130,7 +130,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req: Reques
  * GET /api/documents
  * List all documents (filtered by user permissions)
  */
-router.get('/', authMiddleware, async (req: Request, res: Response) => {
+router.get('/', authenticate, async (req: Request, res: Response) => {
   try {
     const { category, visibility, relatedUserId } = req.query;
     const isAdmin = req.user!.role === 'ADMIN';
@@ -207,7 +207,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
  * GET /api/documents/:id
  * Get a single document by ID
  */
-router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.get('/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const isAdmin = req.user!.role === 'ADMIN';
@@ -269,7 +269,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
  * GET /api/documents/:id/download
  * Download a document
  */
-router.get('/:id/download', authMiddleware, async (req: Request, res: Response) => {
+router.get('/:id/download', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const isAdmin = req.user!.role === 'ADMIN';
@@ -308,7 +308,7 @@ router.get('/:id/download', authMiddleware, async (req: Request, res: Response) 
  * PUT /api/documents/:id
  * Update document metadata (admin only)
  */
-router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.put('/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const {
@@ -367,7 +367,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
  * DELETE /api/documents/:id
  * Delete a document (admin only)
  */
-router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
