@@ -99,6 +99,7 @@ app.use('/api/credits', creditsRoutes);
 app.use('/api/pro-submissions', proSubmissionsRoutes);
 app.use('/api/advance-scenarios', advanceScenariosRoutes);
 app.use('/api/documents', documentsRoutes);
+app.use('/api/commission', commissionRoutes);
 
 // Error handling
 app.use(notFoundHandler);
