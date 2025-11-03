@@ -1,456 +1,430 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { statementApi } from '../lib/api';
 
-interface RoyaltyStatement {
+interface UnpaidStatement {
   id: string;
-  period: string;
-  totalStreams: number;
-  totalEarnings: number;
-  currency: string;
-  status: 'Pending' | 'Processed' | 'Paid';
-  paymentDate?: string;
+  proType: string;
+  filename: string;
+  publishedAt: string;
+  paymentStatus: 'UNPAID' | 'PENDING' | 'PAID';
+  totalRevenue: number;
+  totalCommission: number;
+  totalNet: number;
+  writerCount: number;
+  writers: Writer[];
 }
 
-interface Track {
-  id: string;
-  title: string;
-  artist: string;
-  streams: number;
-  earnings: number;
-  period: string;
+interface Writer {
+  userId: string;
+  name: string;
+  email: string;
+  grossRevenue: number;
+  commissionAmount: number;
+  netRevenue: number;
+  songCount: number;
+}
+
+interface PaymentSummary {
+  statement: {
+    id: string;
+    proType: string;
+    filename: string;
+    publishedAt: string;
+    paymentStatus: string;
+  };
+  totals: {
+    grossRevenue: number;
+    commissionToProducerTour: number;
+    netToWriters: number;
+    songCount: number;
+  };
+  writers: Writer[];
 }
 
 export default function RoyaltyPortalPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'statements' | 'tracks' | 'settings'>(
-    'dashboard'
-  );
+  const [unpaidStatements, setUnpaidStatements] = useState<UnpaidStatement[]>([]);
+  const [selectedStatement, setSelectedStatement] = useState<string | null>(null);
+  const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
-  // Sample royalty data
-  const currentStats = {
-    totalEarnings: 124356.78,
-    monthlyAverage: 10363.07,
-    totalStreams: 42150000,
-    accountBalance: 15234.50,
-  };
+  // Load unpaid statements on mount
+  useEffect(() => {
+    loadUnpaidStatements();
+  }, []);
 
-  const statements: RoyaltyStatement[] = [
-    {
-      id: '1',
-      period: 'December 2024',
-      totalStreams: 3500000,
-      totalEarnings: 10500.00,
-      currency: 'USD',
-      status: 'Paid',
-      paymentDate: '2025-01-15',
-    },
-    {
-      id: '2',
-      period: 'November 2024',
-      totalStreams: 3200000,
-      totalEarnings: 9600.00,
-      currency: 'USD',
-      status: 'Paid',
-      paymentDate: '2024-12-15',
-    },
-    {
-      id: '3',
-      period: 'October 2024',
-      totalStreams: 2800000,
-      totalEarnings: 8400.00,
-      currency: 'USD',
-      status: 'Processed',
-    },
-    {
-      id: '4',
-      period: 'September 2024',
-      totalStreams: 3100000,
-      totalEarnings: 9300.00,
-      currency: 'USD',
-      status: 'Processed',
-    },
-  ];
-
-  const topTracks: Track[] = [
-    {
-      id: '1',
-      title: 'Midnight Dreams',
-      artist: 'Various Artists',
-      streams: 8500000,
-      earnings: 25500.00,
-      period: 'All Time',
-    },
-    {
-      id: '2',
-      title: 'Neon Nights',
-      artist: 'Various Artists',
-      streams: 7200000,
-      earnings: 21600.00,
-      period: 'All Time',
-    },
-    {
-      id: '3',
-      title: 'Eternal Echo',
-      artist: 'Various Artists',
-      streams: 6100000,
-      earnings: 18300.00,
-      period: 'All Time',
-    },
-    {
-      id: '4',
-      title: 'Digital Horizon',
-      artist: 'Various Artists',
-      streams: 5300000,
-      earnings: 15900.00,
-      period: 'All Time',
-    },
-    {
-      id: '5',
-      title: 'Urban Pulse',
-      artist: 'Various Artists',
-      streams: 4800000,
-      earnings: 14400.00,
-      period: 'All Time',
-    },
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Paid':
-        return 'bg-green-900/30 border-green-600 text-green-300';
-      case 'Processed':
-        return 'bg-blue-900/30 border-blue-600 text-blue-300';
-      case 'Pending':
-        return 'bg-yellow-900/30 border-yellow-600 text-yellow-300';
-      default:
-        return 'bg-slate-900/30 border-slate-600 text-slate-300';
+  const loadUnpaidStatements = async () => {
+    try {
+      setLoading(true);
+      const response = await statementApi.getUnpaidStatements();
+      setUnpaidStatements(response.data);
+    } catch (error) {
+      console.error('Failed to load unpaid statements:', error);
+      alert('Failed to load unpaid statements. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const loadPaymentSummary = async (statementId: string) => {
+    try {
+      setLoading(true);
+      const response = await statementApi.getPaymentSummary(statementId);
+      setPaymentSummary(response.data);
+      setSelectedStatement(statementId);
+      setShowModal(true);
+    } catch (error) {
+      console.error('Failed to load payment summary:', error);
+      alert('Failed to load payment summary. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProcessPayment = async (statementId: string) => {
+    if (!confirm('Process payment for this statement? Writers will be able to see their earnings immediately.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await statementApi.processPayment(statementId);
+
+      // Refresh lists
+      await loadUnpaidStatements();
+      setShowModal(false);
+      setSelectedStatement(null);
+      setPaymentSummary(null);
+
+      alert('✅ Payment processed successfully! Writers can now see their earnings.');
+    } catch (error) {
+      console.error('Failed to process payment:', error);
+      alert('❌ Failed to process payment. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
   return (
-    <div
-      className="min-h-screen text-white"
-      style={{
-        background: 'linear-gradient(135deg, #020617 0%, #0b1120 48%, #111827 100%)',
-        backgroundImage: `
-          linear-gradient(135deg, #020617 0%, #0b1120 48%, #111827 100%),
-          radial-gradient(circle at 12% 18%, rgba(59, 130, 246, 0.16), transparent 55%),
-          radial-gradient(circle at 88% 12%, rgba(147, 197, 253, 0.18), transparent 58%)
-        `,
-      }}
-    >
-      {/* Back Button */}
-      <div className="sticky top-0 z-40 px-4 sm:px-6 lg:px-8 py-4 bg-slate-900/40 backdrop-blur">
-        <button
-          onClick={() => navigate('/admin')}
-          className="text-slate-300 hover:text-white transition flex items-center gap-2"
-        >
-          ← Back to Dashboard
-        </button>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-2"
+              >
+                ← Back to Dashboard
+              </button>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Royalty Portal - Payment Processing
+              </h1>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Process payments for published statements
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-5xl font-bold mb-2">Royalty Portal</h1>
-          <p className="text-xl text-slate-300">Manage and track all your royalty statements and earnings</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2 border-b border-slate-700">
-          {[
-            { id: 'dashboard', label: '📊 Dashboard' },
-            { id: 'statements', label: '📋 Statements' },
-            { id: 'tracks', label: '🎵 Top Tracks' },
-            { id: 'settings', label: '⚙️ Settings' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-6 py-3 font-semibold whitespace-nowrap border-b-2 transition ${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-300'
-                  : 'border-transparent text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Dashboard Tab */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-8">
-            {/* Key Metrics */}
-            <div className="grid md:grid-cols-4 gap-6">
-              {[
-                {
-                  label: 'Total Earnings',
-                  value: `$${currentStats.totalEarnings.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
-                  icon: '💰',
-                  trend: '+8.2%',
-                },
-                {
-                  label: 'Monthly Average',
-                  value: `$${currentStats.monthlyAverage.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
-                  icon: '📈',
-                  trend: '+4.1%',
-                },
-                {
-                  label: 'Total Streams',
-                  value: `${(currentStats.totalStreams / 1000000).toFixed(1)}M`,
-                  icon: '🎵',
-                  trend: '+12.5%',
-                },
-                {
-                  label: 'Account Balance',
-                  value: `$${currentStats.accountBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })}`,
-                  icon: '🏦',
-                  trend: 'Ready to withdraw',
-                },
-              ].map((metric, idx) => (
-                <div
-                  key={idx}
-                  className="p-6 rounded-2xl border border-slate-700 hover:border-blue-500 transition"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.45))',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                  }}
-                >
-                  <div className="text-3xl mb-2">{metric.icon}</div>
-                  <div className="text-slate-400 text-sm font-semibold mb-1">{metric.label}</div>
-                  <div className="text-3xl font-bold mb-2">{metric.value}</div>
-                  <div className="text-xs text-green-400 font-semibold">{metric.trend}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Recent Activity & Quick Actions */}
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Recent Payments */}
-              <div
-                className="p-6 rounded-2xl border border-slate-700"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.45))',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                }}
-              >
-                <h3 className="text-xl font-bold mb-4">Recent Payments</h3>
-                <div className="space-y-3">
-                  {statements.slice(0, 3).map((stmt) => (
-                    <div key={stmt.id} className="flex justify-between items-center pb-3 border-b border-slate-700/50 last:border-0">
-                      <div>
-                        <div className="font-semibold">{stmt.period}</div>
-                        <div className="text-xs text-slate-400">{stmt.totalStreams.toLocaleString()} streams</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-green-400">${stmt.totalEarnings.toLocaleString('en-US', { maximumFractionDigits: 2 })}</div>
-                        <div className={`text-xs font-semibold px-2 py-1 rounded border ${getStatusColor(stmt.status)}`}>
-                          {stmt.status}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="space-y-4">
-                <div
-                  className="p-6 rounded-2xl border border-slate-700"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.45))',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                  }}
-                >
-                  <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
-                  <div className="space-y-3">
-                    <button className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition">
-                      Withdraw Funds
-                    </button>
-                    <button className="w-full px-4 py-3 border border-blue-500 text-blue-300 hover:bg-blue-900/20 font-semibold rounded-lg transition">
-                      Download Statement
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('settings')}
-                      className="w-full px-4 py-3 border border-slate-600 text-slate-300 hover:bg-slate-900/20 font-semibold rounded-lg transition"
-                    >
-                      Payment Settings
-                    </button>
-                  </div>
-                </div>
-
-                <div
-                  className="p-6 rounded-2xl border border-green-600/30 bg-green-900/20"
-                  style={{
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                  }}
-                >
-                  <div className="text-3xl mb-2">🎉</div>
-                  <h4 className="font-bold text-green-300 mb-2">Bonus Opportunity</h4>
-                  <p className="text-sm text-green-200 mb-3">
-                    You've reached 40M streams! Unlock premium distribution features.
-                  </p>
-                  <button className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition text-sm">
-                    Learn More
-                  </button>
-                </div>
-              </div>
-            </div>
+        {/* Unpaid Statements Section */}
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Statements Ready for Payment
+            </h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {unpaidStatements.length} statement(s) pending payment
+            </p>
           </div>
-        )}
 
-        {/* Statements Tab */}
-        {activeTab === 'statements' && (
-          <div className="space-y-4">
-            {statements.map((stmt) => (
-              <div
-                key={stmt.id}
-                className="p-6 rounded-2xl border border-slate-700 hover:border-blue-500 transition"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.45))',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                }}
-              >
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold mb-2">{stmt.period}</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <div className="text-slate-400">Streams</div>
-                        <div className="font-semibold">{stmt.totalStreams.toLocaleString()}</div>
-                      </div>
-                      <div>
-                        <div className="text-slate-400">Earnings</div>
-                        <div className="font-semibold text-green-400">${stmt.totalEarnings.toLocaleString('en-US', { maximumFractionDigits: 2 })}</div>
-                      </div>
-                      {stmt.paymentDate && (
-                        <div>
-                          <div className="text-slate-400">Payment Date</div>
-                          <div className="font-semibold">{stmt.paymentDate}</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-4 py-2 rounded-full text-sm font-bold border ${getStatusColor(stmt.status)}`}>
-                      {stmt.status}
-                    </span>
-                    <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition">
-                      Download
-                    </button>
-                  </div>
-                </div>
+          <div className="p-6">
+            {loading && unpaidStatements.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading statements...</p>
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* Top Tracks Tab */}
-        {activeTab === 'tracks' && (
-          <div className="space-y-3">
-            {topTracks.map((track, idx) => (
-              <div
-                key={track.id}
-                className="p-4 rounded-2xl border border-slate-700 hover:border-blue-500 transition flex items-center gap-4"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.45))',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                }}
-              >
-                <div className="text-2xl font-bold text-blue-400 min-w-fit">#{idx + 1}</div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-lg">{track.title}</h4>
-                  <p className="text-slate-400 text-sm">{track.artist}</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-slate-400">
-                    {(track.streams / 1000000).toFixed(1)}M streams
-                  </div>
-                  <div className="font-bold text-green-400">
-                    ${track.earnings.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Settings Tab */}
-        {activeTab === 'settings' && (
-          <div className="max-w-2xl">
-            <div
-              className="p-8 rounded-2xl border border-slate-700 space-y-6"
-              style={{
-                background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.45))',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-              }}
-            >
-              <div>
-                <h3 className="text-lg font-bold mb-4">Payment Method</h3>
-                <div className="space-y-3">
-                  <label className="flex items-center gap-3 p-3 border border-slate-600 rounded-lg cursor-pointer hover:bg-slate-900/20">
-                    <input type="radio" name="payment" defaultChecked className="w-4 h-4" />
-                    <span>Bank Transfer (ACH)</span>
-                  </label>
-                  <label className="flex items-center gap-3 p-3 border border-slate-600 rounded-lg cursor-pointer hover:bg-slate-900/20">
-                    <input type="radio" name="payment" className="w-4 h-4" />
-                    <span>PayPal</span>
-                  </label>
-                  <label className="flex items-center gap-3 p-3 border border-slate-600 rounded-lg cursor-pointer hover:bg-slate-900/20">
-                    <input type="radio" name="payment" className="w-4 h-4" />
-                    <span>Wire Transfer</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-700 pt-6">
-                <h3 className="text-lg font-bold mb-4">Payout Threshold</h3>
-                <p className="text-slate-400 mb-3">Automatically withdraw when balance reaches:</p>
-                <select className="w-full px-4 py-3 bg-slate-900/60 border border-slate-600 rounded-lg text-slate-100 focus:border-blue-500">
-                  <option>$100</option>
-                  <option>$250</option>
-                  <option>$500</option>
-                  <option>$1000</option>
-                  <option>Manual only</option>
-                </select>
-              </div>
-
-              <div className="border-t border-slate-700 pt-6">
-                <h3 className="text-lg font-bold mb-4">Tax Information</h3>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="Tax ID (SSN or EIN)"
-                    className="w-full px-4 py-3 bg-slate-900/60 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:border-blue-500"
+            ) : unpaidStatements.length === 0 ? (
+              <div className="text-center py-12">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
-                  <input
-                    type="text"
-                    placeholder="Legal Name"
-                    className="w-full px-4 py-3 bg-slate-900/60 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 focus:border-blue-500"
-                  />
-                </div>
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+                  No unpaid statements
+                </h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  All statements have been processed.
+                </p>
               </div>
-
-              <div className="flex gap-3">
-                <button className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition">
-                  Save Changes
-                </button>
-                <button className="flex-1 px-6 py-3 border border-slate-600 text-slate-300 hover:bg-slate-900/20 font-semibold rounded-lg transition">
-                  Cancel
-                </button>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-900">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        PRO / File
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Published
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Writers
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Total Revenue
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Commission
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Net to Writers
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {unpaidStatements.map((statement) => (
+                      <tr key={statement.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                {statement.proType}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                {statement.filename}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {formatDate(statement.publishedAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            statement.paymentStatus === 'UNPAID'
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                              : statement.paymentStatus === 'PENDING'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                              : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          }`}>
+                            {statement.paymentStatus}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {statement.writerCount}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                          {formatCurrency(statement.totalRevenue)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 dark:text-indigo-400">
+                          {formatCurrency(statement.totalCommission)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-400">
+                          {formatCurrency(statement.totalNet)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => loadPaymentSummary(statement.id)}
+                            className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-4"
+                            disabled={loading}
+                          >
+                            View Details
+                          </button>
+                          <button
+                            onClick={() => handleProcessPayment(statement.id)}
+                            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                            disabled={loading}
+                          >
+                            Process Payment
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Payment Summary Modal */}
+      {showModal && paymentSummary && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Payment Summary
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {paymentSummary.statement.proType} - {paymentSummary.statement.filename}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowModal(false);
+                    setPaymentSummary(null);
+                    setSelectedStatement(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Totals Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Gross Revenue</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    {formatCurrency(paymentSummary.totals.grossRevenue)}
+                  </p>
+                </div>
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
+                  <p className="text-sm text-indigo-600 dark:text-indigo-400">Commission to Producer Tour</p>
+                  <p className="text-2xl font-bold text-indigo-900 dark:text-indigo-300 mt-1">
+                    {formatCurrency(paymentSummary.totals.commissionToProducerTour)}
+                  </p>
+                </div>
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                  <p className="text-sm text-green-600 dark:text-green-400">Net to Writers</p>
+                  <p className="text-2xl font-bold text-green-900 dark:text-green-300 mt-1">
+                    {formatCurrency(paymentSummary.totals.netToWriters)}
+                  </p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Song Count</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                    {paymentSummary.totals.songCount}
+                  </p>
+                </div>
+              </div>
+
+              {/* Writer Breakdown */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  Writer Breakdown
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-900">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                          Writer
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                          Songs
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                          Gross Revenue
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                          Commission
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                          Net Payment
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      {paymentSummary.writers.map((writer) => (
+                        <tr key={writer.userId}>
+                          <td className="px-6 py-4">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                {writer.name}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                {writer.email}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {writer.songCount}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            {formatCurrency(writer.grossRevenue)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 dark:text-indigo-400">
+                            {formatCurrency(writer.commissionAmount)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-400">
+                            {formatCurrency(writer.netRevenue)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setPaymentSummary(null);
+                  setSelectedStatement(null);
+                }}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => selectedStatement && handleProcessPayment(selectedStatement)}
+                disabled={loading}
+                className="px-4 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Processing...' : 'Process Payment for All Writers'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
