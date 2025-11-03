@@ -7,12 +7,13 @@ import Navigation from '../components/Navigation';
 import ToolsHub from '../components/ToolsHub';
 import DocumentsTab from '../components/DocumentsTab';
 
-type TabType = 'statements' | 'writers' | 'analytics' | 'documents' | 'tools';
+type TabType = 'overview' | 'statements' | 'writers' | 'analytics' | 'documents' | 'tools';
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<TabType>('statements');
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   const adminTabs = [
+    { id: 'overview', label: 'Dashboard', icon: '🏠' },
     { id: 'statements', label: 'Statements', icon: '📊' },
     { id: 'writers', label: 'Writers', icon: '👥' },
     { id: 'analytics', label: 'Analytics', icon: '📈' },
@@ -29,7 +30,8 @@ export default function AdminDashboard() {
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className={activeTab === 'tools' ? '' : 'bg-slate-800 rounded-lg shadow-xl p-6'}>
+        <div className={activeTab === 'tools' || activeTab === 'overview' ? '' : 'bg-slate-800 rounded-lg shadow-xl p-6'}>
+          {activeTab === 'overview' && <DashboardOverview />}
           {activeTab === 'statements' && <StatementsTab />}
           {activeTab === 'writers' && <WritersTab />}
           {activeTab === 'analytics' && <AnalyticsTab />}
@@ -37,6 +39,251 @@ export default function AdminDashboard() {
           {activeTab === 'tools' && <ToolsHub />}
         </div>
       </main>
+    </div>
+  );
+}
+
+function DashboardOverview() {
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['dashboard-overview'],
+    queryFn: async () => {
+      const response = await dashboardApi.getStats();
+      return response.data;
+    },
+  });
+
+  const { data: statementsData } = useQuery({
+    queryKey: ['recent-statements'],
+    queryFn: async () => {
+      const response = await statementApi.list();
+      return response.data;
+    },
+  });
+
+  const recentStatements = statementsData?.statements?.slice(0, 5) || [];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-400">Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Top Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Total Revenue"
+          value={`$${Number(stats?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+          percentage="+23%"
+          trend="up"
+          icon="💰"
+          gradient="from-blue-500 to-blue-600"
+        />
+        <StatCard
+          title="Total Writers"
+          value={stats?.totalWriters || 0}
+          percentage="+8%"
+          trend="up"
+          icon="👥"
+          gradient="from-cyan-500 to-cyan-600"
+        />
+        <StatCard
+          title="Active Statements"
+          value={stats?.processedStatements || 0}
+          percentage="-2%"
+          trend="down"
+          icon="📊"
+          gradient="from-pink-500 to-pink-600"
+        />
+        <StatCard
+          title="Unique Works"
+          value={stats?.uniqueWorks || 0}
+          percentage="+12%"
+          trend="up"
+          icon="🎵"
+          gradient="from-orange-500 to-orange-600"
+        />
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Revenue Chart */}
+        <div className="bg-slate-800 rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-white">Revenue Overview</h3>
+            <select className="bg-slate-700 text-gray-300 text-sm rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              <option>Last 12 months</option>
+              <option>Last 6 months</option>
+              <option>Last 3 months</option>
+            </select>
+          </div>
+          {stats?.revenueTimeline && stats.revenueTimeline.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={stats.revenueTimeline}>
+                <defs>
+                  <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis
+                  dataKey="month"
+                  stroke="#94a3b8"
+                  tick={{ fill: '#94a3b8', fontSize: 12 }}
+                />
+                <YAxis
+                  stroke="#94a3b8"
+                  tick={{ fill: '#94a3b8', fontSize: 12 }}
+                  tickFormatter={(value) => `$${value}`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1e293b',
+                    border: '1px solid #334155',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                  }}
+                  labelStyle={{ color: '#f1f5f9' }}
+                  itemStyle={{ color: '#3b82f6' }}
+                  formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  dot={{ fill: '#3b82f6', r: 4 }}
+                  activeDot={{ r: 6 }}
+                  fill="url(#revenueGradient)"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-gray-500">
+              No revenue data available
+            </div>
+          )}
+        </div>
+
+        {/* PRO Distribution */}
+        <div className="bg-slate-800 rounded-xl shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-white mb-6">Statement Distribution</h3>
+          {stats?.statementsByPRO && stats.statementsByPRO.length > 0 ? (
+            <div className="space-y-4">
+              {stats.statementsByPRO.map((item: any, index: number) => {
+                const total = stats.statementsByPRO.reduce((acc: number, curr: any) => acc + curr.count, 0);
+                const percentage = ((item.count / total) * 100).toFixed(1);
+                const colors = ['bg-blue-500', 'bg-cyan-500', 'bg-purple-500'];
+
+                return (
+                  <div key={item.proType} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${colors[index % 3]}`}></div>
+                        <span className="text-gray-300 font-medium">{item.proType}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-white font-semibold">{item.count}</span>
+                        <span className="text-gray-400 text-sm ml-2">{percentage}%</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-slate-700 rounded-full h-2">
+                      <div
+                        className={`${colors[index % 3]} h-2 rounded-full transition-all duration-500`}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-gray-500">
+              No statement data available
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Recent Activity & Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Statements */}
+        <div className="lg:col-span-2 bg-slate-800 rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-white">Recent Statements</h3>
+            <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+              View All →
+            </button>
+          </div>
+          <div className="space-y-3">
+            {recentStatements.length > 0 ? (
+              recentStatements.map((statement: any) => (
+                <div
+                  key={statement.id}
+                  className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      statement.proType === 'BMI' ? 'bg-blue-500/20' :
+                      statement.proType === 'ASCAP' ? 'bg-cyan-500/20' :
+                      'bg-purple-500/20'
+                    }`}>
+                      <span className="text-lg">📊</span>
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">{statement.filename}</p>
+                      <p className="text-gray-400 text-sm">
+                        {statement.proType} • {statement.itemCount || 0} items
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-green-400 font-semibold">
+                      ${Number(statement.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </p>
+                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                      statement.status === 'PUBLISHED' ? 'bg-green-500/20 text-green-400' :
+                      statement.status === 'PROCESSED' ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {statement.status}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-gray-500 py-8">No recent statements</div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-slate-800 rounded-xl shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-white mb-6">Quick Actions</h3>
+          <div className="space-y-3">
+            <button className="w-full flex items-center gap-3 p-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg text-white font-medium transition-all shadow-lg shadow-blue-500/50">
+              <span className="text-xl">📊</span>
+              <span>Upload Statement</span>
+            </button>
+            <button className="w-full flex items-center gap-3 p-4 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-medium transition-colors">
+              <span className="text-xl">👥</span>
+              <span>Add Writer</span>
+            </button>
+            <button className="w-full flex items-center gap-3 p-4 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-medium transition-colors">
+              <span className="text-xl">📄</span>
+              <span>Upload Document</span>
+            </button>
+            <button className="w-full flex items-center gap-3 p-4 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-medium transition-colors">
+              <span className="text-xl">📈</span>
+              <span>View Reports</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1066,7 +1313,8 @@ function AnalyticsTab() {
   );
 }
 
-function StatCard({ title, value, icon, color }: any) {
+function StatCard({ title, value, icon, color, percentage, trend, gradient }: any) {
+  // Support both old color prop and new gradient prop
   const colorClasses: Record<string, string> = {
     blue: 'from-blue-500/20 to-blue-600/20 border-blue-500/30',
     green: 'from-green-500/20 to-green-600/20 border-green-500/30',
@@ -1075,6 +1323,29 @@ function StatCard({ title, value, icon, color }: any) {
     teal: 'from-teal-500/20 to-teal-600/20 border-teal-500/30',
   };
 
+  // New modern card design with gradient
+  if (gradient) {
+    return (
+      <div className="bg-slate-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center text-2xl shadow-lg`}>
+            {icon}
+          </div>
+          {percentage && (
+            <span className={`flex items-center gap-1 text-sm font-semibold ${
+              trend === 'up' ? 'text-green-400' : 'text-red-400'
+            }`}>
+              {trend === 'up' ? '↑' : '↓'} {percentage}
+            </span>
+          )}
+        </div>
+        <h3 className="text-sm font-medium text-gray-400 mb-2">{title}</h3>
+        <p className="text-3xl font-bold text-white">{value}</p>
+      </div>
+    );
+  }
+
+  // Legacy card design
   return (
     <div className={`bg-gradient-to-br ${colorClasses[color]} border rounded-lg p-6`}>
       <div className="text-3xl mb-2">{icon}</div>
