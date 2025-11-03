@@ -318,6 +318,7 @@ router.post(
                 commissionAmount: itemCommissionAmount,
                 commissionRecipient: commissionRecipient,
                 netRevenue: itemNetRevenue,
+                isVisibleToWriter: false, // Hidden until payment processed
                 metadata: {
                   ...item.metadata,
                   originalTotalRevenue: parseFloat(item.revenue), // Store original total before split
@@ -335,6 +336,7 @@ router.post(
           where: { id },
           data: {
             status: 'PUBLISHED',
+            paymentStatus: 'UNPAID', // Mark as unpaid until admin processes payment
             publishedAt: new Date(),
             publishedById: req.user!.id,
             totalCommission: totalCommission,

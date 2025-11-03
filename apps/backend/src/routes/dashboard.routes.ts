@@ -18,8 +18,12 @@ router.get('/summary', authenticate, async (req: AuthRequest, res: Response) => 
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
     // Total earnings (all time) - NET revenue (what writer actually receives)
+    // Only show paid/visible items
     const totalEarnings = await prisma.statementItem.aggregate({
-      where: { userId },
+      where: {
+        userId,
+        isVisibleToWriter: true // Only show paid statements
+      },
       _sum: { netRevenue: true, performances: true },
     });
 
@@ -27,6 +31,7 @@ router.get('/summary', authenticate, async (req: AuthRequest, res: Response) => 
     const ytdEarnings = await prisma.statementItem.aggregate({
       where: {
         userId,
+        isVisibleToWriter: true, // Only show paid statements
         OR: [
           { periodStart: { gte: yearStart } },
           { createdAt: { gte: yearStart } },
@@ -39,6 +44,7 @@ router.get('/summary', authenticate, async (req: AuthRequest, res: Response) => 
     const lastMonthEarnings = await prisma.statementItem.aggregate({
       where: {
         userId,
+        isVisibleToWriter: true, // Only show paid statements
         periodStart: { gte: lastMonthStart, lte: lastMonthEnd },
       },
       _sum: { netRevenue: true },
@@ -47,7 +53,10 @@ router.get('/summary', authenticate, async (req: AuthRequest, res: Response) => 
     // Total songs
     const songsCount = await prisma.statementItem.groupBy({
       by: ['workTitle'],
-      where: { userId },
+      where: {
+        userId,
+        isVisibleToWriter: true // Only show paid statements
+      },
     });
 
     res.json({
@@ -75,7 +84,10 @@ router.get('/songs', authenticate, async (req: AuthRequest, res: Response) => {
 
     const songs = await prisma.statementItem.groupBy({
       by: ['workTitle'],
-      where: { userId },
+      where: {
+        userId,
+        isVisibleToWriter: true // Only show paid statements
+      },
       _sum: {
         netRevenue: true,
         performances: true,
@@ -117,8 +129,12 @@ router.get('/timeline', authenticate, async (req: AuthRequest, res: Response) =>
     const { months = '12' } = req.query;
 
     // Get statement items with period info - NET revenue for writers
+    // Only show paid/visible items
     const items = await prisma.statementItem.findMany({
-      where: { userId },
+      where: {
+        userId,
+        isVisibleToWriter: true // Only show paid statements
+      },
       select: {
         netRevenue: true,
         periodStart: true,

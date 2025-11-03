@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
 
-type UserRole = 'ADMIN' | 'WRITER' | 'LEGAL';
+type UserRole = 'ADMIN' | 'WRITER' | 'LEGAL' | 'MANAGER';
 
 export interface AuthRequest extends Request {
   user?: {
