@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { userApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import Navigation from '../components/Navigation';
 
 export default function SettingsPage() {
-  const { user, setUser } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const queryClient = useQueryClient();
   const [activeSection, setActiveSection] = useState<'profile' | 'password' | 'notifications'>('profile');
   const [message, setMessage] = useState<{ type: 'success' | 'error' | '', text: string }>({ type: '', text: '' });
@@ -30,7 +30,7 @@ export default function SettingsPage() {
     onSuccess: (response) => {
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
       // Update user in auth store
-      setUser({ ...user!, ...response.data.user });
+      updateUser({ ...user!, ...response.data.user });
       queryClient.invalidateQueries({ queryKey: ['user'] });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     },
