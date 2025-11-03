@@ -263,3 +263,11 @@ export const documentApi = {
   delete: (id: string) =>
     api.delete(`/documents/${id}`),
 };
+
+// Commission settings API
+export const commissionApi = {
+  getSettings: () => api.get('/commission/settings'),
+  getHistory: () => api.get('/commission/settings/history'),
+  updateSettings: (data: { commissionRate: number; recipientName: string; description?: string }) =>
+    api.put('/commission/settings', data),
+};

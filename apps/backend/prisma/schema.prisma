@@ -100,6 +100,8 @@ model User {
   firstName String?
   lastName  String?
   ipiNumber String?  // IPI/CAE number for PRO registration
+  // Optional per-writer commission override (percentage 0.00-100.00). If null, use global CommissionSettings
+  commissionOverrideRate Decimal? @db.Decimal(5, 2)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -425,4 +427,20 @@ model Document {
   @@index([category])
   @@index([visibility])
   @@map("documents")
+}
+
+model CommissionSettings {
+  id                String   @id @default(cuid())
+  commissionRate    Decimal  @db.Decimal(5, 2) // Commission percentage (0.00-100.00)
+  recipientName     String   // e.g., "Producer Tour", "Admin Fee"
+  description       String?  @db.Text // Optional description of rate change
+  effectiveDate     DateTime @default(now()) // When this rate became/becomes active
+  isActive          Boolean  @default(true) // Only one should be active at a time
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([effectiveDate])
+  @@map("commission_settings")
 }

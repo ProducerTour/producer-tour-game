@@ -7,7 +7,7 @@ import Sidebar from '../components/Sidebar';
 import ToolsHub from '../components/ToolsHub';
 import DocumentsTab from '../components/DocumentsTab';
 
-type TabType = 'overview' | 'statements' | 'writers' | 'analytics' | 'documents' | 'tools';
+type TabType = 'overview' | 'statements' | 'writers' | 'analytics' | 'documents' | 'tools' | 'commission';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -19,6 +19,7 @@ export default function AdminDashboard() {
     { id: 'analytics', label: 'Analytics', icon: '📈' },
     { id: 'documents', label: 'Documents', icon: '📄' },
     { id: 'tools', label: 'Tools Hub', icon: '🛠️' },
+    { id: 'commission', label: 'Commission Settings', icon: '💼' },
   ];
 
   return (
@@ -39,11 +40,14 @@ export default function AdminDashboard() {
           {activeTab === 'analytics' && <AnalyticsTab />}
           {activeTab === 'documents' && <DocumentsTab />}
           {activeTab === 'tools' && <ToolsHub />}
+          {activeTab === 'commission' && <CommissionSettingsPage />}
         </div>
       </main>
     </div>
   );
 }
+
+import CommissionSettingsPage from './CommissionSettingsPage';
 
 function DashboardOverview() {
   const { data: stats, isLoading } = useQuery({
@@ -801,6 +805,8 @@ function WritersTab() {
     firstName: '',
     lastName: '',
     ipiNumber: '',
+    proAffiliation: 'BMI',
+    commissionOverrideRate: '',
   });
 
   const { data: usersData, isLoading } = useQuery({
@@ -816,7 +822,7 @@ function WritersTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setShowAddModal(false);
-      setNewWriter({ email: '', password: '', firstName: '', lastName: '', ipiNumber: '' });
+      setNewWriter({ email: '', password: '', firstName: '', lastName: '', ipiNumber: '', proAffiliation: 'BMI', commissionOverrideRate: '' });
     },
   });
 
@@ -840,7 +846,11 @@ function WritersTab() {
       alert('Email and password are required');
       return;
     }
-    createMutation.mutate({ ...newWriter, role: 'WRITER' });
+    // Prepare payload with optional commission override
+    const payload: any = { ...newWriter, role: 'WRITER' };
+    if (payload.commissionOverrideRate === '') delete payload.commissionOverrideRate;
+    else payload.commissionOverrideRate = parseFloat(payload.commissionOverrideRate);
+    createMutation.mutate(payload);
   };
 
   const handleUpdateWriter = () => {
@@ -852,6 +862,17 @@ function WritersTab() {
     // Only include password if it was changed
     if (!data.password) {
       delete data.password;
+    }
+    // Normalize commission override rate
+    if (data.commissionOverrideRate === '') {
+      data.commissionOverrideRate = null;
+    } else if (data.commissionOverrideRate !== undefined) {
+      data.commissionOverrideRate = parseFloat(data.commissionOverrideRate);
+    }
+    // Flatten producer.proAffiliation into top-level update payload
+    if (data.producer && data.producer.proAffiliation !== undefined) {
+      data.proAffiliation = data.producer.proAffiliation;
+      delete data.producer;
     }
     updateMutation.mutate({ id, data });
   };
@@ -882,9 +903,9 @@ function WritersTab() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Email
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  IPI Number
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">IPI Number</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">PRO</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Commission</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Role
                 </th>
@@ -906,9 +927,9 @@ function WritersTab() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-400">{writer.email}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-400">{writer.ipiNumber || '-'}</div>
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{writer.ipiNumber || '-'}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{writer.producer?.proAffiliation || '-'}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{writer.commissionOverrideRate != null ? `${Number(writer.commissionOverrideRate).toFixed(2)}%` : 'Default'}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                       writer.role === 'ADMIN'
@@ -1012,6 +1033,37 @@ function WritersTab() {
                   placeholder="IPI/CAE Number"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  PRO Affiliation
+                </label>
+                <select
+                  value={newWriter.proAffiliation}
+                  onChange={(e) => setNewWriter({ ...newWriter, proAffiliation: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                >
+                  <option value="BMI">BMI</option>
+                  <option value="ASCAP">ASCAP</option>
+                  <option value="SESAC">SESAC</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Commission Override (%)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.01}
+                  value={newWriter.commissionOverrideRate}
+                  onChange={(e) => setNewWriter({ ...newWriter, commissionOverrideRate: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  placeholder="Leave blank to use default"
+                />
+                <p className="text-xs text-gray-400 mt-1">If left blank, uses the global commission rate.</p>
+              </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button
@@ -1094,6 +1146,37 @@ function WritersTab() {
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                   placeholder="IPI/CAE Number"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  PRO Affiliation
+                </label>
+                <select
+                  value={editingWriter.producer?.proAffiliation || 'OTHER'}
+                  onChange={(e) => setEditingWriter({ ...editingWriter, producer: { ...(editingWriter.producer || {}), proAffiliation: e.target.value } })}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                >
+                  <option value="BMI">BMI</option>
+                  <option value="ASCAP">ASCAP</option>
+                  <option value="SESAC">SESAC</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Commission Override (%)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.01}
+                  value={editingWriter.commissionOverrideRate ?? ''}
+                  onChange={(e) => setEditingWriter({ ...editingWriter, commissionOverrideRate: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  placeholder="Leave blank to use default"
+                />
+                <p className="text-xs text-gray-400 mt-1">Writer sees net = writer split minus commission. Blank uses global rate.</p>
               </div>
             </div>
             <div className="flex gap-3 mt-6">

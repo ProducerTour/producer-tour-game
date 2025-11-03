@@ -255,9 +255,39 @@ router.post(
         });
       }
 
-      // Create StatementItems with assigned writers
+      // Fetch current active commission settings (defaults to 0% if none)
+      const activeCommission = await prisma.commissionSettings.findFirst({
+        where: { isActive: true },
+        orderBy: { effectiveDate: 'desc' },
+      });
+
+      const globalCommissionRate = activeCommission ? Number(activeCommission.commissionRate) : 0;
+      const commissionRecipient = activeCommission?.recipientName || 'Producer Tour';
+
+      // Collect all assigned userIds to check for per-writer overrides
+      const assignedUserIds = new Set<string>();
+      parsedItems.forEach((item: any) => {
+        const songAssignments = assignments[item.workTitle] || [];
+        songAssignments.forEach((assignment: any) => {
+          if (assignment.userId) assignedUserIds.add(assignment.userId);
+        });
+      });
+
+      const overrideUsers = (await prisma.user.findMany({
+        where: { id: { in: Array.from(assignedUserIds) } },
+      })) as any[];
+      const overrideMap = new Map<string, number>();
+      overrideUsers.forEach((u: any) => {
+        if (u.commissionOverrideRate !== null && u.commissionOverrideRate !== undefined) {
+          overrideMap.set(u.id, Number(u.commissionOverrideRate));
+        }
+      });
+
+      // Create StatementItems with assigned writers and apply commission
       // Note: One song can have multiple writers with different splits
       const createPromises: any[] = [];
+      let totalCommission = 0;
+      let totalNet = 0;
 
       parsedItems.forEach((item: any) => {
         const songAssignments = assignments[item.workTitle] || [];
@@ -267,6 +297,12 @@ router.post(
           // Calculate this writer's revenue share based on split percentage
           const splitPercentage = parseFloat(assignment.splitPercentage) || 100;
           const writerRevenue = (parseFloat(item.revenue) * splitPercentage) / 100;
+          const commissionRateToUse = overrideMap.get(assignment.userId) ?? globalCommissionRate;
+          const itemCommissionAmount = (writerRevenue * commissionRateToUse) / 100;
+          const itemNetRevenue = writerRevenue - itemCommissionAmount;
+
+          totalCommission += itemCommissionAmount;
+          totalNet += itemNetRevenue;
 
           createPromises.push(
             prisma.statementItem.create({
@@ -278,6 +314,10 @@ router.post(
                 performances: item.performances,
                 splitPercentage: splitPercentage,
                 writerIpiNumber: assignment.ipiNumber || null,
+                commissionRate: commissionRateToUse,
+                commissionAmount: itemCommissionAmount,
+                commissionRecipient: commissionRecipient,
+                netRevenue: itemNetRevenue,
                 metadata: {
                   ...item.metadata,
                   originalTotalRevenue: parseFloat(item.revenue), // Store original total before split
@@ -297,6 +337,8 @@ router.post(
             status: 'PUBLISHED',
             publishedAt: new Date(),
             publishedById: req.user!.id,
+            totalCommission: totalCommission,
+            totalNet: totalNet,
           },
         }),
       ]);

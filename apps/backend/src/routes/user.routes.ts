@@ -42,7 +42,7 @@ router.get('/', requireAdmin, async (req: AuthRequest, res: Response) => {
  */
 router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
-    const { email, firstName, lastName, producerName, ipiNumber, proAffiliation } = req.body;
+    const { email, firstName, lastName, producerName, ipiNumber, proAffiliation, commissionOverrideRate } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
@@ -59,23 +59,29 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
     const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
     // Create user with producer profile
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        role: 'WRITER',
-        producer: {
-          create: {
-            producerName: producerName || `${firstName} ${lastName}`,
-            ipiNumber,
-            proAffiliation,
-          },
+    const createData: any = {
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      role: 'WRITER',
+      ipiNumber,
+      producer: {
+        create: {
+          producerName: producerName || `${firstName} ${lastName}`,
+          ipiNumber,
+          proAffiliation,
         },
       },
+    };
+    if (commissionOverrideRate !== undefined) {
+      createData.commissionOverrideRate = commissionOverrideRate;
+    }
+
+    const user = (await prisma.user.create({
+      data: createData,
       include: { producer: true },
-    });
+    })) as any;
 
     // TODO: Send welcome email with password reset link
 
@@ -102,15 +108,48 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
 router.put('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, role } = req.body;
+    const { firstName, lastName, role, email, password, ipiNumber, proAffiliation, producerName, commissionOverrideRate } = req.body;
 
-    const user = await prisma.user.update({
-      where: { id },
-      data: { firstName, lastName, role },
-      include: { producer: true },
-    });
+    // Build user update payload
+    const userData: any = {};
+    if (firstName !== undefined) userData.firstName = firstName;
+    if (lastName !== undefined) userData.lastName = lastName;
+    if (role !== undefined) userData.role = role;
+    if (email !== undefined) userData.email = email;
+    if (ipiNumber !== undefined) userData.ipiNumber = ipiNumber;
+    if (commissionOverrideRate !== undefined) userData.commissionOverrideRate = commissionOverrideRate === null || commissionOverrideRate === '' ? null : commissionOverrideRate;
+    if (password) {
+      userData.password = await bcrypt.hash(password, 10);
+    }
 
-    res.json(user);
+    const [updatedUser] = (await prisma.$transaction([
+      prisma.user.update({
+        where: { id },
+        data: userData as any,
+      }),
+      // Upsert producer profile if producer fields are provided
+      ...(proAffiliation !== undefined || producerName !== undefined || ipiNumber !== undefined
+        ? [
+            prisma.producer.upsert({
+              where: { userId: id },
+              update: {
+                producerName: producerName,
+                ipiNumber: ipiNumber,
+                proAffiliation: proAffiliation,
+              },
+              create: {
+                userId: id,
+                producerName: producerName || 'Writer',
+                ipiNumber: ipiNumber,
+                proAffiliation: proAffiliation,
+              },
+            }),
+          ]
+        : []),
+    ])) as any;
+
+    const result = await prisma.user.findUnique({ where: { id }, include: { producer: true } });
+    res.json({ user: result });
   } catch (error) {
     console.error('Update user error:', error);
     res.status(500).json({ error: 'Failed to update user' });
