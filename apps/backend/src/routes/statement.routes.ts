@@ -393,4 +393,236 @@ router.delete(
   }
 );
 
+/**
+ * GET /api/statements/unpaid
+ * Get all statements ready for payment processing (Admin only)
+ * Returns statements with UNPAID or PENDING status
+ */
+router.get(
+  '/unpaid',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const unpaidStatements = await prisma.statement.findMany({
+        where: {
+          status: 'PUBLISHED',
+          paymentStatus: { in: ['UNPAID', 'PENDING'] }
+        },
+        include: {
+          items: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { publishedAt: 'desc' }
+      });
+
+      // Group items by writer for each statement
+      const formatted = unpaidStatements.map(statement => {
+        // Group items by writer
+        const writerMap = new Map();
+
+        statement.items.forEach(item => {
+          const key = item.userId;
+          if (!writerMap.has(key)) {
+            writerMap.set(key, {
+              userId: item.userId,
+              name: `${item.user.firstName || ''} ${item.user.lastName || ''}`.trim() || item.user.email,
+              email: item.user.email,
+              grossRevenue: 0,
+              commissionAmount: 0,
+              netRevenue: 0,
+              songCount: 0
+            });
+          }
+
+          const writer = writerMap.get(key);
+          writer.grossRevenue += Number(item.revenue);
+          writer.commissionAmount += Number(item.commissionAmount);
+          writer.netRevenue += Number(item.netRevenue);
+          writer.songCount += 1;
+        });
+
+        return {
+          id: statement.id,
+          proType: statement.proType,
+          filename: statement.filename,
+          publishedAt: statement.publishedAt,
+          paymentStatus: statement.paymentStatus,
+          totalRevenue: Number(statement.totalRevenue),
+          totalCommission: Number(statement.totalCommission),
+          totalNet: Number(statement.totalNet),
+          writerCount: writerMap.size,
+          writers: Array.from(writerMap.values())
+        };
+      });
+
+      res.json(formatted);
+    } catch (error) {
+      console.error('Get unpaid statements error:', error);
+      res.status(500).json({ error: 'Failed to fetch unpaid statements' });
+    }
+  }
+);
+
+/**
+ * GET /api/statements/:id/payment-summary
+ * Get detailed payment breakdown for a statement (Admin only)
+ */
+router.get(
+  '/:id/payment-summary',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const statement = await prisma.statement.findUnique({
+        where: { id },
+        include: {
+          items: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (!statement) {
+        return res.status(404).json({ error: 'Statement not found' });
+      }
+
+      // Group by writer
+      const writerMap = new Map();
+
+      statement.items.forEach(item => {
+        const key = item.userId;
+        if (!writerMap.has(key)) {
+          writerMap.set(key, {
+            userId: item.userId,
+            name: `${item.user.firstName || ''} ${item.user.lastName || ''}`.trim() || item.user.email,
+            email: item.user.email,
+            grossRevenue: 0,
+            commissionAmount: 0,
+            netRevenue: 0,
+            songCount: 0
+          });
+        }
+
+        const writer = writerMap.get(key);
+        writer.grossRevenue += Number(item.revenue);
+        writer.commissionAmount += Number(item.commissionAmount);
+        writer.netRevenue += Number(item.netRevenue);
+        writer.songCount += 1;
+      });
+
+      const summary = {
+        statement: {
+          id: statement.id,
+          proType: statement.proType,
+          filename: statement.filename,
+          publishedAt: statement.publishedAt,
+          paymentStatus: statement.paymentStatus
+        },
+        totals: {
+          grossRevenue: Number(statement.totalRevenue),
+          commissionToProducerTour: Number(statement.totalCommission),
+          netToWriters: Number(statement.totalNet),
+          songCount: statement.items.length
+        },
+        writers: Array.from(writerMap.values())
+      };
+
+      res.json(summary);
+    } catch (error) {
+      console.error('Get payment summary error:', error);
+      res.status(500).json({ error: 'Failed to fetch payment summary' });
+    }
+  }
+);
+
+/**
+ * POST /api/statements/:id/process-payment
+ * Mark statement as paid and make visible to writers (Admin only)
+ */
+router.post(
+  '/:id/process-payment',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      // Verify statement exists and is unpaid
+      const statement = await prisma.statement.findUnique({
+        where: { id },
+        include: { items: true }
+      });
+
+      if (!statement) {
+        return res.status(404).json({ error: 'Statement not found' });
+      }
+
+      if (statement.paymentStatus === 'PAID') {
+        return res.status(400).json({ error: 'Statement already paid' });
+      }
+
+      // Process payment in transaction
+      const result = await prisma.$transaction(async (tx) => {
+        // Update statement
+        const updatedStatement = await tx.statement.update({
+          where: { id },
+          data: {
+            paymentStatus: 'PAID',
+            paymentProcessedAt: new Date(),
+            paymentProcessedById: req.user!.id
+          }
+        });
+
+        // Make all items visible to writers
+        await tx.statementItem.updateMany({
+          where: { statementId: id },
+          data: {
+            isVisibleToWriter: true,
+            paidAt: new Date()
+          }
+        });
+
+        return updatedStatement;
+      });
+
+      // Return payment confirmation
+      res.json({
+        success: true,
+        statement: {
+          id: result.id,
+          paymentStatus: result.paymentStatus,
+          paymentProcessedAt: result.paymentProcessedAt,
+          totalPaidToWriters: Number(result.totalNet),
+          commissionToProducerTour: Number(result.totalCommission)
+        }
+      });
+    } catch (error) {
+      console.error('Process payment error:', error);
+      res.status(500).json({ error: 'Failed to process payment' });
+    }
+  }
+);
+
 export default router;

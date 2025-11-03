@@ -100,6 +100,16 @@ export const statementApi = {
 
   delete: (id: string) =>
     api.delete(`/statements/${id}`),
+
+  // Payment processing methods
+  getUnpaidStatements: () =>
+    api.get('/statements/unpaid'),
+
+  getPaymentSummary: (id: string) =>
+    api.get(`/statements/${id}/payment-summary`),
+
+  processPayment: (id: string) =>
+    api.post(`/statements/${id}/process-payment`),
 };
 
 export const userApi = {
