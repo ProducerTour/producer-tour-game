@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "postinstall": "prisma generate || true",
-    "build": "prisma generate && tsc --incremental false",
+    "build": "prisma generate && node build.js",
     "start": "node dist/index.js",
     "start:render": "prisma migrate deploy && node dist/index.js",
     "typecheck": "tsc --noEmit",
@@ -27,6 +27,7 @@
     "esbuild": "^0.25.11",
     "express": "^4.21.1",
     "express-fileupload": "^1.5.1",
+    "glob": "^10.3.10",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.15",
