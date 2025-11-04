@@ -65,6 +65,9 @@ export const dashboardApi = {
 
   getStats: () =>
     api.get('/dashboard/stats'),
+
+  getPaymentStatus: () =>
+    api.get('/dashboard/payment-status'),
 };
 
 export type WriterAssignment = {
@@ -110,6 +113,9 @@ export const statementApi = {
 
   processPayment: (id: string) =>
     api.post(`/statements/${id}/process-payment`),
+
+  smartAssign: (id: string) =>
+    api.post(`/statements/${id}/smart-assign`),
 };
 
 export const userApi = {

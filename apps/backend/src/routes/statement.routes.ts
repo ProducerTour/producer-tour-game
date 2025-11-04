@@ -625,4 +625,119 @@ router.post(
   }
 );
 
+/**
+ * POST /api/statements/:id/smart-assign
+ * Smart match writers for statement using fuzzy logic (Admin only)
+ * Returns suggestions categorized by confidence level
+ */
+router.post(
+  '/:id/smart-assign',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const statement = await prisma.statement.findUnique({
+        where: { id },
+        include: {
+          items: true // Check if already published
+        }
+      });
+
+      if (!statement) {
+        return res.status(404).json({ error: 'Statement not found' });
+      }
+
+      if (statement.status === 'PUBLISHED') {
+        return res.status(400).json({
+          error: 'Statement already published. Cannot reassign writers.'
+        });
+      }
+
+      // Extract parsed items from metadata
+      const metadata = statement.metadata as any;
+      const parsedItems = metadata?.parsedItems || [];
+
+      if (parsedItems.length === 0) {
+        return res.status(400).json({
+          error: 'No parsed items found in statement. Upload may have failed.'
+        });
+      }
+
+      // Import the smart matcher utility
+      const { smartMatchStatement } = await import('../utils/writer-matcher');
+
+      // Run fuzzy matching on all songs
+      const matchResults = await smartMatchStatement(parsedItems);
+
+      // Categorize matches by confidence
+      const autoAssigned: any[] = []; // >90% confidence - can auto-assign
+      const suggested: any[] = [];    // 70-90% confidence - needs review
+      const unmatched: any[] = [];    // <70% or no match - needs manual assignment
+
+      matchResults.forEach((matches, workTitle) => {
+        const topMatch = matches[0]; // Highest confidence match
+
+        if (!topMatch) {
+          // No matches found
+          unmatched.push({
+            workTitle,
+            reason: 'No matching writers found in database'
+          });
+        } else if (topMatch.confidence >= 90) {
+          // High confidence - auto-assign
+          autoAssigned.push({
+            workTitle,
+            writer: {
+              id: topMatch.writer.id,
+              name: `${topMatch.writer.firstName || ''} ${topMatch.writer.lastName || ''}`.trim() || topMatch.writer.email,
+              email: topMatch.writer.email,
+              ipiNumber: topMatch.writer.ipiNumber
+            },
+            confidence: topMatch.confidence,
+            reason: topMatch.reason
+          });
+        } else if (topMatch.confidence >= 70) {
+          // Medium confidence - suggest for review
+          suggested.push({
+            workTitle,
+            matches: matches.slice(0, 3).map(m => ({ // Top 3 matches
+              writer: {
+                id: m.writer.id,
+                name: `${m.writer.firstName || ''} ${m.writer.lastName || ''}`.trim() || m.writer.email,
+                email: m.writer.email,
+                ipiNumber: m.writer.ipiNumber
+              },
+              confidence: m.confidence,
+              reason: m.reason
+            }))
+          });
+        } else {
+          // Low confidence - manual assignment needed
+          unmatched.push({
+            workTitle,
+            reason: `Low confidence match (${topMatch.confidence}%) - manual review required`
+          });
+        }
+      });
+
+      res.json({
+        summary: {
+          totalSongs: parsedItems.length,
+          autoAssignedCount: autoAssigned.length,
+          suggestedCount: suggested.length,
+          unmatchedCount: unmatched.length
+        },
+        autoAssigned,
+        suggested,
+        unmatched
+      });
+    } catch (error) {
+      console.error('Smart assign error:', error);
+      res.status(500).json({ error: 'Failed to smart assign writers' });
+    }
+  }
+);
+
 export default router;

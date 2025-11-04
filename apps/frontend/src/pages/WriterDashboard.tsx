@@ -51,6 +51,14 @@ export default function WriterDashboard() {
     enabled: activeTab === 'songs',
   });
 
+  const { data: paymentStatus } = useQuery({
+    queryKey: ['payment-status'],
+    queryFn: async () => {
+      const response = await dashboardApi.getPaymentStatus();
+      return response.data;
+    },
+  });
+
   // Calculate PRO breakdown for pie chart
   const getProBreakdown = () => {
     if (!statementsData?.statements) return [];
@@ -74,6 +82,14 @@ export default function WriterDashboard() {
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Payment Status Indicator */}
+        {paymentStatus && (
+          <div className="mb-6">
+            <PaymentStatusIndicator status={paymentStatus} />
+          </div>
+        )}
+
         {/* Stats Cards */}
         {summaryLoading ? (
           <div className="text-center text-gray-400 py-12">Loading...</div>
@@ -415,6 +431,80 @@ function StatCard({ title, value, subtitle, color }: { title: string; value: str
       <h3 className="text-sm font-medium text-gray-400 mb-2">{title}</h3>
       <p className="text-3xl font-bold text-white mb-1">{value}</p>
       <p className="text-xs text-gray-400">{subtitle}</p>
+    </div>
+  );
+}
+
+function PaymentStatusIndicator({ status }: { status: any }) {
+  const getStatusConfig = () => {
+    switch (status.status) {
+      case 'RECENT':
+        return {
+          color: 'bg-green-500',
+          borderColor: 'border-green-500/50',
+          bgColor: 'bg-green-500/10',
+          icon: '🟢',
+          label: 'Paid'
+        };
+      case 'PENDING':
+        return {
+          color: 'bg-yellow-500',
+          borderColor: 'border-yellow-500/50',
+          bgColor: 'bg-yellow-500/10',
+          icon: '🟡',
+          label: 'Pending'
+        };
+      case 'NONE':
+      default:
+        return {
+          color: 'bg-red-500',
+          borderColor: 'border-red-500/50',
+          bgColor: 'bg-red-500/10',
+          icon: '🔴',
+          label: 'No Payments'
+        };
+    }
+  };
+
+  const config = getStatusConfig();
+
+  return (
+    <div className={`${config.bgColor} ${config.borderColor} border rounded-lg p-4`}>
+      <div className="flex items-center gap-4">
+        {/* Pulsing Status Light */}
+        <div className="flex-shrink-0">
+          <div className="relative">
+            <div className={`w-4 h-4 ${config.color} rounded-full`}></div>
+            {status.status === 'PENDING' && (
+              <div className={`absolute inset-0 w-4 h-4 ${config.color} rounded-full animate-ping opacity-75`}></div>
+            )}
+          </div>
+        </div>
+
+        {/* Status Message */}
+        <div className="flex-1">
+          <p className="text-sm font-medium text-white">
+            Payment Status: <span className="font-bold">{config.label}</span>
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5">{status.message}</p>
+        </div>
+
+        {/* Additional Info */}
+        {(status.unpaidCount > 0 || status.pendingCount > 0) && (
+          <div className="flex-shrink-0 text-right">
+            {status.unpaidCount > 0 && (
+              <p className="text-xs text-gray-400">
+                <span className="font-medium text-red-400">{status.unpaidCount}</span> unpaid
+              </p>
+            )}
+            {status.pendingCount > 0 && (
+              <p className="text-xs text-gray-400">
+                <span className="font-medium text-yellow-400">{status.pendingCount}</span> pending
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

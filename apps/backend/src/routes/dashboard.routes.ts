@@ -340,4 +340,107 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
+/**
+ * GET /api/dashboard/payment-status
+ * Get payment status for writer (red/yellow/green indicator)
+ * WRITERS ONLY: Shows when they last got paid and if payments are pending
+ */
+router.get('/payment-status', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    // Only available for writers
+    if (req.user!.role !== 'WRITER') {
+      return res.status(403).json({ error: 'Writer access required' });
+    }
+
+    // Get all statement items for this writer
+    const items = await prisma.statementItem.findMany({
+      where: { userId },
+      select: {
+        paidAt: true,
+        isVisibleToWriter: true,
+        statement: {
+          select: {
+            paymentStatus: true,
+            publishedAt: true
+          }
+        }
+      },
+      orderBy: { paidAt: 'desc' }
+    });
+
+    if (items.length === 0) {
+      // No statements at all
+      return res.json({
+        status: 'NONE',
+        message: 'No royalty statements yet',
+        lastPaymentDate: null,
+        unpaidCount: 0,
+        pendingCount: 0
+      });
+    }
+
+    // Find most recent payment
+    const paidItems = items.filter(item => item.isVisibleToWriter && item.paidAt);
+    const lastPaidItem = paidItems[0]; // Already sorted by paidAt desc
+
+    // Count unpaid/pending statements
+    const unpaidCount = items.filter(
+      item => item.statement.paymentStatus === 'UNPAID'
+    ).length;
+
+    const pendingCount = items.filter(
+      item => item.statement.paymentStatus === 'PENDING'
+    ).length;
+
+    // Determine status
+    let status: 'NONE' | 'PENDING' | 'RECENT';
+    let message: string;
+
+    if (!lastPaidItem) {
+      // Never been paid
+      if (pendingCount > 0) {
+        status = 'PENDING';
+        message = `${pendingCount} payment${pendingCount > 1 ? 's' : ''} pending`;
+      } else if (unpaidCount > 0) {
+        status = 'PENDING';
+        message = `${unpaidCount} statement${unpaidCount > 1 ? 's' : ''} awaiting payment`;
+      } else {
+        status = 'NONE';
+        message = 'No payments yet';
+      }
+    } else {
+      // Has been paid before - check how recent
+      const daysSincePayment = Math.floor(
+        (Date.now() - lastPaidItem.paidAt!.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (daysSincePayment <= 30) {
+        status = 'RECENT';
+        message = daysSincePayment === 0
+          ? 'Payment received today'
+          : `Last payment ${daysSincePayment} day${daysSincePayment > 1 ? 's' : ''} ago`;
+      } else if (pendingCount > 0 || unpaidCount > 0) {
+        status = 'PENDING';
+        message = `${pendingCount + unpaidCount} statement${pendingCount + unpaidCount > 1 ? 's' : ''} awaiting payment`;
+      } else {
+        status = 'RECENT';
+        message = `Last payment ${daysSincePayment} days ago`;
+      }
+    }
+
+    res.json({
+      status,
+      message,
+      lastPaymentDate: lastPaidItem?.paidAt || null,
+      unpaidCount,
+      pendingCount
+    });
+  } catch (error) {
+    console.error('Payment status error:', error);
+    res.status(500).json({ error: 'Failed to fetch payment status' });
+  }
+});
+
 export default router;
