@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "prebuild": "prisma generate",
-    "build": "tsc",
+    "postinstall": "prisma generate || true",
+    "build": "prisma generate && tsc",
     "start": "node dist/index.js",
     "start:render": "prisma migrate deploy && node dist/index.js",
     "typecheck": "tsc --noEmit",
