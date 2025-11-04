@@ -1,17 +1,12 @@
 const esbuild = require('esbuild');
-const { globSync } = require('glob');
-const path = require('path');
-
-// Find all TypeScript files in src
-const entryPoints = globSync('src/**/*.ts');
 
 esbuild.build({
-  entryPoints,
-  bundle: false, // Don't bundle - preserve file structure
+  entryPoints: ['src/index.ts'],
+  bundle: true,
   platform: 'node',
   target: 'node18',
   format: 'cjs',
-  outdir: 'dist',
+  outfile: 'dist/index.js',
   sourcemap: false,
   minify: false,
   external: [
@@ -30,8 +25,8 @@ esbuild.build({
   ],
   logLevel: 'info',
 }).then(() => {
-  console.log('Build complete!');
+  console.log('✓ Build complete!');
 }).catch((err) => {
-  console.error('Build failed:', err);
+  console.error('✗ Build failed:', err);
   process.exit(1);
 });
