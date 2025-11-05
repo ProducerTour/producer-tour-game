@@ -33,7 +33,9 @@ const PORT = process.env.PORT || 3000;
 const allowedOrigins = [
   'http://localhost:5173', // Local development
   'http://localhost:3000',  // Local backend
-  'https://website-frontend-producer-tour.vercel.app', // Main production domain
+  'https://website-frontend-producer-tour.vercel.app', // Vercel production domain
+  'https://producertour.com', // Custom domain
+  'https://www.producertour.com', // Custom domain with www
 ];
 
 app.use(cors({
