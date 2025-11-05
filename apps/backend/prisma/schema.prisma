@@ -25,6 +25,7 @@ enum ProType {
   BMI
   ASCAP
   SESAC
+  MLC
   OTHER
 }
 

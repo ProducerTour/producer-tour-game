@@ -16,6 +16,11 @@ interface ParsedSong {
   workTitle: string;
   writerName?: string;
   writerIpiNumber?: string;
+  metadata?: {
+    source?: string;
+    writers?: Array<{ name: string; ipi: string | null }>;
+    [key: string]: any;
+  };
 }
 
 /**
@@ -77,6 +82,7 @@ function normalizeSongTitle(title: string): string {
 /**
  * Smart match writers for a parsed song
  * Uses multiple strategies: IPI number, name similarity, historical assignments
+ * Supports both single-writer format (BMI/ASCAP) and multi-writer format (MLC)
  */
 export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]> {
   const matches: WriterMatch[] = [];
@@ -93,42 +99,91 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
     }
   });
 
-  // Strategy 1: IPI Number Exact Match (100% confidence)
-  // IPI/CAE numbers are unique identifiers for songwriters
-  if (song.writerIpiNumber) {
-    const ipiMatch = allWriters.find(
-      w => w.ipiNumber && w.ipiNumber === song.writerIpiNumber
-    );
+  // Check if this is an MLC statement with multiple writers in metadata
+  const mlcWriters = song.metadata?.writers;
 
-    if (ipiMatch) {
-      matches.push({
-        writer: ipiMatch,
-        confidence: 100,
-        reason: 'IPI number exact match'
-      });
-      return matches; // IPI match is definitive, return immediately
-    }
-  }
+  if (mlcWriters && mlcWriters.length > 0) {
+    // MLC format: Multiple writers per song, iterate through each
+    for (const mlcWriter of mlcWriters) {
+      // Strategy 1: IPI Number Exact Match (100% confidence)
+      if (mlcWriter.ipi) {
+        const ipiMatch = allWriters.find(
+          w => w.ipiNumber && w.ipiNumber === mlcWriter.ipi
+        );
 
-  // Strategy 2: Writer Name Similarity (parsed from statement)
-  // ASCAP and some BMI statements include writer names
-  if (song.writerName) {
-    allWriters.forEach(writer => {
-      const fullName = `${writer.firstName || ''} ${writer.lastName || ''}`.trim();
-
-      if (fullName) {
-        const similarity = stringSimilarity(song.writerName!, fullName);
-
-        // High confidence: >80% similarity
-        if (similarity > 0.8) {
+        if (ipiMatch) {
           matches.push({
-            writer,
-            confidence: Math.round(similarity * 100),
-            reason: `Name similarity: "${song.writerName}" ≈ "${fullName}"`
+            writer: ipiMatch,
+            confidence: 100,
+            reason: `IPI match: ${mlcWriter.name} (${mlcWriter.ipi})`
           });
+          continue; // IPI match is definitive, skip name matching for this writer
         }
       }
-    });
+
+      // Strategy 2: Writer Name Similarity
+      if (mlcWriter.name) {
+        allWriters.forEach(writer => {
+          const fullName = `${writer.firstName || ''} ${writer.lastName || ''}`.trim();
+
+          if (fullName) {
+            const similarity = stringSimilarity(mlcWriter.name, fullName);
+
+            // High confidence: >80% similarity
+            if (similarity > 0.8) {
+              // Check if already matched (e.g., by IPI)
+              const alreadyMatched = matches.some(m => m.writer.id === writer.id);
+              if (!alreadyMatched) {
+                matches.push({
+                  writer,
+                  confidence: Math.round(similarity * 100),
+                  reason: `Name similarity: "${mlcWriter.name}" ≈ "${fullName}"`
+                });
+              }
+            }
+          }
+        });
+      }
+    }
+  } else {
+    // Traditional format (BMI/ASCAP): Single writer
+
+    // Strategy 1: IPI Number Exact Match (100% confidence)
+    if (song.writerIpiNumber) {
+      const ipiMatch = allWriters.find(
+        w => w.ipiNumber && w.ipiNumber === song.writerIpiNumber
+      );
+
+      if (ipiMatch) {
+        matches.push({
+          writer: ipiMatch,
+          confidence: 100,
+          reason: 'IPI number exact match'
+        });
+        return matches; // IPI match is definitive, return immediately
+      }
+    }
+
+    // Strategy 2: Writer Name Similarity (parsed from statement)
+    // ASCAP and some BMI statements include writer names
+    if (song.writerName) {
+      allWriters.forEach(writer => {
+        const fullName = `${writer.firstName || ''} ${writer.lastName || ''}`.trim();
+
+        if (fullName) {
+          const similarity = stringSimilarity(song.writerName!, fullName);
+
+          // High confidence: >80% similarity
+          if (similarity > 0.8) {
+            matches.push({
+              writer,
+              confidence: Math.round(similarity * 100),
+              reason: `Name similarity: "${song.writerName}" ≈ "${fullName}"`
+            });
+          }
+        }
+      });
+    }
   }
 
   // Strategy 3: Historical Assignment Match (song title similarity)

@@ -27,13 +27,25 @@ router.post(
 
       const uploadedFile = req.files.statement as UploadedFile;
 
-      // Validate file type
-      if (!uploadedFile.name.endsWith('.csv') && uploadedFile.mimetype !== 'text/csv') {
-        return res.status(400).json({ error: 'Only CSV files are allowed' });
+      // Validate file type (CSV or TSV for MLC)
+      const fileName = uploadedFile.name.toLowerCase();
+      const mimeType = uploadedFile.mimetype.toLowerCase();
+
+      const isCSV = fileName.endsWith('.csv') || mimeType.includes('csv');
+      const isTSV = fileName.endsWith('.tsv') || fileName.endsWith('.txt') ||
+                    mimeType.includes('tab-separated') || mimeType.includes('tsv') ||
+                    mimeType === 'text/plain'; // TSV files often report as text/plain
+
+      console.log('File upload:', { fileName, mimeType, isCSV, isTSV });
+
+      if (!isCSV && !isTSV) {
+        return res.status(400).json({
+          error: `Only CSV or TSV files are allowed. Received: ${fileName} (${mimeType})`
+        });
       }
 
       const { proType } = req.body;
-      if (!proType || !['BMI', 'ASCAP', 'SESAC'].includes(proType)) {
+      if (!proType || !['BMI', 'ASCAP', 'SESAC', 'MLC'].includes(proType)) {
         return res.status(400).json({ error: 'Invalid PRO type' });
       }
 

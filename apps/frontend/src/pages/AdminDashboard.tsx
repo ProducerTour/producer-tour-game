@@ -296,7 +296,7 @@ function DashboardOverview() {
 
 function StatementsTab() {
   const queryClient = useQueryClient();
-  const [selectedPRO, setSelectedPRO] = useState<'BMI' | 'ASCAP' | 'SESAC'>('BMI');
+  const [selectedPRO, setSelectedPRO] = useState<'BMI' | 'ASCAP' | 'SESAC' | 'MLC'>('BMI');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -378,7 +378,7 @@ function StatementsTab() {
               Select PRO Type
             </label>
             <div className="flex gap-3">
-              {(['BMI', 'ASCAP', 'SESAC'] as const).map((pro) => (
+              {(['BMI', 'ASCAP', 'SESAC', 'MLC'] as const).map((pro) => (
                 <button
                   key={pro}
                   onClick={() => setSelectedPRO(pro)}
@@ -397,13 +397,13 @@ function StatementsTab() {
           {/* File Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              CSV File
+              {selectedPRO === 'MLC' ? 'TSV File' : 'CSV File'}
             </label>
             <div className="flex items-center gap-4">
               <input
                 id="file-upload"
                 type="file"
-                accept=".csv"
+                accept={selectedPRO === 'MLC' ? '.tsv,.txt' : '.csv'}
                 onChange={handleFileChange}
                 className="block w-full text-sm text-gray-400
                   file:mr-4 file:py-2 file:px-4
