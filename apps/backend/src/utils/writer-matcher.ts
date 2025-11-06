@@ -6,7 +6,8 @@ interface WriterMatch {
     firstName: string | null;
     lastName: string | null;
     email: string;
-    ipiNumber: string | null;
+    writerIpiNumber: string | null;
+    publisherIpiNumber: string | null;
   };
   confidence: number;
   reason: string;
@@ -95,7 +96,8 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
       firstName: true,
       lastName: true,
       email: true,
-      ipiNumber: true
+      writerIpiNumber: true,
+      publisherIpiNumber: true
     }
   });
 
@@ -106,16 +108,19 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
     // MLC format: Multiple writers per song, iterate through each
     for (const mlcWriter of mlcWriters) {
       // Strategy 1: IPI Number Exact Match (100% confidence)
+      // Check both writer IPI and publisher IPI
       if (mlcWriter.ipi) {
         const ipiMatch = allWriters.find(
-          w => w.ipiNumber && w.ipiNumber === mlcWriter.ipi
+          w => (w.writerIpiNumber && w.writerIpiNumber === mlcWriter.ipi) ||
+               (w.publisherIpiNumber && w.publisherIpiNumber === mlcWriter.ipi)
         );
 
         if (ipiMatch) {
+          const matchedVia = ipiMatch.writerIpiNumber === mlcWriter.ipi ? 'Writer IPI' : 'Publisher IPI';
           matches.push({
             writer: ipiMatch,
             confidence: 100,
-            reason: `IPI match: ${mlcWriter.name} (${mlcWriter.ipi})`
+            reason: `${matchedVia} match: ${mlcWriter.name} (${mlcWriter.ipi})`
           });
           continue; // IPI match is definitive, skip name matching for this writer
         }
@@ -149,16 +154,19 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
     // Traditional format (BMI/ASCAP): Single writer
 
     // Strategy 1: IPI Number Exact Match (100% confidence)
+    // Check both writer IPI and publisher IPI
     if (song.writerIpiNumber) {
       const ipiMatch = allWriters.find(
-        w => w.ipiNumber && w.ipiNumber === song.writerIpiNumber
+        w => (w.writerIpiNumber && w.writerIpiNumber === song.writerIpiNumber) ||
+             (w.publisherIpiNumber && w.publisherIpiNumber === song.writerIpiNumber)
       );
 
       if (ipiMatch) {
+        const matchedVia = ipiMatch.writerIpiNumber === song.writerIpiNumber ? 'Writer IPI' : 'Publisher IPI';
         matches.push({
           writer: ipiMatch,
           confidence: 100,
-          reason: 'IPI number exact match'
+          reason: `${matchedVia} number exact match`
         });
         return matches; // IPI match is definitive, return immediately
       }
@@ -201,7 +209,8 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
           firstName: true,
           lastName: true,
           email: true,
-          ipiNumber: true
+          writerIpiNumber: true,
+          publisherIpiNumber: true
         }
       }
     },

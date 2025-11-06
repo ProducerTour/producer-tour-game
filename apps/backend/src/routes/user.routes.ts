@@ -49,7 +49,8 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       lastName,
       role,
       producerName,
-      ipiNumber,
+      writerIpiNumber,
+      publisherIpiNumber,
       proAffiliation,
       commissionOverrideRate,
       canUploadStatements
@@ -105,7 +106,8 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       firstName,
       lastName,
       role: userRole,
-      ipiNumber,
+      writerIpiNumber,
+      publisherIpiNumber,
       canUploadStatements: canUploadStatements === true || canUploadStatements === 'true',
     };
 
@@ -119,7 +121,8 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       createData.producer = {
         create: {
           producerName: producerName || `${firstName || ''} ${lastName || ''}`.trim() || 'Writer',
-          ipiNumber,
+          writerIpiNumber,
+          publisherIpiNumber,
           proAffiliation: proAffiliation || 'OTHER',
         },
       };
@@ -163,7 +166,7 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
 router.put('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, role, email, password, ipiNumber, proAffiliation, producerName, commissionOverrideRate, canUploadStatements } = req.body;
+    const { firstName, lastName, role, email, password, writerIpiNumber, publisherIpiNumber, proAffiliation, producerName, commissionOverrideRate, canUploadStatements } = req.body;
 
     // Validate email format if provided
     if (email !== undefined) {
@@ -195,7 +198,8 @@ router.put('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
     if (lastName !== undefined) userData.lastName = lastName;
     if (role !== undefined) userData.role = role;
     if (email !== undefined) userData.email = email;
-    if (ipiNumber !== undefined) userData.ipiNumber = ipiNumber;
+    if (writerIpiNumber !== undefined) userData.writerIpiNumber = writerIpiNumber;
+    if (publisherIpiNumber !== undefined) userData.publisherIpiNumber = publisherIpiNumber;
     if (canUploadStatements !== undefined) userData.canUploadStatements = canUploadStatements === true || canUploadStatements === 'true';
     if (commissionOverrideRate !== undefined) {
       userData.commissionOverrideRate = commissionOverrideRate === null || commissionOverrideRate === '' ? null : parseFloat(commissionOverrideRate);
@@ -218,19 +222,21 @@ router.put('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
         data: userData as any,
       }),
       // Upsert producer profile only if user is/will be a WRITER
-      ...(newRole === 'WRITER' && (proAffiliation !== undefined || producerName !== undefined || ipiNumber !== undefined)
+      ...(newRole === 'WRITER' && (proAffiliation !== undefined || producerName !== undefined || writerIpiNumber !== undefined || publisherIpiNumber !== undefined)
         ? [
             prisma.producer.upsert({
               where: { userId: id },
               update: {
                 producerName: producerName,
-                ipiNumber: ipiNumber,
+                writerIpiNumber: writerIpiNumber,
+                publisherIpiNumber: publisherIpiNumber,
                 proAffiliation: proAffiliation,
               },
               create: {
                 userId: id,
                 producerName: producerName || 'Writer',
-                ipiNumber: ipiNumber,
+                writerIpiNumber: writerIpiNumber,
+                publisherIpiNumber: publisherIpiNumber,
                 proAffiliation: proAffiliation || 'OTHER',
               },
             }),

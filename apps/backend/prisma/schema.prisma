@@ -114,7 +114,8 @@ model User {
   role      UserRole @default(WRITER)
   firstName String?
   lastName  String?
-  ipiNumber String?  // IPI/CAE number for PRO registration
+  writerIpiNumber String?  // Writer IPI/CAE number for songwriter registration
+  publisherIpiNumber String?  // Publisher IPI/CAE number for publishing registration
   // Optional per-writer commission override (percentage 0.00-100.00). If null, use global CommissionSettings
   commissionOverrideRate Decimal? @db.Decimal(5, 2)
   // Upload access for VIEWER role (allows statement uploads)
@@ -142,7 +143,8 @@ model Producer {
   id             String   @id @default(cuid())
   userId         String   @unique
   producerName   String
-  ipiNumber      String?
+  writerIpiNumber      String?
+  publisherIpiNumber   String?
   proAffiliation ProType?
   status         String   @default("active")
   createdAt      DateTime @default(now())
@@ -152,7 +154,8 @@ model Producer {
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   statementItems StatementItem[]
 
-  @@index([ipiNumber])
+  @@index([writerIpiNumber])
+  @@index([publisherIpiNumber])
   @@index([proAffiliation])
   @@map("producers")
 }
