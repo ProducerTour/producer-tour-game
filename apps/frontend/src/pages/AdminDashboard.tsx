@@ -538,6 +538,13 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   const parsedSongs = statement.metadata?.songs || [];
   const writersList = writers.filter((w: any) => w.role === 'WRITER');
 
+  // Format currency to avoid "-0.00" display issue with micro-pennies
+  const formatCurrency = (amount: number): string => {
+    const rounded = Number(amount.toFixed(2));
+    // If rounding results in -0.00 or 0.00, always show as positive 0.00
+    return (rounded === 0 ? 0 : rounded).toFixed(2);
+  };
+
   const handleAssignAll = () => {
     if (!assignAllWriter) return;
     const newAssignments: Record<string, Array<{ userId: string; ipiNumber: string; splitPercentage: number }>> = {};
@@ -692,7 +699,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                     <div className="flex-1">
                       <p className="font-medium text-white">{song.title}</p>
                       <p className="text-sm text-gray-400">
-                        ${Number(song.totalRevenue).toFixed(2)} • {song.totalPerformances || song.performances || 0} performances
+                        ${formatCurrency(song.totalRevenue)} • {song.totalPerformances || song.performances || 0} performances
                       </p>
                     </div>
                     <button
