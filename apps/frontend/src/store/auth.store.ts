@@ -7,7 +7,8 @@ interface User {
   role: 'ADMIN' | 'WRITER' | 'LEGAL' | 'MANAGER' | 'PUBLISHER' | 'STAFF' | 'VIEWER';
   firstName?: string;
   lastName?: string;
-  ipiNumber?: string;
+  writerIpiNumber?: string;
+  publisherIpiNumber?: string;
   canUploadStatements?: boolean;
   producer?: any;
 }
