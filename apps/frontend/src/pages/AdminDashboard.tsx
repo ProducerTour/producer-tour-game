@@ -530,7 +530,7 @@ function StatementsTab() {
 }
 
 function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
-  // assignments: { "Song Title": [{ userId, ipiNumber, splitPercentage }, ...], ... }
+  // assignments: { "Song Title": [{ userId, writerIpiNumber, publisherIpiNumber, splitPercentage }, ...], ... }
   const [assignments, setAssignments] = useState<WriterAssignmentsPayload>({});
   const [assignAllWriter, setAssignAllWriter] = useState<string>('');
   const [saving, setSaving] = useState(false);
@@ -547,12 +547,13 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
   const handleAssignAll = () => {
     if (!assignAllWriter) return;
-    const newAssignments: Record<string, Array<{ userId: string; ipiNumber: string; splitPercentage: number }>> = {};
+    const newAssignments: Record<string, Array<{ userId: string; writerIpiNumber: string; publisherIpiNumber: string; splitPercentage: number }>> = {};
     const selectedWriter = writersList.find((w: any) => w.id === assignAllWriter);
     parsedSongs.forEach((song: any) => {
       newAssignments[song.title] = [{
         userId: assignAllWriter,
-        ipiNumber: selectedWriter?.ipiNumber || '',
+        writerIpiNumber: selectedWriter?.writerIpiNumber || '',
+        publisherIpiNumber: selectedWriter?.publisherIpiNumber || '',
         splitPercentage: 100
       }];
     });
@@ -571,7 +572,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
     setAssignments({
       ...assignments,
-      [songTitle]: [...updatedAssignments, { userId: '', ipiNumber: '', splitPercentage: equalSplit }]
+      [songTitle]: [...updatedAssignments, { userId: '', writerIpiNumber: '', publisherIpiNumber: '', splitPercentage: equalSplit }]
     });
   };
 
@@ -591,13 +592,13 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
     });
   };
 
-  const updateWriter = (songTitle: string, index: number, field: 'userId' | 'ipiNumber' | 'splitPercentage', value: any) => {
+  const updateWriter = (songTitle: string, index: number, field: 'userId' | 'writerIpiNumber' | 'publisherIpiNumber' | 'splitPercentage', value: any) => {
     const currentAssignments = assignments[songTitle] || [];
     const updatedAssignments = [...currentAssignments];
 
     // Ensure the assignment object exists at this index
     if (!updatedAssignments[index]) {
-      updatedAssignments[index] = { userId: '', ipiNumber: '', splitPercentage: 100 };
+      updatedAssignments[index] = { userId: '', writerIpiNumber: '', publisherIpiNumber: '', splitPercentage: 100 };
     }
 
     if (field === 'userId') {
@@ -605,7 +606,8 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
       updatedAssignments[index] = {
         ...updatedAssignments[index],
         userId: value,
-        ipiNumber: selectedWriter?.ipiNumber || updatedAssignments[index].ipiNumber || ''
+        writerIpiNumber: selectedWriter?.writerIpiNumber || updatedAssignments[index].writerIpiNumber || '',
+        publisherIpiNumber: selectedWriter?.publisherIpiNumber || updatedAssignments[index].publisherIpiNumber || ''
       };
     } else {
       updatedAssignments[index] = {
@@ -621,7 +623,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   };
 
   const getSplitTotal = (songTitle: string) => {
-    const songAssignments = assignments[songTitle] || [{ userId: '', ipiNumber: '', splitPercentage: 100 }];
+    const songAssignments = assignments[songTitle] || [];
     return songAssignments.reduce((sum, a) => sum + (a.splitPercentage || 0), 0);
   };
 
@@ -691,7 +693,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
           <div className="space-y-4">
             <h4 className="text-sm font-medium text-white">Assign Writers to Songs</h4>
             {parsedSongs.map((song: any, songIndex: number) => {
-              const songAssignments = assignments[song.title] || [{ userId: '', ipiNumber: '', splitPercentage: 100 }];
+              const songAssignments = assignments[song.title] || [{ userId: '', writerIpiNumber: '', publisherIpiNumber: '', splitPercentage: 100 }];
               const splitTotal = getSplitTotal(song.title);
               return (
                 <div key={songIndex} className="bg-slate-700/30 rounded-lg p-4 space-y-3">
@@ -718,7 +720,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                         <select
                           value={assignment.userId}
                           onChange={(e) => updateWriter(song.title, writerIndex, 'userId', e.target.value)}
-                          className={`col-span-4 px-3 py-2 border rounded-lg focus:outline-none ${
+                          className={`col-span-3 px-3 py-2 border rounded-lg focus:outline-none ${
                             assignment.userId
                               ? 'bg-slate-700 border-green-500/50 text-white'
                               : 'bg-slate-700 border-slate-600 text-gray-400'
@@ -734,13 +736,22 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                           ))}
                         </select>
 
-                        {/* IPI Number */}
+                        {/* Writer IPI Number */}
                         <input
                           type="text"
-                          placeholder="IPI Number"
-                          value={assignment.ipiNumber}
-                          onChange={(e) => updateWriter(song.title, writerIndex, 'ipiNumber', e.target.value)}
-                          className="col-span-3 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                          placeholder="Writer IPI"
+                          value={assignment.writerIpiNumber}
+                          onChange={(e) => updateWriter(song.title, writerIndex, 'writerIpiNumber', e.target.value)}
+                          className="col-span-2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                        />
+
+                        {/* Publisher IPI Number */}
+                        <input
+                          type="text"
+                          placeholder="Publisher IPI"
+                          value={assignment.publisherIpiNumber}
+                          onChange={(e) => updateWriter(song.title, writerIndex, 'publisherIpiNumber', e.target.value)}
+                          className="col-span-2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                         />
 
                         {/* Split Percentage */}
@@ -812,7 +823,8 @@ function UsersTab() {
     firstName: '',
     lastName: '',
     role: 'WRITER',
-    ipiNumber: '',
+    writerIpiNumber: '',
+    publisherIpiNumber: '',
     proAffiliation: 'BMI',
     commissionOverrideRate: '',
     canUploadStatements: false,
@@ -831,7 +843,7 @@ function UsersTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setShowAddModal(false);
-      setNewUser({ email: '', password: '', firstName: '', lastName: '', role: 'WRITER', ipiNumber: '', proAffiliation: 'BMI', commissionOverrideRate: '', canUploadStatements: false });
+      setNewUser({ email: '', password: '', firstName: '', lastName: '', role: 'WRITER', writerIpiNumber: '', publisherIpiNumber: '', proAffiliation: 'BMI', commissionOverrideRate: '', canUploadStatements: false });
     },
   });
 
@@ -915,7 +927,8 @@ function UsersTab() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">IPI Number</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Writer IPI</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Publisher IPI</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">PRO</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Commission</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
@@ -945,7 +958,8 @@ function UsersTab() {
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.ipiNumber || '-'}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.writerIpiNumber || '-'}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.publisherIpiNumber || '-'}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.producer?.proAffiliation || '-'}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.commissionOverrideRate != null ? `${Number(user.commissionOverrideRate).toFixed(2)}%` : 'Default'}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -1049,53 +1063,71 @@ function UsersTab() {
                 />
               </div>
 
-              {/* Writer-specific fields */}
-              {newUser.role === 'WRITER' && (
+              {/* Writer and Publisher specific fields */}
+              {(newUser.role === 'WRITER' || newUser.role === 'PUBLISHER') && (
                 <>
+                  {newUser.role === 'WRITER' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                        Writer IPI Number
+                      </label>
+                      <input
+                        type="text"
+                        value={newUser.writerIpiNumber}
+                        onChange={(e) => setNewUser({ ...newUser, writerIpiNumber: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                        placeholder="Writer IPI/CAE Number"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-1">
-                      IPI Number
+                      Publisher IPI Number
                     </label>
                     <input
                       type="text"
-                      value={newUser.ipiNumber}
-                      onChange={(e) => setNewUser({ ...newUser, ipiNumber: e.target.value })}
+                      value={newUser.publisherIpiNumber}
+                      onChange={(e) => setNewUser({ ...newUser, publisherIpiNumber: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                      placeholder="IPI/CAE Number"
+                      placeholder="Publisher IPI/CAE Number"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
-                      PRO Affiliation
-                    </label>
-                    <select
-                      value={newUser.proAffiliation}
-                      onChange={(e) => setNewUser({ ...newUser, proAffiliation: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                    >
-                      <option value="BMI">BMI</option>
-                      <option value="ASCAP">ASCAP</option>
-                      <option value="SESAC">SESAC</option>
-                      <option value="GMR">GMR</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
-                      Commission Override (%)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.01}
-                      value={newUser.commissionOverrideRate}
-                      onChange={(e) => setNewUser({ ...newUser, commissionOverrideRate: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                      placeholder="Leave blank to use default"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">If left blank, uses the global commission rate.</p>
-                  </div>
+                  {newUser.role === 'WRITER' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                          PRO Affiliation
+                        </label>
+                        <select
+                          value={newUser.proAffiliation}
+                          onChange={(e) => setNewUser({ ...newUser, proAffiliation: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                        >
+                          <option value="BMI">BMI</option>
+                          <option value="ASCAP">ASCAP</option>
+                          <option value="SESAC">SESAC</option>
+                          <option value="GMR">GMR</option>
+                          <option value="OTHER">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                          Commission Override (%)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.01}
+                          value={newUser.commissionOverrideRate}
+                          onChange={(e) => setNewUser({ ...newUser, commissionOverrideRate: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                          placeholder="Leave blank to use default"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">If left blank, uses the global commission rate.</p>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 
@@ -1204,53 +1236,71 @@ function UsersTab() {
                 />
               </div>
 
-              {/* Writer-specific fields */}
-              {editingUser.role === 'WRITER' && (
+              {/* Writer and Publisher specific fields */}
+              {(editingUser.role === 'WRITER' || editingUser.role === 'PUBLISHER') && (
                 <>
+                  {editingUser.role === 'WRITER' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                        Writer IPI Number
+                      </label>
+                      <input
+                        type="text"
+                        value={editingUser.writerIpiNumber || ''}
+                        onChange={(e) => setEditingUser({ ...editingUser, writerIpiNumber: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                        placeholder="Writer IPI/CAE Number"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-1">
-                      IPI Number
+                      Publisher IPI Number
                     </label>
                     <input
                       type="text"
-                      value={editingUser.ipiNumber || ''}
-                      onChange={(e) => setEditingUser({ ...editingUser, ipiNumber: e.target.value })}
+                      value={editingUser.publisherIpiNumber || ''}
+                      onChange={(e) => setEditingUser({ ...editingUser, publisherIpiNumber: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                      placeholder="IPI/CAE Number"
+                      placeholder="Publisher IPI/CAE Number"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
-                      PRO Affiliation
-                    </label>
-                    <select
-                      value={editingUser.producer?.proAffiliation || 'OTHER'}
-                      onChange={(e) => setEditingUser({ ...editingUser, producer: { ...(editingUser.producer || {}), proAffiliation: e.target.value } })}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                    >
-                      <option value="BMI">BMI</option>
-                      <option value="ASCAP">ASCAP</option>
-                      <option value="SESAC">SESAC</option>
-                      <option value="GMR">GMR</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
-                      Commission Override (%)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.01}
-                      value={editingUser.commissionOverrideRate ?? ''}
-                      onChange={(e) => setEditingUser({ ...editingUser, commissionOverrideRate: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                      placeholder="Leave blank to use default"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">Writer sees net = writer split minus commission. Blank uses global rate.</p>
-                  </div>
+                  {editingUser.role === 'WRITER' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                          PRO Affiliation
+                        </label>
+                        <select
+                          value={editingUser.producer?.proAffiliation || 'OTHER'}
+                          onChange={(e) => setEditingUser({ ...editingUser, producer: { ...(editingUser.producer || {}), proAffiliation: e.target.value } })}
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                        >
+                          <option value="BMI">BMI</option>
+                          <option value="ASCAP">ASCAP</option>
+                          <option value="SESAC">SESAC</option>
+                          <option value="GMR">GMR</option>
+                          <option value="OTHER">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                          Commission Override (%)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.01}
+                          value={editingUser.commissionOverrideRate ?? ''}
+                          onChange={(e) => setEditingUser({ ...editingUser, commissionOverrideRate: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                          placeholder="Leave blank to use default"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Writer sees net = writer split minus commission. Blank uses global rate.</p>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 

@@ -1,19 +1,21 @@
-import { useQuery } from '@tanstack/react-query';
-import { dashboardApi, statementApi, documentApi } from '../lib/api';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { dashboardApi, statementApi, documentApi, userApi } from '../lib/api';
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import Sidebar from '../components/Sidebar';
+import { useAuthStore } from '../store/auth.store';
 
 const COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4'];
 
 export default function WriterDashboard() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents' | 'profile'>('overview');
 
   const writerTabs = [
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'songs', label: 'My Songs', icon: '🎵' },
     { id: 'statements', label: 'Statements', icon: '📄' },
     { id: 'documents', label: 'Documents', icon: '📁' },
+    { id: 'profile', label: 'Profile', icon: '👤' },
   ];
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
@@ -75,7 +77,7 @@ export default function WriterDashboard() {
       {/* Left Sidebar */}
       <Sidebar
         activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab as 'overview' | 'songs' | 'statements' | 'documents')}
+        onTabChange={(tab) => setActiveTab(tab as 'overview' | 'songs' | 'statements' | 'documents' | 'profile')}
         tabs={writerTabs}
       />
 
@@ -285,9 +287,186 @@ export default function WriterDashboard() {
             )}
 
             {activeTab === 'documents' && <WriterDocumentsSection />}
+
+            {activeTab === 'profile' && <ProfileSection />}
           </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+function ProfileSection() {
+  const { user, updateUser } = useAuthStore();
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    writerIpiNumber: user?.writerIpiNumber || '',
+    publisherIpiNumber: user?.publisherIpiNumber || '',
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: any) => {
+      if (!user?.id) throw new Error('User not found');
+      return userApi.update(user.id, data);
+    },
+    onSuccess: (response) => {
+      // Update the auth store with the new user data
+      if (user) {
+        updateUser({
+          ...user,
+          writerIpiNumber: formData.writerIpiNumber || undefined,
+          publisherIpiNumber: formData.publisherIpiNumber || undefined,
+        });
+      }
+      setIsEditing(false);
+      alert('Profile updated successfully!');
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.error || 'Failed to update profile');
+    },
+  });
+
+  const handleSave = () => {
+    updateMutation.mutate({
+      writerIpiNumber: formData.writerIpiNumber || null,
+      publisherIpiNumber: formData.publisherIpiNumber || null,
+    });
+  };
+
+  const handleCancel = () => {
+    setFormData({
+      writerIpiNumber: user?.writerIpiNumber || '',
+      publisherIpiNumber: user?.publisherIpiNumber || '',
+    });
+    setIsEditing(false);
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-medium text-white">My Profile</h3>
+        {!isEditing && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
+          >
+            Edit IPI Numbers
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-6">
+        {/* User Info Section */}
+        <div className="bg-slate-700/30 rounded-lg p-6">
+          <h4 className="text-md font-medium text-white mb-4">Account Information</h4>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Name</label>
+              <p className="text-white">
+                {user?.firstName || user?.lastName
+                  ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
+                  : 'Not set'}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Email</label>
+              <p className="text-white">{user?.email}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Role</label>
+              <p className="text-white">{user?.role}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* IPI Numbers Section */}
+        <div className="bg-slate-700/30 rounded-lg p-6">
+          <h4 className="text-md font-medium text-white mb-4">IPI/CAE Numbers</h4>
+          <p className="text-sm text-gray-400 mb-6">
+            Your IPI (Interested Party Information) numbers help us accurately match your royalty statements.
+            {user?.role === 'WRITER' && ' Writers typically have a Writer IPI number.'}
+            {user?.role === 'PUBLISHER' && ' Publishers typically have a Publisher IPI number.'}
+          </p>
+
+          <div className="space-y-4">
+            {/* Writer IPI Number - only for WRITER role */}
+            {user?.role === 'WRITER' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Writer IPI Number
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={formData.writerIpiNumber}
+                    onChange={(e) => setFormData({ ...formData, writerIpiNumber: e.target.value })}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                    placeholder="Enter your Writer IPI/CAE Number"
+                  />
+                ) : (
+                  <div className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                    {user?.writerIpiNumber || (
+                      <span className="text-gray-500">Not set - Click "Edit IPI Numbers" to add</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Publisher IPI Number - for both WRITER and PUBLISHER roles */}
+            {(user?.role === 'WRITER' || user?.role === 'PUBLISHER') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Publisher IPI Number
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={formData.publisherIpiNumber}
+                    onChange={(e) => setFormData({ ...formData, publisherIpiNumber: e.target.value })}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                    placeholder="Enter your Publisher IPI/CAE Number"
+                  />
+                ) : (
+                  <div className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                    {user?.publisherIpiNumber || (
+                      <span className="text-gray-500">Not set - Click "Edit IPI Numbers" to add</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          {isEditing && (
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleSave}
+                disabled={updateMutation.isPending}
+                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-600 transition-colors"
+              >
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={updateMutation.isPending}
+                className="flex-1 px-4 py-2 bg-slate-700 text-gray-300 rounded-lg font-medium hover:bg-slate-600 disabled:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Help Text */}
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+          <p className="text-sm text-blue-300">
+            <strong>Note:</strong> If you don't know your IPI numbers, you can find them on your PRO membership portal
+            (ASCAP, BMI, SESAC, etc.) or contact your administrator for assistance.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
