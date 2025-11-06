@@ -7,7 +7,7 @@ import Sidebar from '../components/Sidebar';
 import ToolsHub from '../components/ToolsHub';
 import DocumentsTab from '../components/DocumentsTab';
 
-type TabType = 'overview' | 'statements' | 'writers' | 'analytics' | 'documents' | 'tools' | 'commission';
+type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -15,7 +15,7 @@ export default function AdminDashboard() {
   const adminTabs = [
     { id: 'overview', label: 'Dashboard', icon: '🏠' },
     { id: 'statements', label: 'Statements', icon: '📊' },
-    { id: 'writers', label: 'Writers', icon: '👥' },
+    { id: 'users', label: 'Users', icon: '👥' },
     { id: 'analytics', label: 'Analytics', icon: '📈' },
     { id: 'documents', label: 'Documents', icon: '📄' },
     { id: 'tools', label: 'Tools Hub', icon: '🛠️' },
@@ -36,7 +36,7 @@ export default function AdminDashboard() {
         <div className="p-8">
           {activeTab === 'overview' && <DashboardOverview />}
           {activeTab === 'statements' && <StatementsTab />}
-          {activeTab === 'writers' && <WritersTab />}
+          {activeTab === 'users' && <UsersTab />}
           {activeTab === 'analytics' && <AnalyticsTab />}
           {activeTab === 'documents' && <DocumentsTab />}
           {activeTab === 'tools' && <ToolsHub />}
@@ -795,15 +795,16 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   );
 }
 
-function WritersTab() {
+function UsersTab() {
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingWriter, setEditingWriter] = useState<any>(null);
-  const [newWriter, setNewWriter] = useState({
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [newUser, setNewUser] = useState({
     email: '',
     password: '',
     firstName: '',
     lastName: '',
+    role: 'WRITER',
     ipiNumber: '',
     proAffiliation: 'BMI',
     commissionOverrideRate: '',
@@ -822,7 +823,7 @@ function WritersTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setShowAddModal(false);
-      setNewWriter({ email: '', password: '', firstName: '', lastName: '', ipiNumber: '', proAffiliation: 'BMI', commissionOverrideRate: '' });
+      setNewUser({ email: '', password: '', firstName: '', lastName: '', role: 'WRITER', ipiNumber: '', proAffiliation: 'BMI', commissionOverrideRate: '' });
     },
   });
 
@@ -830,7 +831,7 @@ function WritersTab() {
     mutationFn: ({ id, data }: { id: string; data: any }) => userApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      setEditingWriter(null);
+      setEditingUser(null);
     },
   });
 
@@ -841,24 +842,24 @@ function WritersTab() {
     },
   });
 
-  const handleAddWriter = () => {
-    if (!newWriter.email || !newWriter.password) {
+  const handleAddUser = () => {
+    if (!newUser.email || !newUser.password) {
       alert('Email and password are required');
       return;
     }
     // Prepare payload with optional commission override
-    const payload: any = { ...newWriter, role: 'WRITER' };
+    const payload: any = { ...newUser };
     if (payload.commissionOverrideRate === '') delete payload.commissionOverrideRate;
     else payload.commissionOverrideRate = parseFloat(payload.commissionOverrideRate);
     createMutation.mutate(payload);
   };
 
-  const handleUpdateWriter = () => {
-    if (!editingWriter.email) {
+  const handleUpdateUser = () => {
+    if (!editingUser.email) {
       alert('Email is required');
       return;
     }
-    const { id, ...data } = editingWriter;
+    const { id, ...data } = editingUser;
     // Only include password if it was changed
     if (!data.password) {
       delete data.password;
@@ -880,16 +881,16 @@ function WritersTab() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium text-white">Writer Management</h3>
+        <h3 className="text-lg font-medium text-white">User Management</h3>
         <button
           onClick={() => setShowAddModal(true)}
           className="px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
         >
-          + Add Writer
+          + Add User
         </button>
       </div>
 
-      {/* Writers Table */}
+      {/* Users Table */}
       {isLoading ? (
         <div className="text-center text-gray-400 py-8">Loading...</div>
       ) : usersData?.users?.length > 0 ? (
@@ -903,55 +904,55 @@ function WritersTab() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Email
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">IPI Number</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">PRO</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Commission</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Role
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">IPI Number</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">PRO</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Commission</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700">
-              {usersData.users.map((writer: any) => (
-                <tr key={writer.id} className="hover:bg-slate-700/30 transition-colors">
+              {usersData.users.map((user: any) => (
+                <tr key={user.id} className="hover:bg-slate-700/30 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-white">
-                      {writer.firstName || writer.lastName
-                        ? `${writer.firstName || ''} ${writer.lastName || ''}`.trim()
+                      {user.firstName || user.lastName
+                        ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
                         : '-'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-400">{writer.email}</div>
+                    <div className="text-sm text-gray-400">{user.email}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{writer.ipiNumber || '-'}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{writer.producer?.proAffiliation || '-'}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{writer.commissionOverrideRate != null ? `${Number(writer.commissionOverrideRate).toFixed(2)}%` : 'Default'}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      writer.role === 'ADMIN'
+                      user.role === 'ADMIN'
                         ? 'bg-purple-500/20 text-purple-400'
                         : 'bg-blue-500/20 text-blue-400'
                     }`}>
-                      {writer.role}
+                      {user.role}
                     </span>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.ipiNumber || '-'}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.producer?.proAffiliation || '-'}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.commissionOverrideRate != null ? `${Number(user.commissionOverrideRate).toFixed(2)}%` : 'Default'}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex gap-2 justify-end">
                       <button
-                        onClick={() => setEditingWriter(writer)}
+                        onClick={() => setEditingUser(user)}
                         className="text-blue-400 hover:text-blue-300"
                       >
                         Edit
                       </button>
-                      {writer.role !== 'ADMIN' && (
+                      {user.role !== 'ADMIN' && (
                         <button
                           onClick={() => {
-                            if (confirm(`Are you sure you want to delete ${writer.email}?`)) {
-                              deleteMutation.mutate(writer.id);
+                            if (confirm(`Are you sure you want to delete ${user.email}?`)) {
+                              deleteMutation.mutate(user.id);
                             }
                           }}
                           className="text-red-400 hover:text-red-300"
@@ -967,14 +968,14 @@ function WritersTab() {
           </table>
         </div>
       ) : (
-        <p className="text-gray-400 text-center py-8">No writers found</p>
+        <p className="text-gray-400 text-center py-8">No users found</p>
       )}
 
-      {/* Add Writer Modal */}
+      {/* Add User Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold text-white mb-4">Add New Writer</h3>
+          <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-white mb-4">Add New User</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -982,10 +983,10 @@ function WritersTab() {
                 </label>
                 <input
                   type="email"
-                  value={newWriter.email}
-                  onChange={(e) => setNewWriter({ ...newWriter, email: e.target.value })}
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                  placeholder="writer@example.com"
+                  placeholder="user@example.com"
                 />
               </div>
               <div>
@@ -994,10 +995,23 @@ function WritersTab() {
                 </label>
                 <input
                   type="password"
-                  value={newWriter.password}
-                  onChange={(e) => setNewWriter({ ...newWriter, password: e.target.value })}
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Role *
+                </label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                >
+                  <option value="WRITER">Writer</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -1005,8 +1019,8 @@ function WritersTab() {
                 </label>
                 <input
                   type="text"
-                  value={newWriter.firstName}
-                  onChange={(e) => setNewWriter({ ...newWriter, firstName: e.target.value })}
+                  value={newUser.firstName}
+                  onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                 />
               </div>
@@ -1016,62 +1030,69 @@ function WritersTab() {
                 </label>
                 <input
                   type="text"
-                  value={newWriter.lastName}
-                  onChange={(e) => setNewWriter({ ...newWriter, lastName: e.target.value })}
+                  value={newUser.lastName}
+                  onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  IPI Number
-                </label>
-                <input
-                  type="text"
-                  value={newWriter.ipiNumber}
-                  onChange={(e) => setNewWriter({ ...newWriter, ipiNumber: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                  placeholder="IPI/CAE Number"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  PRO Affiliation
-                </label>
-                <select
-                  value={newWriter.proAffiliation}
-                  onChange={(e) => setNewWriter({ ...newWriter, proAffiliation: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                >
-                  <option value="BMI">BMI</option>
-                  <option value="ASCAP">ASCAP</option>
-                  <option value="SESAC">SESAC</option>
-                  <option value="OTHER">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Commission Override (%)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.01}
-                  value={newWriter.commissionOverrideRate}
-                  onChange={(e) => setNewWriter({ ...newWriter, commissionOverrideRate: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                  placeholder="Leave blank to use default"
-                />
-                <p className="text-xs text-gray-400 mt-1">If left blank, uses the global commission rate.</p>
-              </div>
+
+              {/* Writer-specific fields */}
+              {newUser.role === 'WRITER' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      IPI Number
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.ipiNumber}
+                      onChange={(e) => setNewUser({ ...newUser, ipiNumber: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      placeholder="IPI/CAE Number"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      PRO Affiliation
+                    </label>
+                    <select
+                      value={newUser.proAffiliation}
+                      onChange={(e) => setNewUser({ ...newUser, proAffiliation: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                    >
+                      <option value="BMI">BMI</option>
+                      <option value="ASCAP">ASCAP</option>
+                      <option value="SESAC">SESAC</option>
+                      <option value="MLC">MLC</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Commission Override (%)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.01}
+                      value={newUser.commissionOverrideRate}
+                      onChange={(e) => setNewUser({ ...newUser, commissionOverrideRate: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      placeholder="Leave blank to use default"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">If left blank, uses the global commission rate.</p>
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex gap-3 mt-6">
               <button
-                onClick={handleAddWriter}
+                onClick={handleAddUser}
                 disabled={createMutation.isPending}
                 className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-gray-600 transition-colors"
               >
-                {createMutation.isPending ? 'Creating...' : 'Create Writer'}
+                {createMutation.isPending ? 'Creating...' : 'Create User'}
               </button>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -1084,11 +1105,11 @@ function WritersTab() {
         </div>
       )}
 
-      {/* Edit Writer Modal */}
-      {editingWriter && (
+      {/* Edit User Modal */}
+      {editingUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold text-white mb-4">Edit Writer</h3>
+          <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-white mb-4">Edit User</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -1096,8 +1117,8 @@ function WritersTab() {
                 </label>
                 <input
                   type="email"
-                  value={editingWriter.email}
-                  onChange={(e) => setEditingWriter({ ...editingWriter, email: e.target.value })}
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                 />
               </div>
@@ -1107,11 +1128,24 @@ function WritersTab() {
                 </label>
                 <input
                   type="password"
-                  value={editingWriter.password || ''}
-                  onChange={(e) => setEditingWriter({ ...editingWriter, password: e.target.value })}
+                  value={editingUser.password || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                   placeholder="Leave blank to keep current password"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Role *
+                </label>
+                <select
+                  value={editingUser.role}
+                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                >
+                  <option value="WRITER">Writer</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -1119,8 +1153,8 @@ function WritersTab() {
                 </label>
                 <input
                   type="text"
-                  value={editingWriter.firstName || ''}
-                  onChange={(e) => setEditingWriter({ ...editingWriter, firstName: e.target.value })}
+                  value={editingUser.firstName || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                 />
               </div>
@@ -1130,65 +1164,72 @@ function WritersTab() {
                 </label>
                 <input
                   type="text"
-                  value={editingWriter.lastName || ''}
-                  onChange={(e) => setEditingWriter({ ...editingWriter, lastName: e.target.value })}
+                  value={editingUser.lastName || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  IPI Number
-                </label>
-                <input
-                  type="text"
-                  value={editingWriter.ipiNumber || ''}
-                  onChange={(e) => setEditingWriter({ ...editingWriter, ipiNumber: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                  placeholder="IPI/CAE Number"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  PRO Affiliation
-                </label>
-                <select
-                  value={editingWriter.producer?.proAffiliation || 'OTHER'}
-                  onChange={(e) => setEditingWriter({ ...editingWriter, producer: { ...(editingWriter.producer || {}), proAffiliation: e.target.value } })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                >
-                  <option value="BMI">BMI</option>
-                  <option value="ASCAP">ASCAP</option>
-                  <option value="SESAC">SESAC</option>
-                  <option value="OTHER">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Commission Override (%)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.01}
-                  value={editingWriter.commissionOverrideRate ?? ''}
-                  onChange={(e) => setEditingWriter({ ...editingWriter, commissionOverrideRate: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                  placeholder="Leave blank to use default"
-                />
-                <p className="text-xs text-gray-400 mt-1">Writer sees net = writer split minus commission. Blank uses global rate.</p>
-              </div>
+
+              {/* Writer-specific fields */}
+              {editingUser.role === 'WRITER' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      IPI Number
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUser.ipiNumber || ''}
+                      onChange={(e) => setEditingUser({ ...editingUser, ipiNumber: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      placeholder="IPI/CAE Number"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      PRO Affiliation
+                    </label>
+                    <select
+                      value={editingUser.producer?.proAffiliation || 'OTHER'}
+                      onChange={(e) => setEditingUser({ ...editingUser, producer: { ...(editingUser.producer || {}), proAffiliation: e.target.value } })}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                    >
+                      <option value="BMI">BMI</option>
+                      <option value="ASCAP">ASCAP</option>
+                      <option value="SESAC">SESAC</option>
+                      <option value="MLC">MLC</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Commission Override (%)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.01}
+                      value={editingUser.commissionOverrideRate ?? ''}
+                      onChange={(e) => setEditingUser({ ...editingUser, commissionOverrideRate: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      placeholder="Leave blank to use default"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Writer sees net = writer split minus commission. Blank uses global rate.</p>
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex gap-3 mt-6">
               <button
-                onClick={handleUpdateWriter}
+                onClick={handleUpdateUser}
                 disabled={updateMutation.isPending}
                 className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-gray-600 transition-colors"
               >
-                {updateMutation.isPending ? 'Updating...' : 'Update Writer'}
+                {updateMutation.isPending ? 'Updating...' : 'Update User'}
               </button>
               <button
-                onClick={() => setEditingWriter(null)}
+                onClick={() => setEditingUser(null)}
                 className="flex-1 px-4 py-2 bg-slate-700 text-gray-300 rounded-lg font-medium hover:bg-slate-600 transition-colors"
               >
                 Cancel
