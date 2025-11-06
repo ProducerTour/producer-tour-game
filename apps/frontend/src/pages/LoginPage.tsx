@@ -20,7 +20,11 @@ export default function LoginPage() {
     try {
       const response = await authApi.login(email, password);
       setAuth(response.data.user, response.data.token);
-      navigate('/dashboard');
+
+      // Wait for Zustand persist to complete before navigating
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 100);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login failed');
     } finally {
