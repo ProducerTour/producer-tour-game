@@ -4,10 +4,11 @@ import { persist } from 'zustand/middleware';
 interface User {
   id: string;
   email: string;
-  role: 'ADMIN' | 'WRITER' | 'LEGAL';
+  role: 'ADMIN' | 'WRITER' | 'LEGAL' | 'MANAGER' | 'PUBLISHER' | 'STAFF' | 'VIEWER';
   firstName?: string;
   lastName?: string;
   ipiNumber?: string;
+  canUploadStatements?: boolean;
   producer?: any;
 }
 

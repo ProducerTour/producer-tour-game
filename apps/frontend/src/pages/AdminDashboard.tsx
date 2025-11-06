@@ -375,7 +375,7 @@ function StatementsTab() {
           {/* PRO Selector */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Select PRO Type
+              Select Statement Type
             </label>
             <div className="flex gap-3">
               {(['BMI', 'ASCAP', 'SESAC', 'MLC'] as const).map((pro) => (
@@ -614,7 +614,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   };
 
   const getSplitTotal = (songTitle: string) => {
-    const songAssignments = assignments[songTitle] || [];
+    const songAssignments = assignments[songTitle] || [{ userId: '', ipiNumber: '', splitPercentage: 100 }];
     return songAssignments.reduce((sum, a) => sum + (a.splitPercentage || 0), 0);
   };
 
@@ -692,7 +692,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                     <div className="flex-1">
                       <p className="font-medium text-white">{song.title}</p>
                       <p className="text-sm text-gray-400">
-                        ${Number(song.totalAmount).toFixed(2)} • {song.performances} performances
+                        ${Number(song.totalRevenue).toFixed(2)} • {song.totalPerformances || song.performances || 0} performances
                       </p>
                     </div>
                     <button
@@ -808,6 +808,7 @@ function UsersTab() {
     ipiNumber: '',
     proAffiliation: 'BMI',
     commissionOverrideRate: '',
+    canUploadStatements: false,
   });
 
   const { data: usersData, isLoading } = useQuery({
@@ -823,7 +824,7 @@ function UsersTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setShowAddModal(false);
-      setNewUser({ email: '', password: '', firstName: '', lastName: '', role: 'WRITER', ipiNumber: '', proAffiliation: 'BMI', commissionOverrideRate: '' });
+      setNewUser({ email: '', password: '', firstName: '', lastName: '', role: 'WRITER', ipiNumber: '', proAffiliation: 'BMI', commissionOverrideRate: '', canUploadStatements: false });
     },
   });
 
@@ -1011,6 +1012,11 @@ function UsersTab() {
                 >
                   <option value="WRITER">Writer</option>
                   <option value="ADMIN">Admin</option>
+                  <option value="LEGAL">Legal</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="PUBLISHER">Publisher</option>
+                  <option value="STAFF">Staff</option>
+                  <option value="VIEWER">Viewer</option>
                 </select>
               </div>
               <div>
@@ -1063,7 +1069,7 @@ function UsersTab() {
                       <option value="BMI">BMI</option>
                       <option value="ASCAP">ASCAP</option>
                       <option value="SESAC">SESAC</option>
-                      <option value="MLC">MLC</option>
+                      <option value="GMR">GMR</option>
                       <option value="OTHER">Other</option>
                     </select>
                   </div>
@@ -1084,6 +1090,22 @@ function UsersTab() {
                     <p className="text-xs text-gray-400 mt-1">If left blank, uses the global commission rate.</p>
                   </div>
                 </>
+              )}
+
+              {/* Viewer-specific fields */}
+              {newUser.role === 'VIEWER' && (
+                <div className="flex items-center gap-2 p-3 bg-slate-700/30 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="canUploadStatements"
+                    checked={newUser.canUploadStatements}
+                    onChange={(e) => setNewUser({ ...newUser, canUploadStatements: e.target.checked })}
+                    className="w-4 h-4 text-primary-600 bg-slate-700 border-slate-600 rounded focus:ring-primary-500 focus:ring-2"
+                  />
+                  <label htmlFor="canUploadStatements" className="text-sm text-gray-300">
+                    Allow statement uploads
+                  </label>
+                </div>
               )}
             </div>
             <div className="flex gap-3 mt-6">
@@ -1145,6 +1167,11 @@ function UsersTab() {
                 >
                   <option value="WRITER">Writer</option>
                   <option value="ADMIN">Admin</option>
+                  <option value="LEGAL">Legal</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="PUBLISHER">Publisher</option>
+                  <option value="STAFF">Staff</option>
+                  <option value="VIEWER">Viewer</option>
                 </select>
               </div>
               <div>
@@ -1197,7 +1224,7 @@ function UsersTab() {
                       <option value="BMI">BMI</option>
                       <option value="ASCAP">ASCAP</option>
                       <option value="SESAC">SESAC</option>
-                      <option value="MLC">MLC</option>
+                      <option value="GMR">GMR</option>
                       <option value="OTHER">Other</option>
                     </select>
                   </div>
@@ -1218,6 +1245,22 @@ function UsersTab() {
                     <p className="text-xs text-gray-400 mt-1">Writer sees net = writer split minus commission. Blank uses global rate.</p>
                   </div>
                 </>
+              )}
+
+              {/* Viewer-specific fields */}
+              {editingUser.role === 'VIEWER' && (
+                <div className="flex items-center gap-2 p-3 bg-slate-700/30 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="editCanUploadStatements"
+                    checked={editingUser.canUploadStatements || false}
+                    onChange={(e) => setEditingUser({ ...editingUser, canUploadStatements: e.target.checked })}
+                    className="w-4 h-4 text-primary-600 bg-slate-700 border-slate-600 rounded focus:ring-primary-500 focus:ring-2"
+                  />
+                  <label htmlFor="editCanUploadStatements" className="text-sm text-gray-300">
+                    Allow statement uploads
+                  </label>
+                </div>
               )}
             </div>
             <div className="flex gap-3 mt-6">

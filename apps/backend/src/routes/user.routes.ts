@@ -51,7 +51,8 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       producerName,
       ipiNumber,
       proAffiliation,
-      commissionOverrideRate
+      commissionOverrideRate,
+      canUploadStatements
     } = req.body;
 
     // Validation
@@ -66,10 +67,10 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
     }
 
     // Validate role
-    const validRoles = ['ADMIN', 'WRITER'];
+    const validRoles = ['ADMIN', 'WRITER', 'LEGAL', 'MANAGER', 'PUBLISHER', 'STAFF', 'VIEWER'];
     const userRole = role || 'WRITER';
     if (!validRoles.includes(userRole)) {
-      return res.status(400).json({ error: 'Invalid role. Must be ADMIN or WRITER' });
+      return res.status(400).json({ error: 'Invalid role. Must be one of: ADMIN, WRITER, LEGAL, MANAGER, PUBLISHER, STAFF, VIEWER' });
     }
 
     // Validate commission rate if provided
@@ -105,6 +106,7 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       lastName,
       role: userRole,
       ipiNumber,
+      canUploadStatements: canUploadStatements === true || canUploadStatements === 'true',
     };
 
     // Add commission override if provided
@@ -161,7 +163,7 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
 router.put('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, role, email, password, ipiNumber, proAffiliation, producerName, commissionOverrideRate } = req.body;
+    const { firstName, lastName, role, email, password, ipiNumber, proAffiliation, producerName, commissionOverrideRate, canUploadStatements } = req.body;
 
     // Validate email format if provided
     if (email !== undefined) {
@@ -173,9 +175,9 @@ router.put('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
 
     // Validate role if provided
     if (role !== undefined) {
-      const validRoles = ['ADMIN', 'WRITER'];
+      const validRoles = ['ADMIN', 'WRITER', 'LEGAL', 'MANAGER', 'PUBLISHER', 'STAFF', 'VIEWER'];
       if (!validRoles.includes(role)) {
-        return res.status(400).json({ error: 'Invalid role. Must be ADMIN or WRITER' });
+        return res.status(400).json({ error: 'Invalid role. Must be one of: ADMIN, WRITER, LEGAL, MANAGER, PUBLISHER, STAFF, VIEWER' });
       }
     }
 
@@ -194,6 +196,7 @@ router.put('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
     if (role !== undefined) userData.role = role;
     if (email !== undefined) userData.email = email;
     if (ipiNumber !== undefined) userData.ipiNumber = ipiNumber;
+    if (canUploadStatements !== undefined) userData.canUploadStatements = canUploadStatements === true || canUploadStatements === 'true';
     if (commissionOverrideRate !== undefined) {
       userData.commissionOverrideRate = commissionOverrideRate === null || commissionOverrideRate === '' ? null : parseFloat(commissionOverrideRate);
     }

@@ -19,12 +19,16 @@ enum UserRole {
   WRITER
   LEGAL
   MANAGER
+  PUBLISHER
+  STAFF
+  VIEWER
 }
 
 enum ProType {
   BMI
   ASCAP
   SESAC
+  GMR
   MLC
   OTHER
 }
@@ -113,6 +117,8 @@ model User {
   ipiNumber String?  // IPI/CAE number for PRO registration
   // Optional per-writer commission override (percentage 0.00-100.00). If null, use global CommissionSettings
   commissionOverrideRate Decimal? @db.Decimal(5, 2)
+  // Upload access for VIEWER role (allows statement uploads)
+  canUploadStatements Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
