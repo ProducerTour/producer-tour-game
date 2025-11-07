@@ -230,9 +230,13 @@ router.get(
           const writer = writerMap.get(key);
           writer.grossRevenue += Number(item.revenue);
           writer.commissionAmount += Number(item.commissionAmount);
-          writer.netRevenue += Number(item.netRevenue);
           writer.songCount += 1;
         });
+
+        // Calculate netRevenue fresh: gross - commission (avoid rounding errors)
+        for (const writer of writerMap.values()) {
+          writer.netRevenue = writer.grossRevenue - writer.commissionAmount;
+        }
 
         return {
           id: statement.id,
@@ -570,9 +574,13 @@ router.get(
         const writer = writerMap.get(key);
         writer.grossRevenue += Number(item.revenue);
         writer.commissionAmount += Number(item.commissionAmount);
-        writer.netRevenue += Number(item.netRevenue);
         writer.songCount += 1;
       });
+
+      // Calculate netRevenue fresh: gross - commission (avoid rounding errors)
+      for (const writer of writerMap.values()) {
+        writer.netRevenue = writer.grossRevenue - writer.commissionAmount;
+      }
 
       const summary = {
         statement: {

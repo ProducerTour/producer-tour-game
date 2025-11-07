@@ -112,20 +112,16 @@ export class MLCParser {
       const memberShare = row['Work Payable %'] ? parseFloat(row['Work Payable %']) : null;
 
       // Create statement item for this row
-      // MLC "Distributed Amount" is the member's share, which should be split among all writers on this row
-      // For example: $10 distributed with 2 writers = $5 per writer
-      const revenuePerWriter = writers.length > 0 ? amount / writers.length : amount;
-
+      // Store FULL distributed amount - Smart Assign will divide among matched writers
       items.push({
         workTitle: title,
-        revenue: revenuePerWriter,
+        revenue: amount,
         performances,
         metadata: {
           source: 'MLC',
           writers: writerData,
           numWriters: writers.length,
           memberShare,
-          originalDistributedAmount: amount,  // Store original for reference
           dsp: row['DSP Name'] || null,
           consumerOffering: row['Consumer Offering'] || null,
           territory: row['Territory'] || null,
