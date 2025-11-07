@@ -81,7 +81,7 @@ export class MLCParser {
       const title = row['Work Primary Title']?.trim();
       if (!title) continue;
 
-      // Parse writers (pipe-delimited)
+      // Parse writers (pipe-delimited) - Work Writer List is METADATA ONLY for PT publisher disambiguation
       const writersStr = row['Work Writer List'] || '';
       const ipisStr = row['Work Writer IPI Name Number List'] || '';
 
@@ -102,28 +102,41 @@ export class MLCParser {
       totalRevenue += amount;
       totalPerformances += performances;
 
-      // Build writer data array
+      // Build writer data array (metadata only)
       const writerData = writers.map((name, idx) => ({
         name,
         ipi: ipis[idx] || null,
       }));
 
+      // Extract Original Publisher info for publisher-aware matching
+      const originalPublisherIpi = row['Original Publisher IPI Name Number']?.trim() || null;
+      const originalPublisherName = row['Original Publisher Name']?.trim() || null;
+
+      // Extract platform info for analytics
+      const dspName = row['DSP Name']?.trim() || null;
+      const consumerOffering = row['Consumer Offering']?.trim() || null;
+
       // Parse member's share percentage (optional)
       const memberShare = row['Work Payable %'] ? parseFloat(row['Work Payable %']) : null;
 
       // Create statement item for this row
-      // Store FULL distributed amount - Smart Assign will divide among matched writers
+      // Store FULL distributed amount - Smart Assign will match by Original Publisher IPI
       items.push({
         workTitle: title,
         revenue: amount,
         performances,
         metadata: {
           source: 'MLC',
-          writers: writerData,
+          // Original Publisher (KEY for matching logic)
+          originalPublisherIpi,
+          originalPublisherName,
+          // Work Writer List (for PT publisher disambiguation only)
+          workWriterList: writerData,
           numWriters: writers.length,
           memberShare,
-          dsp: row['DSP Name'] || null,
-          consumerOffering: row['Consumer Offering'] || null,
+          // Platform data (for analytics)
+          dspName,
+          consumerOffering,
           territory: row['Territory'] || null,
           isrc: row['ISRC'] || null,
           artist: row['Recording Display Artist Name'] || null,

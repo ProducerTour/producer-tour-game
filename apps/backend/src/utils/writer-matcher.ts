@@ -94,7 +94,13 @@ function normalizeIPI(ipi: string): string {
 /**
  * Smart match writers for a parsed song
  * Uses multiple strategies: IPI number, name similarity, historical assignments
- * Supports both single-writer format (BMI/ASCAP) and multi-writer format (MLC)
+ *
+ * MLC Format (Publisher-Aware Matching):
+ * - If Original Publisher = Producer Tour → Match multiple writers from Work Writer List who use PT
+ * - If Original Publisher ≠ Producer Tour → Direct 1:1 match by publisherIpiNumber
+ *
+ * BMI/ASCAP Format (Traditional):
+ * - Single writer, match by writer IPI or name similarity
  */
 export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]> {
   const matches: WriterMatch[] = [];
@@ -113,14 +119,104 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
     }
   });
 
-  // Check if this is an MLC statement with multiple writers in metadata
-  const mlcWriters = song.metadata?.writers;
+  // Check if this is MLC format (has Original Publisher IPI)
+  const originalPublisherIpi = song.metadata?.originalPublisherIpi;
+  const originalPublisherName = song.metadata?.originalPublisherName;
+  const workWriterList = song.metadata?.workWriterList;
 
-  if (mlcWriters && mlcWriters.length > 0) {
-    // MLC format: Multiple writers per song, iterate through each
+  if (originalPublisherIpi && workWriterList) {
+    // ==================== MLC FORMAT: PUBLISHER-AWARE MATCHING ====================
+
+    // Get all active Producer Tour publisher IPIs from settings
+    const ptPublishers = await prisma.producerTourPublisher.findMany({
+      where: { isActive: true },
+      select: { ipiNumber: true, publisherName: true }
+    });
+
+    const normalizedOriginalPublisherIpi = normalizeIPI(originalPublisherIpi);
+    const isProducerTourPublisher = ptPublishers.some(
+      pt => normalizeIPI(pt.ipiNumber) === normalizedOriginalPublisherIpi
+    );
+
+    if (isProducerTourPublisher) {
+      // CASE A: Original Publisher = Producer Tour
+      // Match ALL writers from Work Writer List who use PT as their publisher
+      const ptPublisherName = ptPublishers.find(
+        pt => normalizeIPI(pt.ipiNumber) === normalizedOriginalPublisherIpi
+      )?.publisherName || 'Producer Tour';
+
+      for (const workWriter of workWriterList) {
+        // Try IPI match first
+        let matched = false;
+
+        if (workWriter.ipi) {
+          const normalizedWorkWriterIpi = normalizeIPI(workWriter.ipi);
+          const ipiMatch = allWriters.find(w =>
+            w.writerIpiNumber && normalizeIPI(w.writerIpiNumber) === normalizedWorkWriterIpi &&
+            w.publisherIpiNumber && normalizeIPI(w.publisherIpiNumber) === normalizedOriginalPublisherIpi
+          );
+
+          if (ipiMatch) {
+            matches.push({
+              writer: ipiMatch,
+              confidence: 100,
+              reason: `Writer IPI + PT Publisher match: ${workWriter.name} (${workWriter.ipi}) via ${ptPublisherName}`
+            });
+            matched = true;
+          }
+        }
+
+        // Try name match if IPI didn't work
+        if (!matched && workWriter.name) {
+          allWriters.forEach(writer => {
+            // Skip if already matched or doesn't use PT as publisher
+            if (matches.some(m => m.writer.id === writer.id)) return;
+            if (!writer.publisherIpiNumber || normalizeIPI(writer.publisherIpiNumber) !== normalizedOriginalPublisherIpi) return;
+
+            const fullName = `${writer.firstName || ''} ${writer.middleName || ''} ${writer.lastName || ''}`.trim().replace(/\s+/g, ' ');
+            if (!fullName) return;
+
+            const fullNameSimilarity = stringSimilarity(workWriter.name, fullName);
+
+            if (fullNameSimilarity >= 0.70) {
+              const confidence = Math.round(fullNameSimilarity * 100);
+              matches.push({
+                writer,
+                confidence,
+                reason: `Name + PT Publisher match: "${workWriter.name}" ≈ "${fullName}" (${confidence}%) via ${ptPublisherName}`
+              });
+            }
+          });
+        }
+      }
+
+      // Calculate split percentage for matched PT writers
+      if (matches.length > 0) {
+        // Split equally among all matched PT writers
+        // Note: This percentage will be applied during publish, not here
+      }
+
+    } else {
+      // CASE B: Original Publisher ≠ Producer Tour
+      // Direct 1:1 match by publisherIpiNumber
+      const publisherMatch = allWriters.find(w =>
+        w.publisherIpiNumber && normalizeIPI(w.publisherIpiNumber) === normalizedOriginalPublisherIpi
+      );
+
+      if (publisherMatch) {
+        matches.push({
+          writer: publisherMatch,
+          confidence: 100,
+          reason: `Publisher IPI match: ${originalPublisherName || 'Unknown Publisher'} (${originalPublisherIpi})`
+        });
+      }
+    }
+
+  } else if (song.metadata?.writers) {
+    // Legacy MLC format (old parser) - fallback to old logic
+    // This shouldn't happen with the new parser, but keeping for safety
+    const mlcWriters = song.metadata.writers;
     for (const mlcWriter of mlcWriters) {
-      // Strategy 1: IPI Number Exact Match (100% confidence)
-      // Check both writer IPI and publisher IPI with normalization
       if (mlcWriter.ipi) {
         const normalizedMlcIpi = normalizeIPI(mlcWriter.ipi);
         const ipiMatch = allWriters.find(
@@ -129,75 +225,12 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
         );
 
         if (ipiMatch) {
-          const matchedVia = ipiMatch.writerIpiNumber && normalizeIPI(ipiMatch.writerIpiNumber) === normalizedMlcIpi
-            ? 'Writer IPI'
-            : 'Publisher IPI';
           matches.push({
             writer: ipiMatch,
             confidence: 100,
-            reason: `${matchedVia} match: ${mlcWriter.name} (${mlcWriter.ipi})`
+            reason: `Legacy IPI match: ${mlcWriter.name} (${mlcWriter.ipi})`
           });
-          continue; // IPI match is definitive, skip name matching for this writer
         }
-      }
-
-      // Strategy 2: Writer Name Similarity with multiple matching approaches
-      if (mlcWriter.name) {
-        allWriters.forEach(writer => {
-          // Check if already matched (e.g., by IPI)
-          const alreadyMatched = matches.some(m => m.writer.id === writer.id);
-          if (alreadyMatched) return;
-
-          const fullName = `${writer.firstName || ''} ${writer.middleName || ''} ${writer.lastName || ''}`.trim().replace(/\s+/g, ' ');
-          if (!fullName) return;
-
-          // Approach 1: Full name similarity
-          const fullNameSimilarity = stringSimilarity(mlcWriter.name, fullName);
-
-          // Approach 2: Last name exact match + first name initial
-          // E.g., "J. Smith" should match "John Smith"
-          const firstName = writer.firstName || '';
-          const lastName = writer.lastName || '';
-          let lastNameMatch = false;
-          let firstNameInitialMatch = false;
-
-          if (lastName) {
-            const mlcLower = mlcWriter.name.toLowerCase();
-            const lastNameLower = lastName.toLowerCase();
-            lastNameMatch = mlcLower.includes(lastNameLower) || lastNameLower.includes(mlcLower.split(' ').pop() || '');
-
-            if (lastNameMatch && firstName) {
-              const firstInitial = firstName.charAt(0).toLowerCase();
-              firstNameInitialMatch = mlcLower.charAt(0) === firstInitial;
-            }
-          }
-
-          // Calculate confidence based on best match
-          let confidence = 0;
-          let reason = '';
-
-          if (fullNameSimilarity >= 0.70) {
-            // Good full name similarity (70%+ = 70-100% confidence)
-            confidence = Math.round(fullNameSimilarity * 100);
-            reason = `Name similarity: "${mlcWriter.name}" ≈ "${fullName}" (${confidence}%)`;
-          } else if (lastNameMatch && firstNameInitialMatch) {
-            // Last name + first initial match (85% confidence)
-            confidence = 85;
-            reason = `Name match: "${mlcWriter.name}" ≈ "${firstName.charAt(0)}. ${lastName}"`;
-          } else if (lastNameMatch) {
-            // Last name only match (75% confidence)
-            confidence = 75;
-            reason = `Last name match: "${mlcWriter.name}" contains "${lastName}"`;
-          }
-
-          if (confidence >= 70) {
-            matches.push({
-              writer,
-              confidence,
-              reason
-            });
-          }
-        });
       }
     }
   } else {

@@ -478,3 +478,18 @@ model CommissionSettings {
   @@index([effectiveDate])
   @@map("commission_settings")
 }
+
+model ProducerTourPublisher {
+  id                String   @id @default(cuid())
+  ipiNumber         String   @unique // Helper: Producer Tour IPI that collects for writers without own publisher
+  publisherName     String   // e.g., "Producer Tour Publishing", "Producer Tour LLC (ASCAP)"
+  notes             String?  @db.Text // Optional notes about this publisher entity
+  isActive          Boolean  @default(true) // Can be deactivated without deleting
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([ipiNumber])
+  @@index([isActive])
+  @@map("producer_tour_publishers")
+}
