@@ -58,10 +58,15 @@ export default function RoyaltyPortalPage() {
   const loadUnpaidStatements = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Frontend: Fetching unpaid statements...');
       const response = await statementApi.getUnpaidStatements();
+      console.log('✅ Frontend: Received unpaid statements:', {
+        count: response.data.length,
+        statements: response.data
+      });
       setUnpaidStatements(response.data);
     } catch (error) {
-      console.error('Failed to load unpaid statements:', error);
+      console.error('❌ Frontend: Failed to load unpaid statements:', error);
       alert('Failed to load unpaid statements. Please try again.');
     } finally {
       setLoading(false);

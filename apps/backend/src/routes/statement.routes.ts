@@ -417,6 +417,24 @@ router.get(
   requireAdmin,
   async (req: AuthRequest, res: Response) => {
     try {
+      console.log('🔍 Royalty Portal: Querying unpaid statements...');
+
+      // First, check total statement counts
+      const totalStatements = await prisma.statement.count();
+      const publishedStatements = await prisma.statement.count({ where: { status: 'PUBLISHED' } });
+      const unpaidCount = await prisma.statement.count({
+        where: {
+          status: 'PUBLISHED',
+          paymentStatus: { in: ['UNPAID', 'PENDING'] }
+        }
+      });
+
+      console.log('📊 Statement counts:', {
+        total: totalStatements,
+        published: publishedStatements,
+        unpaid: unpaidCount
+      });
+
       const unpaidStatements = await prisma.statement.findMany({
         where: {
           status: 'PUBLISHED',
@@ -477,6 +495,17 @@ router.get(
           writerCount: writerMap.size,
           writers: Array.from(writerMap.values())
         };
+      });
+
+      console.log('✅ Returning unpaid statements:', {
+        count: formatted.length,
+        statements: formatted.map(s => ({
+          id: s.id,
+          proType: s.proType,
+          filename: s.filename,
+          writerCount: s.writerCount,
+          totalGross: s.writers.reduce((sum, w) => sum + w.grossRevenue, 0)
+        }))
       });
 
       res.json(formatted);
