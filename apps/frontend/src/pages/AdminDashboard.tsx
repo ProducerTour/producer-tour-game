@@ -535,6 +535,8 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   const [assignments, setAssignments] = useState<WriterAssignmentsPayload>({});
   const [assignAllWriter, setAssignAllWriter] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  const [smartAssigning, setSmartAssigning] = useState(false);
+  const [smartAssignResults, setSmartAssignResults] = useState<any>(null);
 
   const parsedSongs = statement.metadata?.songs || [];
   const writersList = writers.filter((w: any) => w.role === 'WRITER');
@@ -559,6 +561,49 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
       }];
     });
     setAssignments(newAssignments);
+  };
+
+  const handleSmartAssign = async () => {
+    setSmartAssigning(true);
+    try {
+      const response = await statementApi.smartAssign(statement.id);
+      const results = response.data;
+      setSmartAssignResults(results);
+
+      // Auto-populate assignments with high-confidence matches (>=90%)
+      const newAssignments: WriterAssignmentsPayload = {};
+
+      // Auto-assigned matches (>=90% confidence)
+      results.autoAssigned?.forEach((match: any) => {
+        newAssignments[match.workTitle] = [{
+          userId: match.writer.id,
+          writerIpiNumber: match.writer.writerIpiNumber || '',
+          publisherIpiNumber: match.writer.publisherIpiNumber || '',
+          splitPercentage: 100
+        }];
+      });
+
+      // For suggested matches (70-90% confidence), use top match if only one writer
+      results.suggested?.forEach((suggestion: any) => {
+        if (suggestion.matches && suggestion.matches.length > 0) {
+          const topMatch = suggestion.matches[0];
+          newAssignments[suggestion.workTitle] = [{
+            userId: topMatch.writer.id,
+            writerIpiNumber: topMatch.writer.writerIpiNumber || '',
+            publisherIpiNumber: topMatch.writer.publisherIpiNumber || '',
+            splitPercentage: 100
+          }];
+        }
+      });
+
+      setAssignments(newAssignments);
+      alert(`Smart Assign Complete!\n\n✓ Auto-assigned: ${results.autoAssignedCount} songs (high confidence)\n⚠ Suggested: ${results.suggestedCount} songs (review recommended)\n✗ Unmatched: ${results.unmatchedCount} songs (manual assignment needed)`);
+    } catch (error: any) {
+      console.error('Smart assign error:', error);
+      alert(error.response?.data?.error || 'Failed to smart assign writers');
+    } finally {
+      setSmartAssigning(false);
+    }
   };
 
   const addWriter = (songTitle: string) => {
@@ -628,6 +673,48 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
     return songAssignments.reduce((sum, a) => sum + (a.splitPercentage || 0), 0);
   };
 
+  const getMatchConfidence = (songTitle: string) => {
+    if (!smartAssignResults) return null;
+
+    // Check auto-assigned (>=90% confidence)
+    const autoMatch = smartAssignResults.autoAssigned?.find((m: any) => m.workTitle === songTitle);
+    if (autoMatch) {
+      return {
+        level: 'high',
+        confidence: autoMatch.confidence,
+        reason: autoMatch.reason,
+        badge: '✓ Auto-assigned',
+        badgeClass: 'bg-green-500/20 text-green-400 border-green-500/30'
+      };
+    }
+
+    // Check suggested (70-90% confidence)
+    const suggested = smartAssignResults.suggested?.find((s: any) => s.workTitle === songTitle);
+    if (suggested) {
+      return {
+        level: 'medium',
+        confidence: suggested.matches[0]?.confidence,
+        reason: suggested.matches[0]?.reason,
+        badge: '⚠ Review Suggested',
+        badgeClass: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+      };
+    }
+
+    // Check unmatched (<70% or no match)
+    const unmatched = smartAssignResults.unmatched?.find((u: any) => u.workTitle === songTitle);
+    if (unmatched) {
+      return {
+        level: 'low',
+        confidence: 0,
+        reason: unmatched.reason,
+        badge: '✗ Manual Required',
+        badgeClass: 'bg-red-500/20 text-red-400 border-red-500/30'
+      };
+    }
+
+    return null;
+  };
+
   const handleSave = async () => {
     // Check if all songs have at least one assignment
     const unassigned = parsedSongs.filter((song: any) => {
@@ -662,31 +749,52 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
         </div>
 
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
-          {/* Assign All Section */}
-          <div className="bg-slate-700/30 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-white mb-3">Quick Assign All Songs</h4>
-            <div className="flex gap-3">
-              <select
-                value={assignAllWriter}
-                onChange={(e) => setAssignAllWriter(e.target.value)}
-                className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-              >
-                <option value="">Select a writer...</option>
-                {writersList.map((writer: any) => (
-                  <option key={writer.id} value={writer.id}>
-                    {writer.firstName || writer.lastName
-                      ? `${writer.firstName || ''} ${writer.lastName || ''}`.trim()
-                      : writer.email}
-                  </option>
-                ))}
-              </select>
+          {/* Smart Assign & Quick Assign Section */}
+          <div className="bg-slate-700/30 rounded-lg p-4 space-y-4">
+            {/* Smart Assign */}
+            <div>
+              <h4 className="text-sm font-medium text-white mb-3">🧠 Smart Assign (AI Matching)</h4>
+              <p className="text-xs text-gray-400 mb-3">
+                Automatically match writers using IPI numbers, name similarity, and historical assignments
+              </p>
               <button
-                onClick={handleAssignAll}
-                disabled={!assignAllWriter}
-                className="px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                onClick={handleSmartAssign}
+                disabled={smartAssigning}
+                className="w-full px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
               >
-                Assign All
+                {smartAssigning ? '⏳ Analyzing...' : '✨ Smart Assign Writers'}
               </button>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-slate-600"></div>
+
+            {/* Manual Assign All */}
+            <div>
+              <h4 className="text-sm font-medium text-white mb-3">Manual: Assign All to One Writer</h4>
+              <div className="flex gap-3">
+                <select
+                  value={assignAllWriter}
+                  onChange={(e) => setAssignAllWriter(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                >
+                  <option value="">Select a writer...</option>
+                  {writersList.map((writer: any) => (
+                    <option key={writer.id} value={writer.id}>
+                      {writer.firstName || writer.lastName
+                        ? `${writer.firstName || ''} ${writer.lastName || ''}`.trim()
+                        : writer.email}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleAssignAll}
+                  disabled={!assignAllWriter}
+                  className="px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                >
+                  Assign All
+                </button>
+              </div>
             </div>
           </div>
 
@@ -696,18 +804,31 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
             {parsedSongs.map((song: any, songIndex: number) => {
               const songAssignments = assignments[song.title] || [{ userId: '', writerIpiNumber: '', publisherIpiNumber: '', splitPercentage: 100 }];
               const splitTotal = getSplitTotal(song.title);
+              const matchInfo = getMatchConfidence(song.title);
               return (
                 <div key={songIndex} className="bg-slate-700/30 rounded-lg p-4 space-y-3">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
-                      <p className="font-medium text-white">{song.title}</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-medium text-white">{song.title}</p>
+                        {matchInfo && (
+                          <span className={`px-2 py-0.5 text-xs border rounded ${matchInfo.badgeClass}`}>
+                            {matchInfo.badge} {matchInfo.confidence > 0 && `(${matchInfo.confidence}%)`}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-400">
                         ${formatCurrency(song.totalRevenue)} • {song.totalPerformances || song.performances || 0} performances
                       </p>
+                      {matchInfo && matchInfo.reason && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {matchInfo.reason}
+                        </p>
+                      )}
                     </div>
                     <button
                       onClick={() => addWriter(song.title)}
-                      className="px-3 py-1 bg-primary-500/20 text-primary-400 border border-primary-500/30 rounded-lg text-sm font-medium hover:bg-primary-500/30 transition-colors"
+                      className="px-3 py-1 bg-primary-500/20 text-primary-400 border border-primary-500/30 rounded-lg text-sm font-medium hover:bg-primary-500/30 transition-colors whitespace-nowrap"
                     >
                       + Add Writer
                     </button>
@@ -915,7 +1036,7 @@ function UsersTab() {
       {isLoading ? (
         <div className="text-center text-gray-400 py-8">Loading...</div>
       ) : usersData?.users?.length > 0 ? (
-        <div className="bg-slate-700/30 rounded-lg overflow-hidden">
+        <div className="bg-slate-700/30 rounded-lg overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-700/50">
               <tr>

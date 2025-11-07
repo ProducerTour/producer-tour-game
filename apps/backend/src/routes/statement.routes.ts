@@ -325,7 +325,7 @@ router.post(
                 revenue: writerRevenue,
                 performances: item.performances,
                 splitPercentage: splitPercentage,
-                writerIpiNumber: assignment.ipiNumber || null,
+                writerIpiNumber: assignment.writerIpiNumber || null,
                 commissionRate: commissionRateToUse,
                 commissionAmount: itemCommissionAmount,
                 commissionRecipient: commissionRecipient,
@@ -334,6 +334,7 @@ router.post(
                 metadata: {
                   ...item.metadata,
                   originalTotalRevenue: parseFloat(item.revenue), // Store original total before split
+                  publisherIpiNumber: assignment.publisherIpiNumber || null, // Store publisher IPI in metadata
                 },
               },
             })
@@ -705,7 +706,8 @@ router.post(
               id: topMatch.writer.id,
               name: `${topMatch.writer.firstName || ''} ${topMatch.writer.lastName || ''}`.trim() || topMatch.writer.email,
               email: topMatch.writer.email,
-              ipiNumber: topMatch.writer.ipiNumber
+              writerIpiNumber: topMatch.writer.writerIpiNumber,
+              publisherIpiNumber: topMatch.writer.publisherIpiNumber
             },
             confidence: topMatch.confidence,
             reason: topMatch.reason
@@ -719,7 +721,8 @@ router.post(
                 id: m.writer.id,
                 name: `${m.writer.firstName || ''} ${m.writer.lastName || ''}`.trim() || m.writer.email,
                 email: m.writer.email,
-                ipiNumber: m.writer.ipiNumber
+                writerIpiNumber: m.writer.writerIpiNumber,
+                publisherIpiNumber: m.writer.publisherIpiNumber
               },
               confidence: m.confidence,
               reason: m.reason
