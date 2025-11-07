@@ -391,7 +391,6 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
     const monthlyGross = new Map<string, number>();
     const monthlyNet = new Map<string, number>();
     const monthlyCommission = new Map<string, number>();
-    const now = new Date();
 
     // Initialize last 12 months with zero
     for (let i = 11; i >= 0; i--) {
