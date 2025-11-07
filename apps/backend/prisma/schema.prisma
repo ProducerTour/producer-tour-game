@@ -113,6 +113,7 @@ model User {
   password  String
   role      UserRole @default(WRITER)
   firstName String?
+  middleName String?
   lastName  String?
   writerIpiNumber String?  // Writer IPI/CAE number for songwriter registration
   publisherIpiNumber String?  // Publisher IPI/CAE number for publishing registration

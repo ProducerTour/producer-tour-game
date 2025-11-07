@@ -4,6 +4,7 @@ interface WriterMatch {
   writer: {
     id: string;
     firstName: string | null;
+    middleName: string | null;
     lastName: string | null;
     email: string;
     writerIpiNumber: string | null;
@@ -104,6 +105,7 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
     select: {
       id: true,
       firstName: true,
+      middleName: true,
       lastName: true,
       email: true,
       writerIpiNumber: true,
@@ -146,7 +148,7 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
           const alreadyMatched = matches.some(m => m.writer.id === writer.id);
           if (alreadyMatched) return;
 
-          const fullName = `${writer.firstName || ''} ${writer.lastName || ''}`.trim();
+          const fullName = `${writer.firstName || ''} ${writer.middleName || ''} ${writer.lastName || ''}`.trim().replace(/\s+/g, ' ');
           if (!fullName) return;
 
           // Approach 1: Full name similarity
@@ -227,7 +229,7 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
     // ASCAP and some BMI statements include writer names
     if (song.writerName) {
       allWriters.forEach(writer => {
-        const fullName = `${writer.firstName || ''} ${writer.lastName || ''}`.trim();
+        const fullName = `${writer.firstName || ''} ${writer.middleName || ''} ${writer.lastName || ''}`.trim().replace(/\s+/g, ' ');
         if (!fullName) return;
 
         // Approach 1: Full name similarity
@@ -289,6 +291,7 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
         select: {
           id: true,
           firstName: true,
+          middleName: true,
           lastName: true,
           email: true,
           writerIpiNumber: true,

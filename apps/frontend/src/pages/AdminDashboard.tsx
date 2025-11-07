@@ -796,8 +796,8 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                   <option value="">Select a writer...</option>
                   {writersList.map((writer: any) => (
                     <option key={writer.id} value={writer.id}>
-                      {writer.firstName || writer.lastName
-                        ? `${writer.firstName || ''} ${writer.lastName || ''}`.trim()
+                      {writer.firstName || writer.middleName || writer.lastName
+                        ? `${writer.firstName || ''} ${writer.middleName || ''} ${writer.lastName || ''}`.trim().replace(/\s+/g, ' ')
                         : writer.email}
                     </option>
                   ))}
@@ -866,8 +866,8 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                           <option value="">Select writer...</option>
                           {writersList.map((writer: any) => (
                             <option key={writer.id} value={writer.id}>
-                              {writer.firstName || writer.lastName
-                                ? `${writer.firstName || ''} ${writer.lastName || ''}`.trim()
+                              {writer.firstName || writer.middleName || writer.lastName
+                                ? `${writer.firstName || ''} ${writer.middleName || ''} ${writer.lastName || ''}`.trim().replace(/\s+/g, ' ')
                                 : writer.email}
                             </option>
                           ))}
@@ -958,6 +958,7 @@ function UsersTab() {
     email: '',
     password: '',
     firstName: '',
+    middleName: '',
     lastName: '',
     role: 'WRITER',
     writerIpiNumber: '',
@@ -980,7 +981,7 @@ function UsersTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setShowAddModal(false);
-      setNewUser({ email: '', password: '', firstName: '', lastName: '', role: 'WRITER', writerIpiNumber: '', publisherIpiNumber: '', proAffiliation: 'BMI', commissionOverrideRate: '', canUploadStatements: false });
+      setNewUser({ email: '', password: '', firstName: '', middleName: '', lastName: '', role: 'WRITER', writerIpiNumber: '', publisherIpiNumber: '', proAffiliation: 'BMI', commissionOverrideRate: '', canUploadStatements: false });
     },
   });
 
@@ -1078,8 +1079,8 @@ function UsersTab() {
                 <tr key={user.id} className="hover:bg-slate-700/30 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-white">
-                      {user.firstName || user.lastName
-                        ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
+                      {user.firstName || user.middleName || user.lastName
+                        ? `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim().replace(/\s+/g, ' ')
                         : '-'}
                     </div>
                   </td>
@@ -1186,6 +1187,18 @@ function UsersTab() {
                   value={newUser.firstName}
                   onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Middle Name
+                </label>
+                <input
+                  type="text"
+                  value={newUser.middleName}
+                  onChange={(e) => setNewUser({ ...newUser, middleName: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  placeholder="Optional"
                 />
               </div>
               <div>
@@ -1359,6 +1372,18 @@ function UsersTab() {
                   value={editingUser.firstName || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Middle Name
+                </label>
+                <input
+                  type="text"
+                  value={editingUser.middleName || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, middleName: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  placeholder="Optional"
                 />
               </div>
               <div>
