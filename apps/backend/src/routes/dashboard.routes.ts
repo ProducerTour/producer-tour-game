@@ -200,11 +200,11 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
         }
       }),
 
-      // Revenue stats: gross, net, and commissions (PUBLISHED statements only)
+      // Revenue stats: gross, net, and commissions (PAID statements only)
       prisma.statementItem.aggregate({
         where: {
           statement: {
-            status: 'PUBLISHED'
+            paymentStatus: 'PAID'
           }
         },
         _sum: {
@@ -214,12 +214,12 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
         }
       }),
 
-      // Unique works (songs) from PUBLISHED statements only
+      // Unique works (songs) from PAID statements only
       prisma.statementItem.groupBy({
         by: ['workTitle'],
         where: {
           statement: {
-            status: 'PUBLISHED'
+            paymentStatus: 'PAID'
           }
         }
       }),
@@ -240,11 +240,11 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
         },
       }),
 
-      // PRO breakdown (PUBLISHED statements only)
+      // PRO breakdown (PAID statements only)
       prisma.statement.groupBy({
         by: ['proType'],
         where: {
-          status: 'PUBLISHED'
+          paymentStatus: 'PAID'
         },
         _count: true,
         _sum: {
@@ -254,11 +254,11 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
         }
       }),
 
-      // Monthly revenue (last 12 months) from PUBLISHED statements only
+      // Monthly revenue (last 12 months) from PAID statements only
       prisma.statementItem.findMany({
         where: {
           statement: {
-            status: 'PUBLISHED'
+            paymentStatus: 'PAID'
           }
         },
         select: {
@@ -270,12 +270,12 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
         orderBy: { createdAt: 'asc' },
       }),
 
-      // Commission breakdown by recipient (PUBLISHED statements only)
+      // Commission breakdown by recipient (PAID statements only)
       prisma.statementItem.groupBy({
         by: ['commissionRecipient'],
         where: {
           statement: {
-            status: 'PUBLISHED'
+            paymentStatus: 'PAID'
           },
           commissionRecipient: { not: null }
         },
