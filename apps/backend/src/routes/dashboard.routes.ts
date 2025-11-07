@@ -599,4 +599,125 @@ router.get('/payment-status', authenticate, async (req: AuthRequest, res: Respon
   }
 });
 
+/**
+ * GET /api/dashboard/platform-breakdown
+ * Get revenue breakdown by platform (DSP) - extracted from MLC statements
+ * Returns revenue grouped by YouTube, Spotify, Apple Music, etc.
+ */
+router.get('/platform-breakdown', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    // Get all PAID statement items with metadata
+    const items = await prisma.statementItem.findMany({
+      where: {
+        statement: {
+          paymentStatus: 'PAID'
+        }
+      },
+      select: {
+        revenue: true,
+        netRevenue: true,
+        commissionAmount: true,
+        metadata: true
+      }
+    });
+
+    // Group by DSP name from metadata
+    const platformMap = new Map<string, {
+      revenue: number;
+      netRevenue: number;
+      commissionAmount: number;
+      count: number;
+      offerings: Set<string>;
+    }>();
+
+    items.forEach((item) => {
+      const metadata = item.metadata as any;
+      const dspName = metadata?.dspName || 'Unknown';
+      const consumerOffering = metadata?.consumerOffering;
+
+      if (!platformMap.has(dspName)) {
+        platformMap.set(dspName, {
+          revenue: 0,
+          netRevenue: 0,
+          commissionAmount: 0,
+          count: 0,
+          offerings: new Set()
+        });
+      }
+
+      const platform = platformMap.get(dspName)!;
+      platform.revenue += Number(item.revenue);
+      platform.netRevenue += Number(item.netRevenue);
+      platform.commissionAmount += Number(item.commissionAmount);
+      platform.count += 1;
+
+      if (consumerOffering) {
+        platform.offerings.add(consumerOffering);
+      }
+    });
+
+    // Convert to array and sort by revenue
+    const breakdown = Array.from(platformMap.entries())
+      .map(([platform, data]) => ({
+        platform,
+        revenue: Number(data.revenue.toFixed(2)),
+        netRevenue: Number(data.netRevenue.toFixed(2)),
+        commissionAmount: Number(data.commissionAmount.toFixed(2)),
+        count: data.count,
+        offerings: Array.from(data.offerings).sort()
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    res.json({
+      platforms: breakdown,
+      totalRevenue: Number(breakdown.reduce((sum, p) => sum + p.revenue, 0).toFixed(2)),
+      totalCount: items.length
+    });
+  } catch (error) {
+    console.error('Platform breakdown error:', error);
+    res.status(500).json({ error: 'Failed to fetch platform breakdown' });
+  }
+});
+
+/**
+ * GET /api/dashboard/organization-breakdown
+ * Get revenue breakdown by organization (PRO type)
+ * Returns revenue grouped by MLC, BMI, ASCAP, SESAC, GMR, etc.
+ */
+router.get('/organization-breakdown', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    // Group statements by PRO type
+    const breakdown = await prisma.statement.groupBy({
+      by: ['proType'],
+      where: {
+        paymentStatus: 'PAID'
+      },
+      _count: true,
+      _sum: {
+        totalRevenue: true,
+        totalNet: true,
+        totalCommission: true
+      }
+    });
+
+    // Format response
+    const organizations = breakdown.map((org) => ({
+      organization: org.proType,
+      revenue: Number(org._sum.totalRevenue || 0),
+      netRevenue: Number(org._sum.totalNet || 0),
+      commissionAmount: Number(org._sum.totalCommission || 0),
+      count: org._count
+    })).sort((a, b) => b.revenue - a.revenue);
+
+    res.json({
+      organizations,
+      totalRevenue: Number(organizations.reduce((sum, o) => sum + o.revenue, 0).toFixed(2)),
+      totalCount: organizations.reduce((sum, o) => sum + o.count, 0)
+    });
+  } catch (error) {
+    console.error('Organization breakdown error:', error);
+    res.status(500).json({ error: 'Failed to fetch organization breakdown' });
+  }
+});
+
 export default router;

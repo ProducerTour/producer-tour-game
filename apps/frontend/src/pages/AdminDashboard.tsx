@@ -1558,7 +1558,23 @@ function AnalyticsTab() {
     },
   });
 
-  const COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
+  const { data: platformData, isLoading: platformLoading } = useQuery({
+    queryKey: ['platform-breakdown'],
+    queryFn: async () => {
+      const response = await dashboardApi.getPlatformBreakdown();
+      return response.data;
+    },
+  });
+
+  const { data: organizationData, isLoading: organizationLoading } = useQuery({
+    queryKey: ['organization-breakdown'],
+    queryFn: async () => {
+      const response = await dashboardApi.getOrganizationBreakdown();
+      return response.data;
+    },
+  });
+
+  const COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#f97316'];
 
   return (
     <div className="space-y-6">
@@ -1702,6 +1718,239 @@ function AnalyticsTab() {
                   <Bar dataKey="count" fill="#3b82f6" name="Statements" />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Platform Breakdown (YouTube, Spotify, etc.) */}
+          {!platformLoading && platformData?.platforms && platformData.platforms.length > 0 && (
+            <div>
+              <h4 className="text-md font-medium text-white mb-3">Revenue by Platform (DSP)</h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Platform Pie Chart */}
+                <div className="bg-slate-700/30 rounded-lg p-6">
+                  <h5 className="text-sm font-medium text-gray-400 mb-4">Platform Distribution</h5>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={platformData.platforms}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ platform, percent }: any) => `${platform} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="revenue"
+                      >
+                        {platformData.platforms.map((p: any, index: number) => (
+                          <Cell
+                            key={`cell-${p.platform}-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                        formatter={(value: any) => `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Platform Bar Chart */}
+                <div className="bg-slate-700/30 rounded-lg p-6">
+                  <h5 className="text-sm font-medium text-gray-400 mb-4">Platform Revenue</h5>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={platformData.platforms}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis
+                        dataKey="platform"
+                        stroke="#94a3b8"
+                        tick={{ fill: '#94a3b8', fontSize: 11 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                      />
+                      <YAxis
+                        stroke="#94a3b8"
+                        tick={{ fill: '#94a3b8' }}
+                        tickFormatter={(value) => `$${value}`}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                        labelStyle={{ color: '#f1f5f9' }}
+                        formatter={(value: any, name: string) => {
+                          if (name === 'revenue') return [`$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 'Revenue'];
+                          if (name === 'count') return [value, 'Items'];
+                          return [value, name];
+                        }}
+                      />
+                      <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                      <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
+                      <Bar dataKey="count" fill="#3b82f6" name="Items" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Platform Details Table */}
+              <div className="bg-slate-700/30 rounded-lg p-6">
+                <h5 className="text-sm font-medium text-gray-400 mb-4">Platform Details</h5>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="border-b border-slate-600">
+                      <tr>
+                        <th className="text-left text-xs font-medium text-gray-400 uppercase py-2">Platform</th>
+                        <th className="text-left text-xs font-medium text-gray-400 uppercase py-2">Offerings</th>
+                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Items</th>
+                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Revenue</th>
+                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Net</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {platformData.platforms.map((platform: any) => (
+                        <tr key={platform.platform} className="border-b border-slate-700/50">
+                          <td className="py-3 text-white font-medium">{platform.platform}</td>
+                          <td className="py-3 text-sm text-gray-400">{platform.offerings.join(', ') || '-'}</td>
+                          <td className="py-3 text-right text-gray-300">{platform.count}</td>
+                          <td className="py-3 text-right text-green-400 font-medium">
+                            ${Number(platform.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-3 text-right text-green-300">
+                            ${Number(platform.netRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t border-slate-600">
+                      <tr>
+                        <td className="py-3 text-white font-bold">Total</td>
+                        <td></td>
+                        <td className="text-right text-white font-bold">{platformData.totalCount}</td>
+                        <td className="text-right text-green-400 font-bold">
+                          ${Number(platformData.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Organization Breakdown (MLC, BMI, ASCAP, etc.) */}
+          {!organizationLoading && organizationData?.organizations && organizationData.organizations.length > 0 && (
+            <div>
+              <h4 className="text-md font-medium text-white mb-3">Revenue by Organization</h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Organization Pie Chart */}
+                <div className="bg-slate-700/30 rounded-lg p-6">
+                  <h5 className="text-sm font-medium text-gray-400 mb-4">Organization Distribution</h5>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={organizationData.organizations}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ organization, percent }: any) => `${organization} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="revenue"
+                      >
+                        {organizationData.organizations.map((org: any, index: number) => (
+                          <Cell
+                            key={`cell-${org.organization}-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                        formatter={(value: any) => `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Organization Bar Chart */}
+                <div className="bg-slate-700/30 rounded-lg p-6">
+                  <h5 className="text-sm font-medium text-gray-400 mb-4">Organization Revenue</h5>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={organizationData.organizations}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis
+                        dataKey="organization"
+                        stroke="#94a3b8"
+                        tick={{ fill: '#94a3b8' }}
+                      />
+                      <YAxis
+                        stroke="#94a3b8"
+                        tick={{ fill: '#94a3b8' }}
+                        tickFormatter={(value) => `$${value}`}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                        labelStyle={{ color: '#f1f5f9' }}
+                        formatter={(value: any, name: string) => {
+                          if (name === 'revenue') return [`$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 'Revenue'];
+                          if (name === 'count') return [value, 'Statements'];
+                          return [value, name];
+                        }}
+                      />
+                      <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                      <Bar dataKey="revenue" fill="#8b5cf6" name="Revenue" />
+                      <Bar dataKey="count" fill="#f59e0b" name="Statements" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Organization Details Table */}
+              <div className="bg-slate-700/30 rounded-lg p-6">
+                <h5 className="text-sm font-medium text-gray-400 mb-4">Organization Details</h5>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="border-b border-slate-600">
+                      <tr>
+                        <th className="text-left text-xs font-medium text-gray-400 uppercase py-2">Organization</th>
+                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Statements</th>
+                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Revenue</th>
+                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Net</th>
+                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Commission</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {organizationData.organizations.map((org: any) => (
+                        <tr key={org.organization} className="border-b border-slate-700/50">
+                          <td className="py-3 text-white font-medium">{org.organization}</td>
+                          <td className="py-3 text-right text-gray-300">{org.count}</td>
+                          <td className="py-3 text-right text-green-400 font-medium">
+                            ${Number(org.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-3 text-right text-green-300">
+                            ${Number(org.netRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-3 text-right text-blue-400">
+                            ${Number(org.commissionAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t border-slate-600">
+                      <tr>
+                        <td className="py-3 text-white font-bold">Total</td>
+                        <td className="text-right text-white font-bold">{organizationData.totalCount}</td>
+                        <td className="text-right text-green-400 font-bold">
+                          ${Number(organizationData.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td></td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 

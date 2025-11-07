@@ -68,6 +68,12 @@ export const dashboardApi = {
 
   getPaymentStatus: () =>
     api.get('/dashboard/payment-status'),
+
+  getPlatformBreakdown: () =>
+    api.get('/dashboard/platform-breakdown'),
+
+  getOrganizationBreakdown: () =>
+    api.get('/dashboard/organization-breakdown'),
 };
 
 export type WriterAssignment = {
