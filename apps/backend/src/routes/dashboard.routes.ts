@@ -166,6 +166,46 @@ router.get('/timeline', authenticate, async (req: AuthRequest, res: Response) =>
 });
 
 /**
+ * Calculate percentage change between current and previous values
+ * Returns null when percentage is not meaningful to display
+ */
+function calculatePercentageChange(
+  current: number,
+  previous: number,
+  isRevenue: boolean = false
+): { percentageChange: number | null; trend: 'up' | 'down' | 'stable' | null } {
+  // Rule 1: If current is 0, never show percentage for revenue
+  if (isRevenue && current === 0) {
+    return { percentageChange: null, trend: null };
+  }
+
+  // Rule 2: If both are 0, no meaningful comparison
+  if (current === 0 && previous === 0) {
+    return { percentageChange: null, trend: null };
+  }
+
+  // Rule 3: If previous is 0 but current > 0
+  if (previous === 0 && current > 0) {
+    // For revenue: don't show (infinite growth not meaningful)
+    if (isRevenue) {
+      return { percentageChange: null, trend: null };
+    }
+    // For counts: cap at +999% to indicate significant growth
+    return { percentageChange: 999, trend: 'up' };
+  }
+
+  // Rule 4: Normal calculation
+  const change = ((current - previous) / previous) * 100;
+  const trend = change > 0 ? 'up' : change < 0 ? 'down' : 'stable';
+
+  // Round to 1 decimal place
+  return {
+    percentageChange: Math.round(change * 10) / 10,
+    trend
+  };
+}
+
+/**
  * GET /api/dashboard/stats (Admin)
  * Get platform-wide statistics
  * ADMIN SEES: BOTH gross and net revenue, plus commission breakdown
@@ -176,6 +216,12 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
+    // Define current and previous period for month-over-month comparison
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of previous month
+
     const [
       totalWriters,
       totalStatements,
@@ -185,7 +231,11 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
       recentStatements,
       proBreakdown,
       monthlyRevenue,
-      commissionBreakdown
+      commissionBreakdown,
+      prevTotalWriters,
+      prevProcessedStatements,
+      prevRevenueStats,
+      prevUniqueWorks
     ] = await Promise.all([
       // Total writers
       prisma.user.count({ where: { role: 'WRITER' } }),
@@ -282,6 +332,58 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
         _sum: {
           commissionAmount: true
         }
+      }),
+
+      // PREVIOUS PERIOD DATA (for month-over-month comparison)
+
+      // Previous month: Total writers count
+      prisma.user.count({
+        where: {
+          role: 'WRITER',
+          createdAt: { lte: previousMonthEnd }
+        }
+      }),
+
+      // Previous month: Processed statements count
+      prisma.statement.count({
+        where: {
+          status: { in: ['PROCESSED', 'PUBLISHED'] },
+          paymentStatus: 'PAID',
+          createdAt: {
+            gte: previousMonthStart,
+            lte: previousMonthEnd
+          }
+        }
+      }),
+
+      // Previous month: Revenue stats
+      prisma.statementItem.aggregate({
+        where: {
+          statement: {
+            paymentStatus: 'PAID',
+            createdAt: {
+              gte: previousMonthStart,
+              lte: previousMonthEnd
+            }
+          }
+        },
+        _sum: {
+          revenue: true
+        }
+      }),
+
+      // Previous month: Unique works
+      prisma.statementItem.groupBy({
+        by: ['workTitle'],
+        where: {
+          statement: {
+            paymentStatus: 'PAID',
+            createdAt: {
+              gte: previousMonthStart,
+              lte: previousMonthEnd
+            }
+          }
+        }
       })
     ]);
 
@@ -319,17 +421,51 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
       commission: Number((monthlyCommission.get(month) || 0).toFixed(2))
     }));
 
+    // Calculate month-over-month percentage changes
+    const revenueComparison = calculatePercentageChange(
+      revenueStats._sum.revenue || 0,
+      prevRevenueStats._sum.revenue || 0,
+      true // isRevenue
+    );
+
+    const writersComparison = calculatePercentageChange(
+      totalWriters,
+      prevTotalWriters,
+      false
+    );
+
+    const statementsComparison = calculatePercentageChange(
+      processedStatements,
+      prevProcessedStatements,
+      false
+    );
+
+    const worksComparison = calculatePercentageChange(
+      uniqueWorks.length,
+      prevUniqueWorks.length,
+      false
+    );
+
     res.json({
       totalWriters,
+      totalWritersChange: writersComparison.percentageChange,
+      totalWritersTrend: writersComparison.trend,
+
       totalStatements,
       processedStatements,
+      processedStatementsChange: statementsComparison.percentageChange,
+      processedStatementsTrend: statementsComparison.trend,
 
       // Revenue breakdown: gross, net, and commissions
       totalRevenue: revenueStats._sum.revenue || 0,  // Gross
+      totalRevenueChange: revenueComparison.percentageChange,
+      totalRevenueTrend: revenueComparison.trend,
       totalNet: revenueStats._sum.netRevenue || 0,  // Net (what writers receive)
       totalCommission: revenueStats._sum.commissionAmount || 0,  // Total commissions
 
       uniqueWorks: uniqueWorks.length,
+      uniqueWorksChange: worksComparison.percentageChange,
+      uniqueWorksTrend: worksComparison.trend,
       recentStatements,
 
       // PRO breakdown with gross, net, and commission

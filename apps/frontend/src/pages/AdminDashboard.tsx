@@ -84,32 +84,32 @@ function DashboardOverview() {
         <StatCard
           title="Total Revenue"
           value={`$${Number(stats?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
-          percentage="+23%"
-          trend="up"
+          percentage={stats?.totalRevenueChange !== null && stats?.totalRevenueChange !== undefined ? `${stats.totalRevenueChange > 0 ? '+' : ''}${stats.totalRevenueChange}%` : undefined}
+          trend={stats?.totalRevenueTrend || undefined}
           icon="💰"
           gradient="from-blue-500 to-blue-600"
         />
         <StatCard
           title="Total Writers"
           value={stats?.totalWriters || 0}
-          percentage="+8%"
-          trend="up"
+          percentage={stats?.totalWritersChange !== null && stats?.totalWritersChange !== undefined ? `${stats.totalWritersChange > 0 ? '+' : ''}${stats.totalWritersChange}%` : undefined}
+          trend={stats?.totalWritersTrend || undefined}
           icon="👥"
           gradient="from-cyan-500 to-cyan-600"
         />
         <StatCard
           title="Active Statements"
           value={stats?.processedStatements || 0}
-          percentage="-2%"
-          trend="down"
+          percentage={stats?.processedStatementsChange !== null && stats?.processedStatementsChange !== undefined ? `${stats.processedStatementsChange > 0 ? '+' : ''}${stats.processedStatementsChange}%` : undefined}
+          trend={stats?.processedStatementsTrend || undefined}
           icon="📊"
           gradient="from-pink-500 to-pink-600"
         />
         <StatCard
           title="Unique Works"
           value={stats?.uniqueWorks || 0}
-          percentage="+12%"
-          trend="up"
+          percentage={stats?.uniqueWorksChange !== null && stats?.uniqueWorksChange !== undefined ? `${stats.uniqueWorksChange > 0 ? '+' : ''}${stats.uniqueWorksChange}%` : undefined}
+          trend={stats?.uniqueWorksTrend || undefined}
           icon="🎵"
           gradient="from-orange-500 to-orange-600"
         />
