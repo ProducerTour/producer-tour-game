@@ -309,7 +309,7 @@ function ProfileSection() {
       if (!user?.id) throw new Error('User not found');
       return userApi.update(user.id, data);
     },
-    onSuccess: (response) => {
+    onSuccess: () => {
       // Update the auth store with the new user data
       if (user) {
         updateUser({

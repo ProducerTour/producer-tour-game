@@ -72,7 +72,8 @@ export const dashboardApi = {
 
 export type WriterAssignment = {
   userId: string;
-  ipiNumber?: string;
+  writerIpiNumber?: string;
+  publisherIpiNumber?: string;
   splitPercentage: number;
 };
 

@@ -15,7 +15,8 @@ export default function SettingsPage() {
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     email: user?.email || '',
-    ipiNumber: user?.ipiNumber || ''
+    writerIpiNumber: user?.writerIpiNumber || '',
+    publisherIpiNumber: user?.publisherIpiNumber || ''
   });
 
   // Password form state
@@ -193,21 +194,43 @@ export default function SettingsPage() {
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        IPI/CAE Number
-                      </label>
-                      <input
-                        type="text"
-                        value={profileData.ipiNumber}
-                        onChange={(e) => setProfileData({ ...profileData, ipiNumber: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                        placeholder="Enter your IPI/CAE number"
-                      />
-                      <p className="text-sm text-gray-400 mt-1">
-                        Your IPI/CAE number is used for PRO identification
-                      </p>
-                    </div>
+                    {/* Writer IPI - only for WRITER role */}
+                    {user?.role === 'WRITER' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Writer IPI Number
+                        </label>
+                        <input
+                          type="text"
+                          value={profileData.writerIpiNumber}
+                          onChange={(e) => setProfileData({ ...profileData, writerIpiNumber: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                          placeholder="Enter your Writer IPI/CAE number"
+                        />
+                        <p className="text-sm text-gray-400 mt-1">
+                          Your Writer IPI number is used for songwriter identification
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Publisher IPI - for WRITER and PUBLISHER roles */}
+                    {(user?.role === 'WRITER' || user?.role === 'PUBLISHER') && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Publisher IPI Number
+                        </label>
+                        <input
+                          type="text"
+                          value={profileData.publisherIpiNumber}
+                          onChange={(e) => setProfileData({ ...profileData, publisherIpiNumber: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                          placeholder="Enter your Publisher IPI/CAE number"
+                        />
+                        <p className="text-sm text-gray-400 mt-1">
+                          Your Publisher IPI number is used for publishing identification
+                        </p>
+                      </div>
+                    )}
 
                     <div className="flex justify-end pt-4 border-t border-slate-700">
                       <button
