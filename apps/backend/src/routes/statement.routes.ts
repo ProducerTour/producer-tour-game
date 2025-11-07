@@ -158,6 +158,116 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 });
 
 /**
+ * GET /api/statements/unpaid
+ * Get all statements ready for payment processing (Admin only)
+ * Returns statements with UNPAID or PENDING status
+ */
+router.get(
+  '/unpaid',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      console.log('🔍 Royalty Portal: Querying unpaid statements...');
+
+      // First, check total statement counts
+      const totalStatements = await prisma.statement.count();
+      const publishedStatements = await prisma.statement.count({ where: { status: 'PUBLISHED' } });
+      const unpaidCount = await prisma.statement.count({
+        where: {
+          status: 'PUBLISHED',
+          paymentStatus: { in: ['UNPAID', 'PENDING'] }
+        }
+      });
+
+      console.log('📊 Statement counts:', {
+        total: totalStatements,
+        published: publishedStatements,
+        unpaid: unpaidCount
+      });
+
+      const unpaidStatements = await prisma.statement.findMany({
+        where: {
+          status: 'PUBLISHED',
+          paymentStatus: { in: ['UNPAID', 'PENDING'] }
+        },
+        include: {
+          items: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { publishedAt: 'desc' }
+      });
+
+      // Group items by writer for each statement
+      const formatted = unpaidStatements.map(statement => {
+        // Group items by writer
+        const writerMap = new Map();
+
+        statement.items.forEach(item => {
+          const key = item.userId;
+          if (!writerMap.has(key)) {
+            writerMap.set(key, {
+              userId: item.userId,
+              name: `${item.user.firstName || ''} ${item.user.lastName || ''}`.trim() || item.user.email,
+              email: item.user.email,
+              grossRevenue: 0,
+              commissionAmount: 0,
+              netRevenue: 0,
+              songCount: 0
+            });
+          }
+
+          const writer = writerMap.get(key);
+          writer.grossRevenue += Number(item.revenue);
+          writer.commissionAmount += Number(item.commissionAmount);
+          writer.netRevenue += Number(item.netRevenue);
+          writer.songCount += 1;
+        });
+
+        return {
+          id: statement.id,
+          proType: statement.proType,
+          filename: statement.filename,
+          publishedAt: statement.publishedAt,
+          paymentStatus: statement.paymentStatus,
+          totalRevenue: Number(statement.totalRevenue),
+          totalCommission: Number(statement.totalCommission),
+          totalNet: Number(statement.totalNet),
+          writerCount: writerMap.size,
+          writers: Array.from(writerMap.values())
+        };
+      });
+
+      console.log('✅ Returning unpaid statements:', {
+        count: formatted.length,
+        statements: formatted.map(s => ({
+          id: s.id,
+          proType: s.proType,
+          filename: s.filename,
+          writerCount: s.writerCount,
+          totalGross: s.writers.reduce((sum, w) => sum + w.grossRevenue, 0)
+        }))
+      });
+
+      res.json(formatted);
+    } catch (error) {
+      console.error('Get unpaid statements error:', error);
+      res.status(500).json({ error: 'Failed to fetch unpaid statements' });
+    }
+  }
+);
+
+/**
  * GET /api/statements/:id
  * Get statement details
  */
@@ -402,116 +512,6 @@ router.delete(
     } catch (error) {
       console.error('Delete statement error:', error);
       res.status(500).json({ error: 'Failed to delete statement' });
-    }
-  }
-);
-
-/**
- * GET /api/statements/unpaid
- * Get all statements ready for payment processing (Admin only)
- * Returns statements with UNPAID or PENDING status
- */
-router.get(
-  '/unpaid',
-  authenticate,
-  requireAdmin,
-  async (req: AuthRequest, res: Response) => {
-    try {
-      console.log('🔍 Royalty Portal: Querying unpaid statements...');
-
-      // First, check total statement counts
-      const totalStatements = await prisma.statement.count();
-      const publishedStatements = await prisma.statement.count({ where: { status: 'PUBLISHED' } });
-      const unpaidCount = await prisma.statement.count({
-        where: {
-          status: 'PUBLISHED',
-          paymentStatus: { in: ['UNPAID', 'PENDING'] }
-        }
-      });
-
-      console.log('📊 Statement counts:', {
-        total: totalStatements,
-        published: publishedStatements,
-        unpaid: unpaidCount
-      });
-
-      const unpaidStatements = await prisma.statement.findMany({
-        where: {
-          status: 'PUBLISHED',
-          paymentStatus: { in: ['UNPAID', 'PENDING'] }
-        },
-        include: {
-          items: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                  firstName: true,
-                  lastName: true
-                }
-              }
-            }
-          }
-        },
-        orderBy: { publishedAt: 'desc' }
-      });
-
-      // Group items by writer for each statement
-      const formatted = unpaidStatements.map(statement => {
-        // Group items by writer
-        const writerMap = new Map();
-
-        statement.items.forEach(item => {
-          const key = item.userId;
-          if (!writerMap.has(key)) {
-            writerMap.set(key, {
-              userId: item.userId,
-              name: `${item.user.firstName || ''} ${item.user.lastName || ''}`.trim() || item.user.email,
-              email: item.user.email,
-              grossRevenue: 0,
-              commissionAmount: 0,
-              netRevenue: 0,
-              songCount: 0
-            });
-          }
-
-          const writer = writerMap.get(key);
-          writer.grossRevenue += Number(item.revenue);
-          writer.commissionAmount += Number(item.commissionAmount);
-          writer.netRevenue += Number(item.netRevenue);
-          writer.songCount += 1;
-        });
-
-        return {
-          id: statement.id,
-          proType: statement.proType,
-          filename: statement.filename,
-          publishedAt: statement.publishedAt,
-          paymentStatus: statement.paymentStatus,
-          totalRevenue: Number(statement.totalRevenue),
-          totalCommission: Number(statement.totalCommission),
-          totalNet: Number(statement.totalNet),
-          writerCount: writerMap.size,
-          writers: Array.from(writerMap.values())
-        };
-      });
-
-      console.log('✅ Returning unpaid statements:', {
-        count: formatted.length,
-        statements: formatted.map(s => ({
-          id: s.id,
-          proType: s.proType,
-          filename: s.filename,
-          writerCount: s.writerCount,
-          totalGross: s.writers.reduce((sum, w) => sum + w.grossRevenue, 0)
-        }))
-      });
-
-      res.json(formatted);
-    } catch (error) {
-      console.error('Get unpaid statements error:', error);
-      res.status(500).json({ error: 'Failed to fetch unpaid statements' });
     }
   }
 );
