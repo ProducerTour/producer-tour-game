@@ -81,6 +81,16 @@ function normalizeSongTitle(title: string): string {
 }
 
 /**
+ * Normalize IPI number for matching
+ * Removes spaces, dashes, dots, and leading zeros
+ */
+function normalizeIPI(ipi: string): string {
+  return ipi
+    .replace(/[\s\-\.]/g, '') // Remove spaces, dashes, dots
+    .replace(/^0+/, '');       // Remove leading zeros
+}
+
+/**
  * Smart match writers for a parsed song
  * Uses multiple strategies: IPI number, name similarity, historical assignments
  * Supports both single-writer format (BMI/ASCAP) and multi-writer format (MLC)
@@ -108,15 +118,18 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
     // MLC format: Multiple writers per song, iterate through each
     for (const mlcWriter of mlcWriters) {
       // Strategy 1: IPI Number Exact Match (100% confidence)
-      // Check both writer IPI and publisher IPI
+      // Check both writer IPI and publisher IPI with normalization
       if (mlcWriter.ipi) {
+        const normalizedMlcIpi = normalizeIPI(mlcWriter.ipi);
         const ipiMatch = allWriters.find(
-          w => (w.writerIpiNumber && w.writerIpiNumber === mlcWriter.ipi) ||
-               (w.publisherIpiNumber && w.publisherIpiNumber === mlcWriter.ipi)
+          w => (w.writerIpiNumber && normalizeIPI(w.writerIpiNumber) === normalizedMlcIpi) ||
+               (w.publisherIpiNumber && normalizeIPI(w.publisherIpiNumber) === normalizedMlcIpi)
         );
 
         if (ipiMatch) {
-          const matchedVia = ipiMatch.writerIpiNumber === mlcWriter.ipi ? 'Writer IPI' : 'Publisher IPI';
+          const matchedVia = ipiMatch.writerIpiNumber && normalizeIPI(ipiMatch.writerIpiNumber) === normalizedMlcIpi
+            ? 'Writer IPI'
+            : 'Publisher IPI';
           matches.push({
             writer: ipiMatch,
             confidence: 100,
@@ -126,26 +139,61 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
         }
       }
 
-      // Strategy 2: Writer Name Similarity
+      // Strategy 2: Writer Name Similarity with multiple matching approaches
       if (mlcWriter.name) {
         allWriters.forEach(writer => {
+          // Check if already matched (e.g., by IPI)
+          const alreadyMatched = matches.some(m => m.writer.id === writer.id);
+          if (alreadyMatched) return;
+
           const fullName = `${writer.firstName || ''} ${writer.lastName || ''}`.trim();
+          if (!fullName) return;
 
-          if (fullName) {
-            const similarity = stringSimilarity(mlcWriter.name, fullName);
+          // Approach 1: Full name similarity
+          const fullNameSimilarity = stringSimilarity(mlcWriter.name, fullName);
 
-            // High confidence: >80% similarity
-            if (similarity > 0.8) {
-              // Check if already matched (e.g., by IPI)
-              const alreadyMatched = matches.some(m => m.writer.id === writer.id);
-              if (!alreadyMatched) {
-                matches.push({
-                  writer,
-                  confidence: Math.round(similarity * 100),
-                  reason: `Name similarity: "${mlcWriter.name}" ≈ "${fullName}"`
-                });
-              }
+          // Approach 2: Last name exact match + first name initial
+          // E.g., "J. Smith" should match "John Smith"
+          const firstName = writer.firstName || '';
+          const lastName = writer.lastName || '';
+          let lastNameMatch = false;
+          let firstNameInitialMatch = false;
+
+          if (lastName) {
+            const mlcLower = mlcWriter.name.toLowerCase();
+            const lastNameLower = lastName.toLowerCase();
+            lastNameMatch = mlcLower.includes(lastNameLower) || lastNameLower.includes(mlcLower.split(' ').pop() || '');
+
+            if (lastNameMatch && firstName) {
+              const firstInitial = firstName.charAt(0).toLowerCase();
+              firstNameInitialMatch = mlcLower.charAt(0) === firstInitial;
             }
+          }
+
+          // Calculate confidence based on best match
+          let confidence = 0;
+          let reason = '';
+
+          if (fullNameSimilarity >= 0.70) {
+            // Good full name similarity (70%+ = 70-100% confidence)
+            confidence = Math.round(fullNameSimilarity * 100);
+            reason = `Name similarity: "${mlcWriter.name}" ≈ "${fullName}" (${confidence}%)`;
+          } else if (lastNameMatch && firstNameInitialMatch) {
+            // Last name + first initial match (85% confidence)
+            confidence = 85;
+            reason = `Name match: "${mlcWriter.name}" ≈ "${firstName.charAt(0)}. ${lastName}"`;
+          } else if (lastNameMatch) {
+            // Last name only match (75% confidence)
+            confidence = 75;
+            reason = `Last name match: "${mlcWriter.name}" contains "${lastName}"`;
+          }
+
+          if (confidence >= 70) {
+            matches.push({
+              writer,
+              confidence,
+              reason
+            });
           }
         });
       }
@@ -154,15 +202,18 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
     // Traditional format (BMI/ASCAP): Single writer
 
     // Strategy 1: IPI Number Exact Match (100% confidence)
-    // Check both writer IPI and publisher IPI
+    // Check both writer IPI and publisher IPI with normalization
     if (song.writerIpiNumber) {
+      const normalizedSongIpi = normalizeIPI(song.writerIpiNumber);
       const ipiMatch = allWriters.find(
-        w => (w.writerIpiNumber && w.writerIpiNumber === song.writerIpiNumber) ||
-             (w.publisherIpiNumber && w.publisherIpiNumber === song.writerIpiNumber)
+        w => (w.writerIpiNumber && normalizeIPI(w.writerIpiNumber) === normalizedSongIpi) ||
+             (w.publisherIpiNumber && normalizeIPI(w.publisherIpiNumber) === normalizedSongIpi)
       );
 
       if (ipiMatch) {
-        const matchedVia = ipiMatch.writerIpiNumber === song.writerIpiNumber ? 'Writer IPI' : 'Publisher IPI';
+        const matchedVia = ipiMatch.writerIpiNumber && normalizeIPI(ipiMatch.writerIpiNumber) === normalizedSongIpi
+          ? 'Writer IPI'
+          : 'Publisher IPI';
         matches.push({
           writer: ipiMatch,
           confidence: 100,
@@ -177,18 +228,49 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
     if (song.writerName) {
       allWriters.forEach(writer => {
         const fullName = `${writer.firstName || ''} ${writer.lastName || ''}`.trim();
+        if (!fullName) return;
 
-        if (fullName) {
-          const similarity = stringSimilarity(song.writerName!, fullName);
+        // Approach 1: Full name similarity
+        const fullNameSimilarity = stringSimilarity(song.writerName!, fullName);
 
-          // High confidence: >80% similarity
-          if (similarity > 0.8) {
-            matches.push({
-              writer,
-              confidence: Math.round(similarity * 100),
-              reason: `Name similarity: "${song.writerName}" ≈ "${fullName}"`
-            });
+        // Approach 2: Last name exact match + first name initial
+        const firstName = writer.firstName || '';
+        const lastName = writer.lastName || '';
+        let lastNameMatch = false;
+        let firstNameInitialMatch = false;
+
+        if (lastName) {
+          const writerNameLower = song.writerName!.toLowerCase();
+          const lastNameLower = lastName.toLowerCase();
+          lastNameMatch = writerNameLower.includes(lastNameLower) || lastNameLower.includes(writerNameLower.split(' ').pop() || '');
+
+          if (lastNameMatch && firstName) {
+            const firstInitial = firstName.charAt(0).toLowerCase();
+            firstNameInitialMatch = writerNameLower.charAt(0) === firstInitial;
           }
+        }
+
+        // Calculate confidence based on best match
+        let confidence = 0;
+        let reason = '';
+
+        if (fullNameSimilarity >= 0.70) {
+          confidence = Math.round(fullNameSimilarity * 100);
+          reason = `Name similarity: "${song.writerName}" ≈ "${fullName}" (${confidence}%)`;
+        } else if (lastNameMatch && firstNameInitialMatch) {
+          confidence = 85;
+          reason = `Name match: "${song.writerName}" ≈ "${firstName.charAt(0)}. ${lastName}"`;
+        } else if (lastNameMatch) {
+          confidence = 75;
+          reason = `Last name match: "${song.writerName}" contains "${lastName}"`;
+        }
+
+        if (confidence >= 70) {
+          matches.push({
+            writer,
+            confidence,
+            reason
+          });
         }
       });
     }
@@ -223,16 +305,24 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
     const normalizedHistoricalTitle = normalizeSongTitle(assignment.workTitle);
     const similarity = stringSimilarity(normalizedSongTitle, normalizedHistoricalTitle);
 
-    // Very high similarity: >90% for historical matches
-    if (similarity > 0.9) {
+    // Historical matching with proper confidence scaling
+    // Perfect matches (100% similarity) = 100% confidence (auto-assign)
+    // Very high similarity (95-99%) = 95-99% confidence (auto-assign)
+    // High similarity (90-94%) = 90-94% confidence (auto-assign)
+    // Medium similarity (85-89%) = 85-89% confidence (suggested)
+    if (similarity >= 0.85) {
       // Check if this writer is already in matches
       const existingMatch = matches.find(m => m.writer.id === assignment.userId);
 
       if (!existingMatch) {
+        // Use similarity directly as confidence (scaled to 100)
+        const confidence = Math.round(similarity * 100);
         matches.push({
           writer: assignment.user,
-          confidence: Math.round(similarity * 90), // Cap at 90% for historical
-          reason: `Similar song previously assigned: "${assignment.workTitle}"`
+          confidence: confidence,
+          reason: similarity >= 0.99
+            ? `Exact song match previously assigned: "${assignment.workTitle}"`
+            : `Similar song previously assigned: "${assignment.workTitle}" (${confidence}% match)`
         });
       } else {
         // Boost confidence if multiple strategies match
