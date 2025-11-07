@@ -6,6 +6,7 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import Sidebar from '../components/Sidebar';
 import ToolsHub from '../components/ToolsHub';
 import DocumentsTab from '../components/DocumentsTab';
+import { formatIpiDisplay } from '../utils/ipi-helper';
 
 type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission';
 
@@ -958,8 +959,8 @@ function UsersTab() {
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.writerIpiNumber || '-'}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.publisherIpiNumber || '-'}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{formatIpiDisplay(user.writerIpiNumber)}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{formatIpiDisplay(user.publisherIpiNumber)}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.producer?.proAffiliation || '-'}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.commissionOverrideRate != null ? `${Number(user.commissionOverrideRate).toFixed(2)}%` : 'Default'}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

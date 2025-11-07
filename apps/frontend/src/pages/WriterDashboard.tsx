@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import Sidebar from '../components/Sidebar';
 import { useAuthStore } from '../store/auth.store';
+import { formatIpiDisplay } from '../utils/ipi-helper';
 
 const COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4'];
 
@@ -405,7 +406,9 @@ function ProfileSection() {
                   />
                 ) : (
                   <div className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
-                    {user?.writerIpiNumber || (
+                    {user?.writerIpiNumber ? (
+                      formatIpiDisplay(user.writerIpiNumber)
+                    ) : (
                       <span className="text-gray-500">Not set - Click "Edit IPI Numbers" to add</span>
                     )}
                   </div>
@@ -429,7 +432,9 @@ function ProfileSection() {
                   />
                 ) : (
                   <div className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
-                    {user?.publisherIpiNumber || (
+                    {user?.publisherIpiNumber ? (
+                      formatIpiDisplay(user.publisherIpiNumber)
+                    ) : (
                       <span className="text-gray-500">Not set - Click "Edit IPI Numbers" to add</span>
                     )}
                   </div>
