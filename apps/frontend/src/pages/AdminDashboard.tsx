@@ -573,17 +573,20 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
       // Auto-populate assignments with high-confidence matches (>=90%)
       const newAssignments: WriterAssignmentsPayload = {};
 
-      // Auto-assigned matches (>=90% confidence)
+      // Auto-assigned matches (>=90% confidence) - supports multiple writers per song (MLC format)
       results.autoAssigned?.forEach((match: any) => {
-        newAssignments[match.workTitle] = [{
-          userId: match.writer.id,
-          writerIpiNumber: match.writer.writerIpiNumber || '',
-          publisherIpiNumber: match.writer.publisherIpiNumber || '',
-          splitPercentage: 100
-        }];
+        const numWriters = match.writers.length;
+        const equalSplit = parseFloat((100 / numWriters).toFixed(2));
+
+        newAssignments[match.workTitle] = match.writers.map((writerMatch: any) => ({
+          userId: writerMatch.writer.id,
+          writerIpiNumber: writerMatch.writer.writerIpiNumber || '',
+          publisherIpiNumber: writerMatch.writer.publisherIpiNumber || '',
+          splitPercentage: equalSplit
+        }));
       });
 
-      // For suggested matches (70-90% confidence), use top match if only one writer
+      // For suggested matches (70-90% confidence), use top match
       results.suggested?.forEach((suggestion: any) => {
         if (suggestion.matches && suggestion.matches.length > 0) {
           const topMatch = suggestion.matches[0];
@@ -676,14 +679,20 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   const getMatchConfidence = (songTitle: string) => {
     if (!smartAssignResults) return null;
 
-    // Check auto-assigned (>=90% confidence)
+    // Check auto-assigned (>=90% confidence) - may have multiple writers
     const autoMatch = smartAssignResults.autoAssigned?.find((m: any) => m.workTitle === songTitle);
     if (autoMatch) {
+      const numWriters = autoMatch.writers.length;
+      const avgConfidence = Math.round(
+        autoMatch.writers.reduce((sum: number, w: any) => sum + w.confidence, 0) / numWriters
+      );
+      const reasons = autoMatch.writers.map((w: any) => w.reason).join('; ');
+
       return {
         level: 'high',
-        confidence: autoMatch.confidence,
-        reason: autoMatch.reason,
-        badge: '✓ Auto-assigned',
+        confidence: avgConfidence,
+        reason: numWriters > 1 ? `${numWriters} writers matched: ${reasons}` : reasons,
+        badge: numWriters > 1 ? `✓ ${numWriters} Auto-assigned` : '✓ Auto-assigned',
         badgeClass: 'bg-green-500/20 text-green-400 border-green-500/30'
       };
     }

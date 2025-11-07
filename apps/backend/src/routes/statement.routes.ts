@@ -690,33 +690,41 @@ router.post(
       const unmatched: any[] = [];    // <70% or no match - needs manual assignment
 
       matchResults.forEach((matches, workTitle) => {
-        const topMatch = matches[0]; // Highest confidence match
-
-        if (!topMatch) {
+        if (!matches || matches.length === 0) {
           // No matches found
           unmatched.push({
             workTitle,
             reason: 'No matching writers found in database'
           });
-        } else if (topMatch.confidence >= 90) {
-          // High confidence - auto-assign
+          return;
+        }
+
+        // For MLC statements, multiple writers can be on one song
+        // Get all high-confidence matches (>=90%)
+        const highConfidenceMatches = matches.filter(m => m.confidence >= 90);
+        const mediumConfidenceMatches = matches.filter(m => m.confidence >= 70 && m.confidence < 90);
+
+        if (highConfidenceMatches.length > 0) {
+          // High confidence - auto-assign (supports multiple writers per song)
           autoAssigned.push({
             workTitle,
-            writer: {
-              id: topMatch.writer.id,
-              name: `${topMatch.writer.firstName || ''} ${topMatch.writer.lastName || ''}`.trim() || topMatch.writer.email,
-              email: topMatch.writer.email,
-              writerIpiNumber: topMatch.writer.writerIpiNumber,
-              publisherIpiNumber: topMatch.writer.publisherIpiNumber
-            },
-            confidence: topMatch.confidence,
-            reason: topMatch.reason
+            writers: highConfidenceMatches.map(match => ({
+              writer: {
+                id: match.writer.id,
+                name: `${match.writer.firstName || ''} ${match.writer.lastName || ''}`.trim() || match.writer.email,
+                email: match.writer.email,
+                writerIpiNumber: match.writer.writerIpiNumber,
+                publisherIpiNumber: match.writer.publisherIpiNumber
+              },
+              confidence: match.confidence,
+              reason: match.reason
+            }))
           });
-        } else if (topMatch.confidence >= 70) {
+        } else if (mediumConfidenceMatches.length > 0) {
           // Medium confidence - suggest for review
           suggested.push({
             workTitle,
-            matches: matches.slice(0, 3).map(m => ({ // Top 3 matches
+            matches: mediumConfidenceMatches.slice(0, 3).map(m => ({ // Top 3 matches
               writer: {
                 id: m.writer.id,
                 name: `${m.writer.firstName || ''} ${m.writer.lastName || ''}`.trim() || m.writer.email,
@@ -730,6 +738,7 @@ router.post(
           });
         } else {
           // Low confidence - manual assignment needed
+          const topMatch = matches[0];
           unmatched.push({
             workTitle,
             reason: `Low confidence match (${topMatch.confidence}%) - manual review required`
