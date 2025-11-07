@@ -575,6 +575,12 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
       // Auto-assigned matches (>=90% confidence) - supports multiple writers per song (MLC format)
       results.autoAssigned?.forEach((match: any) => {
+        // Defensive check: skip if writers array is missing or empty
+        if (!match.writers || match.writers.length === 0) {
+          console.warn('Skipping autoAssigned item with no writers:', match.workTitle);
+          return;
+        }
+
         const numWriters = match.writers.length;
         const equalSplit = parseFloat((100 / numWriters).toFixed(2));
 
@@ -681,7 +687,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
     // Check auto-assigned (>=90% confidence) - may have multiple writers
     const autoMatch = smartAssignResults.autoAssigned?.find((m: any) => m.workTitle === songTitle);
-    if (autoMatch) {
+    if (autoMatch && autoMatch.writers && autoMatch.writers.length > 0) {
       const numWriters = autoMatch.writers.length;
       const avgConfidence = Math.round(
         autoMatch.writers.reduce((sum: number, w: any) => sum + w.confidence, 0) / numWriters

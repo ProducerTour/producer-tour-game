@@ -746,6 +746,15 @@ router.post(
         }
       });
 
+      // Debug logging to verify response structure
+      console.log('Smart Assign Results:', {
+        totalSongs: parsedItems.length,
+        autoAssignedCount: autoAssigned.length,
+        autoAssignedSample: autoAssigned[0], // First item to verify structure
+        suggestedCount: suggested.length,
+        unmatchedCount: unmatched.length
+      });
+
       res.json({
         summary: {
           totalSongs: parsedItems.length,
