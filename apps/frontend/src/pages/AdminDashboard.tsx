@@ -699,7 +699,8 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
         confidence: avgConfidence,
         reason: numWriters > 1 ? `${numWriters} writers matched: ${reasons}` : reasons,
         badge: numWriters > 1 ? `✓ ${numWriters} Auto-assigned` : '✓ Auto-assigned',
-        badgeClass: 'bg-green-500/20 text-green-400 border-green-500/30'
+        badgeClass: 'bg-green-500/20 text-green-400 border-green-500/30',
+        publisherInfo: autoMatch.publisherInfo || null
       };
     }
 
@@ -711,7 +712,8 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
         confidence: suggested.matches[0]?.confidence,
         reason: suggested.matches[0]?.reason,
         badge: '⚠ Review Suggested',
-        badgeClass: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+        badgeClass: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+        publisherInfo: suggested.publisherInfo || null
       };
     }
 
@@ -723,7 +725,8 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
         confidence: 0,
         reason: unmatched.reason,
         badge: '✗ Manual Required',
-        badgeClass: 'bg-red-500/20 text-red-400 border-red-500/30'
+        badgeClass: 'bg-red-500/20 text-red-400 border-red-500/30',
+        publisherInfo: unmatched.publisherInfo || null
       };
     }
 
@@ -839,6 +842,48 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                         <p className="text-xs text-gray-500 mt-1">
                           {matchInfo.reason}
                         </p>
+                      )}
+                      {/* Publisher and Platform Info (MLC) */}
+                      {matchInfo?.publisherInfo && (
+                        <div className="mt-2 space-y-1">
+                          {matchInfo.publisherInfo.originalPublisherName && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="text-gray-500">Publisher:</span>
+                              <span className="text-blue-400 font-medium">
+                                {matchInfo.publisherInfo.originalPublisherName}
+                                {matchInfo.publisherInfo.originalPublisherIpi && (
+                                  <span className="text-gray-500 ml-1">
+                                    (IPI: {matchInfo.publisherInfo.originalPublisherIpi})
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          )}
+                          {(matchInfo.publisherInfo.dspName || matchInfo.publisherInfo.territory) && (
+                            <div className="flex items-center gap-3 text-xs text-gray-500">
+                              {matchInfo.publisherInfo.dspName && (
+                                <span>
+                                  Platform: <span className="text-gray-400">{matchInfo.publisherInfo.dspName}</span>
+                                  {matchInfo.publisherInfo.consumerOffering && (
+                                    <span className="text-gray-500"> ({matchInfo.publisherInfo.consumerOffering})</span>
+                                  )}
+                                </span>
+                              )}
+                              {matchInfo.publisherInfo.territory && (
+                                <span>
+                                  Territory: <span className="text-gray-400">{matchInfo.publisherInfo.territory}</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {matchInfo.publisherInfo.workWriterList && matchInfo.publisherInfo.workWriterList.length > 0 && (
+                            <div className="text-xs text-gray-500">
+                              Work Writers: <span className="text-gray-400">
+                                {matchInfo.publisherInfo.workWriterList.map((w: any) => w.name).join(', ')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                     <button

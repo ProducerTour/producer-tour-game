@@ -727,11 +727,26 @@ router.post(
       const unmatched: any[] = [];    // <70% or no match - needs manual assignment
 
       matchResults.forEach((matches, workTitle) => {
+        // Find the parsed item to get publisher and platform metadata
+        const parsedItem = parsedItems.find((item: any) => item.workTitle === workTitle);
+        const metadata = parsedItem?.metadata || {};
+
+        // Extract publisher and platform info for display
+        const publisherInfo = {
+          originalPublisherName: metadata.originalPublisherName || null,
+          originalPublisherIpi: metadata.originalPublisherIpi || null,
+          dspName: metadata.dspName || null,
+          consumerOffering: metadata.consumerOffering || null,
+          territory: metadata.territory || null,
+          workWriterList: metadata.workWriterList || []
+        };
+
         if (!matches || matches.length === 0) {
           // No matches found
           unmatched.push({
             workTitle,
-            reason: 'No matching writers found in database'
+            reason: 'No matching writers found in database',
+            publisherInfo
           });
           return;
         }
@@ -745,10 +760,11 @@ router.post(
           // High confidence - auto-assign (supports multiple writers per song)
           autoAssigned.push({
             workTitle,
+            publisherInfo,
             writers: highConfidenceMatches.map(match => ({
               writer: {
                 id: match.writer.id,
-                name: `${match.writer.firstName || ''} ${match.writer.lastName || ''}`.trim() || match.writer.email,
+                name: `${match.writer.firstName || ''} ${match.writer.middleName || ''} ${match.writer.lastName || ''}`.trim().replace(/\s+/g, ' ') || match.writer.email,
                 email: match.writer.email,
                 writerIpiNumber: match.writer.writerIpiNumber,
                 publisherIpiNumber: match.writer.publisherIpiNumber
@@ -761,10 +777,11 @@ router.post(
           // Medium confidence - suggest for review
           suggested.push({
             workTitle,
+            publisherInfo,
             matches: mediumConfidenceMatches.slice(0, 3).map(m => ({ // Top 3 matches
               writer: {
                 id: m.writer.id,
-                name: `${m.writer.firstName || ''} ${m.writer.lastName || ''}`.trim() || m.writer.email,
+                name: `${m.writer.firstName || ''} ${m.writer.middleName || ''} ${m.writer.lastName || ''}`.trim().replace(/\s+/g, ' ') || m.writer.email,
                 email: m.writer.email,
                 writerIpiNumber: m.writer.writerIpiNumber,
                 publisherIpiNumber: m.writer.publisherIpiNumber
@@ -778,6 +795,7 @@ router.post(
           const topMatch = matches[0];
           unmatched.push({
             workTitle,
+            publisherInfo,
             reason: `Low confidence match (${topMatch.confidence}%) - manual review required`
           });
         }
