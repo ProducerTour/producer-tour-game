@@ -248,7 +248,8 @@ router.get(
                 grossRevenue: 0,
                 commissionAmount: 0,
                 netRevenue: 0,
-                songCount: 0
+                songCount: 0,
+                uniqueSongs: new Set()
               });
             }
 
@@ -262,12 +263,14 @@ router.get(
 
             writer.grossRevenue += writerRevenue;
             writer.commissionAmount += commission;
-            writer.songCount += 1;
+            writer.uniqueSongs.add(item.workTitle);
           });
         });
 
         // Round totals to 2 decimals AFTER summing all rows for accuracy
         for (const writer of writerMap.values()) {
+          writer.songCount = writer.uniqueSongs.size;
+          delete writer.uniqueSongs;
           writer.grossRevenue = Math.round(writer.grossRevenue * 100) / 100;
           writer.commissionAmount = Math.round(writer.commissionAmount * 100) / 100;
           writer.netRevenue = Math.round((writer.grossRevenue - writer.commissionAmount) * 100) / 100;
@@ -798,7 +801,8 @@ router.get(
               grossRevenue: 0,
               commissionAmount: 0,
               netRevenue: 0,
-              songCount: 0
+              songCount: 0,
+              uniqueSongs: new Set()
             });
           }
 
@@ -812,12 +816,14 @@ router.get(
 
           writer.grossRevenue += writerRevenue;
           writer.commissionAmount += commission;
-          writer.songCount += 1;
+          writer.uniqueSongs.add(item.workTitle);
         });
       });
 
       // Round totals to 2 decimals AFTER summing all rows for accuracy
       for (const writer of writerMap.values()) {
+        writer.songCount = writer.uniqueSongs.size;
+        delete writer.uniqueSongs;
         writer.grossRevenue = Math.round(writer.grossRevenue * 100) / 100;
         writer.commissionAmount = Math.round(writer.commissionAmount * 100) / 100;
         writer.netRevenue = Math.round((writer.grossRevenue - writer.commissionAmount) * 100) / 100;
