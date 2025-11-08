@@ -97,8 +97,7 @@ export class MLCParser {
       const amount = parseAmountValue(row['Distributed Amount']);
       const performances = parseIntValue(row['Number of Usages']);
 
-      if (amount === 0) continue;
-
+      // Include ALL rows regardless of amount (including $0 for accuracy)
       totalRevenue += amount;
       totalPerformances += performances;
 
