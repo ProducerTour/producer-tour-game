@@ -616,7 +616,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
     });
 
     return rows;
-  }, [displayRows, searchQuery, statusFilter, sortBy]);
+  }, [displayRows, searchQuery, statusFilter, sortBy, smartAssignResults, isMLC]);
 
   // Generate key for row - composite for MLC, simple for traditional
   const getRowKey = (row: any) => {
@@ -711,7 +711,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
       });
 
       setAssignments(newAssignments);
-      alert(`Smart Assign Complete!\n\n✓ Auto-assigned: ${results.autoAssignedCount} rows\n⚠ Suggested: ${results.suggestedCount} rows\n✗ Unmatched: ${results.unmatchedCount} rows`);
+      alert(`Smart Assign Complete!\n\n✓ Auto-assigned: ${results.summary.autoAssignedCount} rows\n⚠ Suggested: ${results.summary.suggestedCount} rows\n✗ Unmatched: ${results.summary.unmatchedCount} rows`);
     } catch (error: any) {
       console.error('Smart assign error:', error);
       alert(error.response?.data?.error || 'Failed to smart assign writers');
@@ -790,9 +790,9 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   // Calculate summary stats
   const summaryStats = useMemo(() => {
     const totalRevenue = displayRows.reduce((sum: number, row: any) => sum + (row.revenue || 0), 0);
-    const autoCount = smartAssignResults?.autoAssignedCount || 0;
-    const suggestedCount = smartAssignResults?.suggestedCount || 0;
-    const manualCount = smartAssignResults?.unmatchedCount || 0;
+    const autoCount = smartAssignResults?.summary?.autoAssignedCount || 0;
+    const suggestedCount = smartAssignResults?.summary?.suggestedCount || 0;
+    const manualCount = smartAssignResults?.summary?.unmatchedCount || 0;
 
     return {
       totalRows: displayRows.length,
