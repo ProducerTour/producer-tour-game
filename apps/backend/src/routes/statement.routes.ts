@@ -233,9 +233,12 @@ router.get(
           writer.songCount += 1;
         });
 
-        // Calculate netRevenue fresh: gross - commission (avoid rounding errors)
+        // Calculate netRevenue fresh: gross - commission
+        // Round totals to 2 decimals AFTER summing all rows for accuracy
         for (const writer of writerMap.values()) {
-          writer.netRevenue = writer.grossRevenue - writer.commissionAmount;
+          writer.grossRevenue = Math.round(writer.grossRevenue * 100) / 100;
+          writer.commissionAmount = Math.round(writer.commissionAmount * 100) / 100;
+          writer.netRevenue = Math.round((writer.grossRevenue - writer.commissionAmount) * 100) / 100;
         }
 
         return {
@@ -593,9 +596,12 @@ router.get(
         writer.songCount += 1;
       });
 
-      // Calculate netRevenue fresh: gross - commission (avoid rounding errors)
+      // Calculate netRevenue fresh: gross - commission
+      // Round totals to 2 decimals AFTER summing all rows for accuracy
       for (const writer of writerMap.values()) {
-        writer.netRevenue = writer.grossRevenue - writer.commissionAmount;
+        writer.grossRevenue = Math.round(writer.grossRevenue * 100) / 100;
+        writer.commissionAmount = Math.round(writer.commissionAmount * 100) / 100;
+        writer.netRevenue = Math.round((writer.grossRevenue - writer.commissionAmount) * 100) / 100;
       }
 
       const summary = {

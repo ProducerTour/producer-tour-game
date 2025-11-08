@@ -208,16 +208,16 @@ model StatementItem {
   workTitle       String
   userId          String
   producerId      String?   // Optional - not all writers have producers
-  revenue         Decimal  @db.Decimal(12, 2) // Gross revenue (before commission)
+  revenue         Decimal  @db.Decimal(12, 6) // Gross revenue (before commission) - increased precision for accuracy
   performances    Int      @default(0)
   splitPercentage Decimal? @default(100.00) @db.Decimal(5, 2) // Writer's percentage share (0.00-100.00)
   writerIpiNumber String?  // IPI number at time of assignment
 
   // Commission tracking
   commissionRate     Decimal  @default(0.00) @db.Decimal(5, 2) // Commission percentage (0.00-100.00)
-  commissionAmount   Decimal  @default(0.00) @db.Decimal(12, 2) // Calculated commission in dollars
+  commissionAmount   Decimal  @default(0.00) @db.Decimal(12, 6) // Calculated commission in dollars - increased precision
   commissionRecipient String? // Who receives commission (e.g., "Producer Tour", "Admin Fee")
-  netRevenue         Decimal  @default(0.00) @db.Decimal(12, 2) // Revenue after commission (what writer receives)
+  netRevenue         Decimal  @default(0.00) @db.Decimal(12, 6) // Revenue after commission - increased precision
 
   // Payment visibility
   isVisibleToWriter Boolean  @default(false) // Controls whether writer can see this item
