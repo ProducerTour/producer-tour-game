@@ -47,3 +47,12 @@ temp/
 
 # Render
 .render/
+
+# Investigation/temporary files
+*_SUMMARY.md
+*_INVESTIGATION*.md
+*_ANALYSIS.md
+*_TIMELINE.md
+*_GUIDE.md
+*_REFERENCE.md
+QUICK_*.md
