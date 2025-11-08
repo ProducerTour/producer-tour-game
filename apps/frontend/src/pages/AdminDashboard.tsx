@@ -770,7 +770,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
         <div className="p-6 border-b border-slate-700">
           <h3 className="text-xl font-bold text-white">Review & Assign Writers</h3>
           <p className="text-sm text-gray-400 mt-1">
-            {statement.filename} • {parsedSongs.length} songs
+            {statement.filename} • {displayRows.length} {isMLC ? 'publisher rows' : 'songs'}
           </p>
         </div>
 
