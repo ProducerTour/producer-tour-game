@@ -113,6 +113,17 @@ export default function RoyaltyPortalPage() {
   };
 
   const formatCurrency = (amount: number) => {
+    // Smart rounding: 2 decimals normally, 4 decimals for micro-amounts
+    const rounded2 = Math.round(amount * 100) / 100;
+    if (rounded2 === 0 && amount > 0) {
+      // Micro-amount: use 4 decimals
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 4,
+        maximumFractionDigits: 4,
+      }).format(amount);
+    }
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
