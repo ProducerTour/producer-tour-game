@@ -210,30 +210,62 @@ router.get(
 
       // Group items by writer for each statement
       const formatted = unpaidStatements.map(statement => {
-        // Group items by writer
+        // Group items by writer - calculate from metadata for full precision
         const writerMap = new Map();
+        const metadata = statement.metadata as any;
+        const parsedItems = metadata?.parsedItems || [];
+        const assignments = metadata?.writerAssignments || {};
 
+        // Get commission rates from existing StatementItems (or use defaults)
+        const commissionRates = new Map();
         statement.items.forEach(item => {
-          const key = item.userId;
-          if (!writerMap.has(key)) {
-            writerMap.set(key, {
-              userId: item.userId,
-              name: `${item.user.firstName || ''} ${item.user.lastName || ''}`.trim() || item.user.email,
-              email: item.user.email,
-              grossRevenue: 0,
-              commissionAmount: 0,
-              netRevenue: 0,
-              songCount: 0
-            });
-          }
-
-          const writer = writerMap.get(key);
-          writer.grossRevenue += Number(item.revenue);
-          writer.commissionAmount += Number(item.commissionAmount);
-          writer.songCount += 1;
+          commissionRates.set(item.userId, Number(item.commissionRate) || 0);
         });
 
-        // Calculate netRevenue fresh: gross - commission
+        // Calculate totals from metadata (full precision)
+        parsedItems.forEach((item: any) => {
+          // Construct composite key for MLC
+          let assignmentKey = item.workTitle;
+          if (metadata.pro === 'MLC') {
+            const publisherIpi = item.metadata?.originalPublisherIpi || 'none';
+            const dspName = item.metadata?.dspName || 'none';
+            assignmentKey = `${item.workTitle}|${publisherIpi}|${dspName}`;
+          }
+
+          const songAssignments = assignments[assignmentKey] || [];
+
+          songAssignments.forEach((assignment: any) => {
+            const userId = assignment.userId;
+
+            // Initialize writer entry if needed
+            if (!writerMap.has(userId)) {
+              // Find user info from StatementItems
+              const userItem = statement.items.find(i => i.userId === userId);
+              writerMap.set(userId, {
+                userId: userId,
+                name: userItem ? `${userItem.user.firstName || ''} ${userItem.user.lastName || ''}`.trim() || userItem.user.email : 'Unknown',
+                email: userItem?.user.email || '',
+                grossRevenue: 0,
+                commissionAmount: 0,
+                netRevenue: 0,
+                songCount: 0
+              });
+            }
+
+            const writer = writerMap.get(userId);
+
+            // Calculate with FULL precision from metadata
+            const splitPercentage = parseFloat(assignment.splitPercentage) || 100;
+            const writerRevenue = (parseFloat(item.revenue) * splitPercentage) / 100;
+            const commissionRate = commissionRates.get(userId) || 0;
+            const commission = (writerRevenue * commissionRate) / 100;
+
+            writer.grossRevenue += writerRevenue;
+            writer.commissionAmount += commission;
+            writer.songCount += 1;
+          });
+        });
+
         // Round totals to 2 decimals AFTER summing all rows for accuracy
         for (const writer of writerMap.values()) {
           writer.grossRevenue = Math.round(writer.grossRevenue * 100) / 100;
@@ -728,30 +760,62 @@ router.get(
         return res.status(404).json({ error: 'Statement not found' });
       }
 
-      // Group by writer
+      // Group by writer - calculate from metadata for full precision
       const writerMap = new Map();
+      const metadata = statement.metadata as any;
+      const parsedItems = metadata?.parsedItems || [];
+      const assignments = metadata?.writerAssignments || {};
 
+      // Get commission rates from existing StatementItems
+      const commissionRates = new Map();
       statement.items.forEach(item => {
-        const key = item.userId;
-        if (!writerMap.has(key)) {
-          writerMap.set(key, {
-            userId: item.userId,
-            name: `${item.user.firstName || ''} ${item.user.lastName || ''}`.trim() || item.user.email,
-            email: item.user.email,
-            grossRevenue: 0,
-            commissionAmount: 0,
-            netRevenue: 0,
-            songCount: 0
-          });
-        }
-
-        const writer = writerMap.get(key);
-        writer.grossRevenue += Number(item.revenue);
-        writer.commissionAmount += Number(item.commissionAmount);
-        writer.songCount += 1;
+        commissionRates.set(item.userId, Number(item.commissionRate) || 0);
       });
 
-      // Calculate netRevenue fresh: gross - commission
+      // Calculate totals from metadata (full precision)
+      parsedItems.forEach((item: any) => {
+        // Construct composite key for MLC
+        let assignmentKey = item.workTitle;
+        if (metadata.pro === 'MLC') {
+          const publisherIpi = item.metadata?.originalPublisherIpi || 'none';
+          const dspName = item.metadata?.dspName || 'none';
+          assignmentKey = `${item.workTitle}|${publisherIpi}|${dspName}`;
+        }
+
+        const songAssignments = assignments[assignmentKey] || [];
+
+        songAssignments.forEach((assignment: any) => {
+          const userId = assignment.userId;
+
+          // Initialize writer entry if needed
+          if (!writerMap.has(userId)) {
+            // Find user info from StatementItems
+            const userItem = statement.items.find(i => i.userId === userId);
+            writerMap.set(userId, {
+              userId: userId,
+              name: userItem ? `${userItem.user.firstName || ''} ${userItem.user.lastName || ''}`.trim() || userItem.user.email : 'Unknown',
+              email: userItem?.user.email || '',
+              grossRevenue: 0,
+              commissionAmount: 0,
+              netRevenue: 0,
+              songCount: 0
+            });
+          }
+
+          const writer = writerMap.get(userId);
+
+          // Calculate with FULL precision from metadata
+          const splitPercentage = parseFloat(assignment.splitPercentage) || 100;
+          const writerRevenue = (parseFloat(item.revenue) * splitPercentage) / 100;
+          const commissionRate = commissionRates.get(userId) || 0;
+          const commission = (writerRevenue * commissionRate) / 100;
+
+          writer.grossRevenue += writerRevenue;
+          writer.commissionAmount += commission;
+          writer.songCount += 1;
+        });
+      });
+
       // Round totals to 2 decimals AFTER summing all rows for accuracy
       for (const writer of writerMap.values()) {
         writer.grossRevenue = Math.round(writer.grossRevenue * 100) / 100;
