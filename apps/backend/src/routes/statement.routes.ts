@@ -367,17 +367,24 @@ router.post(
       const assignments = metadata.writerAssignments || {};
 
       // Validate that all items have writers assigned
-      const unassignedSongs = parsedItems
-        .map((item: any) => item.workTitle)
-        .filter((title: string) => {
-          const songAssignments = assignments[title];
-          return !songAssignments || !Array.isArray(songAssignments) || songAssignments.length === 0;
-        });
+      const unassignedSongs = parsedItems.filter((item: any) => {
+        // For MLC: construct composite key to match frontend format
+        let assignmentKey = item.workTitle;
+
+        if (metadata.pro === 'MLC') {
+          const publisherIpi = item.metadata?.originalPublisherIpi || 'none';
+          const dspName = item.metadata?.dspName || 'none';
+          assignmentKey = `${item.workTitle}|${publisherIpi}|${dspName}`;
+        }
+
+        const songAssignments = assignments[assignmentKey];
+        return !songAssignments || !Array.isArray(songAssignments) || songAssignments.length === 0;
+      });
 
       if (unassignedSongs.length > 0) {
         return res.status(400).json({
           error: 'Not all songs have writers assigned',
-          unassignedSongs: unassignedSongs.slice(0, 5), // Show first 5
+          unassignedSongs: unassignedSongs.slice(0, 5).map((item: any) => item.workTitle), // Show first 5 titles
         });
       }
 
@@ -416,7 +423,16 @@ router.post(
       let totalNet = 0;
 
       parsedItems.forEach((item: any) => {
-        const songAssignments = assignments[item.workTitle] || [];
+        // For MLC: construct composite key to match frontend format
+        let assignmentKey = item.workTitle;
+
+        if (metadata.pro === 'MLC') {
+          const publisherIpi = item.metadata?.originalPublisherIpi || 'none';
+          const dspName = item.metadata?.dspName || 'none';
+          assignmentKey = `${item.workTitle}|${publisherIpi}|${dspName}`;
+        }
+
+        const songAssignments = assignments[assignmentKey] || [];
 
         // Create one StatementItem per writer assignment
         songAssignments.forEach((assignment: any) => {
