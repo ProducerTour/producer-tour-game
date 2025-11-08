@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { dashboardApi, statementApi, userApi } from '../lib/api';
 import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -537,6 +538,14 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   const [smartAssigning, setSmartAssigning] = useState(false);
   const [smartAssignResults, setSmartAssignResults] = useState<any>(null);
 
+  // Filter/Search/Sort state
+  const [statusFilter, setStatusFilter] = useState<'all' | 'auto' | 'suggested' | 'manual'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'revenue-desc' | 'revenue-asc' | 'title-asc' | 'title-desc'>('revenue-desc');
+
+  // Virtual scrolling ref
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   const writersList = writers.filter((w: any) => w.role === 'WRITER');
 
   // Detect MLC format from statement metadata
@@ -570,6 +579,44 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   };
 
   const displayRows = getDisplayRows();
+
+  // Filter, search, and sort displayRows
+  const filteredAndSortedRows = useMemo(() => {
+    let rows = [...displayRows];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      rows = rows.filter((row: any) => {
+        const titleMatch = row.workTitle?.toLowerCase().includes(query);
+        const publisherMatch = row.publisherInfo?.originalPublisherName?.toLowerCase().includes(query);
+        return titleMatch || publisherMatch;
+      });
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      rows = rows.filter((row: any) => {
+        const rowKey = getRowKey(row);
+        const badge = getConfidenceBadge(rowKey);
+        if (statusFilter === 'auto') return badge?.level === 'high';
+        if (statusFilter === 'suggested') return badge?.level === 'medium';
+        if (statusFilter === 'manual') return badge?.level === 'low' || !badge;
+        return true;
+      });
+    }
+
+    // Apply sorting
+    rows.sort((a: any, b: any) => {
+      if (sortBy === 'revenue-desc') return (b.revenue || 0) - (a.revenue || 0);
+      if (sortBy === 'revenue-asc') return (a.revenue || 0) - (b.revenue || 0);
+      if (sortBy === 'title-asc') return (a.workTitle || '').localeCompare(b.workTitle || '');
+      if (sortBy === 'title-desc') return (b.workTitle || '').localeCompare(a.workTitle || '');
+      return 0;
+    });
+
+    return rows;
+  }, [displayRows, searchQuery, statusFilter, sortBy]);
 
   // Generate key for row - composite for MLC, simple for traditional
   const getRowKey = (row: any) => {
@@ -740,6 +787,31 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
     return songAssignments.reduce((sum, a) => sum + (a.splitPercentage || 0), 0);
   };
 
+  // Calculate summary stats
+  const summaryStats = useMemo(() => {
+    const totalRevenue = displayRows.reduce((sum: number, row: any) => sum + (row.revenue || 0), 0);
+    const autoCount = smartAssignResults?.autoAssignedCount || 0;
+    const suggestedCount = smartAssignResults?.suggestedCount || 0;
+    const manualCount = smartAssignResults?.unmatchedCount || 0;
+
+    return {
+      totalRows: displayRows.length,
+      filteredRows: filteredAndSortedRows.length,
+      totalRevenue,
+      autoCount,
+      suggestedCount,
+      manualCount
+    };
+  }, [displayRows, filteredAndSortedRows.length, smartAssignResults]);
+
+  // Virtual scrolling setup
+  const virtualizer = useVirtualizer({
+    count: filteredAndSortedRows.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 220, // Approximate row height in pixels
+    overscan: 5, // Render 5 extra rows above/below viewport for smoother scrolling
+  });
+
   const handleSave = async () => {
     // Check if all rows have at least one assignment
     const unassigned = displayRows.filter((row: any) => {
@@ -772,6 +844,90 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
           <p className="text-sm text-gray-400 mt-1">
             {statement.filename} • {displayRows.length} {isMLC ? 'publisher rows' : 'songs'}
           </p>
+        </div>
+
+        {/* Summary Stats Bar */}
+        <div className="px-6 pt-4 pb-2 bg-slate-700/20 border-b border-slate-700/50">
+          <div className="grid grid-cols-4 gap-3 text-sm">
+            <div className="bg-slate-700/30 rounded-lg p-3">
+              <div className="text-gray-400 text-xs mb-1">Total Revenue</div>
+              <div className="text-white font-semibold">${summaryStats.totalRevenue.toFixed(2)}</div>
+            </div>
+            {smartAssignResults && (
+              <>
+                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                  <div className="text-green-400 text-xs mb-1">✓ Auto-assigned</div>
+                  <div className="text-white font-semibold">{summaryStats.autoCount}</div>
+                </div>
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                  <div className="text-yellow-400 text-xs mb-1">⚠ Review Suggested</div>
+                  <div className="text-white font-semibold">{summaryStats.suggestedCount}</div>
+                </div>
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                  <div className="text-red-400 text-xs mb-1">✗ Manual Required</div>
+                  <div className="text-white font-semibold">{summaryStats.manualCount}</div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Filter Toolbar */}
+        <div className="px-6 py-3 bg-slate-700/10 border-b border-slate-700/50 space-y-3">
+          <div className="flex gap-3">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder="🔍 Search songs or publishers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Status Filter */}
+            {smartAssignResults && (
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+              >
+                <option value="all">All Rows</option>
+                <option value="auto">✓ Auto-assigned</option>
+                <option value="suggested">⚠ Review Suggested</option>
+                <option value="manual">✗ Manual Required</option>
+              </select>
+            )}
+
+            {/* Sort */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+            >
+              <option value="revenue-desc">Revenue: High → Low</option>
+              <option value="revenue-asc">Revenue: Low → High</option>
+              <option value="title-asc">Title: A → Z</option>
+              <option value="title-desc">Title: Z → A</option>
+            </select>
+          </div>
+
+          {/* Showing X of Y */}
+          <div className="text-xs text-gray-400">
+            Showing {summaryStats.filteredRows} of {summaryStats.totalRows} rows
+            {summaryStats.filteredRows < summaryStats.totalRows && (
+              <span className="text-primary-400 ml-1">(filtered)</span>
+            )}
+          </div>
         </div>
 
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
@@ -827,18 +983,45 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
           {/* Individual Row Assignments - Unified UI for both MLC and Traditional */}
           <div className="space-y-4">
             <h4 className="text-sm font-medium text-white">
-              {isMLC ? `MLC Publisher Rows (${displayRows.length} rows)` : `Assign Writers to Songs (${displayRows.length} songs)`}
+              {isMLC ? `MLC Publisher Rows (${summaryStats.filteredRows} rows)` : `Assign Writers to Songs (${summaryStats.filteredRows} songs)`}
             </h4>
             {isMLC && <p className="text-xs text-gray-400">Each row represents a unique publisher/platform combination</p>}
 
-            {displayRows.map((row: any, rowIndex: number) => {
-              const rowKey = getRowKey(row);
-              const rowAssignments = assignments[rowKey] || [{ userId: '', writerIpiNumber: '', publisherIpiNumber: '', splitPercentage: 100 }];
-              const splitTotal = getSplitTotal(rowKey);
-              const badgeInfo = getConfidenceBadge(rowKey);
+            {/* Virtual scrolling container */}
+            <div
+              ref={scrollContainerRef}
+              className="overflow-auto"
+              style={{ maxHeight: '500px' }}
+            >
+              <div
+                style={{
+                  height: `${virtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {virtualizer.getVirtualItems().map((virtualRow) => {
+                  const row = filteredAndSortedRows[virtualRow.index];
+                  const rowKey = getRowKey(row);
+                  const rowAssignments = assignments[rowKey] || [{ userId: '', writerIpiNumber: '', publisherIpiNumber: '', splitPercentage: 100 }];
+                  const splitTotal = getSplitTotal(rowKey);
+                  const badgeInfo = getConfidenceBadge(rowKey);
 
-              return (
-                <div key={rowIndex} className="bg-slate-700/30 rounded-lg p-4 space-y-3">
+                  return (
+                    <div
+                      key={virtualRow.key}
+                      data-index={virtualRow.index}
+                      ref={virtualizer.measureElement}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                      className="pb-4"
+                    >
+                      <div className="bg-slate-700/30 rounded-lg p-4 space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       {/* Title + Badge */}
@@ -970,9 +1153,12 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                       Total: {splitTotal.toFixed(2)}% (Note: Splits don't equal 100%, but this is allowed)
                     </div>
                   )}
-                </div>
-              );
-            })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 
