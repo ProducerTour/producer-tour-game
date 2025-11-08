@@ -267,13 +267,23 @@ router.get(
           });
         });
 
-        // Round totals to 2 decimals AFTER summing all rows for accuracy
+        // Round totals AFTER summing all rows for accuracy
+        // Use smart rounding: 2 decimals normally, but preserve precision for micro-amounts
+        const smartRound = (value: number): number => {
+          const rounded2 = Math.round(value * 100) / 100;
+          // If rounding to 2 decimals gives 0 but value is actually > 0, use 4 decimals
+          if (rounded2 === 0 && value > 0) {
+            return Math.round(value * 10000) / 10000;
+          }
+          return rounded2;
+        };
+
         for (const writer of writerMap.values()) {
           writer.songCount = writer.uniqueSongs.size;
           delete writer.uniqueSongs;
-          writer.grossRevenue = Math.round(writer.grossRevenue * 100) / 100;
-          writer.commissionAmount = Math.round(writer.commissionAmount * 100) / 100;
-          writer.netRevenue = Math.round((writer.grossRevenue - writer.commissionAmount) * 100) / 100;
+          writer.grossRevenue = smartRound(writer.grossRevenue);
+          writer.commissionAmount = smartRound(writer.commissionAmount);
+          writer.netRevenue = smartRound(writer.grossRevenue - writer.commissionAmount);
         }
 
         return {
@@ -820,13 +830,23 @@ router.get(
         });
       });
 
-      // Round totals to 2 decimals AFTER summing all rows for accuracy
+      // Round totals AFTER summing all rows for accuracy
+      // Use smart rounding: 2 decimals normally, but preserve precision for micro-amounts
+      const smartRound = (value: number): number => {
+        const rounded2 = Math.round(value * 100) / 100;
+        // If rounding to 2 decimals gives 0 but value is actually > 0, use 4 decimals
+        if (rounded2 === 0 && value > 0) {
+          return Math.round(value * 10000) / 10000;
+        }
+        return rounded2;
+      };
+
       for (const writer of writerMap.values()) {
         writer.songCount = writer.uniqueSongs.size;
         delete writer.uniqueSongs;
-        writer.grossRevenue = Math.round(writer.grossRevenue * 100) / 100;
-        writer.commissionAmount = Math.round(writer.commissionAmount * 100) / 100;
-        writer.netRevenue = Math.round((writer.grossRevenue - writer.commissionAmount) * 100) / 100;
+        writer.grossRevenue = smartRound(writer.grossRevenue);
+        writer.commissionAmount = smartRound(writer.commissionAmount);
+        writer.netRevenue = smartRound(writer.grossRevenue - writer.commissionAmount);
       }
 
       const summary = {
