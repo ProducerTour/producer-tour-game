@@ -11,6 +11,16 @@ import { formatIpiDisplay } from '../utils/ipi-helper';
 
 type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission';
 
+// Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
+const formatChartCurrency = (value: any): string => {
+  const num = Number(value);
+  const rounded2 = Math.round(num * 100) / 100;
+  if (rounded2 === 0 && num > 0) {
+    return `$${(Math.round(num * 10000) / 10000).toFixed(4)}`;
+  }
+  return `$${rounded2.toFixed(2)}`;
+};
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
@@ -157,7 +167,7 @@ function DashboardOverview() {
                   }}
                   labelStyle={{ color: '#f1f5f9' }}
                   itemStyle={{ color: '#3b82f6' }}
-                  formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                  formatter={(value: any) => [formatChartCurrency(value), 'Revenue']}
                 />
                 <Line
                   type="monotone"
@@ -651,8 +661,13 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   }, [displayRows, searchQuery, statusFilter, sortBy, smartAssignResults, isMLC]);
 
   const formatCurrency = (amount: number): string => {
-    const rounded = Number(amount.toFixed(2));
-    return (rounded === 0 ? 0 : rounded).toFixed(2);
+    // Smart rounding: 2 decimals normally, 4 decimals for micro-amounts
+    const rounded2 = Math.round(amount * 100) / 100;
+    if (rounded2 === 0 && amount > 0) {
+      // Micro-amount: use 4 decimals
+      return (Math.round(amount * 10000) / 10000).toFixed(4);
+    }
+    return rounded2.toFixed(2);
   };
 
   const handleAssignAll = () => {
@@ -851,7 +866,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
           <div className="grid grid-cols-4 gap-3 text-sm">
             <div className="bg-slate-700/30 rounded-lg p-3">
               <div className="text-gray-400 text-xs mb-1">Total Revenue</div>
-              <div className="text-white font-semibold">${summaryStats.totalRevenue.toFixed(2)}</div>
+              <div className="text-white font-semibold">${formatCurrency(summaryStats.totalRevenue)}</div>
             </div>
             {smartAssignResults && (
               <>
@@ -1829,7 +1844,7 @@ function AnalyticsTab() {
                       contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                       labelStyle={{ color: '#f1f5f9' }}
                       itemStyle={{ color: '#10b981' }}
-                      formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                      formatter={(value: any) => [formatChartCurrency(value), 'Revenue']}
                     />
                     <Line
                       type="monotone"

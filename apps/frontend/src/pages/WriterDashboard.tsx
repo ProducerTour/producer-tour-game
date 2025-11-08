@@ -8,6 +8,16 @@ import { formatIpiDisplay } from '../utils/ipi-helper';
 
 const COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4'];
 
+// Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
+const formatChartCurrency = (value: any): string => {
+  const num = Number(value);
+  const rounded2 = Math.round(num * 100) / 100;
+  if (rounded2 === 0 && num > 0) {
+    return `$${(Math.round(num * 10000) / 10000).toFixed(4)}`;
+  }
+  return `$${rounded2.toFixed(2)}`;
+};
+
 export default function WriterDashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents' | 'profile'>('overview');
 
@@ -155,7 +165,7 @@ export default function WriterDashboard() {
                               borderRadius: '8px',
                               color: '#fff'
                             }}
-                            formatter={(value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']}
+                            formatter={(value: any) => [formatChartCurrency(value), 'Revenue']}
                           />
                           <Bar dataKey="revenue" fill="#3b82f6" radius={[8, 8, 0, 0]} />
                         </BarChart>
@@ -197,7 +207,7 @@ export default function WriterDashboard() {
                               borderRadius: '8px',
                               color: '#fff'
                             }}
-                            formatter={(value: any) => `$${Number(value).toFixed(2)}`}
+                            formatter={(value: any) => formatChartCurrency(value)}
                           />
                           <Legend
                             verticalAlign="bottom"

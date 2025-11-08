@@ -170,12 +170,12 @@ model Statement {
   uploadDate        DateTime        @default(now())
   publishedAt       DateTime?
   publishedById     String?
-  totalRevenue      Decimal         @default(0) @db.Decimal(12, 2) // Gross revenue (before commission)
+  totalRevenue      Decimal         @default(0) @db.Decimal(12, 6) // Gross revenue (before commission)
   totalPerformances Int             @default(0)
 
   // Commission totals
-  totalCommission   Decimal         @default(0) @db.Decimal(12, 2) // Total commission amount
-  totalNet          Decimal         @default(0) @db.Decimal(12, 2) // Total net (after commission)
+  totalCommission   Decimal         @default(0) @db.Decimal(12, 6) // Total commission amount
+  totalNet          Decimal         @default(0) @db.Decimal(12, 6) // Total net (after commission)
 
   // Payment processing
   paymentStatus        PaymentStatus @default(UNPAID)

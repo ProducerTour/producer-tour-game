@@ -5,6 +5,19 @@ import { prisma } from '../lib/prisma';
 const router = Router();
 
 /**
+ * Smart rounding for currency values
+ * Uses 2 decimals normally, but preserves 4 decimals for micro-amounts
+ */
+const smartRound = (value: number): number => {
+  const rounded2 = Math.round(value * 100) / 100;
+  // If rounding to 2 decimals gives 0 but value is actually > 0, use 4 decimals
+  if (rounded2 === 0 && value > 0) {
+    return Math.round(value * 10000) / 10000;
+  }
+  return rounded2;
+};
+
+/**
  * GET /api/dashboard/summary
  * Get earnings summary for current user (Writer dashboard)
  * WRITERS SEE: Net revenue (after commissions)
@@ -414,10 +427,10 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
 
     const revenueTimeline = Array.from(monthlyGross.entries()).map(([month, gross]) => ({
       month,
-      revenue: Number(gross.toFixed(2)), // Gross for chart compatibility
-      grossRevenue: Number(gross.toFixed(2)),
-      netRevenue: Number((monthlyNet.get(month) || 0).toFixed(2)),
-      commission: Number((monthlyCommission.get(month) || 0).toFixed(2))
+      revenue: smartRound(gross), // Gross for chart compatibility
+      grossRevenue: smartRound(gross),
+      netRevenue: smartRound(monthlyNet.get(month) || 0),
+      commission: smartRound(monthlyCommission.get(month) || 0)
     }));
 
     // Calculate month-over-month percentage changes
@@ -660,9 +673,9 @@ router.get('/platform-breakdown', authenticate, requireAdmin, async (req: AuthRe
     const breakdown = Array.from(platformMap.entries())
       .map(([platform, data]) => ({
         platform,
-        revenue: Number(data.revenue.toFixed(2)),
-        netRevenue: Number(data.netRevenue.toFixed(2)),
-        commissionAmount: Number(data.commissionAmount.toFixed(2)),
+        revenue: smartRound(data.revenue),
+        netRevenue: smartRound(data.netRevenue),
+        commissionAmount: smartRound(data.commissionAmount),
         count: data.count,
         offerings: Array.from(data.offerings).sort()
       }))
@@ -670,7 +683,7 @@ router.get('/platform-breakdown', authenticate, requireAdmin, async (req: AuthRe
 
     res.json({
       platforms: breakdown,
-      totalRevenue: Number(breakdown.reduce((sum, p) => sum + p.revenue, 0).toFixed(2)),
+      totalRevenue: smartRound(breakdown.reduce((sum, p) => sum + p.revenue, 0)),
       totalCount: items.length
     });
   } catch (error) {
@@ -711,7 +724,7 @@ router.get('/organization-breakdown', authenticate, requireAdmin, async (req: Au
 
     res.json({
       organizations,
-      totalRevenue: Number(organizations.reduce((sum, o) => sum + o.revenue, 0).toFixed(2)),
+      totalRevenue: smartRound(organizations.reduce((sum, o) => sum + o.revenue, 0)),
       totalCount: organizations.reduce((sum, o) => sum + o.count, 0)
     });
   } catch (error) {
