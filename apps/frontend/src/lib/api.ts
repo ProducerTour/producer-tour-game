@@ -299,3 +299,15 @@ export const commissionApi = {
   updateSettings: (data: { commissionRate: number; recipientName: string; description?: string }) =>
     api.put('/commission/settings', data),
 };
+
+// Settings API - Producer Tour Publishers
+export const settingsApi = {
+  publishers: {
+    list: () => api.get('/settings/publishers'),
+    create: (data: { ipiNumber: string; publisherName: string; notes?: string }) =>
+      api.post('/settings/publishers', data),
+    update: (id: string, data: { ipiNumber: string; publisherName: string; notes?: string; isActive?: boolean }) =>
+      api.put(`/settings/publishers/${id}`, data),
+    delete: (id: string) => api.delete(`/settings/publishers/${id}`),
+  },
+};

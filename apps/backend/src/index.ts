@@ -21,6 +21,7 @@ import proSubmissionsRoutes from './routes/pro-submissions.routes';
 import advanceScenariosRoutes from './routes/advance-scenarios.routes';
 import documentsRoutes from './routes/documents.routes';
 import commissionRoutes from './routes/commission.routes';
+import settingsRoutes from './routes/settings.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -102,6 +103,7 @@ app.use('/api/pro-submissions', proSubmissionsRoutes);
 app.use('/api/advance-scenarios', advanceScenariosRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/commission', commissionRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Error handling
 app.use(notFoundHandler);

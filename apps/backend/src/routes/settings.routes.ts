@@ -1,0 +1,128 @@
+import { Router, Response } from 'express';
+import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.middleware';
+import { prisma } from '../lib/prisma';
+
+const router = Router();
+
+// All routes require admin authentication
+router.use(authenticate);
+router.use(requireAdmin);
+
+/**
+ * GET /api/settings/publishers
+ * Get all Producer Tour publishers
+ */
+router.get('/publishers', async (req: AuthRequest, res: Response) => {
+  try {
+    const publishers = await prisma.producerTourPublisher.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({ publishers });
+  } catch (error) {
+    console.error('Get publishers error:', error);
+    res.status(500).json({ error: 'Failed to fetch publishers' });
+  }
+});
+
+/**
+ * POST /api/settings/publishers
+ * Create a new Producer Tour publisher
+ */
+router.post('/publishers', async (req: AuthRequest, res: Response) => {
+  try {
+    const { ipiNumber, publisherName, notes } = req.body;
+
+    // Validation
+    if (!ipiNumber || !publisherName) {
+      return res.status(400).json({ error: 'IPI number and publisher name are required' });
+    }
+
+    // Check if IPI already exists
+    const existing = await prisma.producerTourPublisher.findFirst({
+      where: { ipiNumber }
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: 'Publisher with this IPI number already exists' });
+    }
+
+    const publisher = await prisma.producerTourPublisher.create({
+      data: {
+        ipiNumber,
+        publisherName,
+        notes: notes || null,
+        isActive: true
+      }
+    });
+
+    res.status(201).json({ publisher });
+  } catch (error) {
+    console.error('Create publisher error:', error);
+    res.status(500).json({ error: 'Failed to create publisher' });
+  }
+});
+
+/**
+ * PUT /api/settings/publishers/:id
+ * Update a Producer Tour publisher
+ */
+router.put('/publishers/:id', async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { ipiNumber, publisherName, notes, isActive } = req.body;
+
+    // Validation
+    if (!ipiNumber || !publisherName) {
+      return res.status(400).json({ error: 'IPI number and publisher name are required' });
+    }
+
+    // Check if IPI already exists for a different publisher
+    const existing = await prisma.producerTourPublisher.findFirst({
+      where: {
+        ipiNumber,
+        id: { not: id }
+      }
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: 'Another publisher with this IPI number already exists' });
+    }
+
+    const publisher = await prisma.producerTourPublisher.update({
+      where: { id },
+      data: {
+        ipiNumber,
+        publisherName,
+        notes: notes || null,
+        isActive: isActive !== undefined ? isActive : true
+      }
+    });
+
+    res.json({ publisher });
+  } catch (error) {
+    console.error('Update publisher error:', error);
+    res.status(500).json({ error: 'Failed to update publisher' });
+  }
+});
+
+/**
+ * DELETE /api/settings/publishers/:id
+ * Delete a Producer Tour publisher
+ */
+router.delete('/publishers/:id', async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.producerTourPublisher.delete({
+      where: { id }
+    });
+
+    res.json({ message: 'Publisher deleted successfully' });
+  } catch (error) {
+    console.error('Delete publisher error:', error);
+    res.status(500).json({ error: 'Failed to delete publisher' });
+  }
+});
+
+export default router;
