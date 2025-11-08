@@ -507,6 +507,161 @@ router.post(
 );
 
 /**
+ * POST /api/statements/:id/republish
+ * Re-publish unpaid statement to recalculate StatementItems with new precision (Admin only)
+ */
+router.post(
+  '/:id/republish',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const statement = await prisma.statement.findUnique({
+        where: { id },
+        include: { items: true }
+      });
+
+      if (!statement) {
+        return res.status(404).json({ error: 'Statement not found' });
+      }
+
+      // Only allow republishing unpaid statements
+      if (statement.paymentStatus === 'PAID') {
+        return res.status(400).json({
+          error: 'Cannot republish paid statement. Payment has already been processed.'
+        });
+      }
+
+      // Delete existing StatementItems
+      await prisma.statementItem.deleteMany({
+        where: { statementId: id }
+      });
+
+      // Recreate StatementItems with new precision from metadata
+      const metadata = statement.metadata as any;
+      const parsedItems = metadata.parsedItems || [];
+      const assignments = metadata.writerAssignments || {};
+
+      // Fetch commission settings
+      const activeCommission = await prisma.commissionSettings.findFirst({
+        where: { isActive: true },
+        orderBy: { effectiveDate: 'desc' },
+      });
+
+      const globalCommissionRate = activeCommission ? Number(activeCommission.commissionRate) : 0;
+      const commissionRecipient = activeCommission?.recipientName || 'Producer Tour';
+
+      // Collect assigned userIds for commission overrides
+      const assignedUserIds = new Set<string>();
+      parsedItems.forEach((item: any) => {
+        let assignmentKey = item.workTitle;
+        if (metadata.pro === 'MLC') {
+          const publisherIpi = item.metadata?.originalPublisherIpi || 'none';
+          const dspName = item.metadata?.dspName || 'none';
+          assignmentKey = `${item.workTitle}|${publisherIpi}|${dspName}`;
+        }
+        const songAssignments = assignments[assignmentKey] || [];
+        songAssignments.forEach((assignment: any) => {
+          if (assignment.userId) assignedUserIds.add(assignment.userId);
+        });
+      });
+
+      const overrideUsers = (await prisma.user.findMany({
+        where: { id: { in: Array.from(assignedUserIds) } },
+      })) as any[];
+      const overrideMap = new Map<string, number>();
+      overrideUsers.forEach((u: any) => {
+        if (u.commissionOverrideRate !== null && u.commissionOverrideRate !== undefined) {
+          overrideMap.set(u.id, Number(u.commissionOverrideRate));
+        }
+      });
+
+      // Create StatementItems with new precision
+      const createPromises: any[] = [];
+      let totalCommission = 0;
+      let totalNet = 0;
+
+      parsedItems.forEach((item: any) => {
+        // For MLC: construct composite key
+        let assignmentKey = item.workTitle;
+        if (metadata.pro === 'MLC') {
+          const publisherIpi = item.metadata?.originalPublisherIpi || 'none';
+          const dspName = item.metadata?.dspName || 'none';
+          assignmentKey = `${item.workTitle}|${publisherIpi}|${dspName}`;
+        }
+
+        const songAssignments = assignments[assignmentKey] || [];
+
+        songAssignments.forEach((assignment: any) => {
+          const splitPercentage = parseFloat(assignment.splitPercentage) || 100;
+          const writerRevenue = (parseFloat(item.revenue) * splitPercentage) / 100;
+          const commissionRateToUse = overrideMap.get(assignment.userId) ?? globalCommissionRate;
+          const itemCommissionAmount = (writerRevenue * commissionRateToUse) / 100;
+          const itemNetRevenue = writerRevenue - itemCommissionAmount;
+
+          totalCommission += itemCommissionAmount;
+          totalNet += itemNetRevenue;
+
+          createPromises.push(
+            prisma.statementItem.create({
+              data: {
+                statementId: id,
+                userId: assignment.userId,
+                workTitle: item.workTitle,
+                revenue: writerRevenue,
+                performances: item.performances,
+                splitPercentage: splitPercentage,
+                writerIpiNumber: assignment.writerIpiNumber || null,
+                commissionRate: commissionRateToUse,
+                commissionAmount: itemCommissionAmount,
+                commissionRecipient: commissionRecipient,
+                netRevenue: itemNetRevenue,
+                isVisibleToWriter: false,
+                metadata: {
+                  ...item.metadata,
+                  originalTotalRevenue: parseFloat(item.revenue),
+                  publisherIpiNumber: assignment.publisherIpiNumber || null,
+                },
+              },
+            })
+          );
+        });
+      });
+
+      // Use transaction to create all items and update totals
+      await prisma.$transaction([
+        ...createPromises,
+        prisma.statement.update({
+          where: { id },
+          data: {
+            totalCommission: totalCommission,
+            totalNet: totalNet,
+          },
+        }),
+      ]);
+
+      const updatedStatement = await prisma.statement.findUnique({
+        where: { id },
+        include: {
+          _count: { select: { items: true } },
+        },
+      });
+
+      res.json({
+        message: 'Statement republished successfully with updated precision',
+        itemsRecreated: createPromises.length,
+        statement: updatedStatement
+      });
+    } catch (error) {
+      console.error('Republish statement error:', error);
+      res.status(500).json({ error: 'Failed to republish statement' });
+    }
+  }
+);
+
+/**
  * DELETE /api/statements/:id
  * Delete statement (Admin only)
  */
