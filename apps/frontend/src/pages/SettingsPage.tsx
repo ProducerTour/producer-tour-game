@@ -3,11 +3,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { userApi, settingsApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import Navigation from '../components/Navigation';
+import AdminGuide from '../components/AdminGuide';
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuthStore();
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<'profile' | 'password' | 'notifications' | 'publishers'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'password' | 'notifications' | 'publishers' | 'documentation'>('profile');
   const [message, setMessage] = useState<{ type: 'success' | 'error' | '', text: string }>({ type: '', text: '' });
 
   // Publisher management state
@@ -255,19 +256,34 @@ export default function SettingsPage() {
                 </div>
               </button>
               {user?.role === 'ADMIN' && (
-                <button
-                  onClick={() => setActiveSection('publishers')}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                    activeSection === 'publishers'
-                      ? 'bg-primary-500/20 text-primary-400'
-                      : 'text-gray-300 hover:bg-slate-700/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span>🏢</span>
-                    <span className="font-medium">Publishers</span>
-                  </div>
-                </button>
+                <>
+                  <button
+                    onClick={() => setActiveSection('publishers')}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                      activeSection === 'publishers'
+                        ? 'bg-primary-500/20 text-primary-400'
+                        : 'text-gray-300 hover:bg-slate-700/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span>🏢</span>
+                      <span className="font-medium">Publishers</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setActiveSection('documentation')}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                      activeSection === 'documentation'
+                        ? 'bg-primary-500/20 text-primary-400'
+                        : 'text-gray-300 hover:bg-slate-700/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span>📚</span>
+                      <span className="font-medium">Documentation</span>
+                    </div>
+                  </button>
+                </>
               )}
             </nav>
           </div>
@@ -607,6 +623,13 @@ export default function SettingsPage() {
                       ))
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Documentation Section (Admin Only) */}
+              {activeSection === 'documentation' && user?.role === 'ADMIN' && (
+                <div>
+                  <AdminGuide />
                 </div>
               )}
             </div>
