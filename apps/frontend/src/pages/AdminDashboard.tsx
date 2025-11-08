@@ -580,6 +580,38 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
   const displayRows = getDisplayRows();
 
+  // Generate key for row - composite for MLC, simple for traditional
+  const getRowKey = (row: any) => {
+    if (isMLC) {
+      const publisherIpi = row.publisherInfo?.originalPublisherIpi || 'none';
+      const dspName = row.publisherInfo?.dspName || 'none';
+      return `${row.workTitle}|${publisherIpi}|${dspName}`;
+    }
+    return row.workTitle;
+  };
+
+  // Get confidence badge info from Smart Assign results
+  const getConfidenceBadge = (rowKey: string) => {
+    if (!smartAssignResults) return null;
+
+    const autoMatch = smartAssignResults.autoAssigned?.find((m: any) => getRowKey(m) === rowKey);
+    if (autoMatch) {
+      return { badge: '✓ Auto-assigned', class: 'bg-green-500/20 text-green-400 border-green-500/30', level: 'high' };
+    }
+
+    const suggested = smartAssignResults.suggested?.find((s: any) => getRowKey(s) === rowKey);
+    if (suggested) {
+      return { badge: '⚠ Review Suggested', class: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', level: 'medium' };
+    }
+
+    const unmatched = smartAssignResults.unmatched?.find((u: any) => getRowKey(u) === rowKey);
+    if (unmatched) {
+      return { badge: '✗ Manual Required', class: 'bg-red-500/20 text-red-400 border-red-500/30', level: 'low' };
+    }
+
+    return null;
+  };
+
   // Filter, search, and sort displayRows
   const filteredAndSortedRows = useMemo(() => {
     let rows = [...displayRows];
@@ -617,38 +649,6 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
     return rows;
   }, [displayRows, searchQuery, statusFilter, sortBy, smartAssignResults, isMLC]);
-
-  // Generate key for row - composite for MLC, simple for traditional
-  const getRowKey = (row: any) => {
-    if (isMLC) {
-      const publisherIpi = row.publisherInfo?.originalPublisherIpi || 'none';
-      const dspName = row.publisherInfo?.dspName || 'none';
-      return `${row.workTitle}|${publisherIpi}|${dspName}`;
-    }
-    return row.workTitle;
-  };
-
-  // Get confidence badge info from Smart Assign results
-  const getConfidenceBadge = (rowKey: string) => {
-    if (!smartAssignResults) return null;
-
-    const autoMatch = smartAssignResults.autoAssigned?.find((m: any) => getRowKey(m) === rowKey);
-    if (autoMatch) {
-      return { badge: '✓ Auto-assigned', class: 'bg-green-500/20 text-green-400 border-green-500/30', level: 'high' };
-    }
-
-    const suggested = smartAssignResults.suggested?.find((s: any) => getRowKey(s) === rowKey);
-    if (suggested) {
-      return { badge: '⚠ Review Suggested', class: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', level: 'medium' };
-    }
-
-    const unmatched = smartAssignResults.unmatched?.find((u: any) => getRowKey(u) === rowKey);
-    if (unmatched) {
-      return { badge: '✗ Manual Required', class: 'bg-red-500/20 text-red-400 border-red-500/30', level: 'low' };
-    }
-
-    return null;
-  };
 
   const formatCurrency = (amount: number): string => {
     const rounded = Number(amount.toFixed(2));
