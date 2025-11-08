@@ -324,7 +324,11 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
 
   // Strategy 3: Historical Assignment Match (song title similarity)
   // If this song was assigned to a writer before, likely the same writer
-  const historicalAssignments = await prisma.statementItem.findMany({
+  // SKIP for MLC format - workWriterList is the source of truth
+  const isMlcFormat = originalPublisherIpi && workWriterList;
+
+  if (!isMlcFormat) {
+    const historicalAssignments = await prisma.statementItem.findMany({
     where: {
       statement: { status: 'PUBLISHED' }
     },
@@ -378,6 +382,7 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
       }
     }
   });
+  }
 
   // Sort by confidence descending
   matches.sort((a, b) => b.confidence - a.confidence);
