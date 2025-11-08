@@ -531,7 +531,8 @@ function StatementsTab() {
 }
 
 function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
-  // assignments: { "Song Title": [{ userId, writerIpiNumber, publisherIpiNumber, splitPercentage }, ...], ... }
+  // For MLC: assignments keyed by "workTitle|publisherIpi|dspName" to track each publisher row separately
+  // For traditional: assignments keyed by "Song Title"
   const [assignments, setAssignments] = useState<WriterAssignmentsPayload>({});
   const [assignAllWriter, setAssignAllWriter] = useState<string>('');
   const [saving, setSaving] = useState(false);
@@ -540,6 +541,45 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
   const parsedSongs = statement.metadata?.songs || [];
   const writersList = writers.filter((w: any) => w.role === 'WRITER');
+
+  // Detect if this is an MLC statement (publisher-aware format)
+  const isMLCFormat = () => {
+    if (!smartAssignResults) return false;
+    const firstItem = smartAssignResults.autoAssigned?.[0] || smartAssignResults.suggested?.[0] || smartAssignResults.unmatched?.[0];
+    return firstItem?.publisherInfo?.originalPublisherIpi !== undefined;
+  };
+
+  // Generate composite key for MLC rows: workTitle|publisherIpi|dspName
+  const getRowKey = (row: any) => {
+    const { workTitle, publisherInfo } = row;
+    const publisherIpi = publisherInfo?.originalPublisherIpi || 'none';
+    const dspName = publisherInfo?.dspName || 'none';
+    return `${workTitle}|${publisherIpi}|${dspName}`;
+  };
+
+  // Get all MLC rows (combines autoAssigned + suggested + unmatched) with confidence level
+  const getAllMLCRows = () => {
+    if (!smartAssignResults) return [];
+
+    const rows: any[] = [];
+
+    // Auto-assigned (high confidence)
+    smartAssignResults.autoAssigned?.forEach((row: any) => {
+      rows.push({ ...row, confidenceLevel: 'high' });
+    });
+
+    // Suggested (medium confidence)
+    smartAssignResults.suggested?.forEach((row: any) => {
+      rows.push({ ...row, confidenceLevel: 'medium' });
+    });
+
+    // Unmatched (low/no confidence)
+    smartAssignResults.unmatched?.forEach((row: any) => {
+      rows.push({ ...row, confidenceLevel: 'low' });
+    });
+
+    return rows;
+  };
 
   // Format currency to avoid "-0.00" display issue with micro-pennies
   const formatCurrency = (amount: number): string => {
@@ -573,7 +613,11 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
       // Auto-populate assignments with high-confidence matches (>=90%)
       const newAssignments: WriterAssignmentsPayload = {};
 
-      // Auto-assigned matches (>=90% confidence) - supports multiple writers per song (MLC format)
+      // Detect if MLC format (publisher-aware)
+      const firstItem = results.autoAssigned?.[0] || results.suggested?.[0] || results.unmatched?.[0];
+      const isMLC = firstItem?.publisherInfo?.originalPublisherIpi !== undefined;
+
+      // Auto-assigned matches (>=90% confidence)
       results.autoAssigned?.forEach((match: any) => {
         // Defensive check: skip if writers array is missing or empty
         if (!match.writers || match.writers.length === 0) {
@@ -584,7 +628,13 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
         const numWriters = match.writers.length;
         const equalSplit = parseFloat((100 / numWriters).toFixed(2));
 
-        newAssignments[match.workTitle] = match.writers.map((writerMatch: any) => ({
+        // For MLC: use composite key (workTitle|publisherIpi|dspName)
+        // For traditional: use workTitle only
+        const key = isMLC
+          ? `${match.workTitle}|${match.publisherInfo?.originalPublisherIpi || 'none'}|${match.publisherInfo?.dspName || 'none'}`
+          : match.workTitle;
+
+        newAssignments[key] = match.writers.map((writerMatch: any) => ({
           userId: writerMatch.writer.id,
           writerIpiNumber: writerMatch.writer.writerIpiNumber || '',
           publisherIpiNumber: writerMatch.writer.publisherIpiNumber || '',
@@ -596,7 +646,12 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
       results.suggested?.forEach((suggestion: any) => {
         if (suggestion.matches && suggestion.matches.length > 0) {
           const topMatch = suggestion.matches[0];
-          newAssignments[suggestion.workTitle] = [{
+
+          const key = isMLC
+            ? `${suggestion.workTitle}|${suggestion.publisherInfo?.originalPublisherIpi || 'none'}|${suggestion.publisherInfo?.dspName || 'none'}`
+            : suggestion.workTitle;
+
+          newAssignments[key] = [{
             userId: topMatch.writer.id,
             writerIpiNumber: topMatch.writer.writerIpiNumber || '',
             publisherIpiNumber: topMatch.writer.publisherIpiNumber || '',
@@ -606,7 +661,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
       });
 
       setAssignments(newAssignments);
-      alert(`Smart Assign Complete!\n\n✓ Auto-assigned: ${results.autoAssignedCount} songs (high confidence)\n⚠ Suggested: ${results.suggestedCount} songs (review recommended)\n✗ Unmatched: ${results.unmatchedCount} songs (manual assignment needed)`);
+      alert(`Smart Assign Complete!\n\n✓ Auto-assigned: ${results.autoAssignedCount} rows (high confidence)\n⚠ Suggested: ${results.suggestedCount} rows (review recommended)\n✗ Unmatched: ${results.unmatchedCount} rows (manual assignment needed)`);
     } catch (error: any) {
       console.error('Smart assign error:', error);
       alert(error.response?.data?.error || 'Failed to smart assign writers');
@@ -816,10 +871,200 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
             </div>
           </div>
 
-          {/* Individual Song Assignments */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-medium text-white">Assign Writers to Songs</h4>
-            {parsedSongs.map((song: any, songIndex: number) => {
+          {/* Individual Assignments - Conditional Render based on statement format */}
+          {isMLCFormat() ? (
+            /* ==================== MLC FORMAT: Publisher-Row Level UI ==================== */
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium text-white">MLC Publisher Rows ({getAllMLCRows().length} rows)</h4>
+              <p className="text-xs text-gray-400">Each row represents a unique publisher/platform combination for a song</p>
+              {getAllMLCRows().map((row: any, rowIndex: number) => {
+                const rowKey = getRowKey(row);
+                const rowAssignments = assignments[rowKey] || [{ userId: '', writerIpiNumber: '', publisherIpiNumber: '', splitPercentage: 100 }];
+                const splitTotal = getSplitTotal(rowKey);
+
+                // Get badge info based on confidence level
+                const badgeInfo = row.confidenceLevel === 'high'
+                  ? { badge: '✓ Auto-assigned', class: 'bg-green-500/20 text-green-400 border-green-500/30' }
+                  : row.confidenceLevel === 'medium'
+                  ? { badge: '⚠ Review Suggested', class: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' }
+                  : { badge: '✗ Manual Required', class: 'bg-red-500/20 text-red-400 border-red-500/30' };
+
+                return (
+                  <div key={rowIndex} className="bg-slate-700/30 rounded-lg p-4 space-y-3 border-l-4 border-l-slate-600">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        {/* Song Title + Confidence Badge */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <p className="font-medium text-white text-lg">{row.workTitle}</p>
+                          <span className={`px-2 py-0.5 text-xs border rounded ${badgeInfo.class}`}>
+                            {badgeInfo.badge}
+                          </span>
+                        </div>
+
+                        {/* Revenue + Performances */}
+                        <p className="text-sm text-gray-400 mb-3">
+                          ${formatCurrency(row.revenue || 0)} • {row.performances || 0} performances
+                        </p>
+
+                        {/* Publisher Info Card */}
+                        {row.publisherInfo && (
+                          <div className="bg-slate-800/50 rounded-lg p-3 space-y-2 border border-slate-600/30">
+                            {/* Publisher */}
+                            {row.publisherInfo.originalPublisherName && (
+                              <div className="flex items-start gap-2 text-sm">
+                                <span className="text-gray-500 font-medium min-w-[80px]">Publisher:</span>
+                                <div>
+                                  <span className="text-blue-400 font-medium">{row.publisherInfo.originalPublisherName}</span>
+                                  {row.publisherInfo.originalPublisherIpi && (
+                                    <span className="text-gray-500 text-xs ml-2">
+                                      IPI: {row.publisherInfo.originalPublisherIpi}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Platform + Territory */}
+                            {(row.publisherInfo.dspName || row.publisherInfo.territory) && (
+                              <div className="flex items-center gap-4 text-sm text-gray-400">
+                                {row.publisherInfo.dspName && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-gray-500">Platform:</span>
+                                    <span>{row.publisherInfo.dspName}</span>
+                                    {row.publisherInfo.consumerOffering && (
+                                      <span className="text-gray-500">({row.publisherInfo.consumerOffering})</span>
+                                    )}
+                                  </div>
+                                )}
+                                {row.publisherInfo.territory && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-gray-500">Territory:</span>
+                                    <span>{row.publisherInfo.territory}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Work Writer List (metadata) */}
+                            {row.publisherInfo.workWriterList && row.publisherInfo.workWriterList.length > 0 && (
+                              <div className="text-sm">
+                                <span className="text-gray-500">Work Writers:</span>{' '}
+                                <span className="text-gray-400">
+                                  {row.publisherInfo.workWriterList.map((w: any) => w.name).join(', ')}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Match Reason */}
+                        {row.writers && row.writers.length > 0 && (
+                          <p className="text-xs text-gray-500 mt-2">
+                            {row.writers.map((w: any) => w.reason).join('; ')}
+                          </p>
+                        )}
+                        {row.matches && row.matches.length > 0 && (
+                          <p className="text-xs text-gray-500 mt-2">
+                            Suggested: {row.matches[0].reason}
+                          </p>
+                        )}
+                        {row.reason && (
+                          <p className="text-xs text-gray-500 mt-2">{row.reason}</p>
+                        )}
+                      </div>
+
+                      {/* Add Writer Button */}
+                      <button
+                        onClick={() => addWriter(rowKey)}
+                        className="px-3 py-1 bg-primary-500/20 text-primary-400 border border-primary-500/30 rounded-lg text-sm font-medium hover:bg-primary-500/30 transition-colors whitespace-nowrap"
+                      >
+                        + Add Writer
+                      </button>
+                    </div>
+
+                    {/* Writer Assignments for this Publisher Row */}
+                    <div className="space-y-2">
+                      {rowAssignments.map((assignment, writerIndex) => (
+                        <div key={writerIndex} className="grid grid-cols-12 gap-2 items-center">
+                          {/* Writer Select */}
+                          <select
+                            value={assignment.userId}
+                            onChange={(e) => updateWriter(rowKey, writerIndex, 'userId', e.target.value)}
+                            className={`col-span-4 px-3 py-2 border rounded-lg focus:outline-none ${
+                              assignment.userId
+                                ? 'bg-slate-700 border-green-500/50 text-white'
+                                : 'bg-slate-700 border-slate-600 text-gray-400'
+                            }`}
+                          >
+                            <option value="">Select writer...</option>
+                            {writersList.map((writer: any) => (
+                              <option key={writer.id} value={writer.id}>
+                                {writer.firstName || writer.middleName || writer.lastName
+                                  ? `${writer.firstName || ''} ${writer.middleName || ''} ${writer.lastName || ''}`.trim().replace(/\s+/g, ' ')
+                                  : writer.email}
+                              </option>
+                            ))}
+                          </select>
+
+                          {/* Writer IPI */}
+                          <input
+                            type="text"
+                            placeholder="Writer IPI"
+                            value={assignment.writerIpiNumber}
+                            onChange={(e) => updateWriter(rowKey, writerIndex, 'writerIpiNumber', e.target.value)}
+                            className="col-span-2 px-2 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                          />
+
+                          {/* Publisher IPI */}
+                          <input
+                            type="text"
+                            placeholder="Publisher IPI"
+                            value={assignment.publisherIpiNumber}
+                            onChange={(e) => updateWriter(rowKey, writerIndex, 'publisherIpiNumber', e.target.value)}
+                            className="col-span-2 px-2 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                          />
+
+                          {/* Split % */}
+                          <div className="col-span-2 relative">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value={assignment.splitPercentage}
+                              onChange={(e) => updateWriter(rowKey, writerIndex, 'splitPercentage', e.target.value)}
+                              className="w-full px-2 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">%</span>
+                          </div>
+
+                          {/* Remove */}
+                          <button
+                            onClick={() => removeWriter(rowKey, writerIndex)}
+                            disabled={rowAssignments.length <= 1}
+                            className="col-span-2 px-2 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-medium hover:bg-red-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Split Total Warning */}
+                    {Math.abs(splitTotal - 100) > 0.01 && (
+                      <div className="text-sm text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                        Total: {splitTotal.toFixed(2)}% (Note: Splits don't equal 100%, but this is allowed)
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* ==================== TRADITIONAL FORMAT: Song-Based UI ==================== */
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium text-white">Assign Writers to Songs</h4>
+              {parsedSongs.map((song: any, songIndex: number) => {
               const songAssignments = assignments[song.title] || [{ userId: '', writerIpiNumber: '', publisherIpiNumber: '', splitPercentage: 100 }];
               const splitTotal = getSplitTotal(song.title);
               const matchInfo = getMatchConfidence(song.title);
@@ -972,7 +1217,8 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                 </div>
               );
             })}
-          </div>
+            </div>
+          )}
         </div>
 
         <div className="p-6 border-t border-slate-700 flex gap-3">

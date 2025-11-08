@@ -719,6 +719,7 @@ router.post(
       const { smartMatchStatement } = await import('../utils/writer-matcher');
 
       // Run fuzzy matching on all songs
+      // Returns ALL publisher rows (for MLC, same song can appear multiple times with different publishers)
       const matchResults = await smartMatchStatement(parsedItems);
 
       // Categorize matches by confidence
@@ -726,10 +727,9 @@ router.post(
       const suggested: any[] = [];    // 70-90% confidence - needs review
       const unmatched: any[] = [];    // <70% or no match - needs manual assignment
 
-      matchResults.forEach((matches, workTitle) => {
-        // Find the parsed item to get publisher and platform metadata
-        const parsedItem = parsedItems.find((item: any) => item.workTitle === workTitle);
-        const metadata = parsedItem?.metadata || {};
+      // Process each publisher row (preserves all rows, even duplicate song titles with different publishers)
+      matchResults.forEach((row) => {
+        const { workTitle, revenue, performances, metadata, matches } = row;
 
         // Extract publisher and platform info for display
         const publisherInfo = {
@@ -745,21 +745,24 @@ router.post(
           // No matches found
           unmatched.push({
             workTitle,
+            revenue,
+            performances,
             reason: 'No matching writers found in database',
             publisherInfo
           });
           return;
         }
 
-        // For MLC statements, multiple writers can be on one song
-        // Get all high-confidence matches (>=90%)
+        // Get high and medium confidence matches
         const highConfidenceMatches = matches.filter(m => m.confidence >= 90);
         const mediumConfidenceMatches = matches.filter(m => m.confidence >= 70 && m.confidence < 90);
 
         if (highConfidenceMatches.length > 0) {
-          // High confidence - auto-assign (supports multiple writers per song)
+          // High confidence - auto-assign
           autoAssigned.push({
             workTitle,
+            revenue,
+            performances,
             publisherInfo,
             writers: highConfidenceMatches.map(match => ({
               writer: {
@@ -777,6 +780,8 @@ router.post(
           // Medium confidence - suggest for review
           suggested.push({
             workTitle,
+            revenue,
+            performances,
             publisherInfo,
             matches: mediumConfidenceMatches.slice(0, 3).map(m => ({ // Top 3 matches
               writer: {
@@ -795,6 +800,8 @@ router.post(
           const topMatch = matches[0];
           unmatched.push({
             workTitle,
+            revenue,
+            performances,
             publisherInfo,
             reason: `Low confidence match (${topMatch.confidence}%) - manual review required`
           });
@@ -803,7 +810,7 @@ router.post(
 
       // Debug logging to verify response structure
       console.log('Smart Assign Results:', {
-        totalSongs: parsedItems.length,
+        totalRows: parsedItems.length, // For MLC: publisher rows (same song can appear multiple times)
         autoAssignedCount: autoAssigned.length,
         autoAssignedSample: autoAssigned[0], // First item to verify structure
         suggestedCount: suggested.length,
@@ -812,7 +819,7 @@ router.post(
 
       res.json({
         summary: {
-          totalSongs: parsedItems.length,
+          totalRows: parsedItems.length, // For MLC: publisher rows, not unique songs
           autoAssignedCount: autoAssigned.length,
           suggestedCount: suggested.length,
           unmatchedCount: unmatched.length

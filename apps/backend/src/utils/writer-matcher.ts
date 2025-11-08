@@ -18,11 +18,22 @@ interface ParsedSong {
   workTitle: string;
   writerName?: string;
   writerIpiNumber?: string;
+  revenue?: number;
+  performances?: number;
   metadata?: {
     source?: string;
     writers?: Array<{ name: string; ipi: string | null }>;
     [key: string]: any;
   };
+}
+
+// New interface for publisher-row level match results (MLC format)
+export interface PublisherRowMatch {
+  workTitle: string;
+  revenue: number;
+  performances: number;
+  metadata: any;
+  matches: WriterMatch[];
 }
 
 /**
@@ -381,18 +392,27 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
 }
 
 /**
- * Smart match all songs in a parsed statement
- * Returns a map of song title to matches
+ * Smart match all songs in a statement
+ * For MLC statements: Returns ALL publisher rows (same song can appear multiple times with different publishers)
+ * For traditional statements: Returns one row per song
  */
 export async function smartMatchStatement(
   parsedSongs: ParsedSong[]
-): Promise<Map<string, WriterMatch[]>> {
-  const matchResults = new Map<string, WriterMatch[]>();
+): Promise<PublisherRowMatch[]> {
+  const results: PublisherRowMatch[] = [];
 
   for (const song of parsedSongs) {
     const matches = await smartMatchWriters(song);
-    matchResults.set(song.workTitle, matches);
+
+    // Preserve ALL rows with their publisher-specific metadata and matches
+    results.push({
+      workTitle: song.workTitle,
+      revenue: song.revenue || 0,
+      performances: song.performances || 0,
+      metadata: song.metadata || {},
+      matches
+    });
   }
 
-  return matchResults;
+  return results;
 }
