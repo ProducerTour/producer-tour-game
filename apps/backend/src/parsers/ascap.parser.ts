@@ -80,6 +80,12 @@ export class ASCAPParser {
       'units',
       'count',
     ];
+    const territoryKeywords = [
+      'territory',
+      'country',
+      'region',
+      'location',
+    ];
 
     const titleIndex = findHeaderIndexByKeywords(header, titleKeywords);
     const amountIndex = findHeaderIndexByKeywords(header, amountKeywords);
@@ -88,6 +94,7 @@ export class ASCAPParser {
       header,
       performancesKeywords
     );
+    const territoryIndex = findHeaderIndexByKeywords(header, territoryKeywords);
 
     // Validate required columns found
     if (titleIndex === -1) {
@@ -106,6 +113,8 @@ export class ASCAPParser {
     const writerCol = writerIndex !== -1 ? header[writerIndex] : null;
     const performancesCol =
       performancesIndex !== -1 ? header[performancesIndex] : null;
+    const territoryCol =
+      territoryIndex !== -1 ? header[territoryIndex] : null;
 
     let totalRevenue = 0;
     let totalPerformances = 0;
@@ -122,6 +131,7 @@ export class ASCAPParser {
         ? parseIntValue(row[performancesCol])
         : 0;
       const writer = writerCol ? row[writerCol]?.trim() : null;
+      const territory = territoryCol ? row[territoryCol]?.trim() || null : null;
 
       totalRevenue += amount;
       totalPerformances += performances;
@@ -168,6 +178,7 @@ export class ASCAPParser {
           source: 'ASCAP',
           writer,
           rawRow: row,
+          territory,
         },
       });
     }

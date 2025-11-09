@@ -71,6 +71,12 @@ export class BMIParser {
       'units',
       'count',
     ];
+    const territoryKeywords = [
+      'territory',
+      'country',
+      'region',
+      'location',
+    ];
 
     const titleIndex = findHeaderIndexByKeywords(header, titleKeywords);
     const amountIndex = findHeaderIndexByKeywords(header, amountKeywords);
@@ -78,6 +84,7 @@ export class BMIParser {
       header,
       performancesKeywords
     );
+    const territoryIndex = findHeaderIndexByKeywords(header, territoryKeywords);
 
     // Validate required columns found
     if (titleIndex === -1) {
@@ -95,6 +102,8 @@ export class BMIParser {
     const amountCol = header[amountIndex];
     const performancesCol =
       performancesIndex !== -1 ? header[performancesIndex] : null;
+    const territoryCol =
+      territoryIndex !== -1 ? header[territoryIndex] : null;
 
     let totalRevenue = 0;
     let totalPerformances = 0;
@@ -110,6 +119,7 @@ export class BMIParser {
       const performances = performancesCol
         ? parseIntValue(row[performancesCol])
         : 0;
+      const territory = territoryCol ? row[territoryCol]?.trim() || null : null;
 
       totalRevenue += amount;
       totalPerformances += performances;
@@ -148,6 +158,7 @@ export class BMIParser {
         metadata: {
           source: 'BMI',
           rawRow: row,
+          territory,
         },
       });
     }
