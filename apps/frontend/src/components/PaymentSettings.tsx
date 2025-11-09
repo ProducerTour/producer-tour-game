@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { paymentApi } from '../lib/api';
 import { CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, DollarSign } from 'lucide-react';
 
@@ -24,7 +24,6 @@ interface PaymentHistory {
 }
 
 export const PaymentSettings: React.FC = () => {
-  const queryClient = useQueryClient();
   const [isOnboarding, setIsOnboarding] = useState(false);
 
   // Fetch payment status
