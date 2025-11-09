@@ -129,13 +129,15 @@ router.post(
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { status, proType, limit = '50', offset = '0' } = req.query;
+    const userId = req.user!.id;
+    const isWriter = req.user!.role === 'WRITER';
 
     const where: any = {};
     if (status) where.status = status;
     if (proType) where.proType = proType;
 
     // Writers only see published statements
-    if (req.user!.role === 'WRITER') {
+    if (isWriter) {
       where.status = 'PUBLISHED';
     }
 
@@ -149,14 +151,41 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
           select: { id: true, email: true, firstName: true, lastName: true },
         },
         _count: { select: { items: true } },
+        ...(isWriter && {
+          items: {
+            where: { userId, isVisibleToWriter: true },
+            select: {
+              netRevenue: true,
+              performances: true,
+            }
+          }
+        })
       },
     });
 
-    // Add itemCount to each statement for easier access
-    const statementsWithCount = statements.map(statement => ({
-      ...statement,
-      itemCount: statement._count.items,
-    }));
+    // Process statements based on role
+    const statementsWithCount = statements.map(statement => {
+      const base = {
+        ...statement,
+        itemCount: statement._count.items,
+      };
+
+      // For writers, override totalRevenue and totalPerformances with their specific amounts
+      if (isWriter && statement.items) {
+        const writerRevenue = statement.items.reduce((sum, item) => sum + Number(item.netRevenue), 0);
+        const writerPerformances = statement.items.reduce((sum, item) => sum + Number(item.performances), 0);
+
+        return {
+          ...base,
+          totalRevenue: writerRevenue,
+          totalPerformances: writerPerformances,
+          itemCount: statement.items.length, // Show only their items count
+          items: undefined, // Remove items from response
+        };
+      }
+
+      return base;
+    });
 
     const total = await prisma.statement.count({ where });
 
