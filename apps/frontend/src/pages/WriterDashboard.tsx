@@ -3,6 +3,8 @@ import { dashboardApi, statementApi, documentApi, userApi } from '../lib/api';
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import Sidebar from '../components/Sidebar';
+import { ChartCard } from '../components/ChartCard';
+import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { useAuthStore } from '../store/auth.store';
 import { formatIpiDisplay } from '../utils/ipi-helper';
 
@@ -20,6 +22,14 @@ const formatChartCurrency = (value: any): string => {
 
 export default function WriterDashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents' | 'profile'>('overview');
+  const [expandedCharts, setExpandedCharts] = useState<Record<string, boolean>>({});
+
+  const toggleChartExpansion = (chartId: string) => {
+    setExpandedCharts(prev => ({
+      ...prev,
+      [chartId]: !prev[chartId]
+    }));
+  };
 
   const writerTabs = [
     { id: 'overview', label: 'Overview', icon: '📊' },
@@ -41,6 +51,15 @@ export default function WriterDashboard() {
     queryKey: ['dashboard-timeline'],
     queryFn: async () => {
       const response = await dashboardApi.getTimeline();
+      return response.data;
+    },
+    enabled: activeTab === 'overview',
+  });
+
+  const { data: territoryData } = useQuery({
+    queryKey: ['territory-breakdown'],
+    queryFn: async () => {
+      const response = await dashboardApi.getTerritoryBreakdown();
       return response.data;
     },
     enabled: activeTab === 'overview',
@@ -142,10 +161,14 @@ export default function WriterDashboard() {
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Earnings Timeline Chart */}
-                  <div className="bg-slate-700/30 rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-white mb-4">Earnings Timeline</h3>
-                    {timelineData?.timeline?.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={300}>
+                  {timelineData?.timeline?.length > 0 ? (
+                    <ChartCard
+                      title="Earnings Timeline"
+                      chartId="earnings-timeline"
+                      isExpanded={expandedCharts['earnings-timeline'] || false}
+                      onToggleExpand={toggleChartExpansion}
+                    >
+                      <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={timelineData.timeline}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                           <XAxis
@@ -170,18 +193,25 @@ export default function WriterDashboard() {
                           <Bar dataKey="revenue" fill="#3b82f6" radius={[8, 8, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
-                    ) : (
+                    </ChartCard>
+                  ) : (
+                    <div className="bg-slate-700/30 rounded-lg p-6">
+                      <h3 className="text-lg font-medium text-white mb-4">Earnings Timeline</h3>
                       <div className="h-[300px] flex items-center justify-center text-gray-400">
                         No earnings data available yet
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {/* PRO Breakdown Chart */}
-                  <div className="bg-slate-700/30 rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-white mb-4">Revenue by PRO</h3>
-                    {getProBreakdown().length > 0 ? (
-                      <ResponsiveContainer width="100%" height={300}>
+                  {getProBreakdown().length > 0 ? (
+                    <ChartCard
+                      title="Revenue by PRO"
+                      chartId="revenue-by-pro"
+                      isExpanded={expandedCharts['revenue-by-pro'] || false}
+                      onToggleExpand={toggleChartExpansion}
+                    >
+                      <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
                             data={getProBreakdown()}
@@ -216,13 +246,28 @@ export default function WriterDashboard() {
                           />
                         </PieChart>
                       </ResponsiveContainer>
-                    ) : (
+                    </ChartCard>
+                  ) : (
+                    <div className="bg-slate-700/30 rounded-lg p-6">
+                      <h3 className="text-lg font-medium text-white mb-4">Revenue by PRO</h3>
                       <div className="h-[300px] flex items-center justify-center text-gray-400">
                         No PRO data available yet
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
+
+                {/* Territory Revenue Heatmap */}
+                {territoryData?.territories && territoryData.territories.length > 0 && (
+                  <ChartCard
+                    title="Global Revenue Heatmap"
+                    chartId="territory-heatmap"
+                    isExpanded={expandedCharts['territory-heatmap'] || false}
+                    onToggleExpand={toggleChartExpansion}
+                  >
+                    <TerritoryHeatmap territories={territoryData.territories} isAdmin={false} />
+                  </ChartCard>
+                )}
 
                 {/* Recent Statements */}
                 <div>

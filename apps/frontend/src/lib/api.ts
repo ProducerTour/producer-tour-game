@@ -74,6 +74,9 @@ export const dashboardApi = {
 
   getOrganizationBreakdown: () =>
     api.get('/dashboard/organization-breakdown'),
+
+  getTerritoryBreakdown: () =>
+    api.get('/dashboard/territory-breakdown'),
 };
 
 export type WriterAssignment = {

@@ -7,6 +7,8 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import Sidebar from '../components/Sidebar';
 import ToolsHub from '../components/ToolsHub';
 import DocumentsTab from '../components/DocumentsTab';
+import { ChartCard } from '../components/ChartCard';
+import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { formatIpiDisplay } from '../utils/ipi-helper';
 
 type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission';
@@ -1777,6 +1779,23 @@ function AnalyticsTab() {
     },
   });
 
+  const { data: territoryData, isLoading: territoryLoading } = useQuery({
+    queryKey: ['territory-breakdown'],
+    queryFn: async () => {
+      const response = await dashboardApi.getTerritoryBreakdown();
+      return response.data;
+    },
+  });
+
+  const [expandedCharts, setExpandedCharts] = useState<Record<string, boolean>>({});
+
+  const toggleChartExpansion = (chartId: string) => {
+    setExpandedCharts(prev => ({
+      ...prev,
+      [chartId]: !prev[chartId]
+    }));
+  };
+
   const COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#f97316'];
 
   return (
@@ -1825,9 +1844,13 @@ function AnalyticsTab() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Revenue Timeline Chart */}
             {stats?.revenueTimeline && stats.revenueTimeline.length > 0 && (
-              <div className="bg-slate-700/30 rounded-lg p-6">
-                <h4 className="text-md font-medium text-white mb-4">Revenue Over Time (12 Months)</h4>
-                <ResponsiveContainer width="100%" height={300}>
+              <ChartCard
+                title="Revenue Over Time (12 Months)"
+                chartId="revenue-timeline"
+                isExpanded={expandedCharts['revenue-timeline'] || false}
+                onToggleExpand={toggleChartExpansion}
+              >
+                <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={stats.revenueTimeline}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                     <XAxis
@@ -1855,14 +1878,18 @@ function AnalyticsTab() {
                     />
                   </LineChart>
                 </ResponsiveContainer>
-              </div>
+              </ChartCard>
             )}
 
             {/* PRO Breakdown Pie Chart */}
             {stats?.proBreakdown && stats.proBreakdown.length > 0 && (
-              <div className="bg-slate-700/30 rounded-lg p-6">
-                <h4 className="text-md font-medium text-white mb-4">Revenue by PRO</h4>
-                <ResponsiveContainer width="100%" height={300}>
+              <ChartCard
+                title="Revenue by PRO"
+                chartId="revenue-by-pro"
+                isExpanded={expandedCharts['revenue-by-pro'] || false}
+                onToggleExpand={toggleChartExpansion}
+              >
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={stats.proBreakdown}
@@ -1887,15 +1914,19 @@ function AnalyticsTab() {
                     />
                   </PieChart>
                 </ResponsiveContainer>
-              </div>
+              </ChartCard>
             )}
           </div>
 
           {/* PRO Breakdown Bar Chart */}
           {stats?.proBreakdown && stats.proBreakdown.length > 0 && (
-            <div className="bg-slate-700/30 rounded-lg p-6">
-              <h4 className="text-md font-medium text-white mb-4">PRO Statistics</h4>
-              <ResponsiveContainer width="100%" height={300}>
+            <ChartCard
+              title="PRO Statistics"
+              chartId="pro-statistics"
+              isExpanded={expandedCharts['pro-statistics'] || false}
+              onToggleExpand={toggleChartExpansion}
+            >
+              <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.proBreakdown}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis
@@ -1921,7 +1952,7 @@ function AnalyticsTab() {
                   <Bar dataKey="count" fill="#3b82f6" name="Statements" />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </ChartCard>
           )}
 
           {/* Platform Breakdown (YouTube, Spotify, etc.) */}
@@ -1930,9 +1961,13 @@ function AnalyticsTab() {
               <h4 className="text-md font-medium text-white mb-3">Revenue by Platform (DSP)</h4>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 {/* Platform Pie Chart */}
-                <div className="bg-slate-700/30 rounded-lg p-6">
-                  <h5 className="text-sm font-medium text-gray-400 mb-4">Platform Distribution</h5>
-                  <ResponsiveContainer width="100%" height={300}>
+                <ChartCard
+                  title="Platform Distribution"
+                  chartId="platform-distribution"
+                  isExpanded={expandedCharts['platform-distribution'] || false}
+                  onToggleExpand={toggleChartExpansion}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={platformData.platforms}
@@ -1957,12 +1992,16 @@ function AnalyticsTab() {
                       />
                     </PieChart>
                   </ResponsiveContainer>
-                </div>
+                </ChartCard>
 
                 {/* Platform Bar Chart */}
-                <div className="bg-slate-700/30 rounded-lg p-6">
-                  <h5 className="text-sm font-medium text-gray-400 mb-4">Platform Revenue</h5>
-                  <ResponsiveContainer width="100%" height={300}>
+                <ChartCard
+                  title="Platform Revenue"
+                  chartId="platform-revenue"
+                  isExpanded={expandedCharts['platform-revenue'] || false}
+                  onToggleExpand={toggleChartExpansion}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={platformData.platforms}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                       <XAxis
@@ -1992,7 +2031,7 @@ function AnalyticsTab() {
                       <Bar dataKey="count" fill="#3b82f6" name="Items" />
                     </BarChart>
                   </ResponsiveContainer>
-                </div>
+                </ChartCard>
               </div>
 
               {/* Platform Details Table */}
@@ -2047,9 +2086,13 @@ function AnalyticsTab() {
               <h4 className="text-md font-medium text-white mb-3">Revenue by Organization</h4>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 {/* Organization Pie Chart */}
-                <div className="bg-slate-700/30 rounded-lg p-6">
-                  <h5 className="text-sm font-medium text-gray-400 mb-4">Organization Distribution</h5>
-                  <ResponsiveContainer width="100%" height={300}>
+                <ChartCard
+                  title="Organization Distribution"
+                  chartId="organization-distribution"
+                  isExpanded={expandedCharts['organization-distribution'] || false}
+                  onToggleExpand={toggleChartExpansion}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={organizationData.organizations}
@@ -2074,12 +2117,16 @@ function AnalyticsTab() {
                       />
                     </PieChart>
                   </ResponsiveContainer>
-                </div>
+                </ChartCard>
 
                 {/* Organization Bar Chart */}
-                <div className="bg-slate-700/30 rounded-lg p-6">
-                  <h5 className="text-sm font-medium text-gray-400 mb-4">Organization Revenue</h5>
-                  <ResponsiveContainer width="100%" height={300}>
+                <ChartCard
+                  title="Organization Revenue"
+                  chartId="organization-revenue"
+                  isExpanded={expandedCharts['organization-revenue'] || false}
+                  onToggleExpand={toggleChartExpansion}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={organizationData.organizations}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                       <XAxis
@@ -2106,7 +2153,7 @@ function AnalyticsTab() {
                       <Bar dataKey="count" fill="#f59e0b" name="Statements" />
                     </BarChart>
                   </ResponsiveContainer>
-                </div>
+                </ChartCard>
               </div>
 
               {/* Organization Details Table */}
@@ -2154,6 +2201,21 @@ function AnalyticsTab() {
                   </table>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Territory Revenue Heatmap */}
+          {!territoryLoading && territoryData?.territories && territoryData.territories.length > 0 && (
+            <div>
+              <h4 className="text-md font-medium text-white mb-3">Revenue by Territory</h4>
+              <ChartCard
+                title="Global Revenue Heatmap"
+                chartId="territory-heatmap"
+                isExpanded={expandedCharts['territory-heatmap'] || false}
+                onToggleExpand={toggleChartExpansion}
+              >
+                <TerritoryHeatmap territories={territoryData.territories} isAdmin={true} />
+              </ChartCard>
             </div>
           )}
 
