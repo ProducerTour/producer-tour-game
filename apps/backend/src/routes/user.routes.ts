@@ -46,6 +46,7 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       email,
       password,
       firstName,
+      middleName,
       lastName,
       role,
       producerName,
@@ -104,6 +105,7 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       email,
       password: hashedPassword,
       firstName,
+      middleName,
       lastName,
       role: userRole,
       writerIpiNumber,
@@ -166,7 +168,7 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
 router.put('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, role, email, password, writerIpiNumber, publisherIpiNumber, proAffiliation, producerName, commissionOverrideRate, canUploadStatements } = req.body;
+    const { firstName, middleName, lastName, role, email, password, writerIpiNumber, publisherIpiNumber, proAffiliation, producerName, commissionOverrideRate, canUploadStatements } = req.body;
 
     // Validate email format if provided
     if (email !== undefined) {
@@ -195,6 +197,7 @@ router.put('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
     // Build user update payload
     const userData: any = {};
     if (firstName !== undefined) userData.firstName = firstName;
+    if (middleName !== undefined) userData.middleName = middleName;
     if (lastName !== undefined) userData.lastName = lastName;
     if (role !== undefined) userData.role = role;
     if (email !== undefined) userData.email = email;
