@@ -89,14 +89,14 @@ export default function RoyaltyPortalPage() {
     }
   };
 
-  const handleProcessPayment = async (statementId: string) => {
-    if (!confirm('Process payment for this statement? Writers will be able to see their earnings immediately.')) {
+  const handleQueuePayment = async (statementId: string) => {
+    if (!confirm('Queue this statement for payment? Writers will see their earnings as "pending payment" until you process the actual payment from the Payouts tab.')) {
       return;
     }
 
     try {
       setLoading(true);
-      await statementApi.processPayment(statementId);
+      await statementApi.queuePayment(statementId);
 
       // Refresh lists
       await loadUnpaidStatements();
@@ -104,23 +104,23 @@ export default function RoyaltyPortalPage() {
       setSelectedStatement(null);
       setPaymentSummary(null);
 
-      alert('✅ Payment processed successfully! Writers can now see their earnings.');
+      alert('✅ Statement queued for payment! Writers can now see their pending earnings. Process actual payment from the Payouts tab.');
     } catch (error) {
-      console.error('Failed to process payment:', error);
-      alert('❌ Failed to process payment. Please try again.');
+      console.error('Failed to queue payment:', error);
+      alert('❌ Failed to queue payment. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleBulkPayment = async () => {
+  const handleBulkQueuePayment = async () => {
     if (selectedStatementIds.size === 0) {
-      alert('Please select at least one statement to process.');
+      alert('Please select at least one statement to queue.');
       return;
     }
 
     const count = selectedStatementIds.size;
-    if (!confirm(`Process payment for ${count} statement${count > 1 ? 's' : ''}? All selected writers will be able to see their earnings immediately.`)) {
+    if (!confirm(`Queue ${count} statement${count > 1 ? 's' : ''} for payment? Writers will see their earnings as "pending payment" until you process from the Payouts tab.`)) {
       return;
     }
 
@@ -131,10 +131,10 @@ export default function RoyaltyPortalPage() {
 
       for (const statementId of selectedStatementIds) {
         try {
-          await statementApi.processPayment(statementId);
+          await statementApi.queuePayment(statementId);
           successCount++;
         } catch (error) {
-          console.error(`Failed to process statement ${statementId}:`, error);
+          console.error(`Failed to queue statement ${statementId}:`, error);
           failCount++;
         }
       }
@@ -144,13 +144,13 @@ export default function RoyaltyPortalPage() {
       setSelectedStatementIds(new Set());
 
       if (failCount === 0) {
-        alert(`✅ Successfully processed ${successCount} statement${successCount > 1 ? 's' : ''}!`);
+        alert(`✅ Successfully queued ${successCount} statement${successCount > 1 ? 's' : ''}! Process payments from the Payouts tab.`);
       } else {
-        alert(`⚠️ Processed ${successCount} statement${successCount > 1 ? 's' : ''}. ${failCount} failed. Please try again for failed statements.`);
+        alert(`⚠️ Queued ${successCount} statement${successCount > 1 ? 's' : ''}. ${failCount} failed. Please try again for failed statements.`);
       }
     } catch (error) {
-      console.error('Bulk payment error:', error);
-      alert('❌ Failed to process payments. Please try again.');
+      console.error('Bulk queue error:', error);
+      alert('❌ Failed to queue payments. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -260,14 +260,14 @@ export default function RoyaltyPortalPage() {
                     Clear Selection
                   </button>
                   <button
-                    onClick={handleBulkPayment}
+                    onClick={handleBulkQueuePayment}
                     disabled={loading}
                     className="px-4 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Process {selectedStatementIds.size} Payment{selectedStatementIds.size > 1 ? 's' : ''}
+                    Queue {selectedStatementIds.size} for Payment
                   </button>
                 </div>
               )}
@@ -400,11 +400,11 @@ export default function RoyaltyPortalPage() {
                             View Details
                           </button>
                           <button
-                            onClick={() => handleProcessPayment(statement.id)}
+                            onClick={() => handleQueuePayment(statement.id)}
                             className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
                             disabled={loading}
                           >
-                            Process Payment
+                            Queue for Payment
                           </button>
                         </td>
                       </tr>
@@ -573,11 +573,11 @@ export default function RoyaltyPortalPage() {
                   Close
                 </button>
                 <button
-                  onClick={() => selectedStatement && handleProcessPayment(selectedStatement)}
+                  onClick={() => selectedStatement && handleQueuePayment(selectedStatement)}
                   disabled={loading}
                   className="px-4 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Processing...' : 'Process Payment for All Writers'}
+                  {loading ? 'Queuing...' : 'Queue Payment for Writers'}
                 </button>
               </div>
             </div>

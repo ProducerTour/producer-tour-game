@@ -111,6 +111,9 @@ export const statementApi = {
   publish: (id: string) =>
     api.post(`/statements/${id}/publish`),
 
+  queuePayment: (id: string) =>
+    api.post(`/statements/${id}/queue-payment`),
+
   delete: (id: string) =>
     api.delete(`/statements/${id}`),
 

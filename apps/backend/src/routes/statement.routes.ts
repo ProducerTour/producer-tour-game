@@ -963,8 +963,69 @@ router.get(
 );
 
 /**
+ * POST /api/statements/:id/queue-payment
+ * Queue statement for payment - makes visible to writers but keeps as UNPAID (Admin only)
+ */
+router.post(
+  '/:id/queue-payment',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const statement = await prisma.statement.findUnique({
+        where: { id },
+        include: { items: true }
+      });
+
+      if (!statement) {
+        return res.status(404).json({ error: 'Statement not found' });
+      }
+
+      if (statement.status !== 'PUBLISHED') {
+        return res.status(400).json({ error: 'Statement must be published first' });
+      }
+
+      if (statement.paymentStatus === 'PAID') {
+        return res.status(400).json({ error: 'Statement already paid' });
+      }
+
+      // Make items visible to writers without marking as paid
+      await prisma.statementItem.updateMany({
+        where: { statementId: id },
+        data: {
+          isVisibleToWriter: true
+        }
+      });
+
+      // Keep statement as UNPAID so it shows in payment queue
+      const updatedStatement = await prisma.statement.update({
+        where: { id },
+        data: {
+          paymentStatus: 'UNPAID'
+        },
+        include: {
+          _count: { select: { items: true } }
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Statement queued for payment. Writers can now see their earnings.',
+        statement: updatedStatement
+      });
+    } catch (error) {
+      console.error('Queue payment error:', error);
+      res.status(500).json({ error: 'Failed to queue payment' });
+    }
+  }
+);
+
+/**
  * POST /api/statements/:id/process-payment
- * Mark statement as paid and make visible to writers (Admin only)
+ * Actually process payment via Stripe and mark as PAID (Admin only)
+ * Used from Payouts tab
  */
 router.post(
   '/:id/process-payment',
