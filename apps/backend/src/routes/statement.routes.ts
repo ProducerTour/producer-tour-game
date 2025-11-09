@@ -7,6 +7,15 @@ import { UploadedFile } from 'express-fileupload';
 import path from 'path';
 import fs from 'fs/promises';
 import { prisma } from '../lib/prisma';
+import {
+  generatePaymentCSV,
+  generateStatementSummaryCSV,
+  generateQuickBooksCSV,
+  formatExportDate,
+  type PaymentExportRow,
+  type StatementExportSummary
+} from '../utils/export-generator';
+import { emailService } from '../services/email.service';
 
 const router = Router();
 
@@ -924,6 +933,81 @@ router.post(
         return updatedStatement;
       });
 
+      // Send email notifications to writers (async, don't wait)
+      // Get payment summary for each writer
+      const metadata = statement.metadata as any;
+      const parsedItems = metadata?.parsedItems || [];
+      const assignments = metadata?.writerAssignments || {};
+
+      // Calculate per-writer totals
+      const writerMap = new Map();
+      const commissionRates = new Map();
+      statement.items.forEach(item => {
+        commissionRates.set(item.userId, Number(item.commissionRate) || 0);
+      });
+
+      parsedItems.forEach((item: any) => {
+        let assignmentKey = item.workTitle;
+        if (metadata.pro === 'MLC') {
+          const publisherIpi = item.metadata?.originalPublisherIpi || 'none';
+          const dspName = item.metadata?.dspName || 'none';
+          assignmentKey = `${item.workTitle}|${publisherIpi}|${dspName}`;
+        }
+
+        const songAssignments = assignments[assignmentKey] || [];
+
+        songAssignments.forEach((assignment: any) => {
+          const userId = assignment.userId;
+
+          if (!writerMap.has(userId)) {
+            const userItem = statement.items.find((i: any) => i.userId === userId);
+            writerMap.set(userId, {
+              userId: userId,
+              name: userItem ? `${userItem.user.firstName || ''} ${userItem.user.lastName || ''}`.trim() || userItem.user.email : 'Unknown',
+              email: userItem?.user.email || '',
+              grossRevenue: 0,
+              commissionAmount: 0,
+              songCount: 0,
+              uniqueSongs: new Set()
+            });
+          }
+
+          const writer = writerMap.get(userId);
+          const splitPercentage = parseFloat(assignment.splitPercentage) || 100;
+          const writerRevenue = (parseFloat(item.revenue) * splitPercentage) / 100;
+          const commissionRate = commissionRates.get(userId) || 0;
+          const commission = (writerRevenue * commissionRate) / 100;
+
+          writer.grossRevenue += writerRevenue;
+          writer.commissionAmount += commission;
+          writer.uniqueSongs.add(item.workTitle);
+        });
+      });
+
+      // Send emails asynchronously (don't block response)
+      setImmediate(async () => {
+        for (const writer of writerMap.values()) {
+          const songCount = writer.uniqueSongs.size;
+          const grossRevenue = Math.round(writer.grossRevenue * 100) / 100;
+          const commissionAmount = Math.round(writer.commissionAmount * 100) / 100;
+          const netPayment = grossRevenue - commissionAmount;
+          const commissionRate = commissionRates.get(writer.userId) || 0;
+
+          await emailService.sendPaymentNotification({
+            writerName: writer.name,
+            writerEmail: writer.email,
+            proType: statement.proType,
+            statementFilename: statement.filename,
+            grossRevenue,
+            commissionRate,
+            commissionAmount,
+            netPayment,
+            songCount,
+            paymentDate: formatExportDate(result.paymentProcessedAt),
+          });
+        }
+      });
+
       // Return payment confirmation
       res.json({
         success: true,
@@ -1089,6 +1173,343 @@ router.post(
     } catch (error) {
       console.error('Smart assign error:', error);
       res.status(500).json({ error: 'Failed to smart assign writers' });
+    }
+  }
+);
+
+/**
+ * GET /api/statements/:id/export/csv
+ * Export statement payment details as CSV (Admin only)
+ */
+router.get(
+  '/:id/export/csv',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const statement = await prisma.statement.findUnique({
+        where: { id },
+        include: {
+          items: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (!statement) {
+        return res.status(404).json({ error: 'Statement not found' });
+      }
+
+      // Group by writer and calculate totals
+      const writerMap = new Map();
+      const metadata = statement.metadata as any;
+      const parsedItems = metadata?.parsedItems || [];
+      const assignments = metadata?.writerAssignments || {};
+
+      // Get commission rates
+      const commissionRates = new Map();
+      statement.items.forEach(item => {
+        commissionRates.set(item.userId, Number(item.commissionRate) || 0);
+      });
+
+      // Calculate totals from metadata (full precision)
+      parsedItems.forEach((item: any) => {
+        let assignmentKey = item.workTitle;
+        if (metadata.pro === 'MLC') {
+          const publisherIpi = item.metadata?.originalPublisherIpi || 'none';
+          const dspName = item.metadata?.dspName || 'none';
+          assignmentKey = `${item.workTitle}|${publisherIpi}|${dspName}`;
+        }
+
+        const songAssignments = assignments[assignmentKey] || [];
+
+        songAssignments.forEach((assignment: any) => {
+          const userId = assignment.userId;
+
+          if (!writerMap.has(userId)) {
+            const userItem = statement.items.find(i => i.userId === userId);
+            writerMap.set(userId, {
+              userId: userId,
+              name: userItem ? `${userItem.user.firstName || ''} ${userItem.user.lastName || ''}`.trim() || userItem.user.email : 'Unknown',
+              email: userItem?.user.email || '',
+              grossRevenue: 0,
+              commissionAmount: 0,
+              netRevenue: 0,
+              songCount: 0,
+              uniqueSongs: new Set()
+            });
+          }
+
+          const writer = writerMap.get(userId);
+          const splitPercentage = parseFloat(assignment.splitPercentage) || 100;
+          const writerRevenue = (parseFloat(item.revenue) * splitPercentage) / 100;
+          const commissionRate = commissionRates.get(userId) || 0;
+          const commission = (writerRevenue * commissionRate) / 100;
+
+          writer.grossRevenue += writerRevenue;
+          writer.commissionAmount += commission;
+          writer.uniqueSongs.add(item.workTitle);
+        });
+      });
+
+      // Smart rounding
+      const smartRound = (value: number): number => {
+        const rounded2 = Math.round(value * 100) / 100;
+        if (rounded2 === 0 && value > 0) {
+          return Math.round(value * 10000) / 10000;
+        }
+        return rounded2;
+      };
+
+      // Build export rows
+      const exportRows: PaymentExportRow[] = [];
+      for (const writer of writerMap.values()) {
+        writer.songCount = writer.uniqueSongs.size;
+        delete writer.uniqueSongs;
+        writer.grossRevenue = smartRound(writer.grossRevenue);
+        writer.commissionAmount = smartRound(writer.commissionAmount);
+        writer.netRevenue = smartRound(writer.grossRevenue - writer.commissionAmount);
+
+        exportRows.push({
+          statementId: statement.id,
+          proType: statement.proType,
+          filename: statement.filename,
+          publishedDate: formatExportDate(statement.publishedAt),
+          paymentDate: formatExportDate(statement.paymentProcessedAt),
+          writerName: writer.name,
+          writerEmail: writer.email,
+          songCount: writer.songCount,
+          grossRevenue: writer.grossRevenue,
+          commissionRate: commissionRates.get(writer.userId) || 0,
+          commissionAmount: writer.commissionAmount,
+          netPayment: writer.netRevenue,
+          paymentStatus: statement.paymentStatus
+        });
+      }
+
+      const csv = generatePaymentCSV(exportRows);
+
+      // Set headers for CSV download
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="payment-${statement.proType}-${formatExportDate(statement.publishedAt)}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error('Export CSV error:', error);
+      res.status(500).json({ error: 'Failed to export CSV' });
+    }
+  }
+);
+
+/**
+ * GET /api/statements/:id/export/quickbooks
+ * Export statement in QuickBooks-compatible format (Admin only)
+ */
+router.get(
+  '/:id/export/quickbooks',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+
+      const statement = await prisma.statement.findUnique({
+        where: { id },
+        include: {
+          items: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (!statement) {
+        return res.status(404).json({ error: 'Statement not found' });
+      }
+
+      // Group by writer (same logic as CSV export)
+      const writerMap = new Map();
+      const metadata = statement.metadata as any;
+      const parsedItems = metadata?.parsedItems || [];
+      const assignments = metadata?.writerAssignments || {};
+      const commissionRates = new Map();
+
+      statement.items.forEach(item => {
+        commissionRates.set(item.userId, Number(item.commissionRate) || 0);
+      });
+
+      parsedItems.forEach((item: any) => {
+        let assignmentKey = item.workTitle;
+        if (metadata.pro === 'MLC') {
+          const publisherIpi = item.metadata?.originalPublisherIpi || 'none';
+          const dspName = item.metadata?.dspName || 'none';
+          assignmentKey = `${item.workTitle}|${publisherIpi}|${dspName}`;
+        }
+
+        const songAssignments = assignments[assignmentKey] || [];
+
+        songAssignments.forEach((assignment: any) => {
+          const userId = assignment.userId;
+
+          if (!writerMap.has(userId)) {
+            const userItem = statement.items.find(i => i.userId === userId);
+            writerMap.set(userId, {
+              userId: userId,
+              name: userItem ? `${userItem.user.firstName || ''} ${userItem.user.lastName || ''}`.trim() || userItem.user.email : 'Unknown',
+              email: userItem?.user.email || '',
+              grossRevenue: 0,
+              commissionAmount: 0,
+              netRevenue: 0,
+              songCount: 0,
+              uniqueSongs: new Set()
+            });
+          }
+
+          const writer = writerMap.get(userId);
+          const splitPercentage = parseFloat(assignment.splitPercentage) || 100;
+          const writerRevenue = (parseFloat(item.revenue) * splitPercentage) / 100;
+          const commissionRate = commissionRates.get(userId) || 0;
+          const commission = (writerRevenue * commissionRate) / 100;
+
+          writer.grossRevenue += writerRevenue;
+          writer.commissionAmount += commission;
+          writer.uniqueSongs.add(item.workTitle);
+        });
+      });
+
+      const smartRound = (value: number): number => {
+        const rounded2 = Math.round(value * 100) / 100;
+        if (rounded2 === 0 && value > 0) {
+          return Math.round(value * 10000) / 10000;
+        }
+        return rounded2;
+      };
+
+      const exportRows: PaymentExportRow[] = [];
+      for (const writer of writerMap.values()) {
+        writer.songCount = writer.uniqueSongs.size;
+        delete writer.uniqueSongs;
+        writer.grossRevenue = smartRound(writer.grossRevenue);
+        writer.commissionAmount = smartRound(writer.commissionAmount);
+        writer.netRevenue = smartRound(writer.grossRevenue - writer.commissionAmount);
+
+        exportRows.push({
+          statementId: statement.id,
+          proType: statement.proType,
+          filename: statement.filename,
+          publishedDate: formatExportDate(statement.publishedAt),
+          paymentDate: formatExportDate(statement.paymentProcessedAt),
+          writerName: writer.name,
+          writerEmail: writer.email,
+          songCount: writer.songCount,
+          grossRevenue: writer.grossRevenue,
+          commissionRate: commissionRates.get(writer.userId) || 0,
+          commissionAmount: writer.commissionAmount,
+          netPayment: writer.netRevenue,
+          paymentStatus: statement.paymentStatus
+        });
+      }
+
+      const csv = generateQuickBooksCSV(exportRows);
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="quickbooks-${statement.proType}-${formatExportDate(statement.publishedAt)}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error('Export QuickBooks error:', error);
+      res.status(500).json({ error: 'Failed to export QuickBooks format' });
+    }
+  }
+);
+
+/**
+ * GET /api/statements/export/unpaid-summary
+ * Export summary of all unpaid statements as CSV (Admin only)
+ */
+router.get(
+  '/export/unpaid-summary',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const unpaidStatements = await prisma.statement.findMany({
+        where: {
+          status: 'PUBLISHED',
+          paymentStatus: { in: ['UNPAID', 'PENDING'] }
+        },
+        include: {
+          items: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { publishedAt: 'desc' }
+      });
+
+      const summaries: StatementExportSummary[] = unpaidStatements.map(statement => {
+        const metadata = statement.metadata as any;
+        const parsedItems = metadata?.parsedItems || [];
+        const assignments = metadata?.writerAssignments || {};
+
+        // Count unique writers
+        const writerIds = new Set<string>();
+        Object.values(assignments).forEach((assignmentList: any) => {
+          if (Array.isArray(assignmentList)) {
+            assignmentList.forEach((a: any) => {
+              if (a.userId) writerIds.add(a.userId);
+            });
+          }
+        });
+
+        return {
+          statementId: statement.id,
+          proType: statement.proType,
+          filename: statement.filename,
+          publishedDate: formatExportDate(statement.publishedAt),
+          paymentDate: formatExportDate(statement.paymentProcessedAt),
+          totalWriters: writerIds.size,
+          totalSongs: statement.items.length,
+          totalGrossRevenue: Number(statement.totalRevenue),
+          totalCommission: Number(statement.totalCommission),
+          totalNetPayments: Number(statement.totalNet),
+          paymentStatus: statement.paymentStatus
+        };
+      });
+
+      const csv = generateStatementSummaryCSV(summaries);
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="unpaid-statements-summary-${formatExportDate(new Date())}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error('Export unpaid summary error:', error);
+      res.status(500).json({ error: 'Failed to export unpaid summary' });
     }
   }
 );

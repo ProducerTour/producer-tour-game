@@ -123,6 +123,22 @@ export const statementApi = {
 
   smartAssign: (id: string) =>
     api.post(`/statements/${id}/smart-assign`),
+
+  // Export methods
+  exportCSV: (id: string) => {
+    const token = localStorage.getItem('token');
+    window.open(`${API_URL}/api/statements/${id}/export/csv?token=${token}`, '_blank');
+  },
+
+  exportQuickBooks: (id: string) => {
+    const token = localStorage.getItem('token');
+    window.open(`${API_URL}/api/statements/${id}/export/quickbooks?token=${token}`, '_blank');
+  },
+
+  exportUnpaidSummary: () => {
+    const token = localStorage.getItem('token');
+    window.open(`${API_URL}/api/statements/export/unpaid-summary?token=${token}`, '_blank');
+  },
 };
 
 export const userApi = {

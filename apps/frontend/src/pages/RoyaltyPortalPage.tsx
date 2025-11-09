@@ -49,6 +49,7 @@ export default function RoyaltyPortalPage() {
   const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [selectedStatementIds, setSelectedStatementIds] = useState<Set<string>>(new Set());
 
   // Load unpaid statements on mount
   useEffect(() => {
@@ -112,6 +113,67 @@ export default function RoyaltyPortalPage() {
     }
   };
 
+  const handleBulkPayment = async () => {
+    if (selectedStatementIds.size === 0) {
+      alert('Please select at least one statement to process.');
+      return;
+    }
+
+    const count = selectedStatementIds.size;
+    if (!confirm(`Process payment for ${count} statement${count > 1 ? 's' : ''}? All selected writers will be able to see their earnings immediately.`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const statementId of selectedStatementIds) {
+        try {
+          await statementApi.processPayment(statementId);
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to process statement ${statementId}:`, error);
+          failCount++;
+        }
+      }
+
+      // Refresh lists
+      await loadUnpaidStatements();
+      setSelectedStatementIds(new Set());
+
+      if (failCount === 0) {
+        alert(`✅ Successfully processed ${successCount} statement${successCount > 1 ? 's' : ''}!`);
+      } else {
+        alert(`⚠️ Processed ${successCount} statement${successCount > 1 ? 's' : ''}. ${failCount} failed. Please try again for failed statements.`);
+      }
+    } catch (error) {
+      console.error('Bulk payment error:', error);
+      alert('❌ Failed to process payments. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleStatementSelection = (statementId: string) => {
+    const newSelected = new Set(selectedStatementIds);
+    if (newSelected.has(statementId)) {
+      newSelected.delete(statementId);
+    } else {
+      newSelected.add(statementId);
+    }
+    setSelectedStatementIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedStatementIds.size === unpaidStatements.length) {
+      setSelectedStatementIds(new Set());
+    } else {
+      setSelectedStatementIds(new Set(unpaidStatements.map(s => s.id)));
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     // Smart rounding: 2 decimals normally, 4 decimals for micro-amounts
     const rounded2 = Math.round(amount * 100) / 100;
@@ -158,6 +220,18 @@ export default function RoyaltyPortalPage() {
                 Process payments for published statements
               </p>
             </div>
+            <div>
+              <button
+                onClick={() => statementApi.exportUnpaidSummary()}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+                title="Export summary of all unpaid statements"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export All Unpaid
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -167,12 +241,37 @@ export default function RoyaltyPortalPage() {
         {/* Unpaid Statements Section */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Statements Ready for Payment
-            </h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {unpaidStatements.length} statement(s) pending payment
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Statements Ready for Payment
+                </h2>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {unpaidStatements.length} statement(s) pending payment
+                  {selectedStatementIds.size > 0 && ` • ${selectedStatementIds.size} selected`}
+                </p>
+              </div>
+              {selectedStatementIds.size > 0 && (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setSelectedStatementIds(new Set())}
+                    className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    Clear Selection
+                  </button>
+                  <button
+                    onClick={handleBulkPayment}
+                    disabled={loading}
+                    className="px-4 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Process {selectedStatementIds.size} Payment{selectedStatementIds.size > 1 ? 's' : ''}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="p-6">
@@ -208,6 +307,15 @@ export default function RoyaltyPortalPage() {
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-900">
                     <tr>
+                      <th className="px-6 py-3 text-left">
+                        <input
+                          type="checkbox"
+                          checked={unpaidStatements.length > 0 && selectedStatementIds.size === unpaidStatements.length}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                          title="Select all"
+                        />
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         PRO / File
                       </th>
@@ -237,6 +345,14 @@ export default function RoyaltyPortalPage() {
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {unpaidStatements.map((statement) => (
                       <tr key={statement.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-6 py-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedStatementIds.has(statement.id)}
+                            onChange={() => toggleStatementSelection(statement.id)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                          />
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div>
@@ -419,24 +535,51 @@ export default function RoyaltyPortalPage() {
             </div>
 
             {/* Modal Actions */}
-            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
-              <button
-                onClick={() => {
-                  setShowModal(false);
-                  setPaymentSummary(null);
-                  setSelectedStatement(null);
-                }}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => selectedStatement && handleProcessPayment(selectedStatement)}
-                disabled={loading}
-                className="px-4 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Processing...' : 'Process Payment for All Writers'}
-              </button>
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex justify-between">
+              {/* Export Buttons */}
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => selectedStatement && statementApi.exportCSV(selectedStatement)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2"
+                  title="Download CSV for accounting"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => selectedStatement && statementApi.exportQuickBooks(selectedStatement)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2"
+                  title="Download QuickBooks format"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  QuickBooks
+                </button>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowModal(false);
+                    setPaymentSummary(null);
+                    setSelectedStatement(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => selectedStatement && handleProcessPayment(selectedStatement)}
+                  disabled={loading}
+                  className="px-4 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Processing...' : 'Process Payment for All Writers'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
