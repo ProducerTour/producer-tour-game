@@ -1,22 +1,33 @@
 import Stripe from 'stripe';
 import { prisma } from '../lib/prisma';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  console.warn('STRIPE_SECRET_KEY not set. Stripe functionality will not work.');
+// Initialize Stripe only if API key is available
+let stripe: Stripe | null = null;
+
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2024-11-20.acacia',
+    typescript: true,
+  });
+  console.log('✅ Stripe service initialized');
+} else {
+  console.warn('⚠️  STRIPE_SECRET_KEY not set. Stripe functionality will not work.');
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-11-20.acacia',
-  typescript: true,
-});
+const ensureStripeConfigured = () => {
+  if (!stripe) {
+    throw new Error('Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.');
+  }
+};
 
 export const stripeService = {
   /**
    * Create a Stripe Connect Express account for a writer
    */
   async createConnectAccount(userId: string, email: string): Promise<string> {
+    ensureStripeConfigured();
     try {
-      const account = await stripe.accounts.create({
+      const account = await stripe!.accounts.create({
         type: 'express',
         email,
         capabilities: {
@@ -49,6 +60,7 @@ export const stripeService = {
    * Generate an onboarding link for a writer to complete Stripe setup
    */
   async createOnboardingLink(userId: string, returnUrl: string, refreshUrl: string): Promise<string> {
+    ensureStripeConfigured();
     try {
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user) throw new Error('User not found');
@@ -60,7 +72,7 @@ export const stripeService = {
         accountId = await this.createConnectAccount(userId, user.email);
       }
 
-      const accountLink = await stripe.accountLinks.create({
+      const accountLink = await stripe!.accountLinks.create({
         account: accountId,
         refresh_url: refreshUrl,
         return_url: returnUrl,
@@ -82,13 +94,14 @@ export const stripeService = {
     accountStatus: string;
     detailsSubmitted: boolean;
   }> {
+    ensureStripeConfigured();
     try {
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user?.stripeAccountId) {
         throw new Error('No Stripe account found for user');
       }
 
-      const account = await stripe.accounts.retrieve(user.stripeAccountId);
+      const account = await stripe!.accounts.retrieve(user.stripeAccountId);
 
       const onboardingComplete =
         account.details_submitted &&
@@ -129,8 +142,9 @@ export const stripeService = {
     description: string,
     transferGroup?: string
   ): Promise<string> {
+    ensureStripeConfigured();
     try {
-      const transfer = await stripe.transfers.create({
+      const transfer = await stripe!.transfers.create({
         amount: amountCents,
         currency: 'usd',
         destination: accountId,
@@ -156,6 +170,7 @@ export const stripeService = {
     transferIds: string[];
     errors: Array<{ userId: string; userName: string; error: string }>;
   }> {
+    ensureStripeConfigured();
     try {
       const statement = await prisma.statement.findUnique({
         where: { id: statementId },
@@ -274,13 +289,14 @@ export const stripeService = {
    * Get Stripe account details for a user
    */
   async getAccountDetails(userId: string): Promise<any> {
+    ensureStripeConfigured();
     try {
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user?.stripeAccountId) {
         return null;
       }
 
-      const account = await stripe.accounts.retrieve(user.stripeAccountId);
+      const account = await stripe!.accounts.retrieve(user.stripeAccountId);
       return account;
     } catch (error) {
       console.error('Error fetching account details:', error);
@@ -292,13 +308,14 @@ export const stripeService = {
    * Create a dashboard login link for a writer to access their Stripe dashboard
    */
   async createDashboardLink(userId: string): Promise<string> {
+    ensureStripeConfigured();
     try {
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user?.stripeAccountId) {
         throw new Error('No Stripe account found');
       }
 
-      const loginLink = await stripe.accounts.createLoginLink(user.stripeAccountId);
+      const loginLink = await stripe!.accounts.createLoginLink(user.stripeAccountId);
       return loginLink.url;
     } catch (error) {
       console.error('Error creating dashboard link:', error);
