@@ -22,11 +22,8 @@ interface Statement {
   }>;
 }
 
-type PaymentFilter = 'all' | 'unpaid' | 'pending' | 'paid';
-
 export const PayoutsTab: React.FC = () => {
   const [selectedStatements, setSelectedStatements] = useState<Set<string>>(new Set());
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('unpaid');
   const [historyFilter, setHistoryFilter] = useState<string>('');
   const queryClient = useQueryClient();
 
@@ -34,7 +31,7 @@ export const PayoutsTab: React.FC = () => {
   const { data: statements, isLoading } = useQuery({
     queryKey: ['admin-statements'],
     queryFn: async () => {
-      const response = await statementApi.getAll();
+      const response = await statementApi.getStatements();
       return response.data as Statement[];
     },
   });
@@ -49,12 +46,6 @@ export const PayoutsTab: React.FC = () => {
       setSelectedStatements(new Set());
     },
   });
-
-  // Filter statements by payment status
-  const filteredStatements = statements?.filter(stmt => {
-    if (paymentFilter === 'all') return true;
-    return stmt.paymentStatus.toLowerCase() === paymentFilter;
-  }) || [];
 
   // Payment queue (unpaid statements)
   const paymentQueue = statements?.filter(s => s.paymentStatus === 'UNPAID') || [];
@@ -115,19 +106,6 @@ export const PayoutsTab: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'PAID':
-        return <CheckCircle className="h-5 w-5 text-green-400" />;
-      case 'PENDING':
-        return <Clock className="h-5 w-5 text-yellow-400" />;
-      case 'UNPAID':
-        return <XCircle className="h-5 w-5 text-red-400" />;
-      default:
-        return null;
-    }
   };
 
   const getStatusBadge = (status: string) => {
