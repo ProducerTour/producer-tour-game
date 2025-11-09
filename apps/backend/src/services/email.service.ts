@@ -4,7 +4,7 @@
  * Handles sending emails for payment notifications and other system events.
  */
 
-import nodemailer from 'nodemailer';
+import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 
 interface EmailConfig {
@@ -69,11 +69,17 @@ class EmailService {
         from: this.fromEmail,
       };
 
-      this.transporter = nodemailer.createTransporter(config);
-      this.isConfigured = true;
-      console.log('✅ Email service configured successfully');
+      // Try to create transporter - if it fails, just disable the service
+      try {
+        this.transporter = nodemailer.createTransporter(config);
+        this.isConfigured = true;
+        console.log('✅ Email service configured successfully');
+      } catch (createError) {
+        console.warn('⚠️  Email service initialization failed - emails will be disabled:', (createError as Error).message);
+        this.isConfigured = false;
+      }
     } catch (error) {
-      console.error('❌ Failed to configure email service:', error);
+      console.warn('⚠️  Email service not available:', (error as Error).message);
       this.isConfigured = false;
     }
   }
