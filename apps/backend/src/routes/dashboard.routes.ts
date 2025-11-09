@@ -529,7 +529,7 @@ router.get('/payment-status', authenticate, async (req: AuthRequest, res: Respon
       select: {
         paidAt: true,
         isVisibleToWriter: true,
-        netAmount: true,
+        netRevenue: true,
         statement: {
           select: {
             paymentStatus: true,
@@ -562,13 +562,13 @@ router.get('/payment-status', authenticate, async (req: AuthRequest, res: Respon
       item => item.statement.paymentStatus === 'UNPAID' && item.isVisibleToWriter
     );
     const unpaidCount = unpaidItems.length;
-    const unpaidAmount = unpaidItems.reduce((sum, item) => sum + Number(item.netAmount), 0);
+    const unpaidAmount = unpaidItems.reduce((sum, item) => sum + Number(item.netRevenue), 0);
 
     const pendingItems = items.filter(
       item => item.statement.paymentStatus === 'PENDING' && item.isVisibleToWriter
     );
     const pendingCount = pendingItems.length;
-    const pendingAmount = pendingItems.reduce((sum, item) => sum + Number(item.netAmount), 0);
+    const pendingAmount = pendingItems.reduce((sum, item) => sum + Number(item.netRevenue), 0);
 
     // Determine status
     let status: 'NONE' | 'PENDING' | 'RECENT';
