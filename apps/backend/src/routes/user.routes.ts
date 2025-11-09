@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
+import { emailService } from '../services/email.service';
 
 const router = Router();
 
@@ -89,16 +90,18 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    // Generate secure random password if not provided
+    // Generate secure random password if not provided (temporary, user will set their own via email)
     let finalPassword = password;
-    let generatedPassword: string | undefined;
     if (!finalPassword) {
-      // Generate cryptographically secure random password (16 characters)
-      generatedPassword = crypto.randomBytes(12).toString('base64').slice(0, 16);
-      finalPassword = generatedPassword;
+      // Generate cryptographically secure temporary password
+      finalPassword = crypto.randomBytes(12).toString('base64').slice(0, 16);
     }
 
     const hashedPassword = await bcrypt.hash(finalPassword, 10);
+
+    // Generate password reset token for welcome email
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
     // Create user data
     const createData: any = {
@@ -111,6 +114,8 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       writerIpiNumber,
       publisherIpiNumber,
       canUploadStatements: canUploadStatements === true || canUploadStatements === 'true',
+      resetToken,
+      resetTokenExpiry,
     };
 
     // Add commission override if provided
@@ -135,7 +140,17 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       include: { producer: true },
     })) as any;
 
-    // TODO: Send welcome email with password reset link
+    // Send welcome email with password setup link
+    try {
+      await emailService.sendWelcomeEmail(
+        user.email,
+        resetToken,
+        user.firstName || 'User'
+      );
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+      // Don't fail user creation if email fails
+    }
 
     // Prepare response
     const response: any = {
@@ -147,12 +162,8 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
         role: user.role,
         producer: user.producer,
       },
+      message: 'User created successfully. A welcome email with password setup instructions has been sent.',
     };
-
-    // Only include generated password in development or if explicitly generated
-    if (generatedPassword && process.env.NODE_ENV !== 'production') {
-      response.temporaryPassword = generatedPassword;
-    }
 
     res.status(201).json(response);
   } catch (error) {
@@ -269,44 +280,6 @@ router.delete('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Delete user error:', error);
     res.status(500).json({ error: 'Failed to delete user' });
-  }
-});
-
-/**
- * POST /api/users/bulk-reset-passwords
- * Reset passwords for all writers to a default password (Admin only)
- */
-router.post('/bulk-reset-passwords', requireAdmin, async (req: AuthRequest, res: Response) => {
-  try {
-    const { password = 'password', role = 'WRITER' } = req.body;
-
-    // Get all users with the specified role
-    const users = await prisma.user.findMany({
-      where: { role },
-      select: { id: true, email: true },
-    });
-
-    if (users.length === 0) {
-      return res.json({ message: `No ${role} users found`, count: 0 });
-    }
-
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Update all users
-    await prisma.user.updateMany({
-      where: { role },
-      data: { password: hashedPassword },
-    });
-
-    res.json({
-      message: `Successfully reset passwords for ${users.length} ${role} users`,
-      count: users.length,
-      users: users.map(u => u.email),
-    });
-  } catch (error) {
-    console.error('Bulk password reset error:', error);
-    res.status(500).json({ error: 'Failed to reset passwords' });
   }
 });
 

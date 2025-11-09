@@ -4,6 +4,8 @@ import { useAuthStore } from './store/auth.store';
 // Pages
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import WriterDashboard from './pages/WriterDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import OpportunitiesPage from './pages/OpportunitiesPage';
@@ -38,6 +40,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/apply" element={<ApplicationPage />} />
         <Route path="/opportunities" element={<OpportunitiesPage />} />
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 
@@ -68,9 +68,17 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+                  Password
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-primary-400 hover:text-primary-300"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 id="password"
                 type="password"

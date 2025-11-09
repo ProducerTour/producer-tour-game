@@ -9,8 +9,11 @@ export const api = axios.create({
 // Request interceptor - add auth token and content type
 api.interceptors.request.use(
   (config) => {
-    // Don't add token to public auth endpoints (login/register)
-    const isAuthEndpoint = config.url?.includes('/auth/login') || config.url?.includes('/auth/register');
+    // Don't add token to public auth endpoints (login/register/password reset)
+    const isAuthEndpoint = config.url?.includes('/auth/login') ||
+                           config.url?.includes('/auth/register') ||
+                           config.url?.includes('/auth/forgot-password') ||
+                           config.url?.includes('/auth/reset-password');
 
     if (!isAuthEndpoint) {
       const token = localStorage.getItem('token');
@@ -51,6 +54,12 @@ export const authApi = {
 
   me: () =>
     api.get('/auth/me'),
+
+  forgotPassword: (email: string) =>
+    api.post('/auth/forgot-password', { email }),
+
+  resetPassword: (token: string, newPassword: string) =>
+    api.post('/auth/reset-password', { token, newPassword }),
 };
 
 export const dashboardApi = {
@@ -159,9 +168,6 @@ export const userApi = {
 
   delete: (id: string) =>
     api.delete(`/users/${id}`),
-
-  bulkResetPasswords: (password: string = 'password', role: string = 'WRITER') =>
-    api.post('/users/bulk-reset-passwords', { password, role }),
 };
 
 export const opportunityApi = {

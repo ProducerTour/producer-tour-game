@@ -128,6 +128,10 @@ model User {
   stripeAccountStatus     String? // Stripe account status (pending, complete, restricted, etc.)
   stripeDetailsSubmitted  Boolean @default(false) // Whether user submitted details to Stripe
 
+  // Password reset fields
+  resetToken        String?   @unique // Cryptographically secure token for password reset
+  resetTokenExpiry  DateTime? // Expiration time for reset token (1 hour recommended)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
