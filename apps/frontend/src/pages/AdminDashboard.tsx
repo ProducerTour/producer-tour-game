@@ -2073,7 +2073,7 @@ function AnalyticsTab() {
                       </tr>
                     </thead>
                     <tbody>
-                      {platformData.platforms.map((platform: any, index: number) => (
+                      {platformData.platforms.map((platform: any) => (
                         <tr
                           key={platform.platform}
                           className="border-b border-slate-700/50 hover:bg-slate-600/20 transition-colors"
