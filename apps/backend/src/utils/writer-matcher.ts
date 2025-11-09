@@ -163,27 +163,10 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
         if (workWriter.ipi) {
           const normalizedWorkWriterIpi = normalizeIPI(workWriter.ipi);
 
-          // DEBUG LOGGING - Remove after debugging
-          console.log(`\n=== MLC Case B Matching: ${workWriter.name} ===`);
-          console.log(`Work Writer IPI (raw): "${workWriter.ipi}"`);
-          console.log(`Work Writer IPI (normalized): "${normalizedWorkWriterIpi}"`);
-          console.log(`Original Publisher IPI (normalized): "${normalizedOriginalPublisherIpi}"`);
-          console.log(`Publisher: ${ptPublisherName}`);
-          console.log(`\nSearching in ${allWriters.length} writers with role=WRITER:`);
-          allWriters.forEach(w => {
-            const normWriterIpi = w.writerIpiNumber ? normalizeIPI(w.writerIpiNumber) : 'null';
-            const normPubIpi = w.publisherIpiNumber ? normalizeIPI(w.publisherIpiNumber) : 'null';
-            const writerIpiMatch = normWriterIpi === normalizedWorkWriterIpi ? '✓' : '✗';
-            const pubIpiMatch = normPubIpi === normalizedOriginalPublisherIpi ? '✓' : '✗';
-            console.log(`  ${writerIpiMatch}${pubIpiMatch} ${w.firstName || ''} ${w.lastName || ''}: writer="${normWriterIpi}", publisher="${normPubIpi}"`);
-          });
-
           const ipiMatch = allWriters.find(w =>
             w.writerIpiNumber && normalizeIPI(w.writerIpiNumber) === normalizedWorkWriterIpi &&
             w.publisherIpiNumber && normalizeIPI(w.publisherIpiNumber) === normalizedOriginalPublisherIpi
           );
-
-          console.log(`Match result: ${ipiMatch ? `✓ FOUND ${ipiMatch.firstName} ${ipiMatch.lastName}` : '✗ NOT FOUND'}\n`);
 
           if (ipiMatch) {
             matches.push({

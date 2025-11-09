@@ -41,9 +41,12 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    console.log('CORS Check:');
-    console.log('Request Origin:', origin);
-    console.log('Allowed Static Origins:', allowedOrigins);
+    // Log CORS checks in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.log('CORS Check:');
+      console.log('Request Origin:', origin);
+      console.log('Allowed Static Origins:', allowedOrigins);
+    }
 
     // Allow requests with no origin (like mobile apps or Postman)
     if (!origin) {

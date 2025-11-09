@@ -1075,15 +1075,6 @@ router.post(
         }
       });
 
-      // Debug logging to verify response structure
-      console.log('Smart Assign Results:', {
-        totalRows: parsedItems.length, // For MLC: publisher rows (same song can appear multiple times)
-        autoAssignedCount: autoAssigned.length,
-        autoAssignedSample: autoAssigned[0], // First item to verify structure
-        suggestedCount: suggested.length,
-        unmatchedCount: unmatched.length
-      });
-
       res.json({
         summary: {
           totalRows: parsedItems.length, // For MLC: publisher rows, not unique songs
