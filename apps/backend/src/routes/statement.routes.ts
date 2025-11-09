@@ -208,6 +208,7 @@ router.get(
                   id: true,
                   email: true,
                   firstName: true,
+                  middleName: true,
                   lastName: true
                 }
               }
@@ -252,7 +253,7 @@ router.get(
               const userItem = statement.items.find(i => i.userId === userId);
               writerMap.set(userId, {
                 userId: userId,
-                name: userItem ? `${userItem.user.firstName || ''} ${userItem.user.lastName || ''}`.trim() || userItem.user.email : 'Unknown',
+                name: userItem ? `${userItem.user.firstName || ''} ${userItem.user.middleName ? userItem.user.middleName + ' ' : ''}${userItem.user.lastName || ''}`.trim() || userItem.user.email : 'Unknown',
                 email: userItem?.user.email || '',
                 grossRevenue: 0,
                 commissionAmount: 0,
@@ -352,6 +353,7 @@ router.get(
                   id: true,
                   email: true,
                   firstName: true,
+                  middleName: true,
                   lastName: true
                 }
               }
@@ -845,6 +847,7 @@ router.get(
                   id: true,
                   email: true,
                   firstName: true,
+                  middleName: true,
                   lastName: true
                 }
               }
@@ -1274,6 +1277,7 @@ router.get(
                   id: true,
                   email: true,
                   firstName: true,
+                  middleName: true,
                   lastName: true
                 }
               }
@@ -1408,6 +1412,7 @@ router.get(
                   id: true,
                   email: true,
                   firstName: true,
+                  middleName: true,
                   lastName: true
                 }
               }
