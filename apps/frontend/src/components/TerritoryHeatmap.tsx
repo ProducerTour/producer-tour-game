@@ -21,7 +21,6 @@ interface TerritoryHeatmapProps {
 
 export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
   territories,
-  isAdmin = false
 }) => {
   const [tooltipContent, setTooltipContent] = useState<string>('');
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -66,8 +65,8 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
       >
         <ZoomableGroup center={[0, 20]} zoom={1}>
           <Geographies geography={geoUrl}>
-            {({ geographies }) =>
-              geographies.map((geo) => {
+            {({ geographies }: any) =>
+              geographies.map((geo: any) => {
                 const countryCode = geo.id;
                 const data = countryData[countryCode];
                 const fillColor = data ? colorScale(data.revenue) : '#334155';
@@ -88,7 +87,7 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
                       },
                       pressed: { outline: 'none' }
                     }}
-                    onMouseEnter={(e) => {
+                    onMouseEnter={(e: any) => {
                       if (data) {
                         const rect = e.currentTarget.getBoundingClientRect();
                         setTooltipPosition({
