@@ -733,4 +733,71 @@ router.get('/organization-breakdown', authenticate, requireAdmin, async (req: Au
   }
 });
 
+/**
+ * GET /api/dashboard/territory-breakdown
+ * Get revenue breakdown by territory/country
+ * Returns aggregated revenue data for world heatmap visualization
+ */
+router.get('/territory-breakdown', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const isAdmin = req.user!.role === 'ADMIN';
+
+    // Get all statement items with territory data
+    const items = await prisma.statementItem.findMany({
+      where: isAdmin ? {} : {
+        userId,
+        isVisibleToWriter: true
+      },
+      select: {
+        metadata: true,
+        grossRevenue: true,
+        netRevenue: true
+      }
+    });
+
+    // Aggregate revenue by territory
+    const territoryMap = new Map<string, { revenue: number, count: number }>();
+
+    items.forEach(item => {
+      const metadata = item.metadata as any;
+      const territory = metadata?.territory;
+
+      if (territory && typeof territory === 'string') {
+        const normalizedTerritory = territory.trim().toUpperCase();
+        const revenue = isAdmin
+          ? Number(item.grossRevenue || 0)
+          : Number(item.netRevenue || 0);
+
+        if (territoryMap.has(normalizedTerritory)) {
+          const existing = territoryMap.get(normalizedTerritory)!;
+          existing.revenue += revenue;
+          existing.count += 1;
+        } else {
+          territoryMap.set(normalizedTerritory, {
+            revenue,
+            count: 1
+          });
+        }
+      }
+    });
+
+    // Convert to array format for frontend
+    const territories = Array.from(territoryMap.entries()).map(([territory, data]) => ({
+      territory,
+      revenue: smartRound(data.revenue),
+      count: data.count
+    })).sort((a, b) => b.revenue - a.revenue);
+
+    res.json({
+      territories,
+      totalRevenue: smartRound(territories.reduce((sum, t) => sum + t.revenue, 0)),
+      totalCount: territories.reduce((sum, t) => sum + t.count, 0)
+    });
+  } catch (error) {
+    console.error('Territory breakdown error:', error);
+    res.status(500).json({ error: 'Failed to fetch territory breakdown' });
+  }
+});
+
 export default router;
