@@ -42,7 +42,7 @@ export interface StatementExportSummary {
 export function generatePaymentCSV(rows: PaymentExportRow[]): string {
   const fields = [
     { label: 'Statement ID', value: 'statementId' },
-    { label: 'PRO', value: 'proType' },
+    { label: 'Statement', value: 'proType' },
     { label: 'Filename', value: 'filename' },
     { label: 'Published Date', value: 'publishedDate' },
     { label: 'Payment Date', value: 'paymentDate' },
@@ -66,7 +66,7 @@ export function generatePaymentCSV(rows: PaymentExportRow[]): string {
 export function generateStatementSummaryCSV(summaries: StatementExportSummary[]): string {
   const fields = [
     { label: 'Statement ID', value: 'statementId' },
-    { label: 'PRO', value: 'proType' },
+    { label: 'Statement', value: 'proType' },
     { label: 'Filename', value: 'filename' },
     { label: 'Published Date', value: 'publishedDate' },
     { label: 'Payment Date', value: 'paymentDate' },
