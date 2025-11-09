@@ -18,7 +18,13 @@ export const authenticate = async (
   next: NextFunction
 ) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    // Check Authorization header first (standard API calls)
+    let token = req.headers.authorization?.replace('Bearer ', '');
+
+    // Fall back to query parameter for file downloads (window.open() can't send headers)
+    if (!token) {
+      token = req.query.token as string;
+    }
 
     if (!token) {
       return res.status(401).json({ error: 'No token provided' });
