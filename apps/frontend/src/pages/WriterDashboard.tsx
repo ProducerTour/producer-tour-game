@@ -770,20 +770,26 @@ function PaymentStatusIndicator({ status }: { status: any }) {
           <p className="text-sm font-medium text-white">
             Payment Status: <span className="font-bold">{config.label}</span>
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">{status.message}</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {status.status === 'PENDING' ? 'You have a payment pending' : status.message}
+          </p>
         </div>
 
-        {/* Additional Info */}
-        {(status.unpaidCount > 0 || status.pendingCount > 0) && (
+        {/* Additional Info - Show dollar amount instead of count */}
+        {(status.unpaidAmount > 0 || status.pendingAmount > 0) && (
           <div className="flex-shrink-0 text-right">
-            {status.unpaidCount > 0 && (
+            {status.unpaidAmount > 0 && (
               <p className="text-xs text-gray-400">
-                <span className="font-medium text-red-400">{status.unpaidCount}</span> unpaid
+                <span className="font-medium text-red-400">
+                  ${Number(status.unpaidAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span> unpaid
               </p>
             )}
-            {status.pendingCount > 0 && (
+            {status.pendingAmount > 0 && (
               <p className="text-xs text-gray-400">
-                <span className="font-medium text-yellow-400">{status.pendingCount}</span> pending
+                <span className="font-medium text-yellow-400">
+                  ${Number(status.pendingAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span> pending
               </p>
             )}
           </div>

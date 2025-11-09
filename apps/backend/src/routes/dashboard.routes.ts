@@ -529,6 +529,7 @@ router.get('/payment-status', authenticate, async (req: AuthRequest, res: Respon
       select: {
         paidAt: true,
         isVisibleToWriter: true,
+        netAmount: true,
         statement: {
           select: {
             paymentStatus: true,
@@ -546,7 +547,9 @@ router.get('/payment-status', authenticate, async (req: AuthRequest, res: Respon
         message: 'No royalty statements yet',
         lastPaymentDate: null,
         unpaidCount: 0,
-        pendingCount: 0
+        pendingCount: 0,
+        unpaidAmount: 0,
+        pendingAmount: 0
       });
     }
 
@@ -554,14 +557,18 @@ router.get('/payment-status', authenticate, async (req: AuthRequest, res: Respon
     const paidItems = items.filter(item => item.isVisibleToWriter && item.paidAt);
     const lastPaidItem = paidItems[0]; // Already sorted by paidAt desc
 
-    // Count unpaid/pending statements
-    const unpaidCount = items.filter(
-      item => item.statement.paymentStatus === 'UNPAID'
-    ).length;
+    // Count unpaid/pending statements and calculate amounts
+    const unpaidItems = items.filter(
+      item => item.statement.paymentStatus === 'UNPAID' && item.isVisibleToWriter
+    );
+    const unpaidCount = unpaidItems.length;
+    const unpaidAmount = unpaidItems.reduce((sum, item) => sum + Number(item.netAmount), 0);
 
-    const pendingCount = items.filter(
-      item => item.statement.paymentStatus === 'PENDING'
-    ).length;
+    const pendingItems = items.filter(
+      item => item.statement.paymentStatus === 'PENDING' && item.isVisibleToWriter
+    );
+    const pendingCount = pendingItems.length;
+    const pendingAmount = pendingItems.reduce((sum, item) => sum + Number(item.netAmount), 0);
 
     // Determine status
     let status: 'NONE' | 'PENDING' | 'RECENT';
@@ -604,7 +611,9 @@ router.get('/payment-status', authenticate, async (req: AuthRequest, res: Respon
       message,
       lastPaymentDate: lastPaidItem?.paidAt || null,
       unpaidCount,
-      pendingCount
+      pendingCount,
+      unpaidAmount,
+      pendingAmount
     });
   } catch (error) {
     console.error('Payment status error:', error);
