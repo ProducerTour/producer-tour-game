@@ -2205,19 +2205,27 @@ function AnalyticsTab() {
           )}
 
           {/* Territory Revenue Heatmap */}
-          {!territoryLoading && territoryData?.territories && territoryData.territories.length > 0 && (
-            <div>
-              <h4 className="text-md font-medium text-white mb-3">Revenue by Territory</h4>
-              <ChartCard
-                title="Global Revenue Heatmap"
-                chartId="territory-heatmap"
-                isExpanded={expandedCharts['territory-heatmap'] || false}
-                onToggleExpand={toggleChartExpansion}
-              >
-                <TerritoryHeatmap territories={territoryData.territories} isAdmin={true} />
-              </ChartCard>
-            </div>
-          )}
+          <div>
+            <h4 className="text-md font-medium text-white mb-3">Revenue by Territory</h4>
+            <ChartCard
+              title="Global Revenue Heatmap"
+              chartId="territory-heatmap"
+              isExpanded={expandedCharts['territory-heatmap'] || false}
+              onToggleExpand={toggleChartExpansion}
+            >
+              {territoryLoading ? (
+                <div className="h-full flex items-center justify-center text-gray-400">
+                  Loading territory data...
+                </div>
+              ) : territoryData?.territories && territoryData.territories.length > 0 ? (
+                <TerritoryHeatmap territories={territoryData.territories} />
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-400">
+                  No territory data available yet. Territory information will appear once statements with location data are processed.
+                </div>
+              )}
+            </ChartCard>
+          </div>
 
           {/* Recent Statements */}
           {stats?.recentStatements?.length > 0 && (

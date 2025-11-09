@@ -258,16 +258,20 @@ export default function WriterDashboard() {
                 </div>
 
                 {/* Territory Revenue Heatmap */}
-                {territoryData?.territories && territoryData.territories.length > 0 && (
-                  <ChartCard
-                    title="Global Revenue Heatmap"
-                    chartId="territory-heatmap"
-                    isExpanded={expandedCharts['territory-heatmap'] || false}
-                    onToggleExpand={toggleChartExpansion}
-                  >
-                    <TerritoryHeatmap territories={territoryData.territories} isAdmin={false} />
-                  </ChartCard>
-                )}
+                <ChartCard
+                  title="Global Revenue Heatmap"
+                  chartId="territory-heatmap"
+                  isExpanded={expandedCharts['territory-heatmap'] || false}
+                  onToggleExpand={toggleChartExpansion}
+                >
+                  {territoryData?.territories && territoryData.territories.length > 0 ? (
+                    <TerritoryHeatmap territories={territoryData.territories} />
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-gray-400">
+                      No territory data available yet. Territory information will appear once statements with location data are processed.
+                    </div>
+                  )}
+                </ChartCard>
 
                 {/* Recent Statements */}
                 <div>
