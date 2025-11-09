@@ -32,7 +32,7 @@ export const PayoutsTab: React.FC = () => {
     queryKey: ['admin-statements'],
     queryFn: async () => {
       const response = await statementApi.getStatements();
-      return response.data as Statement[];
+      return response.data.statements as Statement[];
     },
   });
 
