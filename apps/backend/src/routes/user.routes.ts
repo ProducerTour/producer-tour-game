@@ -272,4 +272,42 @@ router.delete('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
   }
 });
 
+/**
+ * POST /api/users/bulk-reset-passwords
+ * Reset passwords for all writers to a default password (Admin only)
+ */
+router.post('/bulk-reset-passwords', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { password = 'password', role = 'WRITER' } = req.body;
+
+    // Get all users with the specified role
+    const users = await prisma.user.findMany({
+      where: { role },
+      select: { id: true, email: true },
+    });
+
+    if (users.length === 0) {
+      return res.json({ message: `No ${role} users found`, count: 0 });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Update all users
+    await prisma.user.updateMany({
+      where: { role },
+      data: { password: hashedPassword },
+    });
+
+    res.json({
+      message: `Successfully reset passwords for ${users.length} ${role} users`,
+      count: users.length,
+      users: users.map(u => u.email),
+    });
+  } catch (error) {
+    console.error('Bulk password reset error:', error);
+    res.status(500).json({ error: 'Failed to reset passwords' });
+  }
+});
+
 export default router;

@@ -159,6 +159,9 @@ export const userApi = {
 
   delete: (id: string) =>
     api.delete(`/users/${id}`),
+
+  bulkResetPasswords: (password: string = 'password', role: string = 'WRITER') =>
+    api.post('/users/bulk-reset-passwords', { password, role }),
 };
 
 export const opportunityApi = {

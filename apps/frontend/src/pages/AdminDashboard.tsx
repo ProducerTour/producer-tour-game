@@ -1289,16 +1289,42 @@ function UsersTab() {
     updateMutation.mutate({ id, data });
   };
 
+  const resetPasswordsMutation = useMutation({
+    mutationFn: () => userApi.bulkResetPasswords('password', 'WRITER'),
+    onSuccess: (response) => {
+      alert(`✅ ${response.data.message}\n\nAffected users:\n${response.data.users.join('\n')}\n\nAll writers can now login with password: "password"`);
+    },
+    onError: (error: any) => {
+      alert(`❌ Failed to reset passwords: ${error.response?.data?.error || error.message}`);
+    },
+  });
+
+  const handleBulkPasswordReset = () => {
+    if (confirm('⚠️ Reset ALL writer passwords to "password"?\n\nThis will allow all writers to login with the default password.\n\nClick OK to proceed.')) {
+      resetPasswordsMutation.mutate();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium text-white">User Management</h3>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
-        >
-          + Add User
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleBulkPasswordReset}
+            disabled={resetPasswordsMutation.isPending}
+            className="px-4 py-2 bg-yellow-600 text-white rounded-lg font-medium hover:bg-yellow-700 transition-colors disabled:opacity-50"
+            title="Reset all writer passwords to 'password'"
+          >
+            {resetPasswordsMutation.isPending ? 'Resetting...' : '🔑 Reset Writer Passwords'}
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
+          >
+            + Add User
+          </button>
+        </div>
       </div>
 
       {/* Users Table */}
