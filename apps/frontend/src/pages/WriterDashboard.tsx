@@ -119,12 +119,15 @@ export default function WriterDashboard() {
     enabled: activeTab === 'songs',
   });
 
-  const { data: paymentStatus } = useQuery({
+  const { data: paymentStatus, isLoading: paymentStatusLoading, error: paymentStatusError } = useQuery({
     queryKey: ['payment-status'],
     queryFn: async () => {
       const response = await dashboardApi.getPaymentStatus();
+      console.log('Payment Status Response:', response.data);
       return response.data;
     },
+    retry: 3,
+    staleTime: 30000, // 30 seconds
   });
 
   // Calculate PRO breakdown for pie chart
@@ -152,11 +155,22 @@ export default function WriterDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Payment Status Indicator */}
-        {paymentStatus && (
+        {paymentStatusLoading ? (
+          <div className="mb-6 bg-slate-800/50 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+              <p className="text-sm text-gray-400">Loading payment status...</p>
+            </div>
+          </div>
+        ) : paymentStatusError ? (
+          <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+            <p className="text-sm text-red-400">Failed to load payment status</p>
+          </div>
+        ) : paymentStatus ? (
           <div className="mb-6">
             <PaymentStatusIndicator status={paymentStatus} />
           </div>
-        )}
+        ) : null}
 
         {/* Stats Cards */}
         {summaryLoading ? (
