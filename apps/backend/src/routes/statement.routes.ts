@@ -976,7 +976,21 @@ router.post(
       // Verify statement exists and is unpaid
       const statement = await prisma.statement.findUnique({
         where: { id },
-        include: { items: true }
+        include: {
+          items: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  middleName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
+        }
       });
 
       if (!statement) {
