@@ -1796,7 +1796,20 @@ function AnalyticsTab() {
     }));
   };
 
-  const COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#f97316'];
+  const COLORS = [
+    '#3b82f6', // Blue
+    '#10b981', // Green
+    '#8b5cf6', // Purple
+    '#f59e0b', // Amber
+    '#ef4444', // Red
+    '#ec4899', // Pink
+    '#f97316', // Orange
+    '#06b6d4', // Cyan
+    '#84cc16', // Lime
+    '#a855f7', // Violet
+    '#f43f5e', // Rose
+    '#14b8a6', // Teal
+  ];
 
   return (
     <div className="space-y-6">
@@ -1884,7 +1897,7 @@ function AnalyticsTab() {
             {/* PRO Breakdown Pie Chart */}
             {stats?.proBreakdown && stats.proBreakdown.length > 0 && (
               <ChartCard
-                title="Revenue by PRO"
+                title="Revenue by Statement"
                 chartId="revenue-by-pro"
                 isExpanded={expandedCharts['revenue-by-pro'] || false}
                 onToggleExpand={toggleChartExpansion}
@@ -1896,7 +1909,10 @@ function AnalyticsTab() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ proType, percent }: any) => `${proType} ${(percent * 100).toFixed(0)}%`}
+                      label={({ proType, percent, revenue }: any) => {
+                        const value = Number(revenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                        return `${proType} - $${value} (${(percent * 100).toFixed(0)}%)`;
+                      }}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="revenue"
@@ -1974,7 +1990,10 @@ function AnalyticsTab() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ platform, percent }: any) => `${platform} ${(percent * 100).toFixed(0)}%`}
+                        label={({ platform, percent, revenue }: any) => {
+                          const value = Number(revenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                          return `${platform} - $${value} (${(percent * 100).toFixed(0)}%)`;
+                        }}
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="revenue"
@@ -2036,42 +2055,64 @@ function AnalyticsTab() {
 
               {/* Platform Details Table */}
               <div className="bg-slate-700/30 rounded-lg p-6">
-                <h5 className="text-sm font-medium text-gray-400 mb-4">Platform Details</h5>
+                <div className="flex items-center justify-between mb-4">
+                  <h5 className="text-md font-medium text-white">Platform Details</h5>
+                  <span className="text-xs text-gray-400">
+                    {platformData.platforms.length} platform{platformData.platforms.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="border-b border-slate-600">
+                    <thead className="border-b-2 border-slate-600">
                       <tr>
-                        <th className="text-left text-xs font-medium text-gray-400 uppercase py-2">Platform</th>
-                        <th className="text-left text-xs font-medium text-gray-400 uppercase py-2">Offerings</th>
-                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Items</th>
-                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Revenue</th>
-                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Net</th>
+                        <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Platform</th>
+                        <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Service Type</th>
+                        <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Items</th>
+                        <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Gross Revenue</th>
+                        <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Net Revenue</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {platformData.platforms.map((platform: any) => (
-                        <tr key={platform.platform} className="border-b border-slate-700/50">
-                          <td className="py-3 text-white font-medium">{platform.platform}</td>
-                          <td className="py-3 text-sm text-gray-400">{platform.offerings.join(', ') || '-'}</td>
-                          <td className="py-3 text-right text-gray-300">{platform.count}</td>
-                          <td className="py-3 text-right text-green-400 font-medium">
+                      {platformData.platforms.map((platform: any, index: number) => (
+                        <tr
+                          key={platform.platform}
+                          className="border-b border-slate-700/50 hover:bg-slate-600/20 transition-colors"
+                        >
+                          <td className="py-3.5 px-2 text-white font-semibold">{platform.platform}</td>
+                          <td className="py-3.5 px-2 text-sm text-gray-400">
+                            <span className="inline-flex flex-wrap gap-1">
+                              {platform.offerings.length > 0 ? (
+                                platform.offerings.map((offering: string, i: number) => (
+                                  <span key={i} className="px-2 py-0.5 bg-slate-600/40 rounded text-xs">
+                                    {offering}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-gray-500">-</span>
+                              )}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-2 text-right text-gray-300 font-medium">{platform.count.toLocaleString()}</td>
+                          <td className="py-3.5 px-2 text-right text-green-400 font-semibold">
                             ${Number(platform.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
-                          <td className="py-3 text-right text-green-300">
+                          <td className="py-3.5 px-2 text-right text-green-300 font-medium">
                             ${Number(platform.netRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="border-t border-slate-600">
+                    <tfoot className="border-t-2 border-slate-600 bg-slate-700/20">
                       <tr>
-                        <td className="py-3 text-white font-bold">Total</td>
-                        <td></td>
-                        <td className="text-right text-white font-bold">{platformData.totalCount}</td>
-                        <td className="text-right text-green-400 font-bold">
+                        <td className="py-3.5 px-2 text-white font-bold text-sm">TOTAL</td>
+                        <td className="py-3.5 px-2"></td>
+                        <td className="py-3.5 px-2 text-right text-white font-bold">{platformData.totalCount.toLocaleString()}</td>
+                        <td className="py-3.5 px-2 text-right text-green-400 font-bold">
                           ${Number(platformData.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </td>
-                        <td></td>
+                        <td className="py-3.5 px-2 text-right text-green-300 font-bold">
+                          ${Number(platformData.totalNetRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
                       </tr>
                     </tfoot>
                   </table>
@@ -2099,7 +2140,10 @@ function AnalyticsTab() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ organization, percent }: any) => `${organization} ${(percent * 100).toFixed(0)}%`}
+                        label={({ organization, percent, revenue }: any) => {
+                          const value = Number(revenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                          return `${organization} - $${value} (${(percent * 100).toFixed(0)}%)`;
+                        }}
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="revenue"

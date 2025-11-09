@@ -206,7 +206,7 @@ export default function WriterDashboard() {
                   {/* PRO Breakdown Chart */}
                   {getProBreakdown().length > 0 ? (
                     <ChartCard
-                      title="Revenue by PRO"
+                      title="Revenue by Statement"
                       chartId="revenue-by-pro"
                       isExpanded={expandedCharts['revenue-by-pro'] || false}
                       onToggleExpand={toggleChartExpansion}
@@ -218,7 +218,10 @@ export default function WriterDashboard() {
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            label={({ name, percent, value }) => {
+                              const amount = Number(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                              return `${name} - $${amount} (${(percent * 100).toFixed(0)}%)`;
+                            }}
                             outerRadius={80}
                             fill="#8884d8"
                             dataKey="value"
@@ -249,9 +252,9 @@ export default function WriterDashboard() {
                     </ChartCard>
                   ) : (
                     <div className="bg-slate-700/30 rounded-lg p-6">
-                      <h3 className="text-lg font-medium text-white mb-4">Revenue by PRO</h3>
+                      <h3 className="text-lg font-medium text-white mb-4">Revenue by Statement</h3>
                       <div className="h-[300px] flex items-center justify-center text-gray-400">
-                        No PRO data available yet
+                        No statement data available yet
                       </div>
                     </div>
                   )}
