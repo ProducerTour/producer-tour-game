@@ -8,7 +8,41 @@ import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { useAuthStore } from '../store/auth.store';
 import { formatIpiDisplay } from '../utils/ipi-helper';
 
-const COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4'];
+const COLORS = [
+  '#3b82f6', // Blue
+  '#10b981', // Green
+  '#8b5cf6', // Purple
+  '#f59e0b', // Amber
+  '#ef4444', // Red
+  '#ec4899', // Pink
+  '#f97316', // Orange
+  '#06b6d4', // Cyan
+  '#84cc16', // Lime
+  '#a855f7', // Violet
+  '#f43f5e', // Rose
+  '#14b8a6', // Teal
+];
+
+// Smart pie chart label configuration based on item count
+const getSmartPieLabel = (itemCount: number) => {
+  if (itemCount <= 3) {
+    // 1-3 items: Full labels with name, amount, and percentage
+    return (props: any) => {
+      const { name, percent, value, revenue } = props;
+      const amount = Number(revenue || value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      return `${name} - $${amount} (${(percent * 100).toFixed(0)}%)`;
+    };
+  } else if (itemCount <= 6) {
+    // 4-6 items: Compact labels (percentage only)
+    return (props: any) => {
+      const { name, percent } = props;
+      return `${name} ${(percent * 100).toFixed(0)}%`;
+    };
+  } else {
+    // 7+ items: No labels (legend only to avoid overlap)
+    return false;
+  }
+};
 
 // Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
 const formatChartCurrency = (value: any): string => {
@@ -218,13 +252,11 @@ export default function WriterDashboard() {
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={({ name, percent, value }) => {
-                              const amount = Number(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                              return `${name} - $${amount} (${(percent * 100).toFixed(0)}%)`;
-                            }}
+                            label={getSmartPieLabel(getProBreakdown().length)}
                             outerRadius={80}
                             fill="#8884d8"
                             dataKey="value"
+                            nameKey="name"
                           >
                             {getProBreakdown().map((item, index) => (
                               <Cell
@@ -242,11 +274,13 @@ export default function WriterDashboard() {
                             }}
                             formatter={(value: any) => formatChartCurrency(value)}
                           />
-                          <Legend
-                            verticalAlign="bottom"
-                            height={36}
-                            wrapperStyle={{ color: '#9ca3af', fontSize: '12px' }}
-                          />
+                          {getProBreakdown().length > 3 && (
+                            <Legend
+                              verticalAlign="bottom"
+                              height={36}
+                              wrapperStyle={{ color: '#9ca3af', fontSize: '12px' }}
+                            />
+                          )}
                         </PieChart>
                       </ResponsiveContainer>
                     </ChartCard>

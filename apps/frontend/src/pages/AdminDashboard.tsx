@@ -1814,6 +1814,27 @@ function AnalyticsTab() {
     '#14b8a6', // Teal
   ];
 
+  // Smart pie chart label configuration based on item count
+  const getSmartPieLabel = (itemCount: number) => {
+    if (itemCount <= 3) {
+      // 1-3 items: Full labels with name, amount, and percentage
+      return (props: any) => {
+        const { name, percent, value, revenue } = props;
+        const amount = Number(revenue || value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        return `${name} - $${amount} (${(percent * 100).toFixed(0)}%)`;
+      };
+    } else if (itemCount <= 6) {
+      // 4-6 items: Compact labels (percentage only)
+      return (props: any) => {
+        const { name, percent } = props;
+        return `${name} ${(percent * 100).toFixed(0)}%`;
+      };
+    } else {
+      // 7+ items: No labels (legend only to avoid overlap)
+      return false;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-medium text-white">Platform Analytics</h3>
@@ -1912,13 +1933,11 @@ function AnalyticsTab() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ proType, percent, revenue }: any) => {
-                        const value = Number(revenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                        return `${proType} - $${value} (${(percent * 100).toFixed(0)}%)`;
-                      }}
+                      label={getSmartPieLabel(stats.proBreakdown.length)}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="revenue"
+                      nameKey="proType"
                     >
                       {stats.proBreakdown.map((breakdown: any, index: number) => (
                         <Cell
@@ -1931,6 +1950,13 @@ function AnalyticsTab() {
                       contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                       formatter={(value: any) => `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
                     />
+                    {stats.proBreakdown.length > 6 && (
+                      <Legend
+                        verticalAlign="bottom"
+                        height={36}
+                        wrapperStyle={{ color: '#9ca3af', fontSize: '12px' }}
+                      />
+                    )}
                   </PieChart>
                 </ResponsiveContainer>
               </ChartCard>
@@ -1993,13 +2019,11 @@ function AnalyticsTab() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ platform, percent, revenue }: any) => {
-                          const value = Number(revenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                          return `${platform} - $${value} (${(percent * 100).toFixed(0)}%)`;
-                        }}
+                        label={getSmartPieLabel(platformData.platforms.length)}
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="revenue"
+                        nameKey="platform"
                       >
                         {platformData.platforms.map((p: any, index: number) => (
                           <Cell
@@ -2012,6 +2036,13 @@ function AnalyticsTab() {
                         contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                         formatter={(value: any) => `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
                       />
+                      {platformData.platforms.length > 6 && (
+                        <Legend
+                          verticalAlign="bottom"
+                          height={36}
+                          wrapperStyle={{ color: '#9ca3af', fontSize: '12px' }}
+                        />
+                      )}
                     </PieChart>
                   </ResponsiveContainer>
                 </ChartCard>
@@ -2143,13 +2174,11 @@ function AnalyticsTab() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ organization, percent, revenue }: any) => {
-                          const value = Number(revenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                          return `${organization} - $${value} (${(percent * 100).toFixed(0)}%)`;
-                        }}
+                        label={getSmartPieLabel(organizationData.organizations.length)}
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="revenue"
+                        nameKey="organization"
                       >
                         {organizationData.organizations.map((org: any, index: number) => (
                           <Cell
@@ -2162,6 +2191,13 @@ function AnalyticsTab() {
                         contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                         formatter={(value: any) => `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
                       />
+                      {organizationData.organizations.length > 6 && (
+                        <Legend
+                          verticalAlign="bottom"
+                          height={36}
+                          wrapperStyle={{ color: '#9ca3af', fontSize: '12px' }}
+                        />
+                      )}
                     </PieChart>
                   </ResponsiveContainer>
                 </ChartCard>
