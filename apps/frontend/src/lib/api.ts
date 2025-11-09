@@ -330,3 +330,19 @@ export const settingsApi = {
     delete: (id: string) => api.delete(`/settings/publishers/${id}`),
   },
 };
+
+// Payment API - Stripe integration
+export const paymentApi = {
+  // Get payment/Stripe account status
+  getStatus: () => api.get('/payments/status'),
+
+  // Create Stripe onboarding link
+  createOnboardingLink: (returnUrl: string, refreshUrl: string) =>
+    api.post('/payments/onboard', { returnUrl, refreshUrl }),
+
+  // Get Stripe dashboard link
+  getDashboardLink: () => api.post('/payments/dashboard-link'),
+
+  // Get payment history
+  getHistory: () => api.get('/payments/history'),
+};

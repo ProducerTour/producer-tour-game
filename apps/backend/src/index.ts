@@ -24,6 +24,7 @@ import advanceScenariosRoutes from './routes/advance-scenarios.routes';
 import documentsRoutes from './routes/documents.routes';
 import commissionRoutes from './routes/commission.routes';
 import settingsRoutes from './routes/settings.routes';
+import paymentRoutes from './routes/payment.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -115,6 +116,7 @@ app.use('/api/advance-scenarios', advanceScenariosRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/commission', commissionRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Error handling
 app.use(notFoundHandler);

@@ -16,6 +16,7 @@ import {
   type StatementExportSummary
 } from '../utils/export-generator';
 import { emailService } from '../services/email.service';
+import { stripeService } from '../services/stripe.service';
 
 const router = Router();
 
@@ -1001,6 +1002,26 @@ router.post(
         return res.status(400).json({ error: 'Statement already paid' });
       }
 
+      // Attempt to process Stripe payments first
+      let stripeResult;
+      let stripeErrors: Array<{ userId: string; userName: string; error: string }> = [];
+
+      try {
+        stripeResult = await stripeService.processStatementPayment(id);
+        stripeErrors = stripeResult.errors;
+
+        console.log(`Stripe payment processing: ${stripeResult.transferIds.length} successful transfers, ${stripeResult.errors.length} errors`);
+
+        // Log any errors for admin review
+        if (stripeResult.errors.length > 0) {
+          console.warn('Stripe payment errors:', stripeResult.errors);
+        }
+      } catch (error: any) {
+        console.error('Stripe payment processing failed:', error);
+        // Continue with marking as paid even if Stripe fails (manual payment fallback)
+        stripeErrors.push({ userId: 'system', userName: 'System', error: error.message });
+      }
+
       // Process payment in transaction
       const result = await prisma.$transaction(async (tx) => {
         // Update statement
@@ -1109,6 +1130,12 @@ router.post(
           paymentProcessedAt: result.paymentProcessedAt,
           totalPaidToWriters: Number(result.totalNet),
           commissionToProducerTour: Number(result.totalCommission)
+        },
+        stripe: {
+          transfersSuccessful: stripeResult?.transferIds.length || 0,
+          transferIds: stripeResult?.transferIds || [],
+          errors: stripeErrors,
+          hasErrors: stripeErrors.length > 0
         }
       });
     } catch (error) {

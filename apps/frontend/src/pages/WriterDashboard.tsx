@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import Sidebar from '../components/Sidebar';
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
+import { PaymentSettings } from '../components/PaymentSettings';
 import { useAuthStore } from '../store/auth.store';
 import { formatIpiDisplay } from '../utils/ipi-helper';
 
@@ -55,7 +56,7 @@ const formatChartCurrency = (value: any): string => {
 };
 
 export default function WriterDashboard() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile'>('overview');
   const [expandedCharts, setExpandedCharts] = useState<Record<string, boolean>>({});
 
   const toggleChartExpansion = (chartId: string) => {
@@ -70,6 +71,7 @@ export default function WriterDashboard() {
     { id: 'songs', label: 'My Songs', icon: '🎵' },
     { id: 'statements', label: 'Statements', icon: '📄' },
     { id: 'documents', label: 'Documents', icon: '📁' },
+    { id: 'payments', label: 'Payments', icon: '💳' },
     { id: 'profile', label: 'Profile', icon: '👤' },
   ];
 
@@ -384,6 +386,8 @@ export default function WriterDashboard() {
             )}
 
             {activeTab === 'documents' && <WriterDocumentsSection />}
+
+            {activeTab === 'payments' && <PaymentSettings />}
 
             {activeTab === 'profile' && <ProfileSection />}
           </div>

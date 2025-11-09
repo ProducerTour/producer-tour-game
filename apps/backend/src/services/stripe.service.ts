@@ -1,326 +1,308 @@
-/**
- * Stripe Payment Service
- *
- * Handles actual payment transfers to writers using Stripe Connect or Payouts API.
- *
- * SETUP REQUIRED:
- * 1. Create a Stripe account at https://stripe.com
- * 2. Get API keys from https://dashboard.stripe.com/apikeys
- * 3. Set up Stripe Connect (recommended) or use Payouts API
- * 4. Add STRIPE_SECRET_KEY to .env
- * 5. Collect writer bank account details (or use Stripe Connect for writer onboarding)
- *
- * IMPORTANT:
- * - This file provides the integration structure
- * - You must uncomment and configure based on your chosen Stripe integration method
- * - Test in Stripe test mode before going live
- * - Ensure PCI compliance for handling payment data
- */
+import Stripe from 'stripe';
+import { prisma } from '../lib/prisma';
 
-// Uncomment when ready to use:
-// import Stripe from 'stripe';
-
-interface WriterPaymentDetails {
-  writerId: string;
-  writerName: string;
-  writerEmail: string;
-  amount: number; // in USD
-  currency: string;
-  description: string;
-  metadata?: Record<string, any>;
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.warn('STRIPE_SECRET_KEY not set. Stripe functionality will not work.');
 }
 
-interface PaymentResult {
-  success: boolean;
-  transactionId?: string;
-  error?: string;
-  details?: any;
-}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2024-11-20.acacia',
+  typescript: true,
+});
 
-class StripePaymentService {
-  // private stripe: Stripe | null = null;
-  private isConfigured: boolean = false;
-
-  constructor() {
-    this.initialize();
-  }
-
-  private initialize() {
-    const { STRIPE_SECRET_KEY } = process.env;
-
-    if (!STRIPE_SECRET_KEY) {
-      console.warn('⚠️  Stripe not configured. Set STRIPE_SECRET_KEY to enable automatic payments.');
-      this.isConfigured = false;
-      return;
-    }
-
+export const stripeService = {
+  /**
+   * Create a Stripe Connect Express account for a writer
+   */
+  async createConnectAccount(userId: string, email: string): Promise<string> {
     try {
-      // Uncomment when ready to use:
-      // this.stripe = new Stripe(STRIPE_SECRET_KEY, {
-      //   apiVersion: '2023-10-16', // Use latest API version
-      // });
-      // this.isConfigured = true;
-      // console.log('✅ Stripe service configured successfully');
+      const account = await stripe.accounts.create({
+        type: 'express',
+        email,
+        capabilities: {
+          transfers: { requested: true },
+        },
+        business_type: 'individual',
+        metadata: {
+          userId,
+        },
+      });
 
-      this.isConfigured = false; // Set to true when uncommented above
+      // Update user with Stripe account ID
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          stripeAccountId: account.id,
+          stripeAccountStatus: account.details_submitted ? 'complete' : 'pending',
+          stripeDetailsSubmitted: account.details_submitted,
+        },
+      });
+
+      return account.id;
     } catch (error) {
-      console.error('❌ Failed to configure Stripe service:', error);
-      this.isConfigured = false;
+      console.error('Error creating Stripe Connect account:', error);
+      throw new Error('Failed to create payment account');
     }
-  }
+  },
 
   /**
-   * METHOD 1: Stripe Connect (Recommended)
-   *
-   * Best for platforms that pay multiple sellers/contractors.
-   * Writers create their own Stripe accounts and connect to your platform.
-   *
-   * Steps:
-   * 1. Enable Stripe Connect in your dashboard
-   * 2. Have writers connect their accounts: https://stripe.com/docs/connect/onboarding
-   * 3. Use this method to transfer funds to connected accounts
+   * Generate an onboarding link for a writer to complete Stripe setup
    */
-  async payWriterViaConnect(
-    connectedAccountId: string,
-    payment: WriterPaymentDetails
-  ): Promise<PaymentResult> {
-    if (!this.isConfigured) {
-      return {
-        success: false,
-        error: 'Stripe not configured',
-      };
-    }
-
+  async createOnboardingLink(userId: string, returnUrl: string, refreshUrl: string): Promise<string> {
     try {
-      // Uncomment when ready:
-      // const transfer = await this.stripe!.transfers.create({
-      //   amount: Math.round(payment.amount * 100), // Convert to cents
-      //   currency: payment.currency.toLowerCase(),
-      //   destination: connectedAccountId,
-      //   description: payment.description,
-      //   metadata: {
-      //     writerId: payment.writerId,
-      //     writerName: payment.writerName,
-      //     ...payment.metadata,
-      //   },
-      // });
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) throw new Error('User not found');
 
-      // return {
-      //   success: true,
-      //   transactionId: transfer.id,
-      //   details: transfer,
-      // };
+      let accountId = user.stripeAccountId;
+
+      // Create account if it doesn't exist
+      if (!accountId) {
+        accountId = await this.createConnectAccount(userId, user.email);
+      }
+
+      const accountLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: refreshUrl,
+        return_url: returnUrl,
+        type: 'account_onboarding',
+      });
+
+      return accountLink.url;
+    } catch (error) {
+      console.error('Error creating onboarding link:', error);
+      throw new Error('Failed to create onboarding link');
+    }
+  },
+
+  /**
+   * Check and update Stripe account status
+   */
+  async updateAccountStatus(userId: string): Promise<{
+    onboardingComplete: boolean;
+    accountStatus: string;
+    detailsSubmitted: boolean;
+  }> {
+    try {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user?.stripeAccountId) {
+        throw new Error('No Stripe account found for user');
+      }
+
+      const account = await stripe.accounts.retrieve(user.stripeAccountId);
+
+      const onboardingComplete =
+        account.details_submitted &&
+        account.charges_enabled &&
+        account.payouts_enabled;
+
+      const status = onboardingComplete ? 'complete' :
+                     account.details_submitted ? 'restricted' : 'pending';
+
+      // Update user record
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          stripeOnboardingComplete: onboardingComplete,
+          stripeAccountStatus: status,
+          stripeDetailsSubmitted: account.details_submitted,
+        },
+      });
 
       return {
-        success: false,
-        error: 'Stripe integration not yet activated - uncomment code in stripe.service.ts',
+        onboardingComplete,
+        accountStatus: status,
+        detailsSubmitted: account.details_submitted,
+      };
+    } catch (error) {
+      console.error('Error updating account status:', error);
+      throw new Error('Failed to check account status');
+    }
+  },
+
+  /**
+   * Create a transfer to a writer's Stripe Connect account
+   */
+  async createTransfer(
+    accountId: string,
+    amountCents: number,
+    statementId: string,
+    description: string,
+    transferGroup?: string
+  ): Promise<string> {
+    try {
+      const transfer = await stripe.transfers.create({
+        amount: amountCents,
+        currency: 'usd',
+        destination: accountId,
+        description,
+        metadata: {
+          statementId,
+        },
+        transfer_group: transferGroup,
+      });
+
+      return transfer.id;
+    } catch (error) {
+      console.error('Error creating transfer:', error);
+      throw new Error('Failed to create transfer');
+    }
+  },
+
+  /**
+   * Process payment for a statement by transferring funds to all writers
+   */
+  async processStatementPayment(statementId: string): Promise<{
+    success: boolean;
+    transferIds: string[];
+    errors: Array<{ userId: string; userName: string; error: string }>;
+  }> {
+    try {
+      const statement = await prisma.statement.findUnique({
+        where: { id: statementId },
+        include: {
+          items: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
+
+      if (!statement) {
+        throw new Error('Statement not found');
+      }
+
+      if (statement.paymentStatus === 'PAID') {
+        throw new Error('Statement already paid');
+      }
+
+      // Group items by user and calculate total per writer
+      const writerPayments = new Map<string, {
+        user: any;
+        totalNet: number;
+        itemCount: number;
+      }>();
+
+      for (const item of statement.items) {
+        if (!item.user) continue;
+
+        const existing = writerPayments.get(item.userId);
+        if (existing) {
+          existing.totalNet += Number(item.netAmount);
+          existing.itemCount += 1;
+        } else {
+          writerPayments.set(item.userId, {
+            user: item.user,
+            totalNet: Number(item.netAmount),
+            itemCount: 1,
+          });
+        }
+      }
+
+      // Create a transfer group for tracking
+      const transferGroup = `statement_${statementId}_${Date.now()}`;
+      const transferIds: string[] = [];
+      const errors: Array<{ userId: string; userName: string; error: string }> = [];
+
+      // Process each writer payment
+      for (const [userId, payment] of writerPayments.entries()) {
+        try {
+          const { user, totalNet } = payment;
+          const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
+
+          // Check if writer has completed Stripe onboarding
+          if (!user.stripeAccountId) {
+            errors.push({ userId, userName, error: 'No Stripe account connected' });
+            continue;
+          }
+
+          if (!user.stripeOnboardingComplete) {
+            // Try to refresh account status
+            const status = await this.updateAccountStatus(userId);
+            if (!status.onboardingComplete) {
+              errors.push({ userId, userName, error: 'Stripe onboarding not complete' });
+              continue;
+            }
+          }
+
+          // Convert to cents (Stripe uses smallest currency unit)
+          const amountCents = Math.round(totalNet * 100);
+
+          if (amountCents <= 0) {
+            errors.push({ userId, userName, error: 'Invalid payment amount' });
+            continue;
+          }
+
+          // Create transfer
+          const transferId = await this.createTransfer(
+            user.stripeAccountId,
+            amountCents,
+            statementId,
+            `Payment for ${statement.filename} (${statement.proType})`,
+            transferGroup
+          );
+
+          transferIds.push(transferId);
+        } catch (error: any) {
+          const userName = `${payment.user.firstName || ''} ${payment.user.lastName || ''}`.trim() || payment.user.email;
+          console.error(`Error processing payment for user ${userId}:`, error);
+          errors.push({ userId, userName, error: error.message || 'Transfer failed' });
+        }
+      }
+
+      // Update statement with transfer information
+      await prisma.statement.update({
+        where: { id: statementId },
+        data: {
+          stripeTransferGroup: transferGroup,
+          stripeTransferIds: transferIds,
+        },
+      });
+
+      return {
+        success: errors.length === 0,
+        transferIds,
+        errors,
       };
     } catch (error: any) {
-      console.error('Stripe Connect transfer failed:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
+      console.error('Error processing statement payment:', error);
+      throw error;
     }
-  }
+  },
 
   /**
-   * METHOD 2: Stripe Payouts API
-   *
-   * Simpler but requires you to hold funds in your Stripe balance.
-   * Writers provide bank account details which you store (PCI compliance required).
-   *
-   * Steps:
-   * 1. Collect writer bank account details securely
-   * 2. Create external accounts for each writer
-   * 3. Use this method to send payouts
+   * Get Stripe account details for a user
    */
-  async payWriterViaPayout(
-    externalAccountId: string,
-    payment: WriterPaymentDetails
-  ): Promise<PaymentResult> {
-    if (!this.isConfigured) {
-      return {
-        success: false,
-        error: 'Stripe not configured',
-      };
-    }
-
+  async getAccountDetails(userId: string): Promise<any> {
     try {
-      // Uncomment when ready:
-      // const payout = await this.stripe!.payouts.create({
-      //   amount: Math.round(payment.amount * 100), // Convert to cents
-      //   currency: payment.currency.toLowerCase(),
-      //   destination: externalAccountId,
-      //   description: payment.description,
-      //   metadata: {
-      //     writerId: payment.writerId,
-      //     writerName: payment.writerName,
-      //     ...payment.metadata,
-      //   },
-      // });
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user?.stripeAccountId) {
+        return null;
+      }
 
-      // return {
-      //   success: true,
-      //   transactionId: payout.id,
-      //   details: payout,
-      // };
-
-      return {
-        success: false,
-        error: 'Stripe integration not yet activated - uncomment code in stripe.service.ts',
-      };
-    } catch (error: any) {
-      console.error('Stripe payout failed:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * METHOD 3: Stripe Checkout (Alternative for one-time setup)
-   *
-   * Create a payment link that writers can use to receive funds.
-   * Less automated but easier to set up initially.
-   */
-  async createPaymentLink(
-    payment: WriterPaymentDetails
-  ): Promise<PaymentResult> {
-    if (!this.isConfigured) {
-      return {
-        success: false,
-        error: 'Stripe not configured',
-      };
-    }
-
-    try {
-      // Uncomment when ready:
-      // const paymentLink = await this.stripe!.paymentLinks.create({
-      //   line_items: [
-      //     {
-      //       price_data: {
-      //         currency: payment.currency.toLowerCase(),
-      //         product_data: {
-      //           name: payment.description,
-      //         },
-      //         unit_amount: Math.round(payment.amount * 100),
-      //       },
-      //       quantity: 1,
-      //     },
-      //   ],
-      //   metadata: {
-      //     writerId: payment.writerId,
-      //     writerName: payment.writerName,
-      //     ...payment.metadata,
-      //   },
-      // });
-
-      // return {
-      //   success: true,
-      //   transactionId: paymentLink.id,
-      //   details: {
-      //     url: paymentLink.url,
-      //   },
-      // };
-
-      return {
-        success: false,
-        error: 'Stripe integration not yet activated - uncomment code in stripe.service.ts',
-      };
-    } catch (error: any) {
-      console.error('Stripe payment link creation failed:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * Verify account balance before processing payments
-   */
-  async checkBalance(): Promise<number> {
-    if (!this.isConfigured) {
-      return 0;
-    }
-
-    try {
-      // Uncomment when ready:
-      // const balance = await this.stripe!.balance.retrieve();
-      // return balance.available[0]?.amount || 0; // in cents
-
-      return 0;
+      const account = await stripe.accounts.retrieve(user.stripeAccountId);
+      return account;
     } catch (error) {
-      console.error('Failed to retrieve Stripe balance:', error);
-      return 0;
+      console.error('Error fetching account details:', error);
+      return null;
     }
-  }
+  },
 
   /**
-   * Get payout status
+   * Create a dashboard login link for a writer to access their Stripe dashboard
    */
-  async getPayoutStatus(payoutId: string): Promise<any> {
-    if (!this.isConfigured) {
-      return null;
-    }
-
+  async createDashboardLink(userId: string): Promise<string> {
     try {
-      // Uncomment when ready:
-      // return await this.stripe!.payouts.retrieve(payoutId);
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user?.stripeAccountId) {
+        throw new Error('No Stripe account found');
+      }
 
-      return null;
+      const loginLink = await stripe.accounts.createLoginLink(user.stripeAccountId);
+      return loginLink.url;
     } catch (error) {
-      console.error('Failed to retrieve payout status:', error);
-      return null;
+      console.error('Error creating dashboard link:', error);
+      throw new Error('Failed to create dashboard link');
     }
-  }
-}
-
-// Export singleton instance
-export const stripeService = new StripePaymentService();
-
-/**
- * INTEGRATION GUIDE
- *
- * To activate Stripe payments:
- *
- * 1. Install Stripe SDK:
- *    npm install stripe
- *
- * 2. Get your API keys:
- *    https://dashboard.stripe.com/apikeys
- *
- * 3. Add to .env:
- *    STRIPE_SECRET_KEY=sk_test_... (test mode)
- *    STRIPE_SECRET_KEY=sk_live_... (production - after testing!)
- *
- * 4. Choose integration method:
- *
- *    Option A - Stripe Connect (Recommended):
- *    - Pro: Writers manage their own accounts
- *    - Pro: Automatic tax forms (1099s)
- *    - Pro: No PCI compliance burden
- *    - Con: Writers must create Stripe accounts
- *
- *    Option B - Stripe Payouts:
- *    - Pro: Simpler for writers (just bank details)
- *    - Pro: More control
- *    - Con: You hold funds
- *    - Con: PCI compliance required
- *
- * 5. Uncomment the Stripe initialization code above
- *
- * 6. Update User model to store:
- *    - stripeConnectedAccountId (for Connect)
- *    OR
- *    - stripeBankAccountId (for Payouts)
- *
- * 7. Test with Stripe test cards:
- *    https://stripe.com/docs/testing
- *
- * 8. Add webhook handling for payment status updates
- *
- * 9. GO LIVE! (after thorough testing)
- */
+  },
+};
