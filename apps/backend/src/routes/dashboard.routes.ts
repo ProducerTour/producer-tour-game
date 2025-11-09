@@ -751,8 +751,8 @@ router.get('/territory-breakdown', authenticate, async (req: AuthRequest, res: R
       },
       select: {
         metadata: true,
-        grossRevenue: true,
-        netRevenue: true
+        revenue: true,
+        commissionAmount: true
       }
     });
 
@@ -765,9 +765,9 @@ router.get('/territory-breakdown', authenticate, async (req: AuthRequest, res: R
 
       if (territory && typeof territory === 'string') {
         const normalizedTerritory = territory.trim().toUpperCase();
-        const revenue = isAdmin
-          ? Number(item.grossRevenue || 0)
-          : Number(item.netRevenue || 0);
+        const grossRevenue = Number(item.revenue || 0);
+        const netRevenue = grossRevenue - Number(item.commissionAmount || 0);
+        const revenue = isAdmin ? grossRevenue : netRevenue;
 
         if (territoryMap.has(normalizedTerritory)) {
           const existing = territoryMap.get(normalizedTerritory)!;
