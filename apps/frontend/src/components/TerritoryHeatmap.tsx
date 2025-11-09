@@ -8,7 +8,8 @@ import {
 import { scaleLinear } from 'd3-scale';
 import { aggregateTerritoryData } from '../utils/territory-mapper';
 
-const geoUrl = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+// Using Natural Earth data with ISO codes - better for territory matching
+const geoUrl = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
 
 interface TerritoryHeatmapProps {
   territories: Array<{
@@ -67,7 +68,8 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
           <Geographies geography={geoUrl}>
             {({ geographies }: any) =>
               geographies.map((geo: any) => {
-                const countryCode = geo.id;
+                // Use ISO_A2 from properties instead of numeric id
+                const countryCode = geo.properties?.ISO_A2 || geo.properties?.iso_a2 || geo.id;
                 const data = countryData[countryCode];
                 const fillColor = data ? colorScale(data.revenue) : '#334155';
 
