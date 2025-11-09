@@ -7,11 +7,12 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import Sidebar from '../components/Sidebar';
 import ToolsHub from '../components/ToolsHub';
 import DocumentsTab from '../components/DocumentsTab';
+import PayoutsTab from '../components/PayoutsTab';
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { formatIpiDisplay } from '../utils/ipi-helper';
 
-type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission';
+type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission' | 'payouts';
 
 // Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
 const formatChartCurrency = (value: any): string => {
@@ -31,6 +32,7 @@ export default function AdminDashboard() {
     { id: 'statements', label: 'Statements', icon: '📊' },
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'analytics', label: 'Analytics', icon: '📈' },
+    { id: 'payouts', label: 'Payouts', icon: '💰' },
     { id: 'documents', label: 'Documents', icon: '📄' },
     { id: 'tools', label: 'Tools Hub', icon: '🛠️' },
     { id: 'commission', label: 'Commission Settings', icon: '💼' },
@@ -52,6 +54,7 @@ export default function AdminDashboard() {
           {activeTab === 'statements' && <StatementsTab />}
           {activeTab === 'users' && <UsersTab />}
           {activeTab === 'analytics' && <AnalyticsTab />}
+          {activeTab === 'payouts' && <PayoutsTab />}
           {activeTab === 'documents' && <DocumentsTab />}
           {activeTab === 'tools' && <ToolsHub />}
           {activeTab === 'commission' && <CommissionSettingsPage />}
