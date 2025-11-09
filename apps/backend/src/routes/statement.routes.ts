@@ -329,6 +329,81 @@ router.get(
 );
 
 /**
+ * GET /api/statements/export/unpaid-summary
+ * Export summary of all unpaid statements as CSV (Admin only)
+ * NOTE: This route MUST come before /:id route to avoid matching "export" as an ID
+ */
+router.get(
+  '/export/unpaid-summary',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const unpaidStatements = await prisma.statement.findMany({
+        where: {
+          status: 'PUBLISHED',
+          paymentStatus: { in: ['UNPAID', 'PENDING'] }
+        },
+        include: {
+          items: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { publishedAt: 'desc' }
+      });
+
+      const summaries: StatementExportSummary[] = unpaidStatements.map(statement => {
+        const metadata = statement.metadata as any;
+        const parsedItems = metadata?.parsedItems || [];
+        const assignments = metadata?.writerAssignments || {};
+
+        // Count unique writers
+        const writerIds = new Set<string>();
+        Object.values(assignments).forEach((assignmentList: any) => {
+          if (Array.isArray(assignmentList)) {
+            assignmentList.forEach((a: any) => {
+              if (a.userId) writerIds.add(a.userId);
+            });
+          }
+        });
+
+        return {
+          statementId: statement.id,
+          proType: statement.proType,
+          filename: statement.filename,
+          publishedDate: formatExportDate(statement.publishedAt),
+          paymentDate: formatExportDate(statement.paymentProcessedAt),
+          totalWriters: writerIds.size,
+          totalSongs: statement.items.length,
+          totalGrossRevenue: Number(statement.totalRevenue),
+          totalCommission: Number(statement.totalCommission),
+          totalNetPayments: Number(statement.totalNet),
+          paymentStatus: statement.paymentStatus
+        };
+      });
+
+      const csv = generateStatementSummaryCSV(summaries);
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="unpaid-statements-summary-${formatExportDate(new Date())}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error('Export unpaid summary error:', error);
+      res.status(500).json({ error: 'Failed to export unpaid summary' });
+    }
+  }
+);
+
+/**
  * GET /api/statements/:id
  * Get statement details
  */
@@ -1436,80 +1511,6 @@ router.get(
     } catch (error) {
       console.error('Export QuickBooks error:', error);
       res.status(500).json({ error: 'Failed to export QuickBooks format' });
-    }
-  }
-);
-
-/**
- * GET /api/statements/export/unpaid-summary
- * Export summary of all unpaid statements as CSV (Admin only)
- */
-router.get(
-  '/export/unpaid-summary',
-  authenticate,
-  requireAdmin,
-  async (req: AuthRequest, res: Response) => {
-    try {
-      const unpaidStatements = await prisma.statement.findMany({
-        where: {
-          status: 'PUBLISHED',
-          paymentStatus: { in: ['UNPAID', 'PENDING'] }
-        },
-        include: {
-          items: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                  firstName: true,
-                  lastName: true
-                }
-              }
-            }
-          }
-        },
-        orderBy: { publishedAt: 'desc' }
-      });
-
-      const summaries: StatementExportSummary[] = unpaidStatements.map(statement => {
-        const metadata = statement.metadata as any;
-        const parsedItems = metadata?.parsedItems || [];
-        const assignments = metadata?.writerAssignments || {};
-
-        // Count unique writers
-        const writerIds = new Set<string>();
-        Object.values(assignments).forEach((assignmentList: any) => {
-          if (Array.isArray(assignmentList)) {
-            assignmentList.forEach((a: any) => {
-              if (a.userId) writerIds.add(a.userId);
-            });
-          }
-        });
-
-        return {
-          statementId: statement.id,
-          proType: statement.proType,
-          filename: statement.filename,
-          publishedDate: formatExportDate(statement.publishedAt),
-          paymentDate: formatExportDate(statement.paymentProcessedAt),
-          totalWriters: writerIds.size,
-          totalSongs: statement.items.length,
-          totalGrossRevenue: Number(statement.totalRevenue),
-          totalCommission: Number(statement.totalCommission),
-          totalNetPayments: Number(statement.totalNet),
-          paymentStatus: statement.paymentStatus
-        };
-      });
-
-      const csv = generateStatementSummaryCSV(summaries);
-
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="unpaid-statements-summary-${formatExportDate(new Date())}.csv"`);
-      res.send(csv);
-    } catch (error) {
-      console.error('Export unpaid summary error:', error);
-      res.status(500).json({ error: 'Failed to export unpaid summary' });
     }
   }
 );
