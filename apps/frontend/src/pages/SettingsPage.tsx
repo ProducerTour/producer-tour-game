@@ -126,6 +126,7 @@ export default function SettingsPage() {
     },
     onSuccess: (response) => {
       console.log('✅ Update successful! Response:', response);
+      console.log('✅ Saved settings:', response.data);
       setMessage({ type: 'success', text: 'System settings updated successfully!' });
       queryClient.invalidateQueries({ queryKey: ['system-settings'] });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
