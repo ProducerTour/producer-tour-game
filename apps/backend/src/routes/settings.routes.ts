@@ -133,21 +133,27 @@ router.get('/system', async (req: AuthRequest, res: Response) => {
   try {
     // Get or create system settings (singleton pattern)
     let settings = await prisma.systemSettings.findFirst();
+    console.log('📖 Fetching system settings, found:', settings);
 
     if (!settings) {
+      console.log('🆕 No settings found, creating defaults');
       // Create default settings if none exist
       settings = await prisma.systemSettings.create({
         data: {
           minimumWithdrawalAmount: 50.00
         }
       });
+      console.log('✅ Created default settings:', settings);
     }
 
-    res.json({
+    const response = {
       minimumWithdrawalAmount: Number(settings.minimumWithdrawalAmount)
-    });
+    };
+    console.log('📤 Returning to client:', response);
+
+    res.json(response);
   } catch (error) {
-    console.error('Get system settings error:', error);
+    console.error('❌ Get system settings error:', error);
     res.status(500).json({ error: 'Failed to fetch system settings' });
   }
 });
@@ -159,6 +165,7 @@ router.get('/system', async (req: AuthRequest, res: Response) => {
 router.patch('/system', async (req: AuthRequest, res: Response) => {
   try {
     const { minimumWithdrawalAmount } = req.body;
+    console.log('📝 Received update request:', { minimumWithdrawalAmount });
 
     // Validation
     if (minimumWithdrawalAmount !== undefined) {
@@ -172,14 +179,17 @@ router.patch('/system', async (req: AuthRequest, res: Response) => {
 
     // Get or create settings
     let settings = await prisma.systemSettings.findFirst();
+    console.log('📊 Current settings in DB:', settings);
 
     if (!settings) {
+      console.log('🆕 Creating new settings record');
       settings = await prisma.systemSettings.create({
         data: {
           minimumWithdrawalAmount: minimumWithdrawalAmount || 50.00
         }
       });
     } else {
+      console.log('✏️ Updating existing settings record');
       settings = await prisma.systemSettings.update({
         where: { id: settings.id },
         data: {
@@ -190,6 +200,8 @@ router.patch('/system', async (req: AuthRequest, res: Response) => {
       });
     }
 
+    console.log('✅ Settings after save:', settings);
+
     res.json({
       message: 'System settings updated successfully',
       settings: {
@@ -197,7 +209,7 @@ router.patch('/system', async (req: AuthRequest, res: Response) => {
       }
     });
   } catch (error) {
-    console.error('Update system settings error:', error);
+    console.error('❌ Update system settings error:', error);
     res.status(500).json({ error: 'Failed to update system settings' });
   }
 });
