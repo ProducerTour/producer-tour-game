@@ -63,6 +63,7 @@ export default function SettingsPage() {
   // Update local state when system settings data loads
   useEffect(() => {
     if (systemSettingsData) {
+      console.log('📥 System settings data loaded:', systemSettingsData);
       setSystemSettings({
         minimumWithdrawalAmount: (systemSettingsData as any).minimumWithdrawalAmount || 50,
       });
@@ -119,19 +120,25 @@ export default function SettingsPage() {
 
   // System settings mutation
   const updateSystemSettingsMutation = useMutation({
-    mutationFn: (settings: any) => systemSettingsApi.updateSettings(settings),
-    onSuccess: () => {
+    mutationFn: (settings: any) => {
+      console.log('📡 Sending update request with:', settings);
+      return systemSettingsApi.updateSettings(settings);
+    },
+    onSuccess: (response) => {
+      console.log('✅ Update successful! Response:', response);
       setMessage({ type: 'success', text: 'System settings updated successfully!' });
       queryClient.invalidateQueries({ queryKey: ['system-settings'] });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     },
     onError: (error: any) => {
+      console.error('❌ Update failed:', error);
       setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update system settings' });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     }
   });
 
   const handleSystemSettingsUpdate = () => {
+    console.log('💾 Saving system settings:', systemSettings);
     updateSystemSettingsMutation.mutate(systemSettings);
   };
 
