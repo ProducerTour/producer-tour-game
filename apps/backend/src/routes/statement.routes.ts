@@ -1092,25 +1092,10 @@ router.post(
         return res.status(400).json({ error: 'Statement already paid' });
       }
 
-      // Attempt to process Stripe payments first
-      let stripeResult;
-      let stripeErrors: Array<{ userId: string; userName: string; error: string }> = [];
-
-      try {
-        stripeResult = await stripeService.processStatementPayment(id);
-        stripeErrors = stripeResult.errors;
-
-        console.log(`Stripe payment processing: ${stripeResult.transferIds.length} successful transfers, ${stripeResult.errors.length} errors`);
-
-        // Log any errors for admin review
-        if (stripeResult.errors.length > 0) {
-          console.warn('Stripe payment errors:', stripeResult.errors);
-        }
-      } catch (error: any) {
-        console.error('Stripe payment processing failed:', error);
-        // Continue with marking as paid even if Stripe fails (manual payment fallback)
-        stripeErrors.push({ userId: 'system', userName: 'System', error: error.message });
-      }
+      // NOTE: Stripe transfers are NO LONGER created here
+      // Instead, transfers are created when writers request withdrawals and admins approve them
+      // This allows writers to accumulate earnings and withdraw when they choose
+      console.log('📝 Marking statement as PAID and updating writer balances (Stripe transfers will happen on withdrawal approval)');
 
       // Process payment in transaction
       const result = await prisma.$transaction(async (tx) => {
@@ -1246,12 +1231,7 @@ router.post(
           totalPaidToWriters: Number(result.totalNet),
           commissionToProducerTour: Number(result.totalCommission)
         },
-        stripe: {
-          transfersSuccessful: stripeResult?.transferIds.length || 0,
-          transferIds: stripeResult?.transferIds || [],
-          errors: stripeErrors,
-          hasErrors: stripeErrors.length > 0
-        }
+        message: 'Statement marked as PAID. Writer balances updated. Stripe transfers will occur when writers request withdrawals.'
       });
     } catch (error) {
       console.error('Process payment error:', error);

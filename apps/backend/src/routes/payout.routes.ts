@@ -285,20 +285,53 @@ router.post('/:id/approve', authenticate, requireAdmin, async (req: AuthRequest,
       },
     });
 
-    // Note: Actual Stripe transfer happens automatically since money is already
-    // in their Stripe Connect account from when admin processed statement payments.
-    // Stripe Connect accounts have automatic payouts to the bank based on their schedule.
+    console.log(`💸 Creating Stripe transfer for payout ${payoutId}: $${payout.amount} to ${payout.user.email}`);
 
-    // Mark as processing (Stripe will handle the bank transfer)
+    // Create Stripe transfer to writer's Connect account
+    let stripeTransferId: string | undefined;
+    let stripeError: string | undefined;
+
+    try {
+      const amountCents = Math.round(Number(payout.amount) * 100);
+      stripeTransferId = await stripeService.createTransfer(
+        payout.user.stripeAccountId,
+        amountCents,
+        payoutId,
+        `Withdrawal: $${Number(payout.amount).toFixed(2)}`,
+        `payout_${payoutId}`
+      );
+
+      console.log(`✅ Stripe transfer created: ${stripeTransferId}`);
+    } catch (error: any) {
+      console.error(`❌ Stripe transfer failed:`, error);
+      stripeError = error.message;
+
+      // Mark payout as failed
+      await prisma.payoutRequest.update({
+        where: { id: payoutId },
+        data: {
+          status: 'FAILED',
+          failureReason: `Stripe transfer failed: ${error.message}`,
+        },
+      });
+
+      return res.status(500).json({
+        error: 'Stripe transfer failed',
+        details: error.message
+      });
+    }
+
+    // Mark as processing
     await prisma.payoutRequest.update({
       where: { id: payoutId },
       data: {
         status: 'PROCESSING',
         processedAt: new Date(),
+        stripeTransferId,
       },
     });
 
-    // In test mode or with instant payouts, mark as completed immediately
+    // In test mode, mark as completed immediately
     // In production, we'd need a webhook to update this when Stripe confirms
     const isTestMode = process.env.STRIPE_SECRET_KEY?.includes('test');
     if (isTestMode) {
@@ -324,6 +357,7 @@ router.post('/:id/approve', authenticate, requireAdmin, async (req: AuthRequest,
         ? 'Payout approved and completed (test mode)'
         : 'Payout approved and processing',
       payoutId,
+      stripeTransferId,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
