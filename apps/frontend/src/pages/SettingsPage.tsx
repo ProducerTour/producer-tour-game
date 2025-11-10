@@ -339,23 +339,11 @@ export default function SettingsPage() {
                         <label className="block text-sm font-medium text-gray-300 mb-2">
                           Writer IPI Number
                         </label>
-                        {user?.role === 'ADMIN' ? (
-                          <input
-                            type="text"
-                            value={profileData.writerIpiNumber}
-                            onChange={(e) => setProfileData({ ...profileData, writerIpiNumber: e.target.value })}
-                            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                            placeholder="Enter your Writer IPI/CAE number"
-                          />
-                        ) : (
-                          <div className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-gray-400">
-                            {profileData.writerIpiNumber || 'Not set'}
-                          </div>
-                        )}
+                        <div className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-gray-400">
+                          {profileData.writerIpiNumber || 'Not set'}
+                        </div>
                         <p className="text-sm text-gray-400 mt-1">
-                          {user?.role === 'ADMIN'
-                            ? 'Your Writer IPI number is used for songwriter identification'
-                            : 'Contact your administrator to update your Writer IPI number'}
+                          Contact your administrator to update your Writer IPI number
                         </p>
                       </div>
                     )}
@@ -366,23 +354,11 @@ export default function SettingsPage() {
                         <label className="block text-sm font-medium text-gray-300 mb-2">
                           Publisher IPI Number
                         </label>
-                        {user?.role === 'ADMIN' ? (
-                          <input
-                            type="text"
-                            value={profileData.publisherIpiNumber}
-                            onChange={(e) => setProfileData({ ...profileData, publisherIpiNumber: e.target.value })}
-                            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
-                            placeholder="Enter your Publisher IPI/CAE number"
-                          />
-                        ) : (
-                          <div className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-gray-400">
-                            {profileData.publisherIpiNumber || 'Not set'}
-                          </div>
-                        )}
+                        <div className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-gray-400">
+                          {profileData.publisherIpiNumber || 'Not set'}
+                        </div>
                         <p className="text-sm text-gray-400 mt-1">
-                          {user?.role === 'ADMIN'
-                            ? 'Your Publisher IPI number is used for publishing identification'
-                            : 'Contact your administrator to update your Publisher IPI number'}
+                          Contact your administrator to update your Publisher IPI number
                         </p>
                       </div>
                     )}
