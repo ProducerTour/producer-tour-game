@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { userApi, settingsApi, preferencesApi, systemSettingsApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
@@ -58,12 +58,16 @@ export default function SettingsPage() {
       return response.data;
     },
     enabled: user?.role === 'ADMIN' && activeSection === 'system',
-    onSuccess: (data: any) => {
-      setSystemSettings({
-        minimumWithdrawalAmount: data.minimumWithdrawalAmount || 50,
-      });
-    },
   });
+
+  // Update local state when system settings data loads
+  useEffect(() => {
+    if (systemSettingsData) {
+      setSystemSettings({
+        minimumWithdrawalAmount: (systemSettingsData as any).minimumWithdrawalAmount || 50,
+      });
+    }
+  }, [systemSettingsData]);
 
   const updateProfileMutation = useMutation({
     mutationFn: (data: any) => userApi.update(user!.id, data),
