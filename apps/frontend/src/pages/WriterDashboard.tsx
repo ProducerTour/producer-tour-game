@@ -460,7 +460,7 @@ function ProfileSection() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-medium text-white">My Profile</h3>
-        {!isEditing && (
+        {!isEditing && user?.role === 'ADMIN' && (
           <button
             onClick={() => setIsEditing(true)}
             className="px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
@@ -581,8 +581,9 @@ function ProfileSection() {
         {/* Help Text */}
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
           <p className="text-sm text-blue-300">
-            <strong>Note:</strong> If you don't know your IPI numbers, you can find them on your PRO membership portal
-            (ASCAP, BMI, SESAC, etc.) or contact your administrator for assistance.
+            <strong>Note:</strong> {user?.role === 'ADMIN'
+              ? "IPI numbers can be found on PRO membership portals (ASCAP, BMI, SESAC, etc.)."
+              : "To update your IPI numbers, please contact your administrator. IPI numbers can be found on your PRO membership portal (ASCAP, BMI, SESAC, etc.)."}
           </p>
         </div>
       </div>

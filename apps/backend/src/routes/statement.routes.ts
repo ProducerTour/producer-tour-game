@@ -1187,16 +1187,16 @@ router.post(
         });
       });
 
-      // Send emails asynchronously (don't block response)
+      // Send bulk payment notification emails asynchronously (don't block response)
       setImmediate(async () => {
-        for (const writer of writerMap.values()) {
+        const notifications = Array.from(writerMap.values()).map(writer => {
           const songCount = writer.uniqueSongs.size;
           const grossRevenue = Math.round(writer.grossRevenue * 100) / 100;
           const commissionAmount = Math.round(writer.commissionAmount * 100) / 100;
           const netPayment = grossRevenue - commissionAmount;
           const commissionRate = commissionRates.get(writer.userId) || 0;
 
-          await emailService.sendPaymentNotification({
+          return {
             writerName: writer.name,
             writerEmail: writer.email,
             proType: statement.proType,
@@ -1207,8 +1207,11 @@ router.post(
             netPayment,
             songCount,
             paymentDate: formatExportDate(result.paymentProcessedAt),
-          });
-        }
+          };
+        });
+
+        // Send all notifications with delays and retry logic
+        await emailService.sendBulkPaymentNotifications(notifications, 1500);
       });
 
       // Return payment confirmation

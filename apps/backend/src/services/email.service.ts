@@ -85,7 +85,53 @@ class EmailService {
   }
 
   /**
-   * Send payment processed notification to writer
+   * Sleep helper for delays between operations
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Send email with retry logic and exponential backoff
+   */
+  private async sendEmailWithRetry(
+    mailOptions: any,
+    recipientEmail: string,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<boolean> {
+    if (!this.isConfigured || !this.transporter) {
+      console.warn('Email service not configured');
+      return false;
+    }
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this.transporter.sendMail(mailOptions);
+        if (attempt > 1) {
+          console.log(`✅ Email sent to ${recipientEmail} on attempt ${attempt}`);
+        }
+        return true;
+      } catch (error: any) {
+        const isLastAttempt = attempt === maxRetries;
+
+        if (isLastAttempt) {
+          console.error(`❌ Failed to send email to ${recipientEmail} after ${maxRetries} attempts:`, error.message);
+          return false;
+        }
+
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        console.warn(`⚠️  Email to ${recipientEmail} - attempt ${attempt}/${maxRetries} failed. Retrying in ${delay}ms... (${error.message})`);
+        await this.sleep(delay);
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Send payment processed notification to writer with retry logic
    */
   async sendPaymentNotification(data: PaymentNotificationData): Promise<boolean> {
     if (!this.isConfigured || !this.transporter) {
@@ -93,22 +139,56 @@ class EmailService {
       return false;
     }
 
-    try {
-      const mailOptions = {
-        from: this.fromEmail,
-        to: data.writerEmail,
-        subject: `Payment Processed - ${data.proType} Royalties`,
-        html: this.generatePaymentEmailHTML(data),
-        text: this.generatePaymentEmailText(data),
-      };
+    const mailOptions = {
+      from: this.fromEmail,
+      to: data.writerEmail,
+      subject: `Payment Processed - ${data.proType} Royalties`,
+      html: this.generatePaymentEmailHTML(data),
+      text: this.generatePaymentEmailText(data),
+    };
 
-      await this.transporter.sendMail(mailOptions);
+    const sent = await this.sendEmailWithRetry(mailOptions, data.writerEmail);
+
+    if (sent) {
       console.log(`✅ Payment notification sent to ${data.writerEmail}`);
-      return true;
-    } catch (error) {
-      console.error(`❌ Failed to send payment notification to ${data.writerEmail}:`, error);
-      return false;
     }
+
+    return sent;
+  }
+
+  /**
+   * Send bulk payment notifications with delays to prevent rate limiting
+   */
+  async sendBulkPaymentNotifications(
+    notifications: PaymentNotificationData[],
+    delayBetweenEmails: number = 1500
+  ): Promise<{ sent: number; failed: number; results: Array<{ email: string; success: boolean }> }> {
+    const results: Array<{ email: string; success: boolean }> = [];
+    let sent = 0;
+    let failed = 0;
+
+    console.log(`📧 Sending ${notifications.length} payment notification emails with ${delayBetweenEmails}ms delay between sends...`);
+
+    for (let i = 0; i < notifications.length; i++) {
+      const notification = notifications[i];
+      const success = await this.sendPaymentNotification(notification);
+
+      results.push({ email: notification.writerEmail, success });
+
+      if (success) {
+        sent++;
+      } else {
+        failed++;
+      }
+
+      // Add delay between emails (except after the last one)
+      if (i < notifications.length - 1) {
+        await this.sleep(delayBetweenEmails);
+      }
+    }
+
+    console.log(`📧 Bulk email summary: ${sent} sent, ${failed} failed out of ${notifications.length} total`);
+    return { sent, failed, results };
   }
 
   /**
@@ -302,22 +382,21 @@ If you have any questions about this payment, please contact us at support@produ
 
     const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
 
-    try {
-      const mailOptions = {
-        from: this.fromEmail,
-        to: email,
-        subject: 'Reset Your Producer Tour Password',
-        html: this.generatePasswordResetHTML(name, resetLink),
-        text: this.generatePasswordResetText(name, resetLink),
-      };
+    const mailOptions = {
+      from: this.fromEmail,
+      to: email,
+      subject: 'Reset Your Producer Tour Password',
+      html: this.generatePasswordResetHTML(name, resetLink),
+      text: this.generatePasswordResetText(name, resetLink),
+    };
 
-      await this.transporter.sendMail(mailOptions);
+    const sent = await this.sendEmailWithRetry(mailOptions, email);
+
+    if (sent) {
       console.log(`✅ Password reset email sent to ${email}`);
-      return true;
-    } catch (error) {
-      console.error(`❌ Failed to send password reset email to ${email}:`, error);
-      return false;
     }
+
+    return sent;
   }
 
   /**
@@ -329,22 +408,21 @@ If you have any questions about this payment, please contact us at support@produ
       return false;
     }
 
-    try {
-      const mailOptions = {
-        from: this.fromEmail,
-        to: email,
-        subject: 'Password Reset Successful',
-        html: this.generatePasswordResetConfirmationHTML(name),
-        text: this.generatePasswordResetConfirmationText(name),
-      };
+    const mailOptions = {
+      from: this.fromEmail,
+      to: email,
+      subject: 'Password Reset Successful',
+      html: this.generatePasswordResetConfirmationHTML(name),
+      text: this.generatePasswordResetConfirmationText(name),
+    };
 
-      await this.transporter.sendMail(mailOptions);
+    const sent = await this.sendEmailWithRetry(mailOptions, email);
+
+    if (sent) {
       console.log(`✅ Password reset confirmation sent to ${email}`);
-      return true;
-    } catch (error) {
-      console.error(`❌ Failed to send password reset confirmation to ${email}:`, error);
-      return false;
     }
+
+    return sent;
   }
 
   /**
@@ -358,22 +436,21 @@ If you have any questions about this payment, please contact us at support@produ
 
     const setupLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
 
-    try {
-      const mailOptions = {
-        from: this.fromEmail,
-        to: email,
-        subject: 'Welcome to Producer Tour - Set Your Password',
-        html: this.generateWelcomeEmailHTML(name, setupLink, email),
-        text: this.generateWelcomeEmailText(name, setupLink, email),
-      };
+    const mailOptions = {
+      from: this.fromEmail,
+      to: email,
+      subject: 'Welcome to Producer Tour - Set Your Password',
+      html: this.generateWelcomeEmailHTML(name, setupLink, email),
+      text: this.generateWelcomeEmailText(name, setupLink, email),
+    };
 
-      await this.transporter.sendMail(mailOptions);
+    const sent = await this.sendEmailWithRetry(mailOptions, email);
+
+    if (sent) {
       console.log(`✅ Welcome email sent to ${email}`);
-      return true;
-    } catch (error) {
-      console.error(`❌ Failed to send welcome email to ${email}:`, error);
-      return false;
     }
+
+    return sent;
   }
 
   /**
