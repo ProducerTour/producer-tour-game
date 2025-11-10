@@ -48,7 +48,7 @@ export const PayoutsTab: React.FC = () => {
   });
 
   // Fetch pending withdrawal requests
-  const { data: withdrawalRequests, isLoading: withdrawalsLoading } = useQuery({
+  const { data: withdrawalRequests } = useQuery({
     queryKey: ['pending-withdrawals'],
     queryFn: async () => {
       const response = await payoutApi.getPending();

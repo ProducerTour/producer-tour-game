@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { DollarSign, TrendingUp, Clock, AlertCircle } from 'lucide-react';
 
 interface WalletBalance {
