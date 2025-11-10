@@ -390,3 +390,14 @@ export const preferencesApi = {
     monthlySummaryEnabled?: boolean;
   }) => api.patch('/users/preferences', preferences),
 };
+
+// System settings API (Admin only)
+export const systemSettingsApi = {
+  // Get system settings
+  getSettings: () => api.get('/settings/system'),
+
+  // Update system settings
+  updateSettings: (settings: {
+    minimumWithdrawalAmount?: number;
+  }) => api.patch('/settings/system', settings),
+};

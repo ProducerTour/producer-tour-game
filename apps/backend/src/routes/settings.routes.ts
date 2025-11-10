@@ -125,4 +125,81 @@ router.delete('/publishers/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
+/**
+ * GET /api/settings/system
+ * Get system-wide settings
+ */
+router.get('/system', async (req: AuthRequest, res: Response) => {
+  try {
+    // Get or create system settings (singleton pattern)
+    let settings = await prisma.systemSettings.findFirst();
+
+    if (!settings) {
+      // Create default settings if none exist
+      settings = await prisma.systemSettings.create({
+        data: {
+          minimumWithdrawalAmount: 50.00
+        }
+      });
+    }
+
+    res.json({
+      minimumWithdrawalAmount: Number(settings.minimumWithdrawalAmount)
+    });
+  } catch (error) {
+    console.error('Get system settings error:', error);
+    res.status(500).json({ error: 'Failed to fetch system settings' });
+  }
+});
+
+/**
+ * PATCH /api/settings/system
+ * Update system-wide settings
+ */
+router.patch('/system', async (req: AuthRequest, res: Response) => {
+  try {
+    const { minimumWithdrawalAmount } = req.body;
+
+    // Validation
+    if (minimumWithdrawalAmount !== undefined) {
+      const amount = Number(minimumWithdrawalAmount);
+      if (isNaN(amount) || amount < 0 || amount > 10000) {
+        return res.status(400).json({
+          error: 'Minimum withdrawal amount must be between $0 and $10,000'
+        });
+      }
+    }
+
+    // Get or create settings
+    let settings = await prisma.systemSettings.findFirst();
+
+    if (!settings) {
+      settings = await prisma.systemSettings.create({
+        data: {
+          minimumWithdrawalAmount: minimumWithdrawalAmount || 50.00
+        }
+      });
+    } else {
+      settings = await prisma.systemSettings.update({
+        where: { id: settings.id },
+        data: {
+          minimumWithdrawalAmount: minimumWithdrawalAmount !== undefined
+            ? minimumWithdrawalAmount
+            : settings.minimumWithdrawalAmount
+        }
+      });
+    }
+
+    res.json({
+      message: 'System settings updated successfully',
+      settings: {
+        minimumWithdrawalAmount: Number(settings.minimumWithdrawalAmount)
+      }
+    });
+  } catch (error) {
+    console.error('Update system settings error:', error);
+    res.status(500).json({ error: 'Failed to update system settings' });
+  }
+});
+
 export default router;

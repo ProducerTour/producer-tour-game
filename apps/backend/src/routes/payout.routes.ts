@@ -8,7 +8,7 @@ const router = Router();
 
 // Validation schemas
 const requestPayoutSchema = z.object({
-  amount: z.number().positive().min(50), // Minimum $50 payout
+  amount: z.number().positive(), // Minimum validated dynamically
 });
 
 const approvePayoutSchema = z.object({
@@ -22,6 +22,14 @@ const approvePayoutSchema = z.object({
 router.get('/balance', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
+
+    // Get system settings for minimum withdrawal
+    let settings = await prisma.systemSettings.findFirst();
+    if (!settings) {
+      settings = await prisma.systemSettings.create({
+        data: { minimumWithdrawalAmount: 50.00 }
+      });
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -40,6 +48,7 @@ router.get('/balance', authenticate, async (req: AuthRequest, res: Response) => 
       availableBalance: Number(user.availableBalance),
       pendingBalance: Number(user.pendingBalance),
       lifetimeEarnings: Number(user.lifetimeEarnings),
+      minimumWithdrawalAmount: Number(settings.minimumWithdrawalAmount),
     });
   } catch (error) {
     console.error('Get balance error:', error);
@@ -55,6 +64,15 @@ router.post('/request', authenticate, async (req: AuthRequest, res: Response) =>
   try {
     const userId = req.user!.id;
     const { amount } = requestPayoutSchema.parse(req.body);
+
+    // Get system settings for minimum withdrawal amount
+    let settings = await prisma.systemSettings.findFirst();
+    if (!settings) {
+      settings = await prisma.systemSettings.create({
+        data: { minimumWithdrawalAmount: 50.00 }
+      });
+    }
+    const minimumAmount = Number(settings.minimumWithdrawalAmount);
 
     // Get user with balance and Stripe account info
     const user = await prisma.user.findUnique({
@@ -87,10 +105,11 @@ router.post('/request', authenticate, async (req: AuthRequest, res: Response) =>
       });
     }
 
-    // Check minimum payout amount
-    if (amount < 50) {
+    // Check minimum payout amount (dynamic)
+    if (amount < minimumAmount) {
       return res.status(400).json({
-        error: 'Minimum payout amount is $50.00',
+        error: `Minimum payout amount is $${minimumAmount.toFixed(2)}`,
+        minimumAmount,
       });
     }
 

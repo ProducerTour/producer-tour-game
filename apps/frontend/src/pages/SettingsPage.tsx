@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { userApi, settingsApi, preferencesApi } from '../lib/api';
+import { userApi, settingsApi, preferencesApi, systemSettingsApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import Navigation from '../components/Navigation';
 import AdminGuide from '../components/AdminGuide';
@@ -9,7 +9,7 @@ import { PaymentSettings } from '../components/PaymentSettings';
 export default function SettingsPage() {
   const { user, updateUser } = useAuthStore();
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<'profile' | 'password' | 'payments' | 'notifications' | 'publishers' | 'documentation'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'password' | 'payments' | 'notifications' | 'publishers' | 'documentation' | 'system'>('profile');
   const [message, setMessage] = useState<{ type: 'success' | 'error' | '', text: string }>({ type: '', text: '' });
 
   // Publisher management state
@@ -43,6 +43,26 @@ export default function SettingsPage() {
     emailNotificationsEnabled: (user as any)?.emailNotificationsEnabled ?? true,
     statementNotificationsEnabled: (user as any)?.statementNotificationsEnabled ?? true,
     monthlySummaryEnabled: (user as any)?.monthlySummaryEnabled ?? false,
+  });
+
+  // System settings state
+  const [systemSettings, setSystemSettings] = useState({
+    minimumWithdrawalAmount: 50,
+  });
+
+  // Fetch system settings (admin only)
+  const { data: systemSettingsData } = useQuery({
+    queryKey: ['system-settings'],
+    queryFn: async () => {
+      const response = await systemSettingsApi.getSettings();
+      return response.data;
+    },
+    enabled: user?.role === 'ADMIN' && activeSection === 'system',
+    onSuccess: (data: any) => {
+      setSystemSettings({
+        minimumWithdrawalAmount: data.minimumWithdrawalAmount || 50,
+      });
+    },
   });
 
   const updateProfileMutation = useMutation({
@@ -91,6 +111,24 @@ export default function SettingsPage() {
     setNotificationPrefs(newPrefs);
     // Immediately save to backend
     updatePreferencesMutation.mutate({ [key]: value });
+  };
+
+  // System settings mutation
+  const updateSystemSettingsMutation = useMutation({
+    mutationFn: (settings: any) => systemSettingsApi.updateSettings(settings),
+    onSuccess: () => {
+      setMessage({ type: 'success', text: 'System settings updated successfully!' });
+      queryClient.invalidateQueries({ queryKey: ['system-settings'] });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    },
+    onError: (error: any) => {
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update system settings' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    }
+  });
+
+  const handleSystemSettingsUpdate = () => {
+    updateSystemSettingsMutation.mutate(systemSettings);
   };
 
   // Publisher queries and mutations
@@ -300,6 +338,19 @@ export default function SettingsPage() {
               </button>
               {user?.role === 'ADMIN' && (
                 <>
+                  <button
+                    onClick={() => setActiveSection('system')}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                      activeSection === 'system'
+                        ? 'bg-primary-500/20 text-primary-400'
+                        : 'text-gray-300 hover:bg-slate-700/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span>⚙️</span>
+                      <span className="font-medium">System</span>
+                    </div>
+                  </button>
                   <button
                     onClick={() => setActiveSection('publishers')}
                     className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
@@ -680,6 +731,66 @@ export default function SettingsPage() {
                         </div>
                       ))
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* System Settings Section (Admin Only) */}
+              {activeSection === 'system' && user?.role === 'ADMIN' && (
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-6">System Settings</h2>
+                  <p className="text-gray-400 mb-8">Configure system-wide settings that affect all users</p>
+
+                  <div className="space-y-6">
+                    {/* Minimum Withdrawal Amount */}
+                    <div className="bg-slate-700/30 rounded-lg p-6">
+                      <label className="block text-sm font-medium text-gray-300 mb-4">
+                        Minimum Withdrawal Amount
+                      </label>
+                      <p className="text-sm text-gray-400 mb-4">
+                        Set the minimum amount writers must have in their available balance before they can request a withdrawal.
+                      </p>
+                      <div className="flex items-center gap-4">
+                        <div className="relative flex-1 max-w-xs">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="10000"
+                            step="0.01"
+                            value={systemSettings.minimumWithdrawalAmount}
+                            onChange={(e) => setSystemSettings({
+                              ...systemSettings,
+                              minimumWithdrawalAmount: parseFloat(e.target.value) || 0
+                            })}
+                            className="w-full pl-8 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <button
+                          onClick={handleSystemSettingsUpdate}
+                          disabled={updateSystemSettingsMutation.isPending}
+                          className="px-6 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {updateSystemSettingsMutation.isPending ? 'Saving...' : 'Save'}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Current: ${systemSettings.minimumWithdrawalAmount.toFixed(2)} • Recommended: $50.00 - $100.00
+                      </p>
+                    </div>
+
+                    {/* Info Box */}
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                      <div className="flex gap-3">
+                        <span className="text-2xl">ℹ️</span>
+                        <div>
+                          <p className="text-sm font-medium text-blue-300 mb-1">About System Settings</p>
+                          <p className="text-sm text-blue-200/80">
+                            Changes to system settings take effect immediately for all users. Writers will see the updated minimum amount the next time they view their wallet.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

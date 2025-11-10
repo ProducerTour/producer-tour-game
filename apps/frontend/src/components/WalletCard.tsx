@@ -5,6 +5,7 @@ interface WalletBalance {
   availableBalance: number;
   pendingBalance: number;
   lifetimeEarnings: number;
+  minimumWithdrawalAmount?: number;
 }
 
 interface WalletCardProps {
@@ -26,7 +27,8 @@ export const WalletCard: React.FC<WalletCardProps> = ({
     }).format(amount);
   };
 
-  const canWithdraw = balance.availableBalance >= 50;
+  const minimumAmount = balance.minimumWithdrawalAmount || 50;
+  const canWithdraw = balance.availableBalance >= minimumAmount;
   const isAnyBalanceAvailable = balance.availableBalance > 0;
 
   return (
@@ -58,7 +60,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({
                 {!canWithdraw && isAnyBalanceAvailable && (
                   <p className="text-xs text-amber-400 mt-2 flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
-                    Minimum withdrawal: $50.00
+                    Minimum withdrawal: {formatCurrency(minimumAmount)}
                   </p>
                 )}
               </div>
@@ -114,7 +116,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({
             {canWithdraw
               ? 'Withdraw Funds'
               : balance.availableBalance > 0
-              ? 'Insufficient Balance (Min $50)'
+              ? `Insufficient Balance (Min ${formatCurrency(minimumAmount)})`
               : 'No Balance Available'}
           </button>
 

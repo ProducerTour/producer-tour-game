@@ -152,7 +152,8 @@ export default function WriterDashboard() {
   });
 
   const handleWithdrawClick = () => {
-    if (walletBalance && walletBalance.availableBalance >= 50) {
+    const minimumAmount = walletBalance?.minimumWithdrawalAmount || 50;
+    if (walletBalance && walletBalance.availableBalance >= minimumAmount) {
       setWithdrawAmount(walletBalance.availableBalance.toString());
       setShowWithdrawModal(true);
       setWithdrawError('');
@@ -161,8 +162,9 @@ export default function WriterDashboard() {
 
   const handleWithdrawSubmit = () => {
     const amount = parseFloat(withdrawAmount);
-    if (isNaN(amount) || amount < 50) {
-      setWithdrawError('Minimum withdrawal amount is $50.00');
+    const minimumAmount = walletBalance?.minimumWithdrawalAmount || 50;
+    if (isNaN(amount) || amount < minimumAmount) {
+      setWithdrawError(`Minimum withdrawal amount is $${minimumAmount.toFixed(2)}`);
       return;
     }
     if (walletBalance && amount > walletBalance.availableBalance) {
@@ -520,7 +522,9 @@ export default function WriterDashboard() {
                     placeholder="0.00"
                   />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">Minimum withdrawal: $50.00</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Minimum withdrawal: ${(walletBalance?.minimumWithdrawalAmount || 50).toFixed(2)}
+                </p>
               </div>
 
               {withdrawError && (

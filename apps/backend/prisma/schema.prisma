@@ -553,3 +553,13 @@ model PayoutRequest {
   @@index([requestedAt])
   @@map("payout_requests")
 }
+
+model SystemSettings {
+  id                      String   @id @default(cuid())
+  minimumWithdrawalAmount Decimal  @default(50) @db.Decimal(12, 2) // Minimum withdrawal amount in dollars
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
