@@ -144,6 +144,14 @@ export const stripeService = {
   ): Promise<string> {
     ensureStripeConfigured();
     try {
+      console.log('🔄 Creating Stripe transfer:', {
+        destination: accountId,
+        amount: amountCents,
+        currency: 'usd',
+        description,
+        transferGroup,
+      });
+
       const transfer = await stripe!.transfers.create({
         amount: amountCents,
         currency: 'usd',
@@ -155,10 +163,25 @@ export const stripeService = {
         transfer_group: transferGroup,
       });
 
+      console.log('✅ Stripe transfer created:', transfer.id);
       return transfer.id;
-    } catch (error) {
-      console.error('Error creating transfer:', error);
-      throw new Error('Failed to create transfer');
+    } catch (error: any) {
+      // Log full Stripe error details
+      console.error('❌ Stripe transfer error details:', {
+        type: error.type,
+        code: error.code,
+        message: error.message,
+        param: error.param,
+        statusCode: error.statusCode,
+        requestId: error.requestId,
+        raw: error.raw,
+        fullError: error,
+      });
+
+      // Re-throw with detailed message
+      const errorMessage = error.message || 'Unknown Stripe error';
+      const errorCode = error.code ? ` (${error.code})` : '';
+      throw new Error(`Stripe transfer failed: ${errorMessage}${errorCode}`);
     }
   },
 
