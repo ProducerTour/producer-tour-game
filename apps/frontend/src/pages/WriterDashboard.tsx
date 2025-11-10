@@ -469,6 +469,88 @@ export default function WriterDashboard() {
           </div>
         </div>
       </main>
+
+      {/* Withdrawal Modal */}
+      {showWithdrawModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-lg shadow-2xl max-w-md w-full border border-slate-600">
+            <div className="flex items-center justify-between p-6 border-b border-slate-700">
+              <h3 className="text-xl font-bold text-white">Request Withdrawal</h3>
+              <button
+                onClick={() => {
+                  setShowWithdrawModal(false);
+                  setWithdrawError('');
+                }}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <p className="text-gray-300 text-sm mb-4">
+                  Request a withdrawal from your available balance. Your request will be reviewed by an administrator.
+                </p>
+                <div className="bg-slate-900/50 rounded-lg p-4 mb-4">
+                  <p className="text-xs text-gray-400 mb-1">Available Balance</p>
+                  <p className="text-2xl font-bold text-white">
+                    ${walletBalance?.availableBalance.toFixed(2) || '0.00'}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="withdrawAmount" className="block text-sm font-medium text-gray-300 mb-2">
+                  Withdrawal Amount
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+                  <input
+                    type="number"
+                    id="withdrawAmount"
+                    value={withdrawAmount}
+                    onChange={(e) => {
+                      setWithdrawAmount(e.target.value);
+                      setWithdrawError('');
+                    }}
+                    min="50"
+                    step="0.01"
+                    className="w-full pl-8 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="0.00"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Minimum withdrawal: $50.00</p>
+              </div>
+
+              {withdrawError && (
+                <div className="bg-red-900/30 border border-red-700 rounded-lg p-3">
+                  <p className="text-sm text-red-200">{withdrawError}</p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowWithdrawModal(false);
+                    setWithdrawError('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleWithdrawSubmit}
+                  disabled={withdrawMutation.isPending}
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {withdrawMutation.isPending ? 'Submitting...' : 'Request Withdrawal'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -873,87 +955,6 @@ function PaymentStatusIndicator({ status }: { status: any }) {
         )}
       </div>
 
-      {/* Withdrawal Modal */}
-      {showWithdrawModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-lg shadow-2xl max-w-md w-full border border-slate-600">
-            <div className="flex items-center justify-between p-6 border-b border-slate-700">
-              <h3 className="text-xl font-bold text-white">Request Withdrawal</h3>
-              <button
-                onClick={() => {
-                  setShowWithdrawModal(false);
-                  setWithdrawError('');
-                }}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <p className="text-gray-300 text-sm mb-4">
-                  Request a withdrawal from your available balance. Your request will be reviewed by an administrator.
-                </p>
-                <div className="bg-slate-900/50 rounded-lg p-4 mb-4">
-                  <p className="text-xs text-gray-400 mb-1">Available Balance</p>
-                  <p className="text-2xl font-bold text-white">
-                    ${walletBalance?.availableBalance.toFixed(2) || '0.00'}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="withdrawAmount" className="block text-sm font-medium text-gray-300 mb-2">
-                  Withdrawal Amount
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
-                  <input
-                    type="number"
-                    id="withdrawAmount"
-                    value={withdrawAmount}
-                    onChange={(e) => {
-                      setWithdrawAmount(e.target.value);
-                      setWithdrawError('');
-                    }}
-                    min="50"
-                    step="0.01"
-                    className="w-full pl-8 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    placeholder="0.00"
-                  />
-                </div>
-                <p className="text-xs text-gray-400 mt-1">Minimum withdrawal: $50.00</p>
-              </div>
-
-              {withdrawError && (
-                <div className="bg-red-900/30 border border-red-700 rounded-lg p-3">
-                  <p className="text-sm text-red-200">{withdrawError}</p>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => {
-                    setShowWithdrawModal(false);
-                    setWithdrawError('');
-                  }}
-                  className="flex-1 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleWithdrawSubmit}
-                  disabled={withdrawMutation.isPending}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {withdrawMutation.isPending ? 'Submitting...' : 'Request Withdrawal'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
