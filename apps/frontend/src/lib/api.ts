@@ -60,6 +60,10 @@ export const authApi = {
 
   resetPassword: (token: string, newPassword: string) =>
     api.post('/auth/reset-password', { token, newPassword }),
+
+  // Admin: Impersonate another user
+  impersonate: (userId: string) =>
+    api.post('/auth/impersonate', { userId }),
 };
 
 export const dashboardApi = {

@@ -9,6 +9,8 @@ export interface AuthRequest extends Request {
     id: string;
     email: string;
     role: UserRole;
+    isImpersonating?: boolean;
+    adminId?: string;
   };
 }
 
@@ -34,6 +36,8 @@ export const authenticate = async (
       userId: string;
       email: string;
       role: UserRole;
+      isImpersonating?: boolean;
+      adminId?: string;
     };
 
     const user = await prisma.user.findUnique({
@@ -45,7 +49,17 @@ export const authenticate = async (
       return res.status(401).json({ error: 'User not found' });
     }
 
-    req.user = user;
+    // Handle impersonation tokens
+    if (decoded.isImpersonating && decoded.adminId) {
+      req.user = {
+        ...user,
+        isImpersonating: true,
+        adminId: decoded.adminId,
+      };
+    } else {
+      req.user = user;
+    }
+
     next();
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -58,7 +72,13 @@ export const requireRole = (...roles: UserRole[]) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
+    // If impersonating, check if the impersonated user has the role
+    // (Admin operations should still work when impersonating)
     if (!roles.includes(req.user.role)) {
+      // If user is impersonating, allow admin-level operations
+      if (req.user.isImpersonating && roles.includes('ADMIN')) {
+        return next();
+      }
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 

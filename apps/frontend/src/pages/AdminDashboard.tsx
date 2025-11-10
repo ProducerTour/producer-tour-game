@@ -1,16 +1,19 @@
 import { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { dashboardApi, statementApi, userApi } from '../lib/api';
+import { useNavigate } from 'react-router-dom';
+import { dashboardApi, statementApi, userApi, authApi } from '../lib/api';
 import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Sidebar from '../components/Sidebar';
 import ToolsHub from '../components/ToolsHub';
 import DocumentsTab from '../components/DocumentsTab';
 import PayoutsTab from '../components/PayoutsTab';
+import ImpersonationBanner from '../components/ImpersonationBanner';
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { formatIpiDisplay } from '../utils/ipi-helper';
+import { useAuthStore } from '../store/auth.store';
 
 type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission' | 'payouts';
 
@@ -39,27 +42,32 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="flex h-screen bg-slate-900 overflow-hidden">
-      {/* Left Sidebar */}
-      <Sidebar
-        activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab as TabType)}
-        tabs={adminTabs}
-      />
+    <div className="flex flex-col h-screen bg-slate-900 overflow-hidden">
+      {/* Impersonation Banner */}
+      <ImpersonationBanner />
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="p-8">
-          {activeTab === 'overview' && <DashboardOverview />}
-          {activeTab === 'statements' && <StatementsTab />}
-          {activeTab === 'users' && <UsersTab />}
-          {activeTab === 'analytics' && <AnalyticsTab />}
-          {activeTab === 'payouts' && <PayoutsTab />}
-          {activeTab === 'documents' && <DocumentsTab />}
-          {activeTab === 'tools' && <ToolsHub />}
-          {activeTab === 'commission' && <CommissionSettingsPage />}
-        </div>
-      </main>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Sidebar */}
+        <Sidebar
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab as TabType)}
+          tabs={adminTabs}
+        />
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-8">
+            {activeTab === 'overview' && <DashboardOverview />}
+            {activeTab === 'statements' && <StatementsTab />}
+            {activeTab === 'users' && <UsersTab />}
+            {activeTab === 'analytics' && <AnalyticsTab />}
+            {activeTab === 'payouts' && <PayoutsTab />}
+            {activeTab === 'documents' && <DocumentsTab />}
+            {activeTab === 'tools' && <ToolsHub />}
+            {activeTab === 'commission' && <CommissionSettingsPage />}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
@@ -1205,6 +1213,8 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
 function UsersTab() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { startImpersonation } = useAuthStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [newUser, setNewUser] = useState({
@@ -1289,6 +1299,18 @@ function UsersTab() {
     updateMutation.mutate({ id, data });
   };
 
+  const handleViewAs = async (user: any) => {
+    try {
+      const response = await authApi.impersonate(user.id);
+      const { token, user: impersonatedUser } = response.data;
+      startImpersonation(impersonatedUser, token);
+      // Redirect to dashboard
+      navigate('/dashboard');
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to impersonate user');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -1355,6 +1377,13 @@ function UsersTab() {
                   <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.commissionOverrideRate != null ? `${Number(user.commissionOverrideRate).toFixed(2)}%` : 'Default'}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => handleViewAs(user)}
+                        className="text-cyan-400 hover:text-cyan-300"
+                        title="View dashboard as this user"
+                      >
+                        View As
+                      </button>
                       <button
                         onClick={() => setEditingUser(user)}
                         className="text-blue-400 hover:text-blue-300"

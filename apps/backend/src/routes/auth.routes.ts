@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
 import { z } from 'zod';
-import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { authenticate, AuthRequest, requireAdmin } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 import { emailService } from '../services/email.service';
 
@@ -30,6 +30,10 @@ const forgotPasswordSchema = z.object({
 const resetPasswordSchema = z.object({
   token: z.string(),
   newPassword: z.string().min(6),
+});
+
+const impersonateSchema = z.object({
+  userId: z.string(),
 });
 
 /**
@@ -288,6 +292,62 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/auth/impersonate
+ * Generate an impersonation token to view as another user (Admin only)
+ */
+router.post('/impersonate', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = impersonateSchema.parse(req.body);
+    const adminId = req.user!.id;
+
+    // Check if target user exists
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { producer: true },
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Create impersonation token (1 hour expiration)
+    const token = jwt.sign(
+      {
+        userId: targetUser.id,  // The user being impersonated
+        email: targetUser.email,
+        role: targetUser.role,
+        adminId: adminId,  // The actual admin user
+        isImpersonating: true,
+      },
+      process.env.JWT_SECRET || 'fallback-secret',
+      { expiresIn: '1h' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: targetUser.id,
+        email: targetUser.email,
+        role: targetUser.role,
+        firstName: targetUser.firstName,
+        lastName: targetUser.lastName,
+        writerIpiNumber: targetUser.producer?.writerIpiNumber,
+        publisherIpiNumber: targetUser.producer?.publisherIpiNumber,
+        producer: targetUser.producer,
+      },
+      isImpersonating: true,
+      adminId: adminId,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Impersonate error:', error);
+    res.status(500).json({ error: 'Failed to impersonate user' });
   }
 });
 
