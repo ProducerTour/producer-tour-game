@@ -523,9 +523,7 @@ function ProfileSection() {
                     {user?.writerIpiNumber ? (
                       formatIpiDisplay(user.writerIpiNumber)
                     ) : (
-                      <span className="text-gray-500">
-                        {user?.role === 'ADMIN' ? 'Not set - Click "Edit IPI Numbers" to add' : 'Not set - Contact administrator'}
-                      </span>
+                      <span className="text-gray-500">Not set - Contact administrator</span>
                     )}
                   </div>
                 )}
@@ -551,9 +549,7 @@ function ProfileSection() {
                     {user?.publisherIpiNumber ? (
                       formatIpiDisplay(user.publisherIpiNumber)
                     ) : (
-                      <span className="text-gray-500">
-                        {user?.role === 'ADMIN' ? 'Not set - Click "Edit IPI Numbers" to add' : 'Not set - Contact administrator'}
-                      </span>
+                      <span className="text-gray-500">Not set - Contact administrator</span>
                     )}
                   </div>
                 )}
