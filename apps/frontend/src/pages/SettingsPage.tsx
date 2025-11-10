@@ -4,11 +4,12 @@ import { userApi, settingsApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import Navigation from '../components/Navigation';
 import AdminGuide from '../components/AdminGuide';
+import { PaymentSettings } from '../components/PaymentSettings';
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuthStore();
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<'profile' | 'password' | 'notifications' | 'publishers' | 'documentation'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'password' | 'payments' | 'notifications' | 'publishers' | 'documentation'>('profile');
   const [message, setMessage] = useState<{ type: 'success' | 'error' | '', text: string }>({ type: '', text: '' });
 
   // Publisher management state
@@ -242,6 +243,21 @@ export default function SettingsPage() {
                   <span className="font-medium">Password</span>
                 </div>
               </button>
+              {user?.role === 'WRITER' && (
+                <button
+                  onClick={() => setActiveSection('payments')}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                    activeSection === 'payments'
+                      ? 'bg-primary-500/20 text-primary-400'
+                      : 'text-gray-300 hover:bg-slate-700/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span>💳</span>
+                    <span className="font-medium">Payments</span>
+                  </div>
+                </button>
+              )}
               <button
                 onClick={() => setActiveSection('notifications')}
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
@@ -339,8 +355,8 @@ export default function SettingsPage() {
                         <label className="block text-sm font-medium text-gray-300 mb-2">
                           Writer IPI Number
                         </label>
-                        <div className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-gray-400">
-                          {profileData.writerIpiNumber || 'Not set'}
+                        <div className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                          {user?.writerIpiNumber || 'Not set'}
                         </div>
                         <p className="text-sm text-gray-400 mt-1">
                           Contact your administrator to update your Writer IPI number
@@ -354,8 +370,8 @@ export default function SettingsPage() {
                         <label className="block text-sm font-medium text-gray-300 mb-2">
                           Publisher IPI Number
                         </label>
-                        <div className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-gray-400">
-                          {profileData.publisherIpiNumber || 'Not set'}
+                        <div className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                          {user?.publisherIpiNumber || 'Not set'}
                         </div>
                         <p className="text-sm text-gray-400 mt-1">
                           Contact your administrator to update your Publisher IPI number
@@ -430,6 +446,14 @@ export default function SettingsPage() {
                       </button>
                     </div>
                   </form>
+                </div>
+              )}
+
+              {/* Payments Section */}
+              {activeSection === 'payments' && (
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-6">Payment Settings</h2>
+                  <PaymentSettings />
                 </div>
               )}
 
