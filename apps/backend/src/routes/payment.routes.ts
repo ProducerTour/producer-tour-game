@@ -174,9 +174,9 @@ router.get('/history', authenticate, async (req: AuthRequest, res: Response) => 
       }
 
       const payment = paymentsByStatement.get(statementId);
-      payment.grossRevenue += Number(item.grossRevenue);
-      payment.commissionAmount += Number(item.commissionAmount);
-      payment.netAmount += Number(item.netAmount);
+      payment.grossRevenue += Number(item.revenue || 0);
+      payment.commissionAmount += Number(item.commissionAmount || 0);
+      payment.netAmount += Number(item.netRevenue || 0);
       payment.itemCount += 1;
     }
 

@@ -22,8 +22,9 @@ export const WithdrawalHistory: React.FC = () => {
     },
   });
 
-  const formatCurrency = (value: number) => {
-    return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatCurrency = (value: number | null | undefined) => {
+    const num = Number(value || 0);
+    return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const formatDate = (date: string) => {

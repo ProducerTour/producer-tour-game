@@ -27,21 +27,23 @@ export const PaymentSettings: React.FC = () => {
   const [isOnboarding, setIsOnboarding] = useState(false);
 
   // Fetch payment status
-  const { data: status, isLoading: statusLoading } = useQuery<PaymentStatus>({
-    queryKey: ['payment-status'],
+  const { data: status, isLoading: statusLoading, error: statusError } = useQuery<PaymentStatus>({
+    queryKey: ['stripe-account-status'],
     queryFn: async () => {
       const response = await paymentApi.getStatus();
       return response.data;
     },
+    retry: 1,
   });
 
   // Fetch payment history
   const { data: historyData, isLoading: historyLoading } = useQuery({
-    queryKey: ['payment-history'],
+    queryKey: ['stripe-payment-history'],
     queryFn: async () => {
       const response = await paymentApi.getHistory();
       return response.data;
     },
+    retry: 1,
   });
 
   // Create onboarding link mutation
@@ -87,8 +89,9 @@ export const PaymentSettings: React.FC = () => {
     dashboardMutation.mutate();
   };
 
-  const formatCurrency = (value: number) => {
-    return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatCurrency = (value: number | null | undefined) => {
+    const num = Number(value || 0);
+    return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const formatDate = (date: string) => {
@@ -143,8 +146,24 @@ export const PaymentSettings: React.FC = () => {
     );
   }
 
+  if (statusError) {
+    return (
+      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6">
+        <div className="flex items-start gap-4">
+          <AlertCircle className="h-6 w-6 text-red-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="text-white font-semibold mb-2">Failed to Load Payment Settings</h4>
+            <p className="text-gray-300 text-sm">
+              {(statusError as any)?.response?.data?.error || 'Unable to fetch payment status. Please try refreshing the page.'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const payments = (historyData?.payments || []) as PaymentHistory[];
-  const totalPaid = payments.reduce((sum, p) => sum + p.netAmount, 0);
+  const totalPaid = payments.reduce((sum, p) => sum + Number(p.netAmount || 0), 0);
 
   return (
     <div className="space-y-6">
