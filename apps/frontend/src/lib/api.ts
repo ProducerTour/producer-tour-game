@@ -358,3 +358,35 @@ export const paymentApi = {
   // Get payment history
   getHistory: () => api.get('/payments/history'),
 };
+
+// Payout API - Writer withdrawals
+export const payoutApi = {
+  // Get wallet balance
+  getBalance: () => api.get('/payouts/balance'),
+
+  // Request a payout/withdrawal
+  requestPayout: (amount: number) => api.post('/payouts/request', { amount }),
+
+  // Get payout request history
+  getHistory: () => api.get('/payouts/history'),
+
+  // Get pending payout requests (Admin only)
+  getPending: () => api.get('/payouts/pending'),
+
+  // Approve a payout request (Admin only)
+  approvePayout: (payoutId: string, adminNotes?: string) =>
+    api.post(`/payouts/${payoutId}/approve`, { adminNotes }),
+
+  // Cancel a payout request
+  cancelPayout: (payoutId: string) => api.post(`/payouts/${payoutId}/cancel`),
+};
+
+// User preferences API
+export const preferencesApi = {
+  // Update notification preferences
+  updatePreferences: (preferences: {
+    emailNotificationsEnabled?: boolean;
+    statementNotificationsEnabled?: boolean;
+    monthlySummaryEnabled?: boolean;
+  }) => api.patch('/users/preferences', preferences),
+};

@@ -47,6 +47,15 @@ enum PaymentStatus {
   PAID
 }
 
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 enum ApplicationStatus {
   PENDING
   APPROVED
@@ -132,6 +141,16 @@ model User {
   resetToken        String?   @unique // Cryptographically secure token for password reset
   resetTokenExpiry  DateTime? // Expiration time for reset token (1 hour recommended)
 
+  // Wallet balance fields for writer payouts
+  availableBalance  Decimal @default(0) @db.Decimal(12, 6) // Balance available for withdrawal
+  pendingBalance    Decimal @default(0) @db.Decimal(12, 6) // Balance in pending withdrawal requests
+  lifetimeEarnings  Decimal @default(0) @db.Decimal(12, 6) // Total all-time earnings
+
+  // Notification preferences
+  emailNotificationsEnabled      Boolean @default(true)  // Master email toggle
+  statementNotificationsEnabled  Boolean @default(true)  // Statement/payment emails
+  monthlySummaryEnabled          Boolean @default(false) // Monthly earning summaries
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -147,6 +166,7 @@ model User {
   advanceScenarios      AdvanceScenario[]
   uploadedDocuments     Document[]        @relation("UploadedBy")
   userDocuments         Document[]        @relation("UserDocuments")
+  payoutRequests        PayoutRequest[]
 
   @@map("users")
 }
@@ -505,4 +525,31 @@ model ProducerTourPublisher {
   @@index([ipiNumber])
   @@index([isActive])
   @@map("producer_tour_publishers")
+}
+
+model PayoutRequest {
+  id                String        @id @default(cuid())
+  userId            String
+  amount            Decimal       @db.Decimal(12, 6) // Amount requested for withdrawal
+  status            PayoutStatus  @default(PENDING)
+  requestedAt       DateTime      @default(now())
+  approvedAt        DateTime?     // When admin approved
+  processedAt       DateTime?     // When Stripe transfer completed
+  completedAt       DateTime?     // When marked as completed
+  stripeTransferId  String?       // Stripe transfer ID if applicable
+  stripePayoutId    String?       // Stripe payout ID if applicable
+  failureReason     String?       @db.Text // Reason if failed
+  adminNotes        String?       @db.Text // Admin notes about this request
+  statementIds      Json?         // Array of statement IDs included in this payout
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([requestedAt])
+  @@map("payout_requests")
 }

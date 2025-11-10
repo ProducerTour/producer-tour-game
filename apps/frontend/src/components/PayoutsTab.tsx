@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { statementApi } from '../lib/api';
-import { DollarSign, Download, Send, CheckCircle, Clock, XCircle, Filter } from 'lucide-react';
+import { statementApi, payoutApi } from '../lib/api';
+import { DollarSign, Download, Send, CheckCircle, Clock, XCircle, Filter, Wallet, User } from 'lucide-react';
 
 interface Statement {
   id: string;
@@ -44,6 +44,35 @@ export const PayoutsTab: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-statements'] });
       setSelectedStatements(new Set());
+    },
+  });
+
+  // Fetch pending withdrawal requests
+  const { data: withdrawalRequests, isLoading: withdrawalsLoading } = useQuery({
+    queryKey: ['pending-withdrawals'],
+    queryFn: async () => {
+      const response = await payoutApi.getPending();
+      return response.data.payouts;
+    },
+  });
+
+  // Approve withdrawal mutation
+  const approveWithdrawalMutation = useMutation({
+    mutationFn: async ({ payoutId, notes }: { payoutId: string; notes?: string }) => {
+      return await payoutApi.approvePayout(payoutId, notes);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-withdrawals'] });
+    },
+  });
+
+  // Cancel withdrawal mutation
+  const cancelWithdrawalMutation = useMutation({
+    mutationFn: async (payoutId: string) => {
+      return await payoutApi.cancelPayout(payoutId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-withdrawals'] });
     },
   });
 
@@ -90,6 +119,29 @@ export const PayoutsTab: React.FC = () => {
     if (window.confirm(`Process payments for ${selectedStatements.size} statement(s)? This will make items visible to writers and send email notifications.`)) {
       for (const id of Array.from(selectedStatements)) {
         await processPaymentMutation.mutateAsync(id);
+      }
+    }
+  };
+
+  const handleApproveWithdrawal = async (payoutId: string, writerName: string, amount: number) => {
+    if (window.confirm(`Approve withdrawal of ${formatCurrency(amount)} for ${writerName}?`)) {
+      try {
+        await approveWithdrawalMutation.mutateAsync({ payoutId });
+        alert('Withdrawal approved successfully!');
+      } catch (error: any) {
+        alert(error.response?.data?.error || 'Failed to approve withdrawal');
+      }
+    }
+  };
+
+  const handleCancelWithdrawal = async (payoutId: string, writerName: string) => {
+    const reason = window.prompt(`Cancel withdrawal request for ${writerName}?\n\nOptional reason:`);
+    if (reason !== null) {
+      try {
+        await cancelWithdrawalMutation.mutateAsync(payoutId);
+        alert('Withdrawal request cancelled.');
+      } catch (error: any) {
+        alert(error.response?.data?.error || 'Failed to cancel withdrawal');
       }
     }
   };
@@ -180,6 +232,107 @@ export const PayoutsTab: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Withdrawal Requests Section */}
+      {withdrawalRequests && withdrawalRequests.length > 0 && (
+        <div className="bg-slate-800 rounded-lg shadow-xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Wallet className="h-6 w-6 text-amber-400" />
+              <h2 className="text-2xl font-bold text-white">Withdrawal Requests</h2>
+              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-sm font-semibold">
+                {withdrawalRequests.length} Pending
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {withdrawalRequests.map((request: any) => (
+              <div
+                key={request.id}
+                className="bg-slate-700/30 rounded-lg p-5 border border-slate-600 hover:border-slate-500 transition-colors"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <User className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">{request.user.name}</h3>
+                        <p className="text-sm text-gray-400">{request.user.email}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Requested Amount</p>
+                        <p className="text-xl font-bold text-white">{formatCurrency(request.amount)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Requested</p>
+                        <p className="text-sm text-gray-300">{formatDate(request.requestedAt)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Stripe Status</p>
+                        <div className="flex items-center gap-2">
+                          {request.user.stripeConnected ? (
+                            <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded text-xs font-semibold">
+                              Connected
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 bg-red-500/20 text-red-300 rounded text-xs font-semibold">
+                              Not Connected
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Status</p>
+                        <span className="px-2 py-1 bg-amber-500/20 text-amber-300 rounded text-xs font-semibold">
+                          {request.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    {request.adminNotes && (
+                      <div className="mt-3 p-3 bg-slate-900/50 rounded">
+                        <p className="text-xs text-gray-400 mb-1">Admin Notes</p>
+                        <p className="text-sm text-gray-300">{request.adminNotes}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2 ml-4">
+                    <button
+                      onClick={() => handleApproveWithdrawal(request.id, request.user.name, request.amount)}
+                      disabled={!request.user.stripeOnboardingComplete || approveWithdrawalMutation.isPending}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleCancelWithdrawal(request.id, request.user.name)}
+                      disabled={cancelWithdrawalMutation.isPending}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Reject
+                    </button>
+                  </div>
+                </div>
+
+                {!request.user.stripeOnboardingComplete && (
+                  <div className="mt-4 p-3 bg-red-900/30 border border-red-700 rounded-lg">
+                    <p className="text-sm text-red-200">
+                      ⚠️ Writer has not completed Stripe Connect onboarding. Cannot approve withdrawal.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Payment Queue Section */}
       <div className="bg-slate-700/30 rounded-lg p-6">

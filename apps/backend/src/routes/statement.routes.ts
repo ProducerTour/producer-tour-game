@@ -1133,6 +1133,27 @@ router.post(
           }
         });
 
+        // Update writer balances - add net revenue to their available balance
+        // Group by writer and sum their net revenue
+        const writerBalanceUpdates = new Map<string, number>();
+
+        for (const item of statement.items) {
+          const netRevenue = Number(item.netRevenue);
+          const currentTotal = writerBalanceUpdates.get(item.userId) || 0;
+          writerBalanceUpdates.set(item.userId, currentTotal + netRevenue);
+        }
+
+        // Update each writer's balance
+        for (const [userId, netAmount] of writerBalanceUpdates.entries()) {
+          await tx.user.update({
+            where: { id: userId },
+            data: {
+              availableBalance: { increment: netAmount },
+              lifetimeEarnings: { increment: netAmount }
+            }
+          });
+        }
+
         return updatedStatement;
       });
 
@@ -1197,6 +1218,7 @@ router.post(
           const commissionRate = commissionRates.get(writer.userId) || 0;
 
           return {
+            userId: writer.userId,
             writerName: writer.name,
             writerEmail: writer.email,
             proType: statement.proType,

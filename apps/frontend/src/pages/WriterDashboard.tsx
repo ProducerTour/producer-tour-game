@@ -1,13 +1,15 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { dashboardApi, statementApi, documentApi, userApi } from '../lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { dashboardApi, statementApi, documentApi, userApi, payoutApi } from '../lib/api';
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import Sidebar from '../components/Sidebar';
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { PaymentSettings } from '../components/PaymentSettings';
+import { WalletCard } from '../components/WalletCard';
 import { useAuthStore } from '../store/auth.store';
 import { formatIpiDisplay } from '../utils/ipi-helper';
+import { X } from 'lucide-react';
 
 const COLORS = [
   '#3b82f6', // Blue
@@ -58,6 +60,10 @@ const formatChartCurrency = (value: any): string => {
 export default function WriterDashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile'>('overview');
   const [expandedCharts, setExpandedCharts] = useState<Record<string, boolean>>({});
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawError, setWithdrawError] = useState('');
+  const queryClient = useQueryClient();
 
   const toggleChartExpansion = (chartId: string) => {
     setExpandedCharts(prev => ({
@@ -118,6 +124,53 @@ export default function WriterDashboard() {
     },
     enabled: activeTab === 'songs',
   });
+
+  // Wallet balance query
+  const { data: walletBalance, isLoading: balanceLoading } = useQuery({
+    queryKey: ['wallet-balance'],
+    queryFn: async () => {
+      const response = await payoutApi.getBalance();
+      return response.data;
+    },
+    enabled: activeTab === 'overview',
+  });
+
+  // Withdrawal mutation
+  const withdrawMutation = useMutation({
+    mutationFn: (amount: number) => payoutApi.requestPayout(amount),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wallet-balance'] });
+      setShowWithdrawModal(false);
+      setWithdrawAmount('');
+      setWithdrawError('');
+      alert('Withdrawal request submitted successfully! Awaiting admin approval.');
+    },
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || 'Failed to request withdrawal';
+      setWithdrawError(errorMessage);
+    },
+  });
+
+  const handleWithdrawClick = () => {
+    if (walletBalance && walletBalance.availableBalance >= 50) {
+      setWithdrawAmount(walletBalance.availableBalance.toString());
+      setShowWithdrawModal(true);
+      setWithdrawError('');
+    }
+  };
+
+  const handleWithdrawSubmit = () => {
+    const amount = parseFloat(withdrawAmount);
+    if (isNaN(amount) || amount < 50) {
+      setWithdrawError('Minimum withdrawal amount is $50.00');
+      return;
+    }
+    if (walletBalance && amount > walletBalance.availableBalance) {
+      setWithdrawError(`Amount exceeds available balance ($${walletBalance.availableBalance.toFixed(2)})`);
+      return;
+    }
+    withdrawMutation.mutate(amount);
+  };
 
   const { data: paymentStatus, isLoading: paymentStatusLoading, error: paymentStatusError } = useQuery({
     queryKey: ['payment-status'],
@@ -208,6 +261,15 @@ export default function WriterDashboard() {
         <div className="bg-slate-800 rounded-lg shadow-xl p-6">
             {activeTab === 'overview' && (
               <div className="space-y-8">
+                {/* Wallet Card */}
+                <div className="max-w-md">
+                  <WalletCard
+                    balance={walletBalance || { availableBalance: 0, pendingBalance: 0, lifetimeEarnings: 0 }}
+                    isLoading={balanceLoading}
+                    onWithdraw={handleWithdrawClick}
+                  />
+                </div>
+
                 {/* Charts Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Earnings Timeline Chart */}
@@ -810,6 +872,88 @@ function PaymentStatusIndicator({ status }: { status: any }) {
           </div>
         )}
       </div>
+
+      {/* Withdrawal Modal */}
+      {showWithdrawModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-lg shadow-2xl max-w-md w-full border border-slate-600">
+            <div className="flex items-center justify-between p-6 border-b border-slate-700">
+              <h3 className="text-xl font-bold text-white">Request Withdrawal</h3>
+              <button
+                onClick={() => {
+                  setShowWithdrawModal(false);
+                  setWithdrawError('');
+                }}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <p className="text-gray-300 text-sm mb-4">
+                  Request a withdrawal from your available balance. Your request will be reviewed by an administrator.
+                </p>
+                <div className="bg-slate-900/50 rounded-lg p-4 mb-4">
+                  <p className="text-xs text-gray-400 mb-1">Available Balance</p>
+                  <p className="text-2xl font-bold text-white">
+                    ${walletBalance?.availableBalance.toFixed(2) || '0.00'}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="withdrawAmount" className="block text-sm font-medium text-gray-300 mb-2">
+                  Withdrawal Amount
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+                  <input
+                    type="number"
+                    id="withdrawAmount"
+                    value={withdrawAmount}
+                    onChange={(e) => {
+                      setWithdrawAmount(e.target.value);
+                      setWithdrawError('');
+                    }}
+                    min="50"
+                    step="0.01"
+                    className="w-full pl-8 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="0.00"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Minimum withdrawal: $50.00</p>
+              </div>
+
+              {withdrawError && (
+                <div className="bg-red-900/30 border border-red-700 rounded-lg p-3">
+                  <p className="text-sm text-red-200">{withdrawError}</p>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowWithdrawModal(false);
+                    setWithdrawError('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleWithdrawSubmit}
+                  disabled={withdrawMutation.isPending}
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {withdrawMutation.isPending ? 'Submitting...' : 'Request Withdrawal'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

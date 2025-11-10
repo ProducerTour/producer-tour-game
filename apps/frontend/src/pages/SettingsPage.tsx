@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { userApi, settingsApi } from '../lib/api';
+import { userApi, settingsApi, preferencesApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import Navigation from '../components/Navigation';
 import AdminGuide from '../components/AdminGuide';
@@ -38,6 +38,13 @@ export default function SettingsPage() {
     confirmPassword: ''
   });
 
+  // Notification preferences state (initialized from user data or defaults)
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    emailNotificationsEnabled: (user as any)?.emailNotificationsEnabled ?? true,
+    statementNotificationsEnabled: (user as any)?.statementNotificationsEnabled ?? true,
+    monthlySummaryEnabled: (user as any)?.monthlySummaryEnabled ?? false,
+  });
+
   const updateProfileMutation = useMutation({
     mutationFn: (data: any) => userApi.update(user!.id, data),
     onSuccess: (response) => {
@@ -65,6 +72,26 @@ export default function SettingsPage() {
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     }
   });
+
+  // Notification preferences mutation
+  const updatePreferencesMutation = useMutation({
+    mutationFn: (preferences: any) => preferencesApi.updatePreferences(preferences),
+    onSuccess: () => {
+      setMessage({ type: 'success', text: 'Notification preferences updated!' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    },
+    onError: (error: any) => {
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update preferences' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    }
+  });
+
+  const handlePreferenceToggle = (key: string, value: boolean) => {
+    const newPrefs = { ...notificationPrefs, [key]: value };
+    setNotificationPrefs(newPrefs);
+    // Immediately save to backend
+    updatePreferencesMutation.mutate({ [key]: value });
+  };
 
   // Publisher queries and mutations
   const { data: publishersData } = useQuery({
@@ -468,7 +495,12 @@ export default function SettingsPage() {
                         <p className="text-sm text-gray-400">Receive email updates about new statements</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" defaultChecked />
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={notificationPrefs.emailNotificationsEnabled}
+                          onChange={(e) => handlePreferenceToggle('emailNotificationsEnabled', e.target.checked)}
+                        />
                         <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
                       </label>
                     </div>
@@ -479,7 +511,12 @@ export default function SettingsPage() {
                         <p className="text-sm text-gray-400">Get notified when new statements are published</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" defaultChecked />
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={notificationPrefs.statementNotificationsEnabled}
+                          onChange={(e) => handlePreferenceToggle('statementNotificationsEnabled', e.target.checked)}
+                        />
                         <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
                       </label>
                     </div>
@@ -490,13 +527,18 @@ export default function SettingsPage() {
                         <p className="text-sm text-gray-400">Receive monthly earning summaries</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" />
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={notificationPrefs.monthlySummaryEnabled}
+                          onChange={(e) => handlePreferenceToggle('monthlySummaryEnabled', e.target.checked)}
+                        />
                         <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
                       </label>
                     </div>
 
                     <p className="text-sm text-gray-400 pt-4">
-                      Note: Notification preferences are currently for display only. Email functionality will be enabled once SMTP is configured.
+                      Changes are saved automatically. Disable notifications to prevent emails during payment testing.
                     </p>
                   </div>
                 </div>

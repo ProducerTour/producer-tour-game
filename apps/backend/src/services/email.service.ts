@@ -6,6 +6,7 @@
 
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import { prisma } from '../lib/prisma';
 
 interface EmailConfig {
   host: string;
@@ -19,6 +20,7 @@ interface EmailConfig {
 }
 
 interface PaymentNotificationData {
+  userId?: string; // Optional: for checking notification preferences
   writerName: string;
   writerEmail: string;
   proType: string;
@@ -158,19 +160,59 @@ class EmailService {
 
   /**
    * Send bulk payment notifications with delays to prevent rate limiting
+   * Checks notification preferences before sending
    */
   async sendBulkPaymentNotifications(
     notifications: PaymentNotificationData[],
     delayBetweenEmails: number = 1500
-  ): Promise<{ sent: number; failed: number; results: Array<{ email: string; success: boolean }> }> {
-    const results: Array<{ email: string; success: boolean }> = [];
+  ): Promise<{ sent: number; failed: number; skipped: number; results: Array<{ email: string; success: boolean; skipped?: boolean }> }> {
+    const results: Array<{ email: string; success: boolean; skipped?: boolean }> = [];
     let sent = 0;
     let failed = 0;
+    let skipped = 0;
+
+    console.log(`📧 Processing ${notifications.length} payment notifications...`);
+
+    // Get unique user IDs to check preferences
+    const userIds = notifications
+      .map(n => n.userId)
+      .filter((id): id is string => !!id);
+
+    // Query notification preferences for all users
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: {
+        id: true,
+        email: true,
+        emailNotificationsEnabled: true,
+        statementNotificationsEnabled: true
+      }
+    });
+
+    // Create a map of user preferences
+    const preferencesMap = new Map(
+      users.map(u => [u.id, {
+        emailEnabled: u.emailNotificationsEnabled,
+        statementEnabled: u.statementNotificationsEnabled
+      }])
+    );
 
     console.log(`📧 Sending ${notifications.length} payment notification emails with ${delayBetweenEmails}ms delay between sends...`);
 
     for (let i = 0; i < notifications.length; i++) {
       const notification = notifications[i];
+
+      // Check notification preferences
+      if (notification.userId) {
+        const prefs = preferencesMap.get(notification.userId);
+        if (prefs && (!prefs.emailEnabled || !prefs.statementEnabled)) {
+          console.log(`⏭️  Skipping email to ${notification.writerEmail} (notifications disabled)`);
+          results.push({ email: notification.writerEmail, success: false, skipped: true });
+          skipped++;
+          continue;
+        }
+      }
+
       const success = await this.sendPaymentNotification(notification);
 
       results.push({ email: notification.writerEmail, success });
@@ -187,8 +229,8 @@ class EmailService {
       }
     }
 
-    console.log(`📧 Bulk email summary: ${sent} sent, ${failed} failed out of ${notifications.length} total`);
-    return { sent, failed, results };
+    console.log(`📧 Bulk email summary: ${sent} sent, ${failed} failed, ${skipped} skipped out of ${notifications.length} total`);
+    return { sent, failed, skipped, results };
   }
 
   /**

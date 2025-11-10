@@ -25,6 +25,7 @@ import documentsRoutes from './routes/documents.routes';
 import commissionRoutes from './routes/commission.routes';
 import settingsRoutes from './routes/settings.routes';
 import paymentRoutes from './routes/payment.routes';
+import payoutRoutes from './routes/payout.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -117,6 +118,7 @@ app.use('/api/documents', documentsRoutes);
 app.use('/api/commission', commissionRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/payouts', payoutRoutes);
 
 // Error handling
 app.use(notFoundHandler);

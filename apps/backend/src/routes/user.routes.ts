@@ -283,4 +283,53 @@ router.delete('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
   }
 });
 
+/**
+ * PATCH /api/users/preferences
+ * Update current user's notification preferences
+ */
+router.patch('/preferences', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const {
+      emailNotificationsEnabled,
+      statementNotificationsEnabled,
+      monthlySummaryEnabled
+    } = req.body;
+
+    // Build update data object with only provided fields
+    const updateData: any = {};
+    if (typeof emailNotificationsEnabled === 'boolean') {
+      updateData.emailNotificationsEnabled = emailNotificationsEnabled;
+    }
+    if (typeof statementNotificationsEnabled === 'boolean') {
+      updateData.statementNotificationsEnabled = statementNotificationsEnabled;
+    }
+    if (typeof monthlySummaryEnabled === 'boolean') {
+      updateData.monthlySummaryEnabled = monthlySummaryEnabled;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No valid preferences provided' });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        emailNotificationsEnabled: true,
+        statementNotificationsEnabled: true,
+        monthlySummaryEnabled: true
+      }
+    });
+
+    res.json({
+      message: 'Preferences updated successfully',
+      preferences: user
+    });
+  } catch (error) {
+    console.error('Update preferences error:', error);
+    res.status(500).json({ error: 'Failed to update preferences' });
+  }
+});
+
 export default router;
