@@ -182,6 +182,66 @@ router.get('/history', authenticate, async (req: AuthRequest, res: Response) => 
 });
 
 /**
+ * GET /api/payouts/all
+ * Get all payout requests with optional status filter (Admin only)
+ */
+router.get('/all', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { status } = req.query;
+
+    const where: any = {};
+    if (status && typeof status === 'string') {
+      where.status = status;
+    }
+
+    const payouts = await prisma.payoutRequest.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            stripeAccountId: true,
+            stripeOnboardingComplete: true,
+            stripeAccountStatus: true,
+          },
+        },
+      },
+      orderBy: { requestedAt: 'desc' },
+    });
+
+    res.json({
+      payouts: payouts.map((p) => ({
+        id: p.id,
+        amount: Number(p.amount),
+        status: p.status,
+        requestedAt: p.requestedAt,
+        approvedAt: p.approvedAt,
+        processedAt: p.processedAt,
+        completedAt: p.completedAt,
+        stripeTransferId: p.stripeTransferId,
+        failureReason: p.failureReason,
+        user: {
+          id: p.user.id,
+          email: p.user.email,
+          name: `${p.user.firstName || ''} ${p.user.lastName || ''}`.trim() || 'No name',
+          stripeConnected: !!p.user.stripeAccountId,
+          stripeOnboardingComplete: p.user.stripeOnboardingComplete,
+          stripeAccountStatus: p.user.stripeAccountStatus,
+        },
+        adminNotes: p.adminNotes,
+      })),
+      total: payouts.length,
+    });
+  } catch (error) {
+    console.error('Get all payouts error:', error);
+    res.status(500).json({ error: 'Failed to get payouts' });
+  }
+});
+
+/**
  * GET /api/payouts/pending
  * Get all pending payout requests (Admin only)
  */

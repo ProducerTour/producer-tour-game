@@ -61,6 +61,20 @@ export const PayoutsTab: React.FC = () => {
     },
   });
 
+  // Fetch all payout requests for history
+  const { data: allPayoutsData } = useQuery({
+    queryKey: ['all-payouts'],
+    queryFn: async () => {
+      try {
+        const response = await payoutApi.getAll();
+        return response.data;
+      } catch (error) {
+        console.error('Failed to fetch payout history:', error);
+        return { payouts: [], total: 0 };
+      }
+    },
+  });
+
   // Approve withdrawal mutation
   const approveWithdrawalMutation = useMutation({
     mutationFn: async ({ payoutId, notes }: { payoutId: string; notes?: string }) => {
@@ -68,6 +82,7 @@ export const PayoutsTab: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-withdrawals'] });
+      queryClient.invalidateQueries({ queryKey: ['all-payouts'] });
     },
   });
 
@@ -78,6 +93,7 @@ export const PayoutsTab: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-withdrawals'] });
+      queryClient.invalidateQueries({ queryKey: ['all-payouts'] });
     },
   });
 
@@ -174,6 +190,26 @@ export const PayoutsTab: React.FC = () => {
         return <span className={`${baseClasses} bg-yellow-500/20 text-yellow-300`}>Pending</span>;
       case 'UNPAID':
         return <span className={`${baseClasses} bg-red-500/20 text-red-300`}>Unpaid</span>;
+      default:
+        return null;
+    }
+  };
+
+  const getPayoutStatusBadge = (status: string) => {
+    const baseClasses = "px-2.5 py-1 rounded-full text-xs font-semibold";
+    switch (status) {
+      case 'COMPLETED':
+        return <span className={`${baseClasses} bg-green-500/20 text-green-300`}>Completed</span>;
+      case 'PROCESSING':
+        return <span className={`${baseClasses} bg-blue-500/20 text-blue-300`}>Processing</span>;
+      case 'APPROVED':
+        return <span className={`${baseClasses} bg-cyan-500/20 text-cyan-300`}>Approved</span>;
+      case 'PENDING':
+        return <span className={`${baseClasses} bg-yellow-500/20 text-yellow-300`}>Pending</span>;
+      case 'FAILED':
+        return <span className={`${baseClasses} bg-red-500/20 text-red-300`}>Failed</span>;
+      case 'CANCELLED':
+        return <span className={`${baseClasses} bg-gray-500/20 text-gray-300`}>Cancelled</span>;
       default:
         return null;
     }
@@ -515,6 +551,84 @@ export const PayoutsTab: React.FC = () => {
                   <td></td>
                 </tr>
               </tfoot>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Payout History Section */}
+      <div className="bg-slate-700/30 rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-white">Payout History</h3>
+            <p className="text-sm text-gray-400 mt-1">
+              All processed withdrawal requests
+            </p>
+          </div>
+        </div>
+
+        {!allPayoutsData || allPayoutsData.payouts.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">
+            <Clock className="h-12 w-12 mx-auto mb-3 text-gray-500" />
+            <p>No payout history yet</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b-2 border-slate-600">
+                <tr>
+                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Writer</th>
+                  <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Amount</th>
+                  <th className="text-center text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Status</th>
+                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Requested</th>
+                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Completed</th>
+                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Stripe Transfer</th>
+                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allPayoutsData.payouts.map((payout: any) => (
+                  <tr
+                    key={payout.id}
+                    className="border-b border-slate-700/50 hover:bg-slate-600/20 transition-colors"
+                  >
+                    <td className="py-3 px-2">
+                      <div>
+                        <p className="text-white font-medium">{payout.user.name}</p>
+                        <p className="text-xs text-gray-400">{payout.user.email}</p>
+                      </div>
+                    </td>
+                    <td className="py-3 px-2 text-right text-green-400 font-semibold">{formatCurrency(payout.amount)}</td>
+                    <td className="py-3 px-2 text-center">
+                      {getPayoutStatusBadge(payout.status)}
+                    </td>
+                    <td className="py-3 px-2 text-sm text-gray-400">
+                      {formatDate(payout.requestedAt)}
+                    </td>
+                    <td className="py-3 px-2 text-sm text-gray-400">
+                      {payout.completedAt ? formatDate(payout.completedAt) : '-'}
+                    </td>
+                    <td className="py-3 px-2">
+                      {payout.stripeTransferId ? (
+                        <code className="text-xs text-blue-300 bg-slate-900/50 px-2 py-1 rounded">
+                          {payout.stripeTransferId}
+                        </code>
+                      ) : (
+                        <span className="text-xs text-gray-500">-</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-2">
+                      {payout.failureReason ? (
+                        <span className="text-xs text-red-300">{payout.failureReason}</span>
+                      ) : payout.adminNotes ? (
+                        <span className="text-xs text-gray-400">{payout.adminNotes}</span>
+                      ) : (
+                        <span className="text-xs text-gray-500">-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         )}

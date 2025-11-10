@@ -373,6 +373,9 @@ export const payoutApi = {
   // Get pending payout requests (Admin only)
   getPending: () => api.get('/payouts/pending'),
 
+  // Get all payout requests with optional status filter (Admin only)
+  getAll: (status?: string) => api.get('/payouts/all', { params: { status } }),
+
   // Approve a payout request (Admin only)
   approvePayout: (payoutId: string, adminNotes?: string) =>
     api.post(`/payouts/${payoutId}/approve`, { adminNotes }),
