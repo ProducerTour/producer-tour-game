@@ -74,8 +74,8 @@ router.post('/login', async (req: Request, res: Response) => {
         role: user.role,
         firstName: user.firstName,
         lastName: user.lastName,
-        writerIpiNumber: user.writerIpiNumber,
-        publisherIpiNumber: user.publisherIpiNumber,
+        writerIpiNumber: user.producer?.writerIpiNumber,
+        publisherIpiNumber: user.producer?.publisherIpiNumber,
         producer: user.producer,
       },
     });
@@ -140,8 +140,8 @@ router.post('/register', async (req: Request, res: Response) => {
         role: user.role,
         firstName: user.firstName,
         lastName: user.lastName,
-        writerIpiNumber: user.writerIpiNumber,
-        publisherIpiNumber: user.publisherIpiNumber,
+        writerIpiNumber: null,
+        publisherIpiNumber: null,
       },
     });
   } catch (error) {
