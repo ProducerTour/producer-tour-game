@@ -408,3 +408,28 @@ export const systemSettingsApi = {
     minimumWithdrawalAmount?: number;
   }) => api.patch('/settings/system', settings),
 };
+
+// Placement Deal API (Admin only)
+export const placementDealApi = {
+  // Get all placement deals with optional filters
+  getAll: (params?: { status?: string; dealType?: string; search?: string }) =>
+    api.get('/placement-deals', { params }),
+
+  // Get a single placement deal by ID
+  getById: (id: string) => api.get(`/placement-deals/${id}`),
+
+  // Create a new placement deal
+  create: (data: any) => api.post('/placement-deals', data),
+
+  // Update a placement deal
+  update: (id: string, data: any) => api.put(`/placement-deals/${id}`, data),
+
+  // Delete a placement deal
+  delete: (id: string) => api.delete(`/placement-deals/${id}`),
+
+  // Generate invoice for a deal
+  generateInvoice: (id: string) => api.post(`/placement-deals/${id}/generate-invoice`),
+
+  // Get summary statistics
+  getStats: () => api.get('/placement-deals/stats/summary'),
+};

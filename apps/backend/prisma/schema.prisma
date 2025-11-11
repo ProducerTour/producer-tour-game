@@ -99,6 +99,24 @@ enum StreamingPlatform {
   OTHER
 }
 
+enum PlacementDealStatus {
+  DRAFT
+  NEGOTIATING
+  CONTRACTED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PlacementDealType {
+  SYNC_LICENSE
+  MASTER_LICENSE
+  PUBLISHING_DEAL
+  PRODUCTION_DEAL
+  CUSTOM
+  OTHER
+}
+
 enum DocumentCategory {
   PRE_PROCESSED_STATEMENT
   PROCESSED_STATEMENT
@@ -386,6 +404,69 @@ model Placement {
   @@index([platform])
   @@index([status])
   @@map("placements")
+}
+
+model PlacementDeal {
+  id              String               @id @default(cuid())
+
+  // Client Information
+  clientName      String
+  clientEmail     String?
+  clientCompany   String?
+  clientPhone     String?
+
+  // Deal Details
+  projectTitle    String
+  dealType        PlacementDealType    @default(OTHER)
+  status          PlacementDealStatus  @default(DRAFT)
+  dealAmount      Decimal?             @db.Decimal(12, 2)
+  commissionRate  Decimal?             @db.Decimal(5, 2) // 0.00-100.00
+  netAmount       Decimal?             @db.Decimal(12, 2)
+
+  // Dates
+  dealDate        DateTime?
+  startDate       DateTime?
+  endDate         DateTime?
+  signedDate      DateTime?
+
+  // Contract Information
+  contractSigned  Boolean              @default(false)
+  contractUrl     String?              // Link to signed contract document
+  legalNotes      String?              @db.Text
+
+  // Invoice Information
+  invoiceNumber   String?
+  invoiceDate     DateTime?
+  invoicePaid     Boolean              @default(false)
+  invoicePaidDate DateTime?
+  invoiceUrl      String?              // Link to invoice document
+
+  // Additional Details
+  trackTitle      String?
+  artistName      String?
+  projectType     String?              // Film, TV, Commercial, Game, etc.
+  usageRights     String?              @db.Text
+  territory       String?              // Worldwide, US, etc.
+  term            String?              // Perpetuity, 1 year, etc.
+
+  // Metadata & Notes
+  metadata        Json?                // Flexible storage for custom fields
+  notes           String?              @db.Text
+  internalNotes   String?              @db.Text // Admin-only notes
+
+  // Tracking
+  createdById     String?              // Admin who created this deal
+  lastModifiedBy  String?              // Admin who last modified
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([status])
+  @@index([dealType])
+  @@index([clientEmail])
+  @@index([dealDate])
+  @@index([invoicePaid])
+  @@map("placement_deals")
 }
 
 model Credit {

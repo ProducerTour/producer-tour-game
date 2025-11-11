@@ -10,12 +10,13 @@ import ToolsHub from '../components/ToolsHub';
 import DocumentsTab from '../components/DocumentsTab';
 import PayoutsTab from '../components/PayoutsTab';
 import ImpersonationBanner from '../components/ImpersonationBanner';
+import PlacementTracker from '../components/admin/PlacementTracker';
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { formatIpiDisplay } from '../utils/ipi-helper';
 import { useAuthStore } from '../store/auth.store';
 
-type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission' | 'payouts';
+type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'placement-deals';
 
 // Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
 const formatChartCurrency = (value: any): string => {
@@ -36,6 +37,7 @@ export default function AdminDashboard() {
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'analytics', label: 'Analytics', icon: '📈' },
     { id: 'payouts', label: 'Payouts', icon: '💰' },
+    { id: 'placement-deals', label: 'Placement Tracker', icon: '🎵' },
     { id: 'documents', label: 'Documents', icon: '📄' },
     { id: 'tools', label: 'Tools Hub', icon: '🛠️' },
     { id: 'commission', label: 'Commission Settings', icon: '💼' },
@@ -62,6 +64,7 @@ export default function AdminDashboard() {
             {activeTab === 'users' && <UsersTab />}
             {activeTab === 'analytics' && <AnalyticsTab />}
             {activeTab === 'payouts' && <PayoutsTab />}
+            {activeTab === 'placement-deals' && <PlacementTracker />}
             {activeTab === 'documents' && <DocumentsTab />}
             {activeTab === 'tools' && <ToolsHub />}
             {activeTab === 'commission' && <CommissionSettingsPage />}

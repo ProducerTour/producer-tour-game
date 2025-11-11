@@ -26,6 +26,7 @@ import commissionRoutes from './routes/commission.routes';
 import settingsRoutes from './routes/settings.routes';
 import paymentRoutes from './routes/payment.routes';
 import payoutRoutes from './routes/payout.routes';
+import placementDealRoutes from './routes/placement-deal.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -119,6 +120,7 @@ app.use('/api/commission', commissionRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/payouts', payoutRoutes);
+app.use('/api/placement-deals', placementDealRoutes);
 
 // Error handling
 app.use(notFoundHandler);
