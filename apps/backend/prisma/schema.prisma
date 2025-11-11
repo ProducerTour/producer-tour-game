@@ -99,24 +99,6 @@ enum StreamingPlatform {
   OTHER
 }
 
-enum PlacementDealStatus {
-  DRAFT
-  NEGOTIATING
-  CONTRACTED
-  ACTIVE
-  COMPLETED
-  CANCELLED
-}
-
-enum PlacementDealType {
-  SYNC_LICENSE
-  MASTER_LICENSE
-  PUBLISHING_DEAL
-  PRODUCTION_DEAL
-  CUSTOM
-  OTHER
-}
-
 enum DocumentCategory {
   PRE_PROCESSED_STATEMENT
   PROCESSED_STATEMENT
@@ -409,63 +391,99 @@ model Placement {
 model PlacementDeal {
   id              String               @id @default(cuid())
 
-  // Client Information
-  clientName      String
-  clientEmail     String?
-  clientCompany   String?
-  clientPhone     String?
+  // Core Placement Info
+  clientFullName  String               // Legal name
+  clientPKA       String               // p/k/a "Producer Name"
+  songTitle       String
+  artistName      String
+  streams         String?              // Text field for formatted numbers like "1,000,000"
+  label           String?
+  coProducers     String?              // Comma-separated or text
 
-  // Deal Details
-  projectTitle    String
-  dealType        PlacementDealType    @default(OTHER)
-  status          PlacementDealStatus  @default(DRAFT)
-  dealAmount      Decimal?             @db.Decimal(12, 2)
-  commissionRate  Decimal?             @db.Decimal(5, 2) // 0.00-100.00
-  netAmount       Decimal?             @db.Decimal(12, 2)
+  // Status & Action
+  status          String?              // e.g., "Pending Agreement", "Redline"
+  action          String?              // Action item
 
-  // Dates
-  dealDate        DateTime?
-  startDate       DateTime?
-  endDate         DateTime?
-  signedDate      DateTime?
+  // Legal Fee Section
+  legalFeeAmount  String?              // e.g., "$500" or "10%"
+  legalFeeType    String               @default("Flat Fee") // "Flat Fee" or "Percentage"
+  legalFeePaymentSource String         @default("Out of Advance") // "Out of Advance" or "Paid Directly"
+  hasLegalFeeBeenPaid String           @default("No") // "No" or "Yes"
 
-  // Contract Information
-  contractSigned  Boolean              @default(false)
-  contractUrl     String?              // Link to signed contract document
-  legalNotes      String?              @db.Text
+  // Deal Terms
+  advance         String?              // Dollar amount as text
+  masterRoyalty   String?              // e.g., "2% PPD"
+  pubPercent      String?              // e.g., "50%"
+  sxLOD           String?              // e.g., "20%"
 
-  // Invoice Information
-  invoiceNumber   String?
-  invoiceDate     DateTime?
-  invoicePaid     Boolean              @default(false)
-  invoicePaidDate DateTime?
-  invoiceUrl      String?              // Link to invoice document
+  // Contracting Info
+  contractContactName      String?
+  contractCompany          String?
+  contractContactEmail     String?
+  contractMailingAddress   String?
+  contractSoundExchangePayee String?
+  contractCreditLine       String?
 
-  // Additional Details
-  trackTitle      String?
-  artistName      String?
-  projectType     String?              // Film, TV, Commercial, Game, etc.
-  usageRights     String?              @db.Text
-  territory       String?              // Worldwide, US, etc.
-  term            String?              // Perpetuity, 1 year, etc.
+  // Other
+  contractLink    String?              // URL
+  released        Boolean              @default(false)
 
-  // Metadata & Notes
-  metadata        Json?                // Flexible storage for custom fields
+  // Checklist
+  advReceived     String               @default("Not Received") // "Not Received" or "Received"
+  masterCol       String               @default("Not Collecting") // "Not Collecting", "Collecting", "Advance hasn't recouped"
+  soundEx         String               @default("Not Collecting") // "Submitted LOD", "Not Collecting", "Collecting"
+  publicPerf      String               @default("Not Collecting") // "Not Collecting", "Collecting"
+  mech            String               @default("Not Collecting") // "Not Collecting", "Collecting"
+  agreement       String               @default("Draft has not been received") // Various states
+
+  // Notes
   notes           String?              @db.Text
-  internalNotes   String?              @db.Text // Admin-only notes
+
+  // Billing AI Fields
+  billingClientName        String?
+  billingClientPKA         String?
+  billingClientAddress     String?
+  billingClientCity        String?
+  billingProjectTitle      String?
+  billingInvoiceNumber     String?     @unique
+  billingArtistLegal       String?
+  billingArtistStage       String?
+  billingLabelName         String?
+  billingBillToEmail       String?
+  billingBillToContact     String?
+  billingIssueDate         String?     // Stored as text for flexibility
+  billingDueDate           String?
+  billingAmount            String?     // Dollar amount as text
+  billingCostsExpenses     String?
+  billingSalesTax          String?
+  billingAmountPaid        String?
+  billingServices          String?     @db.Text
+  billingPaymentTerms      String?     @db.Text
+  billingPaymentChannel    String?
+  billingBookkeepingNotes  String?     @db.Text
+
+  // Banking Details
+  billingBankAccountName   String?
+  billingBankName          String?
+  billingBankAddress       String?
+  billingRoutingNumber     String?
+  billingAccountNumber     String?
+  billingSwiftCode         String?
+
+  // Invoice Draft Storage
+  invoiceDraftHtml         String?     @db.Text
 
   // Tracking
-  createdById     String?              // Admin who created this deal
+  createdById     String?              // Admin who created
   lastModifiedBy  String?              // Admin who last modified
 
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
+  @@index([clientFullName])
+  @@index([songTitle])
   @@index([status])
-  @@index([dealType])
-  @@index([clientEmail])
-  @@index([dealDate])
-  @@index([invoicePaid])
+  @@index([billingInvoiceNumber])
   @@map("placement_deals")
 }
 
