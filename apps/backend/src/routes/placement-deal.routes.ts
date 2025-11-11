@@ -24,12 +24,12 @@ router.get('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respon
 
     if (search && typeof search === 'string') {
       where.OR = [
-        { clientName: { contains: search, mode: 'insensitive' } },
-        { clientEmail: { contains: search, mode: 'insensitive' } },
-        { clientCompany: { contains: search, mode: 'insensitive' } },
-        { projectTitle: { contains: search, mode: 'insensitive' } },
-        { trackTitle: { contains: search, mode: 'insensitive' } },
+        { clientFullName: { contains: search, mode: 'insensitive' } },
+        { clientPKA: { contains: search, mode: 'insensitive' } },
+        { songTitle: { contains: search, mode: 'insensitive' } },
         { artistName: { contains: search, mode: 'insensitive' } },
+        { label: { contains: search, mode: 'insensitive' } },
+        { billingInvoiceNumber: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -77,13 +77,6 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
     const userId = req.user!.id;
     const dealData = req.body;
 
-    // Calculate net amount if dealAmount and commissionRate are provided
-    if (dealData.dealAmount && dealData.commissionRate) {
-      const amount = Number(dealData.dealAmount);
-      const rate = Number(dealData.commissionRate);
-      dealData.netAmount = amount * (1 - rate / 100);
-    }
-
     const deal = await prisma.placementDeal.create({
       data: {
         ...dealData,
@@ -108,13 +101,6 @@ router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Res
     const { id } = req.params;
     const userId = req.user!.id;
     const dealData = req.body;
-
-    // Recalculate net amount if dealAmount or commissionRate changed
-    if (dealData.dealAmount && dealData.commissionRate) {
-      const amount = Number(dealData.dealAmount);
-      const rate = Number(dealData.commissionRate);
-      dealData.netAmount = amount * (1 - rate / 100);
-    }
 
     const deal = await prisma.placementDeal.update({
       where: { id },
@@ -167,17 +153,17 @@ router.post('/:id/generate-invoice', authenticate, requireAdmin, async (req: Aut
     }
 
     // Generate invoice number if not exists
-    if (!deal.invoiceNumber) {
+    if (!deal.billingInvoiceNumber) {
       const count = await prisma.placementDeal.count({
-        where: { invoiceNumber: { not: null } },
+        where: { billingInvoiceNumber: { not: null } },
       });
       const invoiceNumber = `INV-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
 
       await prisma.placementDeal.update({
         where: { id },
         data: {
-          invoiceNumber,
-          invoiceDate: deal.invoiceDate || new Date(),
+          billingInvoiceNumber: invoiceNumber,
+          billingIssueDate: deal.billingIssueDate || new Date().toISOString().split('T')[0],
         },
       });
 
@@ -201,23 +187,22 @@ router.post('/:id/generate-invoice', authenticate, requireAdmin, async (req: Aut
  */
 router.get('/stats/summary', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
-    const [totalDeals, activeDeals, totalRevenue, pendingInvoices] = await Promise.all([
+    const [totalDeals, releasedDeals, withInvoices, completedAgreements] = await Promise.all([
       prisma.placementDeal.count(),
-      prisma.placementDeal.count({ where: { status: 'ACTIVE' } }),
-      prisma.placementDeal.aggregate({
-        _sum: { dealAmount: true },
-        where: { status: { in: ['ACTIVE', 'COMPLETED'] } },
+      prisma.placementDeal.count({ where: { released: true } }),
+      prisma.placementDeal.count({
+        where: { billingInvoiceNumber: { not: null } },
       }),
       prisma.placementDeal.count({
-        where: { invoicePaid: false, invoiceNumber: { not: null } },
+        where: { agreement: { contains: 'Fully Executed' } },
       }),
     ]);
 
     res.json({
       totalDeals,
-      activeDeals,
-      totalRevenue: totalRevenue._sum.dealAmount || 0,
-      pendingInvoices,
+      releasedDeals,
+      withInvoices,
+      completedAgreements,
     });
   } catch (error) {
     console.error('Get placement stats error:', error);

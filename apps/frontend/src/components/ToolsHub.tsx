@@ -74,6 +74,15 @@ const TOOLS: Tool[] = [
     color: 'from-emerald-500 to-emerald-600',
     url: '/tools/advance-estimator',
     category: 'Financial'
+  },
+  {
+    id: 'placement-tracker',
+    name: 'Placement Tracker',
+    description: 'Track music placements, manage contracts, and generate invoices with AI-powered tools. Complete deal tracking with billing automation.',
+    icon: '🎵',
+    color: 'from-cyan-500 to-cyan-600',
+    url: '/admin?tab=placement-deals',
+    category: 'Management'
   }
 ];
 
