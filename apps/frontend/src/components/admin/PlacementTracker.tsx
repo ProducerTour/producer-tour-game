@@ -1307,18 +1307,287 @@ const PlacementTracker: React.FC = () => {
           </div>
         )}
 
-        {/* Legal AI Modal - Placeholder */}
+        {/* Legal AI Modal */}
         {showLegalModal && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-800 p-6 rounded-lg shadow-xl">
-              <h2 className="text-xl font-semibold text-white mb-4">Legal AI Tool</h2>
-              <p className="text-gray-400 mb-6">Legal AI functionality coming soon...</p>
-              <button
-                onClick={() => setShowLegalModal(false)}
-                className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600"
-              >
-                Close
-              </button>
+            <div className="bg-slate-800 w-full max-w-6xl max-h-[95vh] overflow-y-auto rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold tracking-wide text-green-400 uppercase">Legal AI Tool</p>
+                  <h2 className="text-2xl font-semibold text-white">AI Legal Workspace</h2>
+                  <p className="text-sm text-gray-400">Legal AI assists with contract review, redline tracking, agreement drafting, and legal term analysis for your placements.</p>
+                </div>
+                <button
+                  onClick={() => setShowLegalModal(false)}
+                  className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md shadow-sm font-semibold text-sm text-gray-300 hover:bg-slate-600"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Sidebar - Selected Deals */}
+                <section className="space-y-4">
+                  <div className="bg-green-900/30 border border-green-700 rounded-xl p-4">
+                    <p className="text-sm font-semibold text-green-300">
+                      {selectedPlacements.size > 0 ? `${selectedPlacements.size} placements selected` : 'Select placements for legal review.'}
+                    </p>
+                    <p className="text-xs text-green-400 mt-1">Click rows in the tracker to mark which deals need legal attention.</p>
+                  </div>
+                  <div className="space-y-3">
+                    {selectedPlacements.size === 0 ? (
+                      <p className="text-sm text-gray-500">No deals selected yet.</p>
+                    ) : (
+                      Array.from(selectedPlacements).map(id => {
+                        const placement = placements.find(p => p.id === id);
+                        if (!placement) return null;
+                        const statusColor = placement.agreement === 'Fully Executed' ? 'green' :
+                                          placement.agreement === 'In Legal Review' ? 'yellow' : 'red';
+                        return (
+                          <div
+                            key={id}
+                            className="rounded-lg border border-slate-600 bg-slate-700/30 p-4"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="text-sm font-medium text-white">{placement.clientFullName}</div>
+                              <div className={`w-2 h-2 rounded-full bg-${statusColor}-500`}></div>
+                            </div>
+                            <div className="text-xs text-gray-400 mb-1">{placement.songTitle} - {placement.artistName}</div>
+                            <div className="text-xs text-gray-500">Status: {placement.agreement}</div>
+                            {placement.status && (
+                              <div className="text-xs text-yellow-400 mt-1">Action: {placement.status}</div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500 space-y-1">
+                    <p>Legal AI tracks agreement status, redlines, and contract versions for each placement.</p>
+                    <p>Upload contracts or paste links to enable AI-powered analysis.</p>
+                  </div>
+                </section>
+
+                {/* Main Content - Legal Tools */}
+                <section className="lg:col-span-2 space-y-6">
+                  {/* Contract Analysis Section */}
+                  <div className="bg-slate-700/30 border border-slate-600 rounded-xl p-4 space-y-4">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Contract Review</p>
+                      <p className="text-sm text-gray-300">Upload or link to contracts for AI-powered analysis and redline tracking.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelClass}>Contract Document Link</label>
+                        <input
+                          type="url"
+                          className={inputClass}
+                          placeholder="https://docs.google.com/... or DocuSign link"
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Agreement Status</label>
+                        <select className={inputClass}>
+                          <option value="Draft has not been received">Draft has not been received</option>
+                          <option value="Draft has been received">Draft has been received</option>
+                          <option value="In Legal Review">In Legal Review</option>
+                          <option value="Partially Executed">Partially Executed</option>
+                          <option value="Fully Executed">Fully Executed</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Contract Upload</label>
+                      <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center hover:border-slate-500 transition-colors">
+                        <div className="text-gray-400 text-sm mb-2">
+                          <svg className="mx-auto h-12 w-12 mb-3" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          Drop contract file here or click to browse
+                        </div>
+                        <p className="text-xs text-gray-500">PDF, DOC, DOCX up to 10MB</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* AI Analysis Tools */}
+                  <div className="bg-slate-700/30 border border-slate-600 rounded-xl p-4 space-y-4">
+                    <p className="text-xs font-semibold text-gray-400 uppercase">Legal AI Actions</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <button className="px-4 py-3 bg-green-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-left">
+                        <div className="font-bold mb-1">🔍 Analyze Contract</div>
+                        <div className="text-xs opacity-90">Review terms, identify issues, suggest improvements</div>
+                      </button>
+
+                      <button className="px-4 py-3 bg-blue-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-left">
+                        <div className="font-bold mb-1">📝 Generate Agreement</div>
+                        <div className="text-xs opacity-90">Create producer agreement from placement data</div>
+                      </button>
+
+                      <button className="px-4 py-3 bg-purple-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 text-left">
+                        <div className="font-bold mb-1">🔄 Track Redlines</div>
+                        <div className="text-xs opacity-90">Compare versions and track changes</div>
+                      </button>
+
+                      <button className="px-4 py-3 bg-orange-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 text-left">
+                        <div className="font-bold mb-1">⚖️ Explain Terms</div>
+                        <div className="text-xs opacity-90">Plain English explanations of legal clauses</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Legal Terms Reference */}
+                  <div className="bg-slate-700/30 border border-slate-600 rounded-xl p-4 space-y-4">
+                    <p className="text-xs font-semibold text-gray-400 uppercase">Deal Terms & Legal Notes</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelClass}>Advance Amount</label>
+                        <input
+                          type="text"
+                          className={inputClass}
+                          placeholder="$0.00"
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Master Royalty Rate</label>
+                        <input
+                          type="text"
+                          className={inputClass}
+                          placeholder="e.g., 2% PPD"
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Publishing Percentage</label>
+                        <input
+                          type="text"
+                          className={inputClass}
+                          placeholder="e.g., 50%"
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>SoundExchange LOD %</label>
+                        <input
+                          type="text"
+                          className={inputClass}
+                          placeholder="e.g., 20%"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Legal Notes & Redlines</label>
+                      <textarea
+                        className={inputClass}
+                        rows={4}
+                        placeholder="Track legal discussions, redline requests, negotiation points, etc..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Key Contract Clauses</label>
+                      <textarea
+                        className={inputClass}
+                        rows={3}
+                        placeholder="Important clauses to review: recoupment, reversion, credit, etc..."
+                      />
+                    </div>
+                  </div>
+
+                  {/* Legal Fee Tracking */}
+                  <div className="bg-slate-700/30 border border-slate-600 rounded-xl p-4 space-y-4">
+                    <p className="text-xs font-semibold text-gray-400 uppercase">Legal Fee Information</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelClass}>Legal Fee Amount</label>
+                        <input
+                          type="text"
+                          className={inputClass}
+                          placeholder="e.g., $500 or 10%"
+                        />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Fee Type</label>
+                        <select className={inputClass}>
+                          <option value="Flat Fee">Flat Fee</option>
+                          <option value="Percentage">Percentage</option>
+                          <option value="Hourly">Hourly</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelClass}>Payment Source</label>
+                        <select className={inputClass}>
+                          <option value="Out of Advance">Out of Advance</option>
+                          <option value="Paid Directly">Paid Directly</option>
+                          <option value="Split">Split Payment</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelClass}>Payment Status</label>
+                        <select className={inputClass}>
+                          <option value="No">Not Paid</option>
+                          <option value="Yes">Paid</option>
+                          <option value="Pending">Pending</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Attorney/Firm Contact</label>
+                      <input
+                        type="text"
+                        className={inputClass}
+                        placeholder="Law firm or attorney name and email"
+                      />
+                    </div>
+                  </div>
+
+                  {/* AI Analysis Results */}
+                  <div className="bg-slate-700/30 border border-slate-600 rounded-xl p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-gray-400 uppercase">AI Analysis Results</p>
+                      <span className="text-xs text-gray-500">No analysis run yet</span>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-6 text-gray-900 min-h-[200px] flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-4xl mb-3">⚖️</div>
+                        <p className="text-sm text-gray-500">Legal AI analysis will appear here</p>
+                        <p className="text-xs text-gray-400 mt-1">Upload a contract and click "Analyze Contract" to begin</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <button className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600">
+                        Export Analysis Report (PDF)
+                      </button>
+                      <button className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600">
+                        Save Legal Package (JSON)
+                      </button>
+                      <button className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600">
+                        Generate Agreement (DOCX)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-slate-700">
+                    <button
+                      onClick={() => setShowLegalModal(false)}
+                      className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600"
+                    >
+                      Close
+                    </button>
+                    <button className="px-4 py-2 bg-green-600 border border-transparent rounded-md shadow-sm font-semibold text-sm text-white hover:bg-green-700">
+                      Save Legal Updates
+                    </button>
+                  </div>
+                </section>
+              </div>
             </div>
           </div>
         )}
