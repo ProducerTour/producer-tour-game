@@ -32,6 +32,7 @@ export const stripeService = {
         email,
         capabilities: {
           transfers: { requested: true },
+          card_payments: { requested: true },
         },
         business_type: 'individual',
         metadata: {
