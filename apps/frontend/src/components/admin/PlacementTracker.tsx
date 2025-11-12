@@ -91,19 +91,37 @@ const PlacementTracker: React.FC = () => {
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: (data: any) => placementDealApi.create(data),
+    mutationFn: (data: any) => {
+      console.log('Creating placement with data:', data);
+      return placementDealApi.create(data);
+    },
     onSuccess: () => {
+      console.log('Placement created successfully');
       queryClient.invalidateQueries({ queryKey: ['placement-deals'] });
       handleCloseForm();
+    },
+    onError: (error: any) => {
+      console.error('Create placement error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
+      alert(`Failed to create placement: ${errorMessage}`);
     },
   });
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => placementDealApi.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => {
+      console.log('Updating placement', id, 'with data:', data);
+      return placementDealApi.update(id, data);
+    },
     onSuccess: () => {
+      console.log('Placement updated successfully');
       queryClient.invalidateQueries({ queryKey: ['placement-deals'] });
       handleCloseForm();
+    },
+    onError: (error: any) => {
+      console.error('Update placement error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
+      alert(`Failed to update placement: ${errorMessage}`);
     },
   });
 
@@ -189,6 +207,23 @@ const PlacementTracker: React.FC = () => {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate required fields
+    const requiredFields = [
+      { field: 'clientFullName', label: 'Client Full Name' },
+      { field: 'clientPKA', label: 'Client P/K/A' },
+      { field: 'songTitle', label: 'Song Title' },
+      { field: 'artistName', label: 'Artist Name' },
+    ];
+
+    const missingFields = requiredFields.filter(({ field }) => !formData[field as keyof Placement]?.toString().trim());
+
+    if (missingFields.length > 0) {
+      const fieldNames = missingFields.map(({ label }) => label).join(', ');
+      alert(`Please fill in the following required fields: ${fieldNames}`);
+      return;
+    }
+
     const { id, ...placementData } = formData;
     if (editingPlacement) {
       updateMutation.mutate({ id: editingPlacement.id, data: placementData });
@@ -460,7 +495,7 @@ const PlacementTracker: React.FC = () => {
                   {/* Column 1: Core Info */}
                   <div className="space-y-6">
                     <div>
-                      <label className={labelClass}>Client Full Name</label>
+                      <label className={labelClass}>Client Full Name <span className="text-red-500">*</span></label>
                       <input
                         type="text"
                         value={formData.clientFullName}
@@ -470,7 +505,7 @@ const PlacementTracker: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>p/k/a "Producer Name"</label>
+                      <label className={labelClass}>p/k/a "Producer Name" <span className="text-red-500">*</span></label>
                       <input
                         type="text"
                         value={formData.clientPKA}
@@ -480,7 +515,7 @@ const PlacementTracker: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>Song Title</label>
+                      <label className={labelClass}>Song Title <span className="text-red-500">*</span></label>
                       <input
                         type="text"
                         value={formData.songTitle}
@@ -490,7 +525,7 @@ const PlacementTracker: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className={labelClass}>Artist Name</label>
+                      <label className={labelClass}>Artist Name <span className="text-red-500">*</span></label>
                       <input
                         type="text"
                         value={formData.artistName}
