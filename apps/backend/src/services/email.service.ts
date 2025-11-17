@@ -60,7 +60,7 @@ class EmailService {
     }
 
     try {
-      const config: EmailConfig = {
+      const config: any = {
         host: SMTP_HOST,
         port: parseInt(SMTP_PORT || '587'),
         secure: SMTP_SECURE === 'true', // true for 465, false for other ports
@@ -68,7 +68,18 @@ class EmailService {
           user: SMTP_USER,
           pass: SMTP_PASS,
         },
-        from: this.fromEmail,
+        // Add TLS options for Bluehost compatibility
+        tls: {
+          rejectUnauthorized: false, // Allow self-signed certificates
+          ciphers: 'SSLv3', // Support older SSL versions for Bluehost
+        },
+        // Add debugging (temporary)
+        logger: true,
+        debug: true,
+        // Connection settings
+        connectionTimeout: 10000, // 10 seconds
+        greetingTimeout: 10000,
+        socketTimeout: 30000, // 30 seconds
       };
 
       // Try to create transporter - if it fails, just disable the service
@@ -150,9 +161,14 @@ class EmailService {
     const mailOptions = {
       from: this.fromEmail,
       to: data.writerEmail,
+      replyTo: this.fromEmail,
       subject: `Payment Processed - ${data.proType} Royalties`,
       html: this.generatePaymentEmailHTML(data),
       text: this.generatePaymentEmailText(data),
+      envelope: {
+        from: this.fromEmail,
+        to: data.writerEmail,
+      },
     };
 
     const sent = await this.sendEmailWithRetry(mailOptions, data.writerEmail);
@@ -433,9 +449,14 @@ If you have any questions about this payment, please contact us at support@produ
     const mailOptions = {
       from: this.fromEmail,
       to: email,
+      replyTo: this.fromEmail,
       subject: 'Reset Your Producer Tour Password',
       html: this.generatePasswordResetHTML(name, resetLink),
       text: this.generatePasswordResetText(name, resetLink),
+      envelope: {
+        from: this.fromEmail,
+        to: email,
+      },
     };
 
     const sent = await this.sendEmailWithRetry(mailOptions, email);
@@ -459,9 +480,14 @@ If you have any questions about this payment, please contact us at support@produ
     const mailOptions = {
       from: this.fromEmail,
       to: email,
+      replyTo: this.fromEmail,
       subject: 'Password Reset Successful',
       html: this.generatePasswordResetConfirmationHTML(name),
       text: this.generatePasswordResetConfirmationText(name),
+      envelope: {
+        from: this.fromEmail,
+        to: email,
+      },
     };
 
     const sent = await this.sendEmailWithRetry(mailOptions, email);
@@ -487,9 +513,14 @@ If you have any questions about this payment, please contact us at support@produ
     const mailOptions = {
       from: this.fromEmail,
       to: email,
+      replyTo: this.fromEmail,
       subject: 'Welcome to Producer Tour - Set Your Password',
       html: this.generateWelcomeEmailHTML(name, setupLink, email),
       text: this.generateWelcomeEmailText(name, setupLink, email),
+      envelope: {
+        from: this.fromEmail,
+        to: email,
+      },
     };
 
     const sent = await this.sendEmailWithRetry(mailOptions, email);
