@@ -77,9 +77,16 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
     const userId = req.user!.id;
     const dealData = req.body;
 
+    // Transform empty strings to null for optional fields
+    const cleanedData = Object.entries(dealData).reduce((acc, [key, value]) => {
+      // Convert empty strings to null for optional fields
+      acc[key] = value === '' ? null : value;
+      return acc;
+    }, {} as any);
+
     const deal = await prisma.placementDeal.create({
       data: {
-        ...dealData,
+        ...cleanedData,
         createdById: userId,
         lastModifiedBy: userId,
       },
@@ -88,6 +95,11 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
     res.status(201).json(deal);
   } catch (error) {
     console.error('Create placement deal error:', error);
+    // Log the full error for debugging
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     res.status(500).json({ error: 'Failed to create placement deal' });
   }
 });
