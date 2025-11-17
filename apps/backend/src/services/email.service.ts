@@ -109,10 +109,16 @@ class EmailService {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        await this.transporter.sendMail(mailOptions);
-        if (attempt > 1) {
-          console.log(`✅ Email sent to ${recipientEmail} on attempt ${attempt}`);
-        }
+        const info = await this.transporter.sendMail(mailOptions);
+        // Log detailed SMTP response for debugging
+        console.log(`📧 Email sent to ${recipientEmail}:`, {
+          messageId: info.messageId,
+          response: info.response,
+          accepted: info.accepted,
+          rejected: info.rejected,
+          pending: info.pending,
+          attempt: attempt > 1 ? attempt : 'first'
+        });
         return true;
       } catch (error: any) {
         const isLastAttempt = attempt === maxRetries;
