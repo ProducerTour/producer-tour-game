@@ -3,7 +3,6 @@
 
 generator client {
   provider      = "prisma-client-js"
-  output        = "../../node_modules/@prisma/client"
   // Force binary engine for Render's Debian image
   engineType    = "binary"
   binaryTargets = ["native", "debian-openssl-3.0.x"]

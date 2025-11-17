@@ -45,6 +45,7 @@ jobs:
         timeout-minutes: 3
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/producer_tour_test
+          PRISMA_GENERATE_SKIP_AUTOINSTALL: true
 
       - name: Run database migrations
         run: cd apps/backend && npx prisma migrate deploy
@@ -133,6 +134,7 @@ jobs:
         timeout-minutes: 3
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/producer_tour_test
+          PRISMA_GENERATE_SKIP_AUTOINSTALL: true
 
       - name: Build backend
         run: cd apps/backend && npm run build
