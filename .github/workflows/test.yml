@@ -38,12 +38,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Install backend dependencies
-        run: cd apps/backend && npm ci
+        timeout-minutes: 10
 
       - name: Generate Prisma Client
         run: cd apps/backend && npx prisma generate
+        timeout-minutes: 3
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/producer_tour_test
 
@@ -105,9 +104,7 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Install backend dependencies
-        run: cd apps/backend && npm ci
+        timeout-minutes: 10
 
       - name: Run ESLint
         run: cd apps/backend && npm run lint
@@ -129,12 +126,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Install backend dependencies
-        run: cd apps/backend && npm ci
+        timeout-minutes: 10
 
       - name: Generate Prisma Client
         run: cd apps/backend && npx prisma generate
+        timeout-minutes: 3
 
       - name: Build backend
         run: cd apps/backend && npm run build
