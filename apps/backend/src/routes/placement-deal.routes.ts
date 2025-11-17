@@ -77,7 +77,7 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
     const userId = req.user!.id;
     const dealData = req.body;
 
-    // Transform empty strings to null for optional fields
+    // Transform empty strings to null for optional fields (prevents unique constraint violations)
     const cleanedData = Object.entries(dealData).reduce((acc, [key, value]) => {
       // Convert empty strings to null for optional fields
       acc[key] = value === '' ? null : value;
