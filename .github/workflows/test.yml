@@ -40,9 +40,11 @@ jobs:
         run: npm ci
         timeout-minutes: 10
 
-      - name: Install Prisma Client in workspace
-        run: npm install @prisma/client --workspace=apps/backend --no-save
-        timeout-minutes: 2
+      - name: Create Prisma Client symlink for workspace
+        run: |
+          mkdir -p apps/backend/node_modules/@prisma
+          ln -s $(pwd)/node_modules/@prisma/client apps/backend/node_modules/@prisma/client
+        timeout-minutes: 1
 
       - name: Generate Prisma Client
         run: npm run db:generate --workspace=apps/backend
@@ -133,9 +135,11 @@ jobs:
         run: npm ci
         timeout-minutes: 10
 
-      - name: Install Prisma Client in workspace
-        run: npm install @prisma/client --workspace=apps/backend --no-save
-        timeout-minutes: 2
+      - name: Create Prisma Client symlink for workspace
+        run: |
+          mkdir -p apps/backend/node_modules/@prisma
+          ln -s $(pwd)/node_modules/@prisma/client apps/backend/node_modules/@prisma/client
+        timeout-minutes: 1
 
       - name: Generate Prisma Client
         run: npm run db:generate --workspace=apps/backend
