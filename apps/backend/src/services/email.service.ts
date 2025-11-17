@@ -61,6 +61,7 @@ class EmailService {
 
     try {
       const config: any = {
+        name: SMTP_HOST, // CRITICAL: Required for Bluehost SMTP to relay emails
         host: SMTP_HOST,
         port: parseInt(SMTP_PORT || '587'),
         secure: SMTP_SECURE === 'true', // true for 465, false for other ports
@@ -71,7 +72,6 @@ class EmailService {
         // Add TLS options for Bluehost compatibility
         tls: {
           rejectUnauthorized: false, // Allow self-signed certificates
-          ciphers: 'SSLv3', // Support older SSL versions for Bluehost
         },
         // Add debugging (temporary)
         logger: true,
