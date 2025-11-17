@@ -40,6 +40,10 @@ jobs:
         run: npm ci
         timeout-minutes: 10
 
+      - name: Install Prisma Client package
+        run: cd apps/backend && npm install @prisma/client
+        timeout-minutes: 2
+
       - name: Generate Prisma Client
         run: npm run db:generate --workspace=apps/backend
         timeout-minutes: 3
@@ -127,6 +131,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
         timeout-minutes: 10
+
+      - name: Install Prisma Client package
+        run: cd apps/backend && npm install @prisma/client
+        timeout-minutes: 2
 
       - name: Generate Prisma Client
         run: npm run db:generate --workspace=apps/backend
