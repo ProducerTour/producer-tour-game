@@ -41,7 +41,7 @@ jobs:
         timeout-minutes: 10
 
       - name: Generate Prisma Client
-        run: npx prisma generate --schema=apps/backend/prisma/schema.prisma
+        run: npm run db:generate --workspace=apps/backend
         timeout-minutes: 3
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/producer_tour_test
@@ -129,7 +129,7 @@ jobs:
         timeout-minutes: 10
 
       - name: Generate Prisma Client
-        run: npx prisma generate --schema=apps/backend/prisma/schema.prisma
+        run: npm run db:generate --workspace=apps/backend
         timeout-minutes: 3
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/producer_tour_test
