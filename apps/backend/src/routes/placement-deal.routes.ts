@@ -114,10 +114,17 @@ router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Res
     const userId = req.user!.id;
     const dealData = req.body;
 
+    // Transform empty strings to null for optional fields (prevents unique constraint violations)
+    const cleanedData = Object.entries(dealData).reduce((acc, [key, value]) => {
+      // Convert empty strings to null for optional fields
+      acc[key] = value === '' ? null : value;
+      return acc;
+    }, {} as any);
+
     const deal = await prisma.placementDeal.update({
       where: { id },
       data: {
-        ...dealData,
+        ...cleanedData,
         lastModifiedBy: userId,
       },
     });
@@ -125,6 +132,11 @@ router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Res
     res.json(deal);
   } catch (error) {
     console.error('Update placement deal error:', error);
+    // Log the full error for debugging
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     res.status(500).json({ error: 'Failed to update placement deal' });
   }
 });
