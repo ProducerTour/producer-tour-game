@@ -61,19 +61,14 @@ class EmailService {
 
     try {
       const config: any = {
-        name: SMTP_HOST, // CRITICAL: Required for Bluehost SMTP to relay emails
         host: SMTP_HOST,
         port: parseInt(SMTP_PORT || '587'),
-        secure: SMTP_SECURE === 'true', // true for 465, false for other ports
+        secure: SMTP_SECURE === 'true', // true for 465, false for other ports (use false for SendGrid port 587)
         auth: {
           user: SMTP_USER,
           pass: SMTP_PASS,
         },
-        // Add TLS options for Bluehost compatibility
-        tls: {
-          rejectUnauthorized: false, // Allow self-signed certificates
-        },
-        // Add debugging (temporary)
+        // Debugging
         logger: true,
         debug: true,
         // Connection settings
