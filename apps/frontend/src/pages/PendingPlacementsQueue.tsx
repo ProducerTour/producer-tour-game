@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, XCircle, FileText, Music, AlertCircle,
-  DollarSign, Percent, Calendar, User, Mail, Clock,
+  DollarSign, Percent, Calendar, Clock,
   ChevronDown, ChevronUp, Search
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';

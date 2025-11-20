@@ -8,6 +8,9 @@ export interface WorkSubmission {
   artist: string;
   albumName?: string;
   albumArtUrl?: string;
+  albumArtHQUrl?: string;
+  artistThumbUrl?: string;
+  artistBio?: string;
   status: 'PENDING' | 'DOCUMENTS_REQUESTED' | 'APPROVED' | 'DENIED' | 'TRACKING' | 'COMPLETED';
   submittedAt?: string;
   reviewedAt?: string;
@@ -15,6 +18,21 @@ export interface WorkSubmission {
   documentsRequested?: string;
   caseNumber?: string;
   createdAt: string;
+  spotifyTrackId?: string;
+  platform?: string;
+  releaseDate?: string;
+  isrc?: string;
+  streams?: number;
+  estimatedStreams?: number;
+  genre?: string;
+  releaseYear?: string;
+  label?: string;
+  musicbrainzId?: string;
+  audioDbArtistId?: string;
+  audioDbAlbumId?: string;
+  audioDbData?: any;
+  metadata?: any;
+  notes?: string;
 }
 
 export interface PendingSubmission extends WorkSubmission {
@@ -24,11 +42,6 @@ export interface PendingSubmission extends WorkSubmission {
     firstName?: string;
     lastName?: string;
   };
-  genre?: string;
-  releaseYear?: string;
-  label?: string;
-  isrc?: string;
-  platform?: string;
 }
 
 class WorkRegistrationAPI {
@@ -39,24 +52,24 @@ class WorkRegistrationAPI {
     };
   }
 
-  async getMySubmissions(): Promise<WorkSubmission[]> {
+  async getMySubmissions(): Promise<{ data: { submissions: WorkSubmission[] } }> {
     try {
       const response = await axios.get(`${API_URL}/api/work-registration/my-submissions`, {
         headers: this.getAuthHeaders(),
       });
-      return response.data.submissions || [];
+      return { data: { submissions: response.data.submissions || [] } };
     } catch (error) {
       console.error('Get my submissions error:', error);
       throw error;
     }
   }
 
-  async getPendingSubmissions(): Promise<PendingSubmission[]> {
+  async getPendingSubmissions(): Promise<{ data: { submissions: PendingSubmission[] } }> {
     try {
       const response = await axios.get(`${API_URL}/api/work-registration/pending`, {
         headers: this.getAuthHeaders(),
       });
-      return response.data.pending || [];
+      return { data: { submissions: response.data.pending || [] } };
     } catch (error) {
       console.error('Get pending submissions error:', error);
       throw error;

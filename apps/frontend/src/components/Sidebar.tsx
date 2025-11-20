@@ -7,6 +7,13 @@ interface TabItem {
   label: string;
   icon: string;
   children?: Array<{ id: string; label: string; icon: string }>;
+  path?: string;
+}
+
+interface NavSection {
+  id: string;
+  label: string;
+  items: TabItem[];
 }
 
 interface SidebarProps {
@@ -39,7 +46,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   const isAdmin = user?.role === 'ADMIN';
 
   // Admin navigation structure
-  const adminSections = [
+  const adminSections: NavSection[] = [
     {
       id: 'main',
       label: 'Main',
@@ -62,7 +69,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   ];
 
   // Writer navigation structure
-  const writerSections = [
+  const writerSections: NavSection[] = [
     {
       id: 'main',
       label: 'Main',
