@@ -40,8 +40,9 @@ const app: Express = express();
 const PORT = process.env.PORT || 3000;
 
 // Trust proxy - Required for rate limiting and security when behind Render/Vercel reverse proxy
-// This allows Express to trust the X-Forwarded-* headers set by the proxy
-app.set('trust proxy', true);
+// Set to 1 to trust only the first proxy hop (Render's load balancer)
+// This prevents IP spoofing while allowing proper client IP detection
+app.set('trust proxy', 1);
 
 // Security middleware - Helmet.js
 // Sets various HTTP headers to help protect against common web vulnerabilities

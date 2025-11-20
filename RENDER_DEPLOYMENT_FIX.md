@@ -3,14 +3,19 @@
 ## Current Errors
 
 ### 1. ✅ Express Trust Proxy Error - FIXED
-**Error:** `ValidationError: The 'X-Forwarded-For' header is set but the Express 'trust proxy' setting is false`
+**Error:** `ValidationError: The Express 'trust proxy' setting is true, which allows anyone to trivially bypass IP-based rate limiting`
 
-**Fix Applied:** Added `app.set('trust proxy', true)` to `apps/backend/src/index.ts`
+**Fix Applied:**
+- Changed `app.set('trust proxy', true)` to `app.set('trust proxy', 1)` in `apps/backend/src/index.ts`
+- Added `validate: { trustProxy: false }` to rate limiters in `apps/backend/src/middleware/rate-limit.middleware.ts`
+- This securely trusts only Render's load balancer (1 hop) instead of any proxy
 
 ### 2. ❌ Database Migration Error - ACTION REQUIRED
 **Error:** `The column 'users.publisherName' does not exist in the current database`
 
 **Cause:** Production database hasn't run migrations that add the `publisherName` column
+
+**This is blocking login!** You must run migrations NOW.
 
 ## How to Fix the Database Error
 

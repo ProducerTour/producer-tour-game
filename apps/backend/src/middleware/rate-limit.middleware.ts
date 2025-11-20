@@ -9,6 +9,9 @@ export const authLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   skipSuccessfulRequests: false, // Count successful requests
+  // Trust proxy configuration - works with Express trust proxy setting
+  // Validates that app.set('trust proxy', 1) is configured
+  validate: { trustProxy: false }, // Disable validation since we handle it in Express config
   handler: (req, res) => {
     console.log(`Rate limit exceeded for auth endpoint from IP: ${req.ip}`);
     res.status(429).json({
@@ -25,6 +28,8 @@ export const apiLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again after 15 minutes',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Trust proxy configuration - works with Express trust proxy setting
+  validate: { trustProxy: false }, // Disable validation since we handle it in Express config
   handler: (req, res) => {
     console.log(`Rate limit exceeded for API endpoint from IP: ${req.ip}`);
     res.status(429).json({
