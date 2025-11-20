@@ -891,6 +891,517 @@ Need help? Contact us at support@producertour.com
   }
 
   /**
+   * Send document request notification to writer
+   */
+  async sendDocumentRequestEmail(
+    writerEmail: string,
+    writerName: string,
+    submissionTitle: string,
+    documentsRequested: string
+  ): Promise<boolean> {
+    if (!this.isConfigured || !this.transporter) {
+      console.warn('Email service not configured - skipping document request notification');
+      return false;
+    }
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: writerEmail,
+      replyTo: this.fromEmail,
+      subject: `Documents Requested - ${submissionTitle}`,
+      html: this.generateDocumentRequestHTML(writerName, submissionTitle, documentsRequested),
+      text: this.generateDocumentRequestText(writerName, submissionTitle, documentsRequested),
+      envelope: {
+        from: this.fromEmail,
+        to: writerEmail,
+      },
+    };
+
+    const sent = await this.sendEmailWithRetry(mailOptions, writerEmail);
+
+    if (sent) {
+      console.log(`✅ Document request notification sent to ${writerEmail}`);
+    }
+
+    return sent;
+  }
+
+  /**
+   * Send submission approved notification to writer
+   */
+  async sendSubmissionApprovedEmail(
+    writerEmail: string,
+    writerName: string,
+    submissionTitle: string,
+    caseNumber: string
+  ): Promise<boolean> {
+    if (!this.isConfigured || !this.transporter) {
+      console.warn('Email service not configured - skipping approval notification');
+      return false;
+    }
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: writerEmail,
+      replyTo: this.fromEmail,
+      subject: `Submission Approved - ${submissionTitle}`,
+      html: this.generateSubmissionApprovedHTML(writerName, submissionTitle, caseNumber),
+      text: this.generateSubmissionApprovedText(writerName, submissionTitle, caseNumber),
+      envelope: {
+        from: this.fromEmail,
+        to: writerEmail,
+      },
+    };
+
+    const sent = await this.sendEmailWithRetry(mailOptions, writerEmail);
+
+    if (sent) {
+      console.log(`✅ Approval notification sent to ${writerEmail}`);
+    }
+
+    return sent;
+  }
+
+  /**
+   * Send submission denied notification to writer
+   */
+  async sendSubmissionDeniedEmail(
+    writerEmail: string,
+    writerName: string,
+    submissionTitle: string,
+    denialReason: string
+  ): Promise<boolean> {
+    if (!this.isConfigured || !this.transporter) {
+      console.warn('Email service not configured - skipping denial notification');
+      return false;
+    }
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: writerEmail,
+      replyTo: this.fromEmail,
+      subject: `Submission Update - ${submissionTitle}`,
+      html: this.generateSubmissionDeniedHTML(writerName, submissionTitle, denialReason),
+      text: this.generateSubmissionDeniedText(writerName, submissionTitle, denialReason),
+      envelope: {
+        from: this.fromEmail,
+        to: writerEmail,
+      },
+    };
+
+    const sent = await this.sendEmailWithRetry(mailOptions, writerEmail);
+
+    if (sent) {
+      console.log(`✅ Denial notification sent to ${writerEmail}`);
+    }
+
+    return sent;
+  }
+
+  /**
+   * Generate HTML for document request email
+   */
+  private generateDocumentRequestHTML(name: string, title: string, documentsRequested: string): string {
+    const submissionsLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/my-submissions`;
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documents Requested</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 10px 10px 0 0;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    .content {
+      background: #f9fafb;
+      padding: 30px;
+      border-radius: 0 0 10px 10px;
+    }
+    .alert-box {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .alert-box strong {
+      color: #92400e;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .button {
+      display: inline-block;
+      background: #f59e0b;
+      color: white !important;
+      padding: 14px 32px;
+      border-radius: 6px;
+      text-decoration: none;
+      margin: 20px 0;
+      font-weight: 600;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      color: #6b7280;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📄 Documents Requested</h1>
+  </div>
+
+  <div class="content">
+    <p>Hi ${name},</p>
+
+    <p>We're reviewing your work registration submission for <strong>"${title}"</strong> and need some additional documents to continue the process.</p>
+
+    <div class="alert-box">
+      <strong>Requested Documents:</strong>
+      <p style="margin: 0; color: #78350f;">${documentsRequested}</p>
+    </div>
+
+    <p>Please upload the requested documents as soon as possible to keep your submission moving forward.</p>
+
+    <p style="text-align: center;">
+      <a href="${submissionsLink}" class="button">
+        Upload Documents
+      </a>
+    </p>
+
+    <p style="color: #6b7280; font-size: 14px;">
+      You can provide links to cloud storage (Google Drive, Dropbox, etc.) or include any additional notes when you submit.
+    </p>
+  </div>
+
+  <div class="footer">
+    <p>© ${new Date().getFullYear()} Producer Tour. All rights reserved.</p>
+    <p>Questions? Contact us at support@producertour.com</p>
+  </div>
+</body>
+</html>
+    `;
+  }
+
+  /**
+   * Generate plain text for document request email
+   */
+  private generateDocumentRequestText(name: string, title: string, documentsRequested: string): string {
+    const submissionsLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/my-submissions`;
+
+    return `
+Documents Requested
+
+Hi ${name},
+
+We're reviewing your work registration submission for "${title}" and need some additional documents to continue the process.
+
+Requested Documents:
+${documentsRequested}
+
+Please upload the requested documents as soon as possible to keep your submission moving forward.
+
+Upload documents here: ${submissionsLink}
+
+You can provide links to cloud storage (Google Drive, Dropbox, etc.) or include any additional notes when you submit.
+
+© ${new Date().getFullYear()} Producer Tour. All rights reserved.
+Questions? Contact us at support@producertour.com
+    `.trim();
+  }
+
+  /**
+   * Generate HTML for submission approved email
+   */
+  private generateSubmissionApprovedHTML(name: string, title: string, caseNumber: string): string {
+    const claimsLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/writer`;
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submission Approved</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 10px 10px 0 0;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    .content {
+      background: #f9fafb;
+      padding: 30px;
+      border-radius: 0 0 10px 10px;
+    }
+    .success-box {
+      background: #d1fae5;
+      border: 2px solid #10b981;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+    }
+    .case-number {
+      font-size: 24px;
+      font-weight: bold;
+      color: #065f46;
+      margin: 10px 0;
+    }
+    .button {
+      display: inline-block;
+      background: #10b981;
+      color: white !important;
+      padding: 14px 32px;
+      border-radius: 6px;
+      text-decoration: none;
+      margin: 20px 0;
+      font-weight: 600;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      color: #6b7280;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>✅ Submission Approved!</h1>
+  </div>
+
+  <div class="content">
+    <p>Hi ${name},</p>
+
+    <p>Great news! Your work registration for <strong>"${title}"</strong> has been approved and is now in your Claims.</p>
+
+    <div class="success-box">
+      <p style="margin: 0 0 5px 0; color: #065f46; font-weight: 600;">Case Number</p>
+      <div class="case-number">${caseNumber}</div>
+    </div>
+
+    <p>You can now view the full details of your approved work, track its progress, and manage all related information in your Claims section.</p>
+
+    <p style="text-align: center;">
+      <a href="${claimsLink}" class="button">
+        View Your Claims
+      </a>
+    </p>
+
+    <p style="color: #6b7280; font-size: 14px;">
+      Your work is now being tracked in our system. You'll receive updates as your case progresses.
+    </p>
+  </div>
+
+  <div class="footer">
+    <p>© ${new Date().getFullYear()} Producer Tour. All rights reserved.</p>
+    <p>Questions? Contact us at support@producertour.com</p>
+  </div>
+</body>
+</html>
+    `;
+  }
+
+  /**
+   * Generate plain text for submission approved email
+   */
+  private generateSubmissionApprovedText(name: string, title: string, caseNumber: string): string {
+    const claimsLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/writer`;
+
+    return `
+Submission Approved!
+
+Hi ${name},
+
+Great news! Your work registration for "${title}" has been approved and is now in your Claims.
+
+Case Number: ${caseNumber}
+
+You can now view the full details of your approved work, track its progress, and manage all related information in your Claims section.
+
+View your claims here: ${claimsLink}
+
+Your work is now being tracked in our system. You'll receive updates as your case progresses.
+
+© ${new Date().getFullYear()} Producer Tour. All rights reserved.
+Questions? Contact us at support@producertour.com
+    `.trim();
+  }
+
+  /**
+   * Generate HTML for submission denied email
+   */
+  private generateSubmissionDeniedHTML(name: string, title: string, denialReason: string): string {
+    const submissionsLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/my-submissions`;
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submission Update</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 10px 10px 0 0;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    .content {
+      background: #f9fafb;
+      padding: 30px;
+      border-radius: 0 0 10px 10px;
+    }
+    .alert-box {
+      background: #fee2e2;
+      border: 2px solid #ef4444;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .alert-box strong {
+      color: #991b1b;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .button {
+      display: inline-block;
+      background: #667eea;
+      color: white !important;
+      padding: 14px 32px;
+      border-radius: 6px;
+      text-decoration: none;
+      margin: 20px 0;
+      font-weight: 600;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      color: #6b7280;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📋 Submission Update</h1>
+  </div>
+
+  <div class="content">
+    <p>Hi ${name},</p>
+
+    <p>Thank you for submitting your work registration for <strong>"${title}"</strong>. After careful review, we're unable to approve this submission at this time.</p>
+
+    <div class="alert-box">
+      <strong>Reason:</strong>
+      <p style="margin: 0; color: #7f1d1d;">${denialReason}</p>
+    </div>
+
+    <p>If you believe this decision was made in error or if you have questions about the reason provided, please don't hesitate to contact us. We're here to help!</p>
+
+    <p style="text-align: center;">
+      <a href="${submissionsLink}" class="button">
+        View Your Submissions
+      </a>
+    </p>
+
+    <p style="color: #6b7280; font-size: 14px;">
+      You may submit a new work registration at any time if you have additional information or corrections to make.
+    </p>
+  </div>
+
+  <div class="footer">
+    <p>© ${new Date().getFullYear()} Producer Tour. All rights reserved.</p>
+    <p>Questions? Contact us at support@producertour.com</p>
+  </div>
+</body>
+</html>
+    `;
+  }
+
+  /**
+   * Generate plain text for submission denied email
+   */
+  private generateSubmissionDeniedText(name: string, title: string, denialReason: string): string {
+    const submissionsLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/my-submissions`;
+
+    return `
+Submission Update
+
+Hi ${name},
+
+Thank you for submitting your work registration for "${title}". After careful review, we're unable to approve this submission at this time.
+
+Reason:
+${denialReason}
+
+If you believe this decision was made in error or if you have questions about the reason provided, please don't hesitate to contact us. We're here to help!
+
+View your submissions: ${submissionsLink}
+
+You may submit a new work registration at any time if you have additional information or corrections to make.
+
+© ${new Date().getFullYear()} Producer Tour. All rights reserved.
+Questions? Contact us at support@producertour.com
+    `.trim();
+  }
+
+  /**
    * Test email configuration
    */
   async testConnection(): Promise<boolean> {

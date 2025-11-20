@@ -109,6 +109,8 @@ enum DocumentCategory {
   AGREEMENT
   INVOICE
   TAX_DOCUMENT
+  SPLIT_SHEET
+  PRODUCER_AGREEMENT
   OTHER
 }
 
@@ -413,6 +415,8 @@ model Placement {
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credits PlacementCredit[]
+  documents Document[]
 
   @@index([userId])
   @@index([isrc])
@@ -424,6 +428,28 @@ model Placement {
   @@index([caseNumber])
   @@index([submittedAt])
   @@map("placements")
+}
+
+model PlacementCredit {
+  id              String   @id @default(cuid())
+  placementId     String   // FK to Placement
+  firstName       String   // Collaborator first name
+  lastName        String   // Collaborator last name
+  role            String   // Producer, Writer, Composer, etc.
+  splitPercentage Decimal  @db.Decimal(5, 2) // 0.00 to 100.00
+  pro             String?  // Performing Rights Organization (BMI, ASCAP, SESAC)
+  ipiNumber       String?  // IPI/CAE number if available
+  isPrimary       Boolean  @default(false) // Is this the submitting user
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  placement Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+
+  @@index([placementId])
+  @@index([firstName, lastName])
+  @@map("placement_credits")
 }
 
 model PlacementDeal {
@@ -619,6 +645,9 @@ model Document {
   statementId  String?            // For linking to statements (pre-processed, etc.)
   statement    Statement?         @relation(fields: [statementId], references: [id], onDelete: SetNull)
 
+  placementId  String?            // For linking to placements (split sheets, agreements)
+  placement    Placement?         @relation(fields: [placementId], references: [id], onDelete: SetNull)
+
   metadata    Json?               // Additional document metadata
   tags        Json?               // Array of tags for organization
 
@@ -628,6 +657,7 @@ model Document {
   @@index([uploadedById])
   @@index([relatedUserId])
   @@index([statementId])
+  @@index([placementId])
   @@index([category])
   @@index([visibility])
   @@map("documents")

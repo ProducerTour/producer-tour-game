@@ -304,6 +304,7 @@ export const documentApi = {
     visibility?: string;
     relatedUserId?: string;
     statementId?: string;
+    placementId?: string;
     tags?: string[];
   }) => {
     const formData = new FormData();
@@ -313,6 +314,7 @@ export const documentApi = {
     if (metadata.visibility) formData.append('visibility', metadata.visibility);
     if (metadata.relatedUserId) formData.append('relatedUserId', metadata.relatedUserId);
     if (metadata.statementId) formData.append('statementId', metadata.statementId);
+    if (metadata.placementId) formData.append('placementId', metadata.placementId);
     if (metadata.tags) formData.append('tags', JSON.stringify(metadata.tags));
     return api.post('/documents/upload', formData);
   },

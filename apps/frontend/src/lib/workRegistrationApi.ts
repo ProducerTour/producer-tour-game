@@ -2,6 +2,28 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+export interface PlacementCredit {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  splitPercentage: number;
+  pro?: string;
+  ipiNumber?: string;
+  isPrimary: boolean;
+  notes?: string;
+}
+
+export interface PlacementDocument {
+  id: string;
+  filename: string;
+  originalName: string;
+  category: string;
+  description?: string;
+  fileSize: number;
+  uploadedAt: string;
+}
+
 export interface WorkSubmission {
   id: string;
   title: string;
@@ -33,6 +55,8 @@ export interface WorkSubmission {
   audioDbData?: any;
   metadata?: any;
   notes?: string;
+  credits?: PlacementCredit[];
+  documents?: PlacementDocument[];
 }
 
 export interface PendingSubmission extends WorkSubmission {

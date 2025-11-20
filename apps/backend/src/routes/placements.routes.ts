@@ -21,6 +21,10 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     const placements = await prisma.placement.findMany({
       where: { userId },
+      include: {
+        credits: true,
+        documents: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -114,6 +118,10 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
         id,
         userId,
       },
+      include: {
+        credits: true,
+        documents: true,
+      },
     });
 
     if (!placement) {
@@ -135,7 +143,8 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
  * Create a new placement
  * Body: { title, artist, platform, releaseDate, isrc?, spotifyTrackId?, streams?, status?, metadata?,
  *         albumName?, genre?, releaseYear?, label?, albumArtUrl?, albumArtHQUrl?, artistThumbUrl?,
- *         artistBio?, musicbrainzId?, audioDbArtistId?, audioDbAlbumId?, audioDbData? }
+ *         artistBio?, musicbrainzId?, audioDbArtistId?, audioDbAlbumId?, audioDbData?,
+ *         credits?: [{ firstName, lastName, role, splitPercentage, ipiNumber?, isPrimary? }] }
  */
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
@@ -170,11 +179,29 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       audioDbArtistId,
       audioDbAlbumId,
       audioDbData,
+      // Credits/Collaborators
+      credits,
     } = req.body;
 
     // Validation
     if (!title || !artist || !releaseDate) {
       return res.status(400).json({ error: 'Title, artist, and release date are required' });
+    }
+
+    // Validate credits if provided
+    if (credits && Array.isArray(credits)) {
+      for (const credit of credits) {
+        if (!credit.firstName || !credit.lastName || !credit.role || credit.splitPercentage === undefined) {
+          return res.status(400).json({
+            error: 'Each credit must have firstName, lastName, role, and splitPercentage'
+          });
+        }
+        if (credit.splitPercentage < 0 || credit.splitPercentage > 100) {
+          return res.status(400).json({
+            error: 'Split percentage must be between 0 and 100'
+          });
+        }
+      }
     }
 
     const placement = await prisma.placement.create({
@@ -191,21 +218,39 @@ router.post('/', async (req: AuthRequest, res: Response) => {
         status,
         metadata,
         notes,
-        // AudioDB fields - TEMPORARILY COMMENTED OUT until Prisma client regenerates
-        // albumName,
-        // genre,
-        // releaseYear,
-        // label,
-        // albumArtUrl,
-        // albumArtHQUrl,
-        // artistThumbUrl,
-        // artistBio,
-        // musicbrainzId,
-        // audioDbArtistId,
-        // audioDbAlbumId,
-        // audioDbData,
+        // AudioDB fields
+        albumName,
+        genre,
+        releaseYear,
+        label,
+        albumArtUrl,
+        albumArtHQUrl,
+        artistThumbUrl,
+        artistBio,
+        musicbrainzId,
+        audioDbArtistId,
+        audioDbAlbumId,
+        audioDbData,
         // Work registration workflow
         submittedAt: new Date(), // Track when work was submitted
+        // Create credits if provided
+        ...(credits && credits.length > 0 && {
+          credits: {
+            create: credits.map((credit: any) => ({
+              firstName: credit.firstName,
+              lastName: credit.lastName,
+              role: credit.role,
+              splitPercentage: credit.splitPercentage,
+              pro: credit.pro || null,
+              ipiNumber: credit.ipiNumber || null,
+              isPrimary: credit.isPrimary || false,
+              notes: credit.notes || null,
+            })),
+          },
+        }),
+      },
+      include: {
+        credits: true,
       },
     });
 

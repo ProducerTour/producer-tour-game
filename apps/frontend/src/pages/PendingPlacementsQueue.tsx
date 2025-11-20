@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, XCircle, FileText, Music, AlertCircle,
   DollarSign, Percent, Calendar, Clock,
-  ChevronDown, ChevronUp, Search
+  ChevronDown, ChevronUp, Search, Users, Paperclip, Download
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { workRegistrationApi, WorkSubmission } from '@/lib/workRegistrationApi';
@@ -76,15 +76,16 @@ export default function PendingPlacementsQueue() {
       toast.success(
         <div>
           <div className="font-semibold">Submission Approved!</div>
-          <div className="text-sm text-slate-400">Added to Placement Tracker</div>
+          <div className="text-sm text-slate-400">Added to writer's Claims</div>
         </div>,
         { icon: '✅', duration: 4000 }
       );
       closeModal();
       loadPendingSubmissions();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to approve:', error);
-      toast.error('Failed to approve submission');
+      const errorMessage = error.response?.data?.error || 'Failed to approve submission';
+      toast.error(errorMessage);
     }
   };
 
@@ -96,9 +97,10 @@ export default function PendingPlacementsQueue() {
       toast.success('Submission denied and writer notified', { icon: '❌' });
       closeModal();
       loadPendingSubmissions();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to deny:', error);
-      toast.error('Failed to deny submission');
+      const errorMessage = error.response?.data?.error || 'Failed to deny submission';
+      toast.error(errorMessage);
     }
   };
 
@@ -110,9 +112,10 @@ export default function PendingPlacementsQueue() {
       toast.success('Document request sent to writer', { icon: '📄' });
       closeModal();
       loadPendingSubmissions();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to request documents:', error);
-      toast.error('Failed to request documents');
+      const errorMessage = error.response?.data?.error || 'Failed to request documents';
+      toast.error(errorMessage);
     }
   };
 
@@ -125,6 +128,43 @@ export default function PendingPlacementsQueue() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  const handleDownload = (documentId: string, filename: string) => {
+    // This would call the document download API
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const token = localStorage.getItem('token');
+    const url = `${API_URL}/api/documents/${documentId}/download`;
+
+    // Create a temporary anchor element to trigger download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+
+    // Add authorization header via fetch and blob
+    fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.blob())
+      .then(blob => {
+        const blobUrl = window.URL.createObjectURL(blob);
+        a.href = blobUrl;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
+      })
+      .catch(err => {
+        console.error('Download error:', err);
+        toast.error('Failed to download document');
+      });
   };
 
   const toggleExpand = (id: string) => {
@@ -252,7 +292,10 @@ export default function PendingPlacementsQueue() {
               layout
             >
               {/* Main Content */}
-              <div className="p-6">
+              <div
+                className="p-6 cursor-pointer hover:bg-slate-800/50 transition-colors rounded-t-xl"
+                onClick={() => toggleExpand(submission.id)}
+              >
                 <div className="flex items-start gap-6">
                   {/* Album Art */}
                   <div className="flex-shrink-0">
@@ -275,7 +318,15 @@ export default function PendingPlacementsQueue() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-2xl font-bold text-white mb-1">{submission.title}</h3>
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-2xl font-bold text-white">{submission.title}</h3>
+                          {expandedId !== submission.id && (
+                            <span className="text-slate-500 text-xs flex items-center gap-1">
+                              <ChevronDown className="w-3 h-3" />
+                              Click to expand
+                            </span>
+                          )}
+                        </div>
                         <p className="text-slate-300 text-lg">{submission.artist}</p>
                         {submission.albumName && (
                           <p className="text-slate-500 mt-1">Album: {submission.albumName}</p>
@@ -310,27 +361,43 @@ export default function PendingPlacementsQueue() {
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-3">
                       <motion.button
-                        onClick={() => handleAction(submission, 'approve')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAction(submission, 'approve');
+                        }}
                         className="px-6 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-semibold shadow-lg shadow-green-600/30 flex items-center gap-2"
                         whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(16, 185, 129, 0.4)' }}
                         whileTap={{ scale: 0.95 }}
                       >
                         <CheckCircle2 className="w-5 h-5" />
-                        Approve & Send to Tracker
+                        Approve and send to Claims
                       </motion.button>
 
                       <motion.button
-                        onClick={() => handleAction(submission, 'request_documents')}
-                        className="px-6 py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-semibold shadow-lg shadow-yellow-600/30 flex items-center gap-2"
-                        whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(234, 179, 8, 0.4)' }}
-                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (submission.status !== 'DOCUMENTS_REQUESTED') {
+                            handleAction(submission, 'request_documents');
+                          }
+                        }}
+                        disabled={submission.status === 'DOCUMENTS_REQUESTED'}
+                        className={`px-6 py-2.5 ${
+                          submission.status === 'DOCUMENTS_REQUESTED'
+                            ? 'bg-slate-600 cursor-not-allowed opacity-50'
+                            : 'bg-yellow-600 hover:bg-yellow-700'
+                        } text-white rounded-lg font-semibold shadow-lg shadow-yellow-600/30 flex items-center gap-2`}
+                        whileHover={submission.status !== 'DOCUMENTS_REQUESTED' ? { scale: 1.05, boxShadow: '0 10px 30px rgba(234, 179, 8, 0.4)' } : {}}
+                        whileTap={submission.status !== 'DOCUMENTS_REQUESTED' ? { scale: 0.95 } : {}}
                       >
                         <FileText className="w-5 h-5" />
-                        Request Documents
+                        {submission.status === 'DOCUMENTS_REQUESTED' ? 'Documents Requested' : 'Request Documents'}
                       </motion.button>
 
                       <motion.button
-                        onClick={() => handleAction(submission, 'deny')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAction(submission, 'deny');
+                        }}
                         className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold shadow-lg shadow-red-600/30 flex items-center gap-2"
                         whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(220, 38, 38, 0.4)' }}
                         whileTap={{ scale: 0.95 }}
@@ -338,44 +405,34 @@ export default function PendingPlacementsQueue() {
                         <XCircle className="w-5 h-5" />
                         Deny
                       </motion.button>
-
-                      <motion.button
-                        onClick={() => toggleExpand(submission.id)}
-                        className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold flex items-center gap-2"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        {expandedId === submission.id ? (
-                          <>
-                            <ChevronUp className="w-5 h-5" />
-                            Less Details
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown className="w-5 h-5" />
-                            More Details
-                          </>
-                        )}
-                      </motion.button>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Expanded Details */}
-              <AnimatePresence>
-                {expandedId === submission.id && (
-                  <motion.div
-                    className="px-6 pb-6 border-t border-slate-700"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
+              {expandedId === submission.id && (
+                <div className="px-6 pb-6 border-t border-slate-700">
                     <div className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Left Column */}
                       <div className="space-y-4">
                         <h4 className="text-white font-semibold mb-3">Submission Details</h4>
+                        <div>
+                          <p className="text-slate-400 text-sm mb-1">Submitted At</p>
+                          <p className="text-white">{formatDate(submission.submittedAt)}</p>
+                        </div>
+                        {submission.reviewedAt && (
+                          <div>
+                            <p className="text-slate-400 text-sm mb-1">Reviewed At</p>
+                            <p className="text-white">{formatDate(submission.reviewedAt)}</p>
+                          </div>
+                        )}
+                        {submission.caseNumber && (
+                          <div>
+                            <p className="text-slate-400 text-sm mb-1">Case Number</p>
+                            <p className="text-white font-mono font-semibold text-green-400">{submission.caseNumber}</p>
+                          </div>
+                        )}
                         {submission.isrc && (
                           <div>
                             <p className="text-slate-400 text-sm mb-1">ISRC</p>
@@ -396,11 +453,21 @@ export default function PendingPlacementsQueue() {
                           <p className="text-slate-400 text-sm mb-1">Release Date</p>
                           <p className="text-white">{formatDate(submission.releaseDate)}</p>
                         </div>
+                        {(submission.streams !== undefined || submission.estimatedStreams !== undefined) && (
+                          <div>
+                            <p className="text-slate-400 text-sm mb-1">Streams</p>
+                            <p className="text-white">
+                              {submission.streams ? submission.streams.toLocaleString() :
+                               submission.estimatedStreams ? `~${submission.estimatedStreams.toLocaleString()} (estimated)` :
+                               'N/A'}
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       {/* Right Column */}
                       <div className="space-y-4">
-                        <h4 className="text-white font-semibold mb-3">AudioDB Metadata</h4>
+                        <h4 className="text-white font-semibold mb-3">Track Metadata</h4>
                         {submission.genre && (
                           <div>
                             <p className="text-slate-400 text-sm mb-1">Genre</p>
@@ -425,11 +492,143 @@ export default function PendingPlacementsQueue() {
                             <p className="text-white font-mono text-sm">{submission.musicbrainzId}</p>
                           </div>
                         )}
+                        {submission.audioDbArtistId && (
+                          <div>
+                            <p className="text-slate-400 text-sm mb-1">AudioDB Artist ID</p>
+                            <p className="text-white font-mono text-sm">{submission.audioDbArtistId}</p>
+                          </div>
+                        )}
+                        {submission.audioDbAlbumId && (
+                          <div>
+                            <p className="text-slate-400 text-sm mb-1">AudioDB Album ID</p>
+                            <p className="text-white font-mono text-sm">{submission.audioDbAlbumId}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </motion.div>
+
+                    {/* Notes Section */}
+                    {submission.notes && (
+                      <div className="mt-6 pt-6 border-t border-slate-700">
+                        <h4 className="text-white font-semibold mb-3">Submission Notes</h4>
+                        <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                          <p className="text-slate-300 whitespace-pre-wrap">{submission.notes}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Documents Requested Section */}
+                    {submission.documentsRequested && (
+                      <div className="mt-6 pt-6 border-t border-slate-700">
+                        <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                          <AlertCircle className="w-5 h-5 text-yellow-400" />
+                          Documents Requested
+                        </h4>
+                        <div className="p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+                          <p className="text-yellow-200 whitespace-pre-wrap">{submission.documentsRequested}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Denial Reason Section */}
+                    {submission.denialReason && (
+                      <div className="mt-6 pt-6 border-t border-slate-700">
+                        <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                          <XCircle className="w-5 h-5 text-red-400" />
+                          Denial Reason
+                        </h4>
+                        <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/30">
+                          <p className="text-red-200 whitespace-pre-wrap">{submission.denialReason}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Credits/Collaborators Section */}
+                    {submission.credits && submission.credits.length > 0 && (
+                      <div className="mt-6 pt-6 border-t border-slate-700">
+                        <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+                          <Users className="w-5 h-5 text-purple-400" />
+                          Collaborators & Credits ({submission.credits.length})
+                        </h4>
+                        <div className="space-y-3">
+                          {submission.credits.map((credit, idx) => (
+                            <div key={credit.id || idx} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p className="text-white font-semibold">
+                                    {credit.firstName} {credit.lastName}
+                                  </p>
+                                  {credit.isPrimary && (
+                                    <span className="px-2 py-0.5 bg-purple-600 text-white text-xs rounded">Primary</span>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-3 text-sm">
+                                  <span className="text-slate-400">{credit.role}</span>
+                                  {credit.pro && (
+                                    <span className="text-slate-500">PRO: {credit.pro}</span>
+                                  )}
+                                  {credit.ipiNumber && (
+                                    <span className="text-slate-500 font-mono">IPI: {credit.ipiNumber}</span>
+                                  )}
+                                </div>
+                                {credit.notes && (
+                                  <p className="text-slate-500 text-sm mt-1">{credit.notes}</p>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <p className="text-2xl font-bold text-green-400">{credit.splitPercentage}%</p>
+                                <p className="text-xs text-slate-500">Split</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-3 text-sm text-slate-400">
+                          Total Split: <span className={`font-semibold ${submission.credits.reduce((sum, c) => sum + Number(c.splitPercentage), 0) === 100 ? 'text-green-400' : 'text-yellow-400'}`}>
+                            {Number(submission.credits.reduce((sum, c) => sum + Number(c.splitPercentage), 0)).toFixed(2)}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Documents Section */}
+                    {submission.documents && submission.documents.length > 0 && (
+                      <div className="mt-6 pt-6 border-t border-slate-700">
+                        <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+                          <Paperclip className="w-5 h-5 text-blue-400" />
+                          Uploaded Documents ({submission.documents.length})
+                        </h4>
+                        <div className="space-y-2">
+                          {submission.documents.map((doc, idx) => (
+                            <div key={doc.id || idx} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-slate-700/50 hover:border-blue-500/50 transition-colors group">
+                              <div className="flex-1 min-w-0 mr-4">
+                                <p className="text-white font-medium truncate">{doc.originalName}</p>
+                                <div className="flex flex-wrap gap-3 mt-1">
+                                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs border border-blue-500/30">
+                                    {doc.category}
+                                  </span>
+                                  <span className="text-slate-500 text-xs">{formatFileSize(doc.fileSize)}</span>
+                                  <span className="text-slate-500 text-xs">{formatDate(doc.uploadedAt)}</span>
+                                </div>
+                                {doc.description && (
+                                  <p className="text-slate-400 text-sm mt-1">{doc.description}</p>
+                                )}
+                              </div>
+                              <motion.button
+                                onClick={() => handleDownload(doc.id, doc.originalName)}
+                                className="flex-shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <Download className="w-4 h-4" />
+                                Download
+                              </motion.button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
-              </AnimatePresence>
             </motion.div>
           ))}
         </div>

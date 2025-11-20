@@ -67,6 +67,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
       visibility,
       relatedUserId,
       statementId,
+      placementId,
       tags
     } = req.body;
 
@@ -74,6 +75,20 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
       // Delete uploaded file if validation fails
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Category is required' });
+    }
+
+    // Validate placementId if provided
+    if (placementId) {
+      const placement = await prisma.placement.findFirst({
+        where: {
+          id: placementId,
+          userId: req.user!.id // Ensure user owns the placement
+        }
+      });
+      if (!placement) {
+        fs.unlinkSync(req.file.path);
+        return res.status(404).json({ error: 'Placement not found or unauthorized' });
+      }
     }
 
     const document = await prisma.document.create({
@@ -89,6 +104,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
         uploadedById: req.user!.id,
         relatedUserId: relatedUserId || null,
         statementId: statementId || null,
+        placementId: placementId || null,
         tags: tags ? JSON.parse(tags) : null
       },
       include: {

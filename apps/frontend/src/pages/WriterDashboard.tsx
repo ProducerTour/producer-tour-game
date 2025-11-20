@@ -61,7 +61,7 @@ const formatChartCurrency = (value: any): string => {
 };
 
 export default function WriterDashboard() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile' | 'tools'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile' | 'tools' | 'claims'>('overview');
   const [expandedCharts, setExpandedCharts] = useState<Record<string, boolean>>({});
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -81,6 +81,7 @@ export default function WriterDashboard() {
     { id: 'statements', label: 'Statements', icon: '📄' },
     { id: 'documents', label: 'Documents', icon: '📁' },
     { id: 'payments', label: 'Payments', icon: '💳' },
+    { id: 'claims', label: 'Claims', icon: '✅' },
     { id: 'profile', label: 'Profile', icon: '👤' },
     { id: 'tools', label: 'Tools Hub', icon: '🛠️' },
   ];
@@ -209,7 +210,7 @@ export default function WriterDashboard() {
         {/* Left Sidebar */}
         <Sidebar
           activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as 'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile' | 'tools')}
+          onTabChange={(tab) => setActiveTab(tab as 'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile' | 'tools' | 'claims')}
           tabs={writerTabs}
         />
 
@@ -480,6 +481,8 @@ export default function WriterDashboard() {
               </div>
             )}
 
+            {activeTab === 'claims' && <ClaimsSection />}
+
             {activeTab === 'profile' && <ProfileSection />}
 
             {activeTab === 'tools' && <ToolsHub />}
@@ -571,6 +574,396 @@ export default function WriterDashboard() {
         </div>
       )}
       </div>
+    </div>
+  );
+}
+
+function ClaimsSection() {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'approved' | 'pending' | 'denied' | 'documents_requested'>('all');
+  const [dismissedNotifications, setDismissedNotifications] = useState<string[]>(() => {
+    // Load dismissed notifications from localStorage
+    const saved = localStorage.getItem('dismissedNotifications');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const { data: submissionsData, isLoading } = useQuery({
+    queryKey: ['my-work-submissions'],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/work-registration/my-submissions`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch submissions');
+      return response.json();
+    },
+  });
+
+  const allSubmissions = submissionsData?.submissions || [];
+  const approvedClaims = allSubmissions.filter((s: any) => s.status === 'APPROVED');
+  const pendingClaims = allSubmissions.filter((s: any) => s.status === 'PENDING');
+  const deniedClaims = allSubmissions.filter((s: any) => s.status === 'DENIED');
+  const documentsRequestedClaims = allSubmissions.filter((s: any) => s.status === 'DOCUMENTS_REQUESTED');
+
+  // Get recent notifications (reviewed in last 7 days) excluding dismissed ones
+  const recentNotifications = allSubmissions
+    .filter((s: any) => s.reviewedAt && s.status !== 'PENDING' && !dismissedNotifications.includes(s.id))
+    .sort((a: any, b: any) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime())
+    .slice(0, 5);
+
+  // Dismiss notification handler
+  const dismissNotification = (id: string) => {
+    const updated = [...dismissedNotifications, id];
+    setDismissedNotifications(updated);
+    localStorage.setItem('dismissedNotifications', JSON.stringify(updated));
+  };
+
+  const filteredSubmissions = activeFilter === 'all' ? allSubmissions :
+    activeFilter === 'approved' ? approvedClaims :
+    activeFilter === 'pending' ? pendingClaims :
+    activeFilter === 'denied' ? deniedClaims :
+    documentsRequestedClaims;
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  const toggleExpand = (id: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'APPROVED':
+        return <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded-full border border-green-500/30 font-semibold">Approved</span>;
+      case 'DENIED':
+        return <span className="px-3 py-1 bg-red-500/20 text-red-400 text-sm rounded-full border border-red-500/30 font-semibold">Denied</span>;
+      case 'DOCUMENTS_REQUESTED':
+        return <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-sm rounded-full border border-yellow-500/30 font-semibold">Documents Requested</span>;
+      case 'PENDING':
+        return <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full border border-blue-500/30 font-semibold">Pending Review</span>;
+      default:
+        return <span className="px-3 py-1 bg-gray-500/20 text-gray-400 text-sm rounded-full border border-gray-500/30 font-semibold">{status}</span>;
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h3 className="text-2xl font-bold text-white mb-2">My Claims & Submissions</h3>
+        <p className="text-gray-400 text-sm">
+          Track all your work registrations and their current status
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center text-gray-400 py-12">Loading submissions...</div>
+      ) : (
+        <>
+          {/* Recent Notifications */}
+          {recentNotifications.length > 0 && (
+            <div className="mb-6 bg-slate-800 border border-slate-700 rounded-lg p-6">
+              <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <span>🔔</span> Recent Updates
+              </h4>
+              <div className="space-y-3">
+                {recentNotifications.map((notification: any) => (
+                  <div key={notification.id} className="flex items-start gap-4 p-3 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-white font-medium text-sm">{notification.title}</p>
+                        {getStatusBadge(notification.status)}
+                      </div>
+                      <p className="text-slate-400 text-xs mb-1">{notification.artist}</p>
+                      {notification.status === 'DENIED' && notification.denialReason && (
+                        <p className="text-red-400 text-sm mt-2">Reason: {notification.denialReason}</p>
+                      )}
+                      {notification.status === 'DOCUMENTS_REQUESTED' && notification.documentsRequested && (
+                        <p className="text-yellow-400 text-sm mt-2">Requested: {notification.documentsRequested}</p>
+                      )}
+                      {notification.status === 'APPROVED' && notification.caseNumber && (
+                        <p className="text-green-400 text-sm mt-2 font-mono">Case: {notification.caseNumber}</p>
+                      )}
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="text-right">
+                        <p className="text-slate-500 text-xs">{formatDate(notification.reviewedAt)}</p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dismissNotification(notification.id);
+                        }}
+                        className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                        title="Dismiss notification"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Filter Tabs */}
+          <div className="mb-6 flex flex-wrap gap-2">
+            <button
+              onClick={() => setActiveFilter('all')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                activeFilter === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              All ({allSubmissions.length})
+            </button>
+            <button
+              onClick={() => setActiveFilter('approved')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                activeFilter === 'approved'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              Approved ({approvedClaims.length})
+            </button>
+            <button
+              onClick={() => setActiveFilter('pending')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                activeFilter === 'pending'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              Pending ({pendingClaims.length})
+            </button>
+            <button
+              onClick={() => setActiveFilter('documents_requested')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                activeFilter === 'documents_requested'
+                  ? 'bg-yellow-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              Docs Requested ({documentsRequestedClaims.length})
+            </button>
+            <button
+              onClick={() => setActiveFilter('denied')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                activeFilter === 'denied'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
+            >
+              Denied ({deniedClaims.length})
+            </button>
+          </div>
+
+          {/* Submissions List */}
+          {filteredSubmissions.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-700/50 mb-4">
+                <span className="text-3xl">📋</span>
+              </div>
+              <h4 className="text-xl font-semibold text-white mb-2">No Submissions</h4>
+              <p className="text-gray-400 mb-6">
+                {activeFilter === 'all'
+                  ? 'You haven\'t submitted any work registrations yet'
+                  : `No ${activeFilter.replace('_', ' ')} submissions`}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredSubmissions.map((claim: any) => (
+                <div
+                  key={claim.id}
+                  className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden hover:border-purple-500/50 transition-all"
+                >
+                  {/* Header - Always Visible */}
+                  <div
+                    className="p-6 cursor-pointer"
+                    onClick={(e) => toggleExpand(claim.id, e)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4 flex-1">
+                        {/* Album Art */}
+                        {claim?.albumArtUrl && (
+                          <img
+                            src={claim.albumArtUrl}
+                            alt={claim?.albumName || claim?.title || 'Album art'}
+                            className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                          />
+                        )}
+
+                        {/* Track Info */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-lg font-semibold text-white truncate">{claim?.title || 'Untitled'}</h4>
+                          <p className="text-sm text-gray-400">{claim?.artist || 'Unknown Artist'}</p>
+                          {claim?.albumName && (
+                            <p className="text-xs text-gray-500 mt-1">{claim.albumName}</p>
+                          )}
+
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {getStatusBadge(claim?.status || 'PENDING')}
+                            {claim?.caseNumber && (
+                              <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded border border-purple-500/30 font-mono">
+                                {claim.caseNumber}
+                              </span>
+                            )}
+                          </div>
+                          {claim?.status === 'DENIED' && claim?.denialReason && (
+                            <div className="mt-2 text-red-400 text-xs">
+                              <span className="font-semibold">Reason:</span> {claim.denialReason}
+                            </div>
+                          )}
+                          {claim?.status === 'DOCUMENTS_REQUESTED' && claim?.documentsRequested && (
+                            <div className="mt-2 text-yellow-400 text-xs">
+                              <span className="font-semibold">Requested:</span> {claim.documentsRequested}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Expand Icon */}
+                      <button className="text-gray-400 hover:text-white transition-colors ml-4">
+                        {expandedId === claim.id ? (
+                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded Details */}
+                  {expandedId === claim.id && claim && (
+                <div className="px-6 pb-6 border-t border-slate-700">
+                  {/* Basic Info */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 mb-6">
+                    <div>
+                      <p className="text-xs text-gray-400 mb-1">Platform</p>
+                      <p className="text-sm text-white font-medium">{claim?.platform || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-1">Release Date</p>
+                      <p className="text-sm text-white font-medium">{formatDate(claim?.releaseDate)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-1">Submitted</p>
+                      <p className="text-sm text-white font-medium">{formatDate(claim?.submittedAt)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400 mb-1">Approved</p>
+                      <p className="text-sm text-white font-medium">{formatDate(claim?.reviewedAt)}</p>
+                    </div>
+                  </div>
+
+                  {/* Credits Section */}
+                  {claim?.credits && Array.isArray(claim.credits) && claim.credits.length > 0 && (
+                    <div className="mb-6">
+                      <h5 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                        <span>👥</span> Collaborators & Credits ({claim.credits.length})
+                      </h5>
+                      <div className="space-y-2">
+                        {claim.credits.map((credit: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-white font-medium text-sm">
+                                  {credit?.firstName || ''} {credit?.lastName || 'Unknown'}
+                                </p>
+                                {credit?.isPrimary && (
+                                  <span className="px-2 py-0.5 bg-purple-600 text-white text-xs rounded">Primary</span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-2 text-xs">
+                                <span className="text-slate-400">{credit?.role || 'N/A'}</span>
+                                {credit?.pro && <span className="text-slate-500">PRO: {credit.pro}</span>}
+                                {credit?.ipiNumber && <span className="text-slate-500 font-mono">IPI: {credit.ipiNumber}</span>}
+                              </div>
+                              {credit?.notes && (
+                                <p className="text-slate-500 text-xs mt-1">{credit.notes}</p>
+                              )}
+                            </div>
+                            <div className="text-right ml-4">
+                              <p className="text-xl font-bold text-green-400">{Number(credit?.splitPercentage) || 0}%</p>
+                              <p className="text-xs text-slate-500">Split</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-2 text-xs text-slate-400">
+                        Total Split: <span className={`font-semibold ${claim.credits.reduce((sum: number, c: any) => sum + (Number(c?.splitPercentage) || 0), 0) === 100 ? 'text-green-400' : 'text-yellow-400'}`}>
+                          {claim.credits.reduce((sum: number, c: any) => sum + (Number(c?.splitPercentage) || 0), 0).toFixed(2)}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Documents Section */}
+                  {claim?.documents && Array.isArray(claim.documents) && claim.documents.length > 0 && (
+                    <div>
+                      <h5 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                        <span>📎</span> Uploaded Documents ({claim.documents.length})
+                      </h5>
+                      <div className="space-y-2">
+                        {claim.documents.map((doc: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                            <div className="flex-1 min-w-0 mr-4">
+                              <p className="text-white text-sm font-medium truncate">{doc?.originalName || 'Untitled Document'}</p>
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs border border-blue-500/30">
+                                  {doc?.category || 'N/A'}
+                                </span>
+                                <span className="text-slate-500 text-xs">{formatFileSize(doc?.fileSize || 0)}</span>
+                                <span className="text-slate-500 text-xs">{formatDate(doc?.uploadedAt)}</span>
+                              </div>
+                              {doc?.description && (
+                                <p className="text-slate-400 text-xs mt-1">{doc.description}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional Notes */}
+                  {claim?.notes && (
+                    <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <p className="text-xs font-medium text-blue-300 mb-1">Notes:</p>
+                      <p className="text-sm text-white">{claim.notes}</p>
+                    </div>
+                    )}
+                  </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

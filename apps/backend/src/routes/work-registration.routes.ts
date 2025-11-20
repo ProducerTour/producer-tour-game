@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
+import { emailService } from '../services/email.service';
 
 const router = Router();
 
@@ -21,21 +22,11 @@ router.get('/my-submissions', async (req: AuthRequest, res: Response) => {
 
     const submissions = await prisma.placement.findMany({
       where: { userId },
-      orderBy: { submittedAt: 'desc' },
-      select: {
-        id: true,
-        title: true,
-        artist: true,
-        albumName: true,
-        albumArtUrl: true,
-        status: true,
-        submittedAt: true,
-        reviewedAt: true,
-        denialReason: true,
-        documentsRequested: true,
-        caseNumber: true,
-        createdAt: true,
+      include: {
+        credits: true,
+        documents: true,
       },
+      orderBy: { submittedAt: 'desc' },
     });
 
     res.json({
@@ -75,6 +66,8 @@ router.get('/pending', async (req: AuthRequest, res: Response) => {
             lastName: true,
           },
         },
+        credits: true,
+        documents: true,
       },
       orderBy: { submittedAt: 'desc' },
     });
@@ -153,8 +146,25 @@ router.post('/:id/approve', async (req: AuthRequest, res: Response) => {
       },
     });
 
-    // TODO: Send email notification to writer
-    console.log(`Sending approval email to ${submission.user.email}`);
+    // Send email notification to writer (if they have notifications enabled)
+    const writerName = submission.user.firstName && submission.user.lastName
+      ? `${submission.user.firstName} ${submission.user.lastName}`
+      : submission.user.email;
+
+    // Check if user has email notifications enabled
+    const fullUserData = await prisma.user.findUnique({
+      where: { id: submission.userId },
+      select: { emailNotificationsEnabled: true },
+    });
+
+    if (fullUserData?.emailNotificationsEnabled !== false) {
+      await emailService.sendSubmissionApprovedEmail(
+        submission.user.email,
+        writerName,
+        submission.title,
+        caseNumber
+      );
+    }
 
     res.json({
       success: true,
@@ -212,8 +222,25 @@ router.post('/:id/deny', async (req: AuthRequest, res: Response) => {
       },
     });
 
-    // TODO: Send email notification to writer
-    console.log(`Sending denial email to ${submission.user.email}`);
+    // Send email notification to writer (if they have notifications enabled)
+    const writerName = submission.user.firstName && submission.user.lastName
+      ? `${submission.user.firstName} ${submission.user.lastName}`
+      : submission.user.email;
+
+    // Check if user has email notifications enabled
+    const fullUserData = await prisma.user.findUnique({
+      where: { id: submission.userId },
+      select: { emailNotificationsEnabled: true },
+    });
+
+    if (fullUserData?.emailNotificationsEnabled !== false) {
+      await emailService.sendSubmissionDeniedEmail(
+        submission.user.email,
+        writerName,
+        submission.title,
+        denialReason
+      );
+    }
 
     res.json({
       success: true,
@@ -270,8 +297,25 @@ router.post('/:id/request-documents', async (req: AuthRequest, res: Response) =>
       },
     });
 
-    // TODO: Send email notification to writer
-    console.log(`Sending document request email to ${submission.user.email}`);
+    // Send email notification to writer (if they have notifications enabled)
+    const writerName = submission.user.firstName && submission.user.lastName
+      ? `${submission.user.firstName} ${submission.user.lastName}`
+      : submission.user.email;
+
+    // Check if user has email notifications enabled
+    const fullUserData = await prisma.user.findUnique({
+      where: { id: submission.userId },
+      select: { emailNotificationsEnabled: true },
+    });
+
+    if (fullUserData?.emailNotificationsEnabled !== false) {
+      await emailService.sendDocumentRequestEmail(
+        submission.user.email,
+        writerName,
+        submission.title,
+        documentsRequested
+      );
+    }
 
     res.json({
       success: true,

@@ -30,6 +30,7 @@ import payoutRoutes from './routes/payout.routes';
 import placementDealRoutes from './routes/placement-deal.routes';
 import audioDBRoutes from './routes/audiodb.routes';
 import workRegistrationRoutes from './routes/work-registration.routes';
+import creditSuggestionsRoutes from './routes/creditSuggestions.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -154,6 +155,7 @@ app.use('/api/payouts', payoutRoutes);
 app.use('/api/placement-deals', placementDealRoutes);
 app.use('/api/audiodb', audioDBRoutes);
 app.use('/api/work-registration', workRegistrationRoutes);
+app.use('/api/credit-suggestions', creditSuggestionsRoutes);
 
 // Error handling
 app.use(notFoundHandler);

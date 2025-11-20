@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
+import { useQuery } from '@tanstack/react-query';
 
 interface TabItem {
   id: string;
@@ -8,6 +9,8 @@ interface TabItem {
   icon: string;
   children?: Array<{ id: string; label: string; icon: string }>;
   path?: string;
+  badge?: number;
+  badgeColor?: 'blue' | 'green' | 'yellow' | 'red' | 'purple';
 }
 
 interface NavSection {
@@ -27,6 +30,27 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   const [expandedSections, setExpandedSections] = useState<string[]>(['main']);
   const [expandedTabs, setExpandedTabs] = useState<string[]>(['placement-deals']); // Auto-expand placement tracker
 
+  const isAdmin = user?.role === 'ADMIN';
+
+  // Fetch claims count for writers
+  const { data: claimsData } = useQuery({
+    queryKey: ['my-work-submissions'],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/work-registration/my-submissions`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch submissions');
+      return response.json();
+    },
+    enabled: !isAdmin, // Only fetch for writers
+    refetchInterval: 30000, // Refetch every 30 seconds to catch new approvals
+  });
+
+  const approvedClaimsCount = claimsData?.submissions?.filter((s: any) => s.status === 'APPROVED').length || 0;
+
+  // Navigation helpers
   const toggleSection = (section: string) => {
     setExpandedSections(prev =>
       prev.includes(section)
@@ -42,8 +66,6 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
         : [...prev, tabId]
     );
   };
-
-  const isAdmin = user?.role === 'ADMIN';
 
   // Admin navigation structure
   const adminSections: NavSection[] = [
@@ -73,12 +95,20 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
     {
       id: 'main',
       label: 'Main',
-      items: [
+      items: tabs || [
         { id: 'overview', label: 'Dashboard', icon: '🏠', path: '/writer' },
         { id: 'songs', label: 'My Songs', icon: '🎵', path: '/writer' },
         { id: 'statements', label: 'My Statements', icon: '📊', path: '/writer' },
         { id: 'documents', label: 'Documents', icon: '📄', path: '/writer' },
         { id: 'payments', label: 'Payments', icon: '💳', path: '/writer' },
+        {
+          id: 'claims',
+          label: 'Claims',
+          icon: '✅',
+          path: '/writer',
+          badge: approvedClaimsCount > 0 ? approvedClaimsCount : undefined,
+          badgeColor: 'green'
+        },
         { id: 'profile', label: 'Profile', icon: '👤', path: '/writer' },
       ]
     },
@@ -187,6 +217,19 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                       >
                         <span className="text-xl">{item.icon}</span>
                         <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
+                        {item.badge !== undefined && item.badge > 0 && (
+                          <span className={`
+                            px-2 py-0.5 rounded-full text-xs font-semibold
+                            ${item.badgeColor === 'green' ? 'bg-green-500/20 text-green-400 border border-green-500/40' : ''}
+                            ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
+                            ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
+                            ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
+                            ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
+                            ${!item.badgeColor ? 'bg-slate-500/20 text-slate-400 border border-slate-500/40' : ''}
+                          `}>
+                            {item.badge}
+                          </span>
+                        )}
                         {hasChildren && (
                           <svg
                             className={`w-4 h-4 transition-transform ${

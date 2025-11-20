@@ -4,14 +4,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Music, Sparkles, CheckCircle2, ArrowRight } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { SpotifyTrackLookup } from '@/components/SpotifyTrackLookup';
-import { placementApi } from '@/lib/api';
+import { CollaboratorForm, Collaborator } from '@/components/CollaboratorForm';
+import { DocumentUpload, UploadedDocument } from '@/components/DocumentUpload';
+import { placementApi, documentApi } from '@/lib/api';
 import { audiodbApi } from '@/lib/audiodbApi';
+import { useAuthStore } from '@/store/auth.store';
 
 export default function WorkRegistrationTool() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [showSpotifyModal, setShowSpotifyModal] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [documents, setDocuments] = useState<UploadedDocument[]>([]);
 
   const handleTrackSelect = async (track: any) => {
     console.log('Selected track:', track);
@@ -37,7 +43,19 @@ export default function WorkRegistrationTool() {
   };
 
   const submitPlacement = async () => {
-    if (!selectedTrack) return;
+    if (!selectedTrack) return null;
+
+    // Validate collaborators
+    const totalSplit = collaborators.reduce((sum, c) => sum + (c.splitPercentage || 0), 0);
+    if (totalSplit > 100) {
+      toast.error('Total split percentage cannot exceed 100%');
+      return null;
+    }
+
+    if (collaborators.length > 0 && totalSplit === 0) {
+      toast.error('Please add at least one collaborator with a split percentage');
+      return null;
+    }
 
     const placementData = {
       title: selectedTrack.title,
@@ -65,16 +83,49 @@ export default function WorkRegistrationTool() {
       audioDbArtistId: selectedTrack.enriched?.artist?.id,
       audioDbAlbumId: selectedTrack.enriched?.album?.id,
       audioDbData: selectedTrack.enriched,
+      // Credits/Collaborators
+      credits: collaborators.map(c => ({
+        firstName: c.firstName,
+        lastName: c.lastName,
+        role: c.role,
+        splitPercentage: c.splitPercentage,
+        pro: c.pro || undefined,
+        ipiNumber: c.ipiNumber || undefined,
+        isPrimary: c.isPrimary || false,
+        notes: c.notes || undefined,
+      })),
     };
 
-    await placementApi.create(placementData);
+    const response = await placementApi.create(placementData);
+    return response.data.placement;
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
     try {
-      await submitPlacement();
+      const placement = await submitPlacement();
+
+      if (!placement) {
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Upload documents if any
+      if (documents.length > 0) {
+        const uploadPromises = documents.map(doc => {
+          if (doc.file) {
+            return documentApi.upload(doc.file, {
+              category: doc.category,
+              description: doc.description,
+              placementId: placement.id,
+            });
+          }
+          return Promise.resolve();
+        });
+
+        await Promise.all(uploadPromises);
+      }
 
       toast.success(
         <div>
@@ -102,7 +153,28 @@ export default function WorkRegistrationTool() {
     setIsSubmitting(true);
 
     try {
-      await submitPlacement();
+      const placement = await submitPlacement();
+
+      if (!placement) {
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Upload documents if any
+      if (documents.length > 0) {
+        const uploadPromises = documents.map(doc => {
+          if (doc.file) {
+            return documentApi.upload(doc.file, {
+              category: doc.category,
+              description: doc.description,
+              placementId: placement.id,
+            });
+          }
+          return Promise.resolve();
+        });
+
+        await Promise.all(uploadPromises);
+      }
 
       toast.success(
         <div>
@@ -117,6 +189,8 @@ export default function WorkRegistrationTool() {
 
       // Reset for next track
       setSelectedTrack(null);
+      setCollaborators([]);
+      setDocuments([]);
       setIsSubmitting(false);
     } catch (error: any) {
       console.error('Submit error:', error);
@@ -393,7 +467,11 @@ export default function WorkRegistrationTool() {
                           </div>
 
                           <motion.button
-                            onClick={() => setSelectedTrack(null)}
+                            onClick={() => {
+                              setSelectedTrack(null);
+                              setCollaborators([]);
+                              setDocuments([]);
+                            }}
                             disabled={isSubmitting}
                             className="w-full px-6 py-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-white rounded-xl font-semibold"
                             whileHover={{ scale: 1.02 }}
@@ -403,6 +481,28 @@ export default function WorkRegistrationTool() {
                           </motion.button>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Collaborators & Credits Section */}
+                    <div className="mt-8 pt-8 border-t border-slate-700/50">
+                      <CollaboratorForm
+                        collaborators={collaborators}
+                        onChange={setCollaborators}
+                        currentUserName={
+                          user?.firstName && user?.lastName
+                            ? { firstName: user.firstName, lastName: user.lastName }
+                            : undefined
+                        }
+                      />
+                    </div>
+
+                    {/* Document Upload Section */}
+                    <div className="mt-8 pt-8 border-t border-slate-700/50">
+                      <DocumentUpload
+                        documents={documents}
+                        onChange={setDocuments}
+                        disabled={isSubmitting}
+                      />
                     </div>
                   </div>
                 </motion.div>

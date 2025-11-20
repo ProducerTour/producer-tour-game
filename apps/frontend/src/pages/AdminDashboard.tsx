@@ -45,7 +45,7 @@ export default function AdminDashboard() {
       icon: '🎵',
       children: [
         { id: 'pending-placements', label: 'Pending Placements', icon: '⏳' },
-        { id: 'active-placements', label: 'Active Placements', icon: '✅' },
+        { id: 'active-placements', label: 'Producer Clearances', icon: '✅' },
       ],
     },
     { id: 'documents', label: 'Documents', icon: '📄' },
