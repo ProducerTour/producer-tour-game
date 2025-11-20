@@ -2,21 +2,37 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
 
+interface TabItem {
+  id: string;
+  label: string;
+  icon: string;
+  children?: Array<{ id: string; label: string; icon: string }>;
+}
+
 interface SidebarProps {
   activeTab?: string;
   onTabChange?: (tab: string) => void;
-  tabs?: Array<{ id: string; label: string; icon: string }>;
+  tabs?: TabItem[];
 }
 
 export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) {
   const { user, logout } = useAuthStore();
   const [expandedSections, setExpandedSections] = useState<string[]>(['main']);
+  const [expandedTabs, setExpandedTabs] = useState<string[]>(['placement-deals']); // Auto-expand placement tracker
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev =>
       prev.includes(section)
         ? prev.filter(s => s !== section)
         : [...prev, section]
+    );
+  };
+
+  const toggleTab = (tabId: string) => {
+    setExpandedTabs(prev =>
+      prev.includes(tabId)
+        ? prev.filter(t => t !== tabId)
+        : [...prev, tabId]
     );
   };
 
@@ -52,9 +68,18 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       label: 'Main',
       items: [
         { id: 'overview', label: 'Dashboard', icon: '🏠', path: '/writer' },
+        { id: 'songs', label: 'My Songs', icon: '🎵', path: '/writer' },
         { id: 'statements', label: 'My Statements', icon: '📊', path: '/writer' },
-        { id: 'works', label: 'My Works', icon: '🎵', path: '/writer' },
         { id: 'documents', label: 'Documents', icon: '📄', path: '/writer' },
+        { id: 'payments', label: 'Payments', icon: '💳', path: '/writer' },
+        { id: 'profile', label: 'Profile', icon: '👤', path: '/writer' },
+      ]
+    },
+    {
+      id: 'tools',
+      label: 'Tools & Apps',
+      items: [
+        { id: 'tools', label: 'Tools Hub', icon: '🛠️', path: '/writer' },
       ]
     }
   ];
@@ -134,19 +159,64 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
               <div className="mt-2 space-y-1">
                 {section.items.map((item) => {
                   const isActive = activeTab === item.id;
+                  const hasChildren = item.children && item.children.length > 0;
+                  const isExpanded = expandedTabs.includes(item.id);
+
                   return (
-                    <button
-                      key={item.id}
-                      onClick={() => onTabChange?.(item.id)}
-                      className={`w-full px-6 py-3 flex items-center gap-3 transition-all ${
-                        isActive
-                          ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-l-4 border-blue-500 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-slate-700/50 border-l-4 border-transparent'
-                      }`}
-                    >
-                      <span className="text-xl">{item.icon}</span>
-                      <span className="text-sm font-medium">{item.label}</span>
-                    </button>
+                    <div key={item.id}>
+                      <button
+                        onClick={() => {
+                          if (hasChildren) {
+                            toggleTab(item.id);
+                          } else {
+                            onTabChange?.(item.id);
+                          }
+                        }}
+                        className={`w-full px-6 py-3 flex items-center gap-3 transition-all ${
+                          isActive
+                            ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-l-4 border-blue-500 text-white'
+                            : 'text-gray-400 hover:text-white hover:bg-slate-700/50 border-l-4 border-transparent'
+                        }`}
+                      >
+                        <span className="text-xl">{item.icon}</span>
+                        <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
+                        {hasChildren && (
+                          <svg
+                            className={`w-4 h-4 transition-transform ${
+                              isExpanded ? 'rotate-180' : ''
+                            }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        )}
+                      </button>
+
+                      {/* Sub-items */}
+                      {hasChildren && isExpanded && (
+                        <div className="ml-6 mt-1 space-y-1">
+                          {item.children?.map((child) => {
+                            const isChildActive = activeTab === child.id;
+                            return (
+                              <button
+                                key={child.id}
+                                onClick={() => onTabChange?.(child.id)}
+                                className={`w-full px-6 py-2 flex items-center gap-3 transition-all ${
+                                  isChildActive
+                                    ? 'bg-gradient-to-r from-purple-500/20 to-purple-600/20 border-l-4 border-purple-500 text-white'
+                                    : 'text-gray-400 hover:text-white hover:bg-slate-700/30 border-l-4 border-transparent'
+                                }`}
+                              >
+                                <span className="text-lg">{child.icon}</span>
+                                <span className="text-sm font-medium">{child.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>

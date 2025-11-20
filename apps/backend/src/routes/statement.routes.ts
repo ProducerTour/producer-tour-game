@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../generated/client';
 import { z } from 'zod';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.middleware';
 import { StatementParserFactory } from '../parsers';

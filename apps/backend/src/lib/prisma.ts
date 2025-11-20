@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/client';
 
 // Singleton pattern for Prisma Client to prevent connection exhaustion
 // This ensures only ONE instance of PrismaClient is created across the entire app

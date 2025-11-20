@@ -15,9 +15,10 @@ import ConsultationFormPage from './pages/ConsultationFormPage';
 import CaseStudyPage from './pages/CaseStudyPage';
 import RoyaltyPortalPage from './pages/RoyaltyPortalPage';
 import OpportunitiesToolPage from './pages/OpportunitiesToolPage';
-import PublishingTrackerToolPage from './pages/PublishingTrackerToolPage';
 import AdvanceEstimatorToolPage from './pages/AdvanceEstimatorToolPage';
 import SettingsPage from './pages/SettingsPage';
+import WorkRegistrationTool from './pages/WorkRegistrationTool';
+import MySubmissions from './pages/MySubmissions';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -51,8 +52,25 @@ function App() {
         <Route path="/tools/case-study" element={<CaseStudyPage />} />
         <Route path="/tools/royalty-portal" element={<RoyaltyPortalPage />} />
         <Route path="/tools/opportunities" element={<OpportunitiesToolPage />} />
-        <Route path="/tools/publishing-tracker" element={<PublishingTrackerToolPage />} />
         <Route path="/tools/advance-estimator" element={<AdvanceEstimatorToolPage />} />
+
+        {/* Work Registration Routes */}
+        <Route
+          path="/work-registration"
+          element={
+            <PrivateRoute>
+              <WorkRegistrationTool />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/my-submissions"
+          element={
+            <PrivateRoute>
+              <MySubmissions />
+            </PrivateRoute>
+          }
+        />
 
         <Route
           path="/dashboard"

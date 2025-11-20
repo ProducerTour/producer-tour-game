@@ -52,7 +52,10 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       role,
       producerName,
       writerIpiNumber,
+      publisherName,
       publisherIpiNumber,
+      subPublisherName,
+      subPublisherIpiNumber,
       proAffiliation,
       commissionOverrideRate,
       canUploadStatements
@@ -112,7 +115,10 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       lastName,
       role: userRole,
       writerIpiNumber,
+      publisherName,
       publisherIpiNumber,
+      subPublisherName,
+      subPublisherIpiNumber,
       canUploadStatements: canUploadStatements === true || canUploadStatements === 'true',
       resetToken,
       resetTokenExpiry,
@@ -179,7 +185,7 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
 router.put('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { firstName, middleName, lastName, role, email, password, writerIpiNumber, publisherIpiNumber, proAffiliation, producerName, commissionOverrideRate, canUploadStatements } = req.body;
+    const { firstName, middleName, lastName, role, email, password, writerIpiNumber, publisherName, publisherIpiNumber, subPublisherName, subPublisherIpiNumber, proAffiliation, producerName, commissionOverrideRate, canUploadStatements } = req.body;
 
     // Validate email format if provided
     if (email !== undefined) {
@@ -213,7 +219,10 @@ router.put('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
     if (role !== undefined) userData.role = role;
     if (email !== undefined) userData.email = email;
     if (writerIpiNumber !== undefined) userData.writerIpiNumber = writerIpiNumber;
+    if (publisherName !== undefined) userData.publisherName = publisherName;
     if (publisherIpiNumber !== undefined) userData.publisherIpiNumber = publisherIpiNumber;
+    if (subPublisherName !== undefined) userData.subPublisherName = subPublisherName;
+    if (subPublisherIpiNumber !== undefined) userData.subPublisherIpiNumber = subPublisherIpiNumber;
     if (canUploadStatements !== undefined) userData.canUploadStatements = canUploadStatements === true || canUploadStatements === 'true';
     if (commissionOverrideRate !== undefined) {
       userData.commissionOverrideRate = commissionOverrideRate === null || commissionOverrideRate === '' ? null : parseFloat(commissionOverrideRate);

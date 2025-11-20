@@ -3,7 +3,7 @@
 
 generator client {
   provider      = "prisma-client-js"
-  // Force binary engine for Render's Debian image
+  output        = "../src/generated/client"
   engineType    = "binary"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
@@ -83,9 +83,12 @@ enum OpportunityPriority {
 }
 
 enum PlacementStatus {
-  ACTIVE
-  PENDING
-  COMPLETED
+  PENDING            // User submitted, awaiting admin review
+  DOCUMENTS_REQUESTED // Admin needs more info from writer
+  APPROVED           // Admin approved, sent to placement tracker
+  DENIED             // Admin rejected submission
+  TRACKING           // Actively being tracked (formerly ACTIVE)
+  COMPLETED          // Case closed
 }
 
 enum StreamingPlatform {
@@ -125,7 +128,10 @@ model User {
   middleName String?
   lastName  String?
   writerIpiNumber String?  // Writer IPI/CAE number for songwriter registration
+  publisherName String?  // Publisher name for songwriter registration
   publisherIpiNumber String?  // Publisher IPI/CAE number for publishing registration
+  subPublisherName String?  // Sub Publisher Name / Administrator (not related to admin role)
+  subPublisherIpiNumber String?  // Sub Publisher IPI number
   // Optional per-writer commission override (percentage 0.00-100.00). If null, use global CommissionSettings
   commissionOverrideRate Decimal? @db.Decimal(5, 2)
   // Upload access for VIEWER role (allows statement uploads)
@@ -374,6 +380,34 @@ model Placement {
   lastSyncedAt    DateTime?
   metadata        Json? // Store additional track info (album, image, etc.)
   notes           String?           @db.Text
+
+  // AudioDB enrichment fields
+  albumName       String?           // Album title from AudioDB
+  genre           String?           // Music genre (Hip-Hop, Pop, R&B, etc.)
+  releaseYear     String?           // Release year
+  label           String?           // Record label
+  albumArtUrl     String?           // Album artwork thumbnail
+  albumArtHQUrl   String?           // High-quality album artwork
+  artistThumbUrl  String?           // Artist thumbnail image
+  artistBio       String?           @db.Text // Artist biography
+  musicbrainzId   String?           // MusicBrainz ID for external linking
+  audioDbArtistId String?           // AudioDB artist ID
+  audioDbAlbumId  String?           // AudioDB album ID
+  audioDbData     Json?             // Complete AudioDB response for reference
+
+  // Work Registration workflow fields
+  submittedAt     DateTime?         // When writer submitted for review
+  reviewedAt      DateTime?         // When admin reviewed
+  reviewedBy      String?           // Admin user ID who reviewed
+  denialReason    String?           @db.Text // Reason if denied
+  documentsRequested String?        @db.Text // What documents admin needs
+
+  // Case/tracking info (for approved items)
+  caseNumber      String?           @unique // Auto-generated: PT-YYYY-###
+  dealTerms       String?           @db.Text // Deal terms and agreements
+  advanceAmount   Decimal?          @db.Decimal(12, 2) // Advance payment if any
+  royaltyPercentage Decimal?        @db.Decimal(5, 2) // Royalty split percentage
+
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -385,6 +419,10 @@ model Placement {
   @@index([spotifyTrackId])
   @@index([platform])
   @@index([status])
+  @@index([genre])
+  @@index([audioDbArtistId])
+  @@index([caseNumber])
+  @@index([submittedAt])
   @@map("placements")
 }
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/auth.store';
 
 interface Tool {
   id: string;
@@ -9,6 +10,7 @@ interface Tool {
   color: string;
   url: string;
   category: string;
+  roles: string[]; // Which roles can access this tool
 }
 
 const TOOLS: Tool[] = [
@@ -19,7 +21,8 @@ const TOOLS: Tool[] = [
     icon: '💰',
     color: 'from-blue-500 to-blue-600',
     url: '/tools/pub-deal-simulator',
-    category: 'Financial'
+    category: 'Financial',
+    roles: ['ADMIN'] // Admin only
   },
   {
     id: 'consultation-form',
@@ -28,7 +31,8 @@ const TOOLS: Tool[] = [
     icon: '📋',
     color: 'from-purple-500 to-purple-600',
     url: '/tools/consultation',
-    category: 'Management'
+    category: 'Management',
+    roles: ['ADMIN'] // Admin only
   },
   {
     id: 'case-study',
@@ -37,7 +41,8 @@ const TOOLS: Tool[] = [
     icon: '📚',
     color: 'from-green-500 to-green-600',
     url: '/tools/case-study',
-    category: 'Learning'
+    category: 'Learning',
+    roles: ['ADMIN'] // Admin only
   },
   {
     id: 'royalty-tracker',
@@ -46,7 +51,8 @@ const TOOLS: Tool[] = [
     icon: '📊',
     color: 'from-orange-500 to-orange-600',
     url: '/tools/royalty-portal',
-    category: 'Financial'
+    category: 'Financial',
+    roles: ['ADMIN'] // Admin only
   },
   {
     id: 'opportunities',
@@ -55,16 +61,8 @@ const TOOLS: Tool[] = [
     icon: '🎯',
     color: 'from-pink-500 to-pink-600',
     url: '/tools/opportunities',
-    category: 'Opportunities'
-  },
-  {
-    id: 'publishing-tracker',
-    name: 'Publishing Tracker',
-    description: 'Monitor your music distribution across platforms. Track placements and performance.',
-    icon: '🎵',
-    color: 'from-indigo-500 to-indigo-600',
-    url: '/tools/publishing-tracker',
-    category: 'Analytics'
+    category: 'Opportunities',
+    roles: ['ADMIN'] // Admin only
   },
   {
     id: 'advance-estimator',
@@ -73,7 +71,8 @@ const TOOLS: Tool[] = [
     icon: '💰',
     color: 'from-emerald-500 to-emerald-600',
     url: '/tools/advance-estimator',
-    category: 'Financial'
+    category: 'Financial',
+    roles: ['ADMIN'] // Admin only
   },
   {
     id: 'placement-tracker',
@@ -81,20 +80,36 @@ const TOOLS: Tool[] = [
     description: 'Track music placements, manage contracts, and generate invoices with AI-powered tools. Complete deal tracking with billing automation.',
     icon: '🎵',
     color: 'from-cyan-500 to-cyan-600',
-    url: '/admin?tab=placement-deals',
-    category: 'Management'
+    url: '/admin?tab=active-placements',
+    category: 'Management',
+    roles: ['ADMIN'] // Admin only
+  },
+  {
+    id: 'work-registration',
+    name: 'Work Registration Tool',
+    description: 'Submit your music for placement tracking. Search Spotify, enrich with AudioDB metadata, and submit for admin review with beautiful visual previews.',
+    icon: '✨',
+    color: 'from-blue-600 to-purple-600',
+    url: '/work-registration',
+    category: 'Management',
+    roles: ['ADMIN', 'WRITER', 'MANAGER', 'LEGAL'] // Available to all roles
   }
 ];
 
 export default function ToolsHub() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  const categories = ['All', ...new Set(TOOLS.map(tool => tool.category))];
-  const filteredTools = selectedCategory === 'All' 
-    ? TOOLS 
-    : TOOLS.filter(tool => tool.category === selectedCategory);
+  // Filter tools based on user role
+  const userRole = user?.role || 'WRITER';
+  const roleBasedTools = TOOLS.filter(tool => tool.roles.includes(userRole));
+
+  const categories = ['All', ...new Set(roleBasedTools.map(tool => tool.category))];
+  const filteredTools = selectedCategory === 'All'
+    ? roleBasedTools
+    : roleBasedTools.filter(tool => tool.category === selectedCategory);
 
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev - 1 + filteredTools.length) % filteredTools.length);
@@ -120,7 +135,38 @@ export default function ToolsHub() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-white mb-2">🛠️ Tools Hub</h1>
         <p className="text-gray-400 text-lg">Access all your productivity tools and resources in one place</p>
+        {userRole !== 'ADMIN' && (
+          <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+            <p className="text-sm text-blue-300">
+              ℹ️ You're viewing tools available to <span className="font-semibold">{userRole}</span> role.
+              Contact your administrator for access to additional tools.
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* Empty State */}
+      {filteredTools.length === 0 ? (
+        <div className="bg-slate-800 rounded-lg p-12 text-center">
+          <div className="text-6xl mb-4">🔒</div>
+          <h3 className="text-2xl font-bold text-white mb-2">No Tools Available</h3>
+          <p className="text-gray-400 mb-6">
+            {selectedCategory === 'All'
+              ? "You don't have access to any tools yet. Please contact your administrator."
+              : `No tools available in the "${selectedCategory}" category for your role.`
+            }
+          </p>
+          {selectedCategory !== 'All' && (
+            <button
+              onClick={() => setSelectedCategory('All')}
+              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              View All Categories
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
 
       {/* Category Filter */}
       <div className="flex gap-3 flex-wrap">
@@ -228,7 +274,27 @@ export default function ToolsHub() {
                       </div>
                     </>
                   )}
-                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator'].includes(currentTool.id) && (
+                  {currentTool.id === 'work-registration' && (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-gray-300">Spotify search integration</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-gray-300">AudioDB metadata enrichment</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-gray-300">Album art and visual previews</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-gray-300">Track submission status</span>
+                      </div>
+                    </>
+                  )}
+                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration'].includes(currentTool.id) && (
                     <>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
@@ -316,8 +382,8 @@ export default function ToolsHub() {
       {/* Stats Footer */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12">
         <div className="bg-slate-800 rounded-lg p-6 text-center border border-slate-700">
-          <div className="text-4xl font-bold text-blue-400 mb-2">{TOOLS.length}</div>
-          <p className="text-gray-400">Total Tools Available</p>
+          <div className="text-4xl font-bold text-blue-400 mb-2">{roleBasedTools.length}</div>
+          <p className="text-gray-400">Tools Available to You</p>
         </div>
         <div className="bg-slate-800 rounded-lg p-6 text-center border border-slate-700">
           <div className="text-4xl font-bold text-green-400 mb-2">{categories.length - 1}</div>
@@ -328,6 +394,8 @@ export default function ToolsHub() {
           <p className="text-gray-400">Productivity Boost</p>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

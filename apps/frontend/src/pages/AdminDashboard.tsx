@@ -7,16 +7,18 @@ import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Sidebar from '../components/Sidebar';
 import ToolsHub from '../components/ToolsHub';
+import ToolPermissionsSettings from '../components/ToolPermissionsSettings';
 import DocumentsTab from '../components/DocumentsTab';
 import PayoutsTab from '../components/PayoutsTab';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import PlacementTracker from '../components/admin/PlacementTracker';
+import PendingPlacementsQueue from './PendingPlacementsQueue';
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { formatIpiDisplay } from '../utils/ipi-helper';
 import { useAuthStore } from '../store/auth.store';
 
-type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'placement-deals';
+type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'active-placements' | 'pending-placements' | 'tool-permissions';
 
 // Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
 const formatChartCurrency = (value: any): string => {
@@ -37,9 +39,18 @@ export default function AdminDashboard() {
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'analytics', label: 'Analytics', icon: '📈' },
     { id: 'payouts', label: 'Payouts', icon: '💰' },
-    { id: 'placement-deals', label: 'Placement Tracker', icon: '🎵' },
+    {
+      id: 'placement-deals',
+      label: 'Placement Tracker',
+      icon: '🎵',
+      children: [
+        { id: 'pending-placements', label: 'Pending Placements', icon: '⏳' },
+        { id: 'active-placements', label: 'Active Placements', icon: '✅' },
+      ],
+    },
     { id: 'documents', label: 'Documents', icon: '📄' },
     { id: 'tools', label: 'Tools Hub', icon: '🛠️' },
+    { id: 'tool-permissions', label: 'Tool Permissions', icon: '🔐' },
     { id: 'commission', label: 'Commission Settings', icon: '💼' },
   ];
 
@@ -64,9 +75,11 @@ export default function AdminDashboard() {
             {activeTab === 'users' && <UsersTab />}
             {activeTab === 'analytics' && <AnalyticsTab />}
             {activeTab === 'payouts' && <PayoutsTab />}
-            {activeTab === 'placement-deals' && <PlacementTracker />}
+            {activeTab === 'pending-placements' && <PendingPlacementsQueue />}
+            {activeTab === 'active-placements' && <PlacementTracker />}
             {activeTab === 'documents' && <DocumentsTab />}
             {activeTab === 'tools' && <ToolsHub />}
+            {activeTab === 'tool-permissions' && <ToolPermissionsSettings />}
             {activeTab === 'commission' && <CommissionSettingsPage />}
           </div>
         </main>
@@ -329,6 +342,7 @@ function StatementsTab() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [reviewingStatement, setReviewingStatement] = useState<any>(null);
+  const [deletingStatement, setDeletingStatement] = useState<any>(null);
 
   const { data: statementsData, isLoading } = useQuery({
     queryKey: ['admin-statements'],
@@ -392,6 +406,15 @@ function StatementsTab() {
       setUploading(false);
     }
   };
+
+  // Filter statements into queue (UPLOADED, PROCESSED) and completed (PUBLISHED)
+  const queueStatements = statementsData?.statements?.filter((s: any) =>
+    s.status === 'UPLOADED' || s.status === 'PROCESSED' || s.status === 'ERROR'
+  ) || [];
+
+  const completedStatements = statementsData?.statements?.filter((s: any) =>
+    s.status === 'PUBLISHED'
+  ) || [];
 
   return (
     <div className="space-y-8">
@@ -468,9 +491,9 @@ function StatementsTab() {
         <h3 className="text-lg font-medium text-white mb-4">Statement Queue</h3>
         {isLoading ? (
           <div className="text-center text-gray-400 py-8">Loading...</div>
-        ) : statementsData?.statements?.length > 0 ? (
+        ) : queueStatements.length > 0 ? (
           <div className="space-y-3">
-            {statementsData.statements.map((statement: any) => (
+            {queueStatements.map((statement: any) => (
               <div
                 key={statement.id}
                 className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors"
@@ -522,11 +545,7 @@ function StatementsTab() {
                     </button>
                   )}
                   <button
-                    onClick={() => {
-                      if (confirm('Are you sure you want to delete this statement?')) {
-                        deleteMutation.mutate(statement.id);
-                      }
-                    }}
+                    onClick={() => setDeletingStatement(statement)}
                     disabled={deleteMutation.isPending}
                     className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium hover:bg-red-500/30 disabled:bg-gray-600 transition-colors"
                   >
@@ -537,7 +556,59 @@ function StatementsTab() {
             ))}
           </div>
         ) : (
-          <p className="text-gray-400 text-center py-8">No statements uploaded yet</p>
+          <p className="text-gray-400 text-center py-8">No statements in queue</p>
+        )}
+      </div>
+
+      {/* Completed Statements */}
+      <div>
+        <h3 className="text-lg font-medium text-white mb-4">Completed Statements</h3>
+        {isLoading ? (
+          <div className="text-center text-gray-400 py-8">Loading...</div>
+        ) : completedStatements.length > 0 ? (
+          <div className="space-y-3">
+            {completedStatements.map((statement: any) => (
+              <div
+                key={statement.id}
+                className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                      statement.proType === 'BMI' ? 'bg-blue-500/20 text-blue-400' :
+                      statement.proType === 'ASCAP' ? 'bg-green-500/20 text-green-400' :
+                      'bg-purple-500/20 text-purple-400'
+                    }`}>
+                      {statement.proType}
+                    </span>
+                    <span className="text-white font-medium">{statement.filename}</span>
+                    <span className="px-2 py-1 rounded text-xs font-medium bg-green-500/20 text-green-400">
+                      PUBLISHED
+                    </span>
+                  </div>
+                  <div className="flex gap-4 mt-2 text-sm text-gray-400">
+                    <span>Items: {statement.itemCount || 0}</span>
+                    <span>Performances: {Number(statement.totalPerformances).toLocaleString()}</span>
+                    <span className="text-green-400">
+                      ${Number(statement.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setDeletingStatement(statement)}
+                    disabled={deleteMutation.isPending}
+                    className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium hover:bg-red-500/30 disabled:bg-gray-600 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-400 text-center py-8">No completed statements</p>
         )}
       </div>
 
@@ -550,6 +621,18 @@ function StatementsTab() {
           onSave={() => {
             queryClient.invalidateQueries({ queryKey: ['admin-statements'] });
             setReviewingStatement(null);
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingStatement && (
+        <DeleteConfirmationModal
+          statement={deletingStatement}
+          onClose={() => setDeletingStatement(null)}
+          onConfirm={() => {
+            deleteMutation.mutate(deletingStatement.id);
+            setDeletingStatement(null);
           }}
         />
       )}
@@ -688,9 +771,9 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
   const handleAssignAll = () => {
     if (!assignAllWriter) return;
-    const newAssignments: WriterAssignmentsPayload = {};
+    const newAssignments: WriterAssignmentsPayload = { ...assignments };
     const selectedWriter = writersList.find((w: any) => w.id === assignAllWriter);
-    displayRows.forEach((row: any) => {
+    filteredAndSortedRows.forEach((row: any) => {
       newAssignments[getRowKey(row)] = [{
         userId: assignAllWriter,
         writerIpiNumber: selectedWriter?.writerIpiNumber || '',
@@ -1214,6 +1297,72 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   );
 }
 
+function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
+  const [confirmText, setConfirmText] = useState('');
+  const isConfirmEnabled = confirmText.toLowerCase() === 'delete';
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 className="text-xl font-semibold text-white mb-4">Delete Statement</h3>
+
+        <div className="space-y-4">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+            <p className="text-red-400 text-sm">
+              ⚠️ Warning: This action cannot be undone!
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-gray-300">
+              You are about to delete the following statement:
+            </p>
+            <div className="bg-slate-700/50 rounded-lg p-3">
+              <p className="text-white font-medium">{statement.filename}</p>
+              <p className="text-sm text-gray-400 mt-1">
+                {statement.proType} • {statement.itemCount || 0} items
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-gray-300 text-sm">
+              This will permanently remove this statement and all associated data from the system.
+            </p>
+            <p className="text-gray-300 text-sm font-medium">
+              To confirm deletion, type <span className="text-red-400 font-mono">delete</span> below:
+            </p>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="Type 'delete' to confirm"
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 bg-slate-700 text-gray-300 rounded-lg font-medium hover:bg-slate-600 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={!isConfirmEnabled}
+            className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+          >
+            Delete Statement
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UsersTab() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -1228,7 +1377,10 @@ function UsersTab() {
     lastName: '',
     role: 'WRITER',
     writerIpiNumber: '',
+    publisherName: '',
     publisherIpiNumber: '',
+    subPublisherName: '',
+    subPublisherIpiNumber: '',
     proAffiliation: 'BMI',
     commissionOverrideRate: '',
     canUploadStatements: false,
@@ -1247,7 +1399,7 @@ function UsersTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setShowAddModal(false);
-      setNewUser({ email: '', password: '', firstName: '', middleName: '', lastName: '', role: 'WRITER', writerIpiNumber: '', publisherIpiNumber: '', proAffiliation: 'BMI', commissionOverrideRate: '', canUploadStatements: false });
+      setNewUser({ email: '', password: '', firstName: '', middleName: '', lastName: '', role: 'WRITER', writerIpiNumber: '', publisherName: '', publisherIpiNumber: '', subPublisherName: '', subPublisherIpiNumber: '', proAffiliation: 'BMI', commissionOverrideRate: '', canUploadStatements: false });
     },
   });
 
@@ -1517,6 +1669,18 @@ function UsersTab() {
                   )}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Publisher Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.publisherName}
+                      onChange={(e) => setNewUser({ ...newUser, publisherName: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      placeholder="Publisher Name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Publisher IPI Number
                     </label>
                     <input
@@ -1525,6 +1689,30 @@ function UsersTab() {
                       onChange={(e) => setNewUser({ ...newUser, publisherIpiNumber: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                       placeholder="Publisher IPI/CAE Number"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Sub Publisher Name / Administrator
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.subPublisherName}
+                      onChange={(e) => setNewUser({ ...newUser, subPublisherName: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      placeholder="Sub Publisher Name / Administrator"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Sub Publisher IPI Number
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.subPublisherIpiNumber}
+                      onChange={(e) => setNewUser({ ...newUser, subPublisherIpiNumber: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      placeholder="Sub Publisher IPI Number"
                     />
                   </div>
                   {newUser.role === 'WRITER' && (
@@ -1702,6 +1890,18 @@ function UsersTab() {
                   )}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Publisher Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUser.publisherName || ''}
+                      onChange={(e) => setEditingUser({ ...editingUser, publisherName: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      placeholder="Publisher Name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Publisher IPI Number
                     </label>
                     <input
@@ -1710,6 +1910,30 @@ function UsersTab() {
                       onChange={(e) => setEditingUser({ ...editingUser, publisherIpiNumber: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
                       placeholder="Publisher IPI/CAE Number"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Sub Publisher Name / Administrator
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUser.subPublisherName || ''}
+                      onChange={(e) => setEditingUser({ ...editingUser, subPublisherName: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      placeholder="Sub Publisher Name / Administrator"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Sub Publisher IPI Number
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUser.subPublisherIpiNumber || ''}
+                      onChange={(e) => setEditingUser({ ...editingUser, subPublisherIpiNumber: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      placeholder="Sub Publisher IPI Number"
                     />
                   </div>
                   {editingUser.role === 'WRITER' && (

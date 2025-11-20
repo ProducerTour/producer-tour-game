@@ -133,7 +133,9 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 /**
  * POST /api/placements
  * Create a new placement
- * Body: { title, artist, platform, releaseDate, isrc?, spotifyTrackId?, streams?, status?, metadata? }
+ * Body: { title, artist, platform, releaseDate, isrc?, spotifyTrackId?, streams?, status?, metadata?,
+ *         albumName?, genre?, releaseYear?, label?, albumArtUrl?, albumArtHQUrl?, artistThumbUrl?,
+ *         artistBio?, musicbrainzId?, audioDbArtistId?, audioDbAlbumId?, audioDbData? }
  */
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
@@ -155,6 +157,19 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       status = 'PENDING',
       metadata,
       notes,
+      // AudioDB enrichment fields
+      albumName,
+      genre,
+      releaseYear,
+      label,
+      albumArtUrl,
+      albumArtHQUrl,
+      artistThumbUrl,
+      artistBio,
+      musicbrainzId,
+      audioDbArtistId,
+      audioDbAlbumId,
+      audioDbData,
     } = req.body;
 
     // Validation
@@ -176,6 +191,21 @@ router.post('/', async (req: AuthRequest, res: Response) => {
         status,
         metadata,
         notes,
+        // AudioDB fields - TEMPORARILY COMMENTED OUT until Prisma client regenerates
+        // albumName,
+        // genre,
+        // releaseYear,
+        // label,
+        // albumArtUrl,
+        // albumArtHQUrl,
+        // artistThumbUrl,
+        // artistBio,
+        // musicbrainzId,
+        // audioDbArtistId,
+        // audioDbAlbumId,
+        // audioDbData,
+        // Work registration workflow
+        submittedAt: new Date(), // Track when work was submitted
       },
     });
 
@@ -223,6 +253,19 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
       status,
       metadata,
       notes,
+      // AudioDB enrichment fields
+      albumName,
+      genre,
+      releaseYear,
+      label,
+      albumArtUrl,
+      albumArtHQUrl,
+      artistThumbUrl,
+      artistBio,
+      musicbrainzId,
+      audioDbArtistId,
+      audioDbAlbumId,
+      audioDbData,
     } = req.body;
 
     const placement = await prisma.placement.update({
@@ -239,6 +282,19 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
         ...(status && { status }),
         ...(metadata !== undefined && { metadata }),
         ...(notes !== undefined && { notes }),
+        // AudioDB fields
+        ...(albumName !== undefined && { albumName }),
+        ...(genre !== undefined && { genre }),
+        ...(releaseYear !== undefined && { releaseYear }),
+        ...(label !== undefined && { label }),
+        ...(albumArtUrl !== undefined && { albumArtUrl }),
+        ...(albumArtHQUrl !== undefined && { albumArtHQUrl }),
+        ...(artistThumbUrl !== undefined && { artistThumbUrl }),
+        ...(artistBio !== undefined && { artistBio }),
+        ...(musicbrainzId !== undefined && { musicbrainzId }),
+        ...(audioDbArtistId !== undefined && { audioDbArtistId }),
+        ...(audioDbAlbumId !== undefined && { audioDbAlbumId }),
+        ...(audioDbData !== undefined && { audioDbData }),
         updatedAt: new Date(),
       },
     });

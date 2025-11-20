@@ -1,6 +1,7 @@
 import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
 import fileUpload from 'express-fileupload';
 import path from 'path';
 import swaggerUi from 'swagger-ui-express';
@@ -27,13 +28,35 @@ import settingsRoutes from './routes/settings.routes';
 import paymentRoutes from './routes/payment.routes';
 import payoutRoutes from './routes/payout.routes';
 import placementDealRoutes from './routes/placement-deal.routes';
+import audioDBRoutes from './routes/audiodb.routes';
+import workRegistrationRoutes from './routes/work-registration.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
 import { notFoundHandler } from './middleware/notFound.middleware';
+import { authLimiter, apiLimiter } from './middleware/rate-limit.middleware';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
+
+// Security middleware - Helmet.js
+// Sets various HTTP headers to help protect against common web vulnerabilities
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles for Swagger UI
+      scriptSrc: ["'self'", "'unsafe-inline'"], // Allow inline scripts for Swagger UI
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Disable to allow embedding
+  hsts: {
+    maxAge: 31536000, // 1 year in seconds
+    includeSubDomains: true,
+    preload: true
+  }
+}));
 
 // Middleware - CORS Configuration
 const allowedOrigins = [
@@ -103,8 +126,11 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customSiteTitle: 'Producer Tour API Docs'
 }));
 
-// API Routes
-app.use('/api/auth', authRoutes);
+// Apply general API rate limiting to all /api/* routes
+app.use('/api/', apiLimiter);
+
+// API Routes with specific rate limiting
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/statements', statementRoutes);
 app.use('/api/dashboard', dashboardRoutes);
@@ -121,6 +147,8 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/placement-deals', placementDealRoutes);
+app.use('/api/audiodb', audioDBRoutes);
+app.use('/api/work-registration', workRegistrationRoutes);
 
 // Error handling
 app.use(notFoundHandler);

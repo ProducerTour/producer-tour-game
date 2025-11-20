@@ -12,12 +12,12 @@ const router = Router();
 // Validation schemas
 const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(10, 'Password must be at least 10 characters'),
 });
 
 const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(10, 'Password must be at least 10 characters'),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   role: z.enum(['ADMIN', 'WRITER', 'LEGAL']).optional(),
@@ -29,7 +29,7 @@ const forgotPasswordSchema = z.object({
 
 const resetPasswordSchema = z.object({
   token: z.string(),
-  newPassword: z.string().min(6),
+  newPassword: z.string().min(10, 'Password must be at least 10 characters'),
 });
 
 const impersonateSchema = z.object({

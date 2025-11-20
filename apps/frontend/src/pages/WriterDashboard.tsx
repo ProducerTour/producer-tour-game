@@ -9,6 +9,7 @@ import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { PaymentSettings } from '../components/PaymentSettings';
 import { WalletCard } from '../components/WalletCard';
 import { WithdrawalHistory } from '../components/WithdrawalHistory';
+import ToolsHub from '../components/ToolsHub';
 import { useAuthStore } from '../store/auth.store';
 import { formatIpiDisplay } from '../utils/ipi-helper';
 import { X } from 'lucide-react';
@@ -60,7 +61,7 @@ const formatChartCurrency = (value: any): string => {
 };
 
 export default function WriterDashboard() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile' | 'tools'>('overview');
   const [expandedCharts, setExpandedCharts] = useState<Record<string, boolean>>({});
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -81,6 +82,7 @@ export default function WriterDashboard() {
     { id: 'documents', label: 'Documents', icon: '📁' },
     { id: 'payments', label: 'Payments', icon: '💳' },
     { id: 'profile', label: 'Profile', icon: '👤' },
+    { id: 'tools', label: 'Tools Hub', icon: '🛠️' },
   ];
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
@@ -207,7 +209,7 @@ export default function WriterDashboard() {
         {/* Left Sidebar */}
         <Sidebar
           activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as 'overview' | 'songs' | 'statements' | 'documents' | 'profile')}
+          onTabChange={(tab) => setActiveTab(tab as 'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile' | 'tools')}
           tabs={writerTabs}
         />
 
@@ -479,6 +481,8 @@ export default function WriterDashboard() {
             )}
 
             {activeTab === 'profile' && <ProfileSection />}
+
+            {activeTab === 'tools' && <ToolsHub />}
           </div>
         </div>
       </main>

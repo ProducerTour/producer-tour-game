@@ -56,3 +56,6 @@ temp/
 *_GUIDE.md
 *_REFERENCE.md
 QUICK_*.md
+
+# Prisma generated client
+apps/backend/src/generated/
