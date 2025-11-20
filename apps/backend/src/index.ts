@@ -39,6 +39,10 @@ import { authLimiter, apiLimiter } from './middleware/rate-limit.middleware';
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy - Required for rate limiting and security when behind Render/Vercel reverse proxy
+// This allows Express to trust the X-Forwarded-* headers set by the proxy
+app.set('trust proxy', true);
+
 // Security middleware - Helmet.js
 // Sets various HTTP headers to help protect against common web vulnerabilities
 app.use(helmet({
