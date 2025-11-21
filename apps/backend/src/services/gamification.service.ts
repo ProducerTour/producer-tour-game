@@ -76,6 +76,17 @@ export const awardPoints = async (
   adminId?: string,
   adminReason?: string
 ) => {
+  // Exclude admins from earning gamification points (they can still manage/award)
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true }
+  });
+
+  if (user?.role === 'ADMIN') {
+    console.log(`🚫 Skipping gamification points for admin user ${userId}`);
+    return null;
+  }
+
   await initializeUserGamification(userId);
 
   const [updatedPoints, event] = await prisma.$transaction(async (tx) => {

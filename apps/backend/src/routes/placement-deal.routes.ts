@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { authenticate, AuthRequest, requireAdmin } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
+import * as gamificationService from '../services/gamification.service';
 
 const router = Router();
 
@@ -114,6 +115,11 @@ router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Res
     const userId = req.user!.id;
     const dealData = req.body;
 
+    // Get the current deal to check for status changes
+    const currentDeal = await prisma.placementDeal.findUnique({
+      where: { id }
+    });
+
     // Transform empty strings to null for optional fields (prevents unique constraint violations)
     const cleanedData = Object.entries(dealData).reduce((acc, [key, value]) => {
       // Convert empty strings to null for optional fields
@@ -128,6 +134,27 @@ router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Res
         lastModifiedBy: userId,
       },
     });
+
+    // Award points if status changed to APPROVED/CLEARED
+    if (currentDeal &&
+        currentDeal.status !== 'APPROVED' &&
+        currentDeal.status !== 'CLEARED' &&
+        (deal.status === 'APPROVED' || deal.status === 'CLEARED') &&
+        deal.createdById) {
+      try {
+        await gamificationService.awardPoints(
+          deal.createdById,
+          'WORK_APPROVED',
+          100,
+          `Work approved: ${deal.songTitle || 'Placement'}`,
+          { placementDealId: id }
+        );
+        // Also check for achievements
+        await gamificationService.checkAchievements(deal.createdById);
+      } catch (gamError) {
+        console.error('Gamification work approved error:', gamError);
+      }
+    }
 
     res.json(deal);
   } catch (error) {

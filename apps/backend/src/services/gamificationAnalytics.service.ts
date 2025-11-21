@@ -111,7 +111,7 @@ export const getDailyCheckInRate = async (date: Date = new Date()) => {
   // Users who checked in today
   const checkIns = await prisma.gamificationEvent.count({
     where: {
-      eventType: 'DAILY_CHECKIN',
+      eventType: 'DAILY_CHECK_IN',
       createdAt: {
         gte: startOfDay,
         lt: endOfDay,
@@ -221,24 +221,27 @@ export const getReferralMetrics = async (days: number = 30) => {
     },
   });
 
-  // Top referrers
-  const topReferrers = await prisma.gamificationPoints.findMany({
+  // Top referrers - count REFERRAL_SIGNUP events per referral code owner
+  const referralEvents = await prisma.gamificationEvent.groupBy({
+    by: ['userId'],
     where: {
-      referralCount: { gt: 0 },
+      eventType: 'REFERRAL_SIGNUP',
     },
-    orderBy: { referralCount: 'desc' },
-    take: 10,
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-        },
-      },
-    },
+    _count: true,
   });
+
+  // Get user details for top referrers
+  const topReferrerIds = referralEvents
+    .sort((a, b) => b._count - a._count)
+    .slice(0, 10)
+    .map(r => r.userId);
+
+  const topReferrerUsers = await prisma.user.findMany({
+    where: { id: { in: topReferrerIds } },
+    select: { id: true, email: true, firstName: true, lastName: true },
+  });
+
+  const userMap = new Map(topReferrerUsers.map(u => [u.id, u]));
 
   const signupRate = totalNewUsers > 0 ? (referralSignups / totalNewUsers) * 100 : 0;
   const conversionRate = referralSignups > 0 ? (referralConversions / referralSignups) * 100 : 0;
@@ -254,12 +257,17 @@ export const getReferralMetrics = async (days: number = 30) => {
       signupGrowth: 25,
       conversionRate: 20,
     },
-    topReferrers: topReferrers.map(r => ({
-      userId: r.userId,
-      name: r.user ? `${r.user.firstName || ''} ${r.user.lastName || ''}`.trim() || r.user.email : 'Unknown',
-      referralCount: r.referralCount,
-      referralConversions: r.referralConversions,
-    })),
+    topReferrers: referralEvents
+      .sort((a, b) => b._count - a._count)
+      .slice(0, 10)
+      .map(r => {
+        const user = userMap.get(r.userId);
+        return {
+          userId: r.userId,
+          name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Unknown',
+          referralCount: r._count,
+        };
+      }),
   };
 };
 
@@ -329,10 +337,10 @@ export const getWorkRegistrationMetrics = async (days: number = 30) => {
   const previousStart = new Date(start);
   previousStart.setDate(previousStart.getDate() - days);
 
-  // Current period submissions
+  // Current period submissions (use WORK_SUBMITTED or count placements)
   const currentSubmissions = await prisma.gamificationEvent.count({
     where: {
-      eventType: 'WORK_SUBMISSION',
+      eventType: 'WORK_SUBMITTED',
       createdAt: {
         gte: start,
         lte: end,
@@ -343,7 +351,7 @@ export const getWorkRegistrationMetrics = async (days: number = 30) => {
   // Previous period submissions
   const previousSubmissions = await prisma.gamificationEvent.count({
     where: {
-      eventType: 'WORK_SUBMISSION',
+      eventType: 'WORK_SUBMITTED',
       createdAt: {
         gte: previousStart,
         lt: start,
@@ -374,24 +382,25 @@ export const getProfileCompletionMetrics = async () => {
     where: { role: 'WRITER' },
   });
 
-  // Check for profile completion (producer record with all required fields)
-  const completeProfiles = await prisma.producer.count({
+  // Check for profile completion (user with firstName, lastName, and producer with IPI)
+  const completeProfiles = await prisma.user.count({
     where: {
-      AND: [
-        { artistName: { not: null } },
-        { writerIpiNumber: { not: null } },
-        { paypalEmail: { not: null } }, // Or stripeAccountId
-      ],
+      role: 'WRITER',
+      firstName: { not: null },
+      lastName: { not: null },
+      producer: {
+        writerIpiNumber: { not: null },
+      },
     },
   });
 
-  // Partial profiles (have producer record but missing fields)
-  const partialProfiles = await prisma.producer.count({
+  // Partial profiles (have some fields but not all)
+  const partialProfiles = await prisma.user.count({
     where: {
+      role: 'WRITER',
       OR: [
-        { artistName: null },
-        { writerIpiNumber: null },
-        { paypalEmail: null },
+        { firstName: null },
+        { lastName: null },
       ],
     },
   });
@@ -418,17 +427,19 @@ export const getStripeOnboardingMetrics = async () => {
     where: { role: 'WRITER' },
   });
 
-  const stripeOnboarded = await prisma.producer.count({
+  const stripeOnboarded = await prisma.user.count({
     where: {
+      role: 'WRITER',
       stripeAccountId: { not: null },
-      stripeAccountEnabled: true,
+      stripeOnboardingComplete: true,
     },
   });
 
-  const stripePending = await prisma.producer.count({
+  const stripePending = await prisma.user.count({
     where: {
+      role: 'WRITER',
       stripeAccountId: { not: null },
-      stripeAccountEnabled: false,
+      stripeOnboardingComplete: false,
     },
   });
 
@@ -576,29 +587,29 @@ export const getAchievementMetrics = async () => {
 export const getPointEconomyMetrics = async (days: number = 30) => {
   const { start, end } = getDateRange(days);
 
-  // Points earned in period
+  // Points earned in period (positive points values)
   const earnedStats = await prisma.gamificationEvent.aggregate({
     where: {
-      pointsEarned: { gt: 0 },
+      points: { gt: 0 },
       createdAt: {
         gte: start,
         lte: end,
       },
     },
-    _sum: { pointsEarned: true },
+    _sum: { points: true },
     _count: true,
   });
 
-  // Points spent in period
+  // Points spent in period (negative points values)
   const spentStats = await prisma.gamificationEvent.aggregate({
     where: {
-      pointsSpent: { gt: 0 },
+      points: { lt: 0 },
       createdAt: {
         gte: start,
         lte: end,
       },
     },
-    _sum: { pointsSpent: true },
+    _sum: { points: true },
     _count: true,
   });
 
@@ -607,22 +618,22 @@ export const getPointEconomyMetrics = async (days: number = 30) => {
     _sum: { points: true, totalEarned: true, totalSpent: true },
   });
 
-  // Points by event type
+  // Points by event type (only positive/earning events)
   const pointsByEvent = await prisma.gamificationEvent.groupBy({
     by: ['eventType'],
     where: {
-      pointsEarned: { gt: 0 },
+      points: { gt: 0 },
       createdAt: {
         gte: start,
         lte: end,
       },
     },
-    _sum: { pointsEarned: true },
+    _sum: { points: true },
     _count: true,
   });
 
-  const earned = earnedStats._sum.pointsEarned || 0;
-  const spent = spentStats._sum.pointsSpent || 0;
+  const earned = earnedStats._sum.points || 0;
+  const spent = Math.abs(spentStats._sum.points || 0); // Make positive for display
   const ratio = earned > 0 ? spent / earned : 0;
 
   return {
@@ -641,7 +652,7 @@ export const getPointEconomyMetrics = async (days: number = 30) => {
     },
     breakdown: pointsByEvent.map(e => ({
       eventType: e.eventType,
-      points: e._sum.pointsEarned || 0,
+      points: e._sum.points || 0,
       count: e._count,
     })),
   };

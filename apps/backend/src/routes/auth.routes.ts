@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { authenticate, AuthRequest, requireAdmin } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 import { emailService } from '../services/email.service';
-import { initializeUserGamification, recordReferralSignup } from '../services/gamification.service';
+import { initializeUserGamification, recordReferralSignup, awardPoints } from '../services/gamification.service';
 
 const router = Router();
 
@@ -307,6 +307,130 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * Helper: Check if profile is complete
+ */
+function isProfileComplete(user: any): boolean {
+  // Basic fields required for all users
+  if (!user.firstName || !user.lastName) return false;
+
+  // For writers, also require PRO affiliation and IPI
+  if (user.role === 'WRITER') {
+    if (!user.producer?.proAffiliation || user.producer?.proAffiliation === 'OTHER') return false;
+    if (!user.producer?.writerIpiNumber) return false;
+  }
+
+  return true;
+}
+
+/**
+ * PUT /api/auth/me
+ * Update current user's profile
+ */
+router.put('/me', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const {
+      firstName,
+      middleName,
+      lastName,
+      writerIpiNumber,
+      publisherName,
+      publisherIpiNumber,
+      subPublisherName,
+      subPublisherIpiNumber,
+      proAffiliation,
+      producerName,
+    } = req.body;
+
+    // Get current user to check if profile was incomplete before
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { producer: true },
+    });
+
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const wasIncomplete = !isProfileComplete(currentUser);
+
+    // Build user update payload
+    const userData: any = {};
+    if (firstName !== undefined) userData.firstName = firstName;
+    if (middleName !== undefined) userData.middleName = middleName;
+    if (lastName !== undefined) userData.lastName = lastName;
+    if (writerIpiNumber !== undefined) userData.writerIpiNumber = writerIpiNumber;
+    if (publisherName !== undefined) userData.publisherName = publisherName;
+    if (publisherIpiNumber !== undefined) userData.publisherIpiNumber = publisherIpiNumber;
+    if (subPublisherName !== undefined) userData.subPublisherName = subPublisherName;
+    if (subPublisherIpiNumber !== undefined) userData.subPublisherIpiNumber = subPublisherIpiNumber;
+
+    // Update user
+    await prisma.user.update({
+      where: { id: userId },
+      data: userData,
+    });
+
+    // Update producer profile if user is a WRITER
+    if (currentUser.role === 'WRITER' && (proAffiliation !== undefined || producerName !== undefined || writerIpiNumber !== undefined || publisherIpiNumber !== undefined)) {
+      await prisma.producer.upsert({
+        where: { userId },
+        update: {
+          producerName: producerName,
+          writerIpiNumber: writerIpiNumber,
+          publisherIpiNumber: publisherIpiNumber,
+          proAffiliation: proAffiliation,
+        },
+        create: {
+          userId,
+          producerName: producerName || `${firstName || currentUser.firstName || ''} ${lastName || currentUser.lastName || ''}`.trim() || 'Writer',
+          writerIpiNumber: writerIpiNumber,
+          publisherIpiNumber: publisherIpiNumber,
+          proAffiliation: proAffiliation || 'OTHER',
+        },
+      });
+    }
+
+    // Get updated user
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { producer: true },
+    });
+
+    // Check if profile is now complete and award points
+    const isNowComplete = isProfileComplete(updatedUser);
+    if (wasIncomplete && isNowComplete && currentUser.role !== 'ADMIN') {
+      try {
+        // Check if already awarded
+        const existingAward = await prisma.gamificationEvent.findFirst({
+          where: {
+            userId,
+            eventType: 'PROFILE_COMPLETE',
+          },
+        });
+
+        if (!existingAward) {
+          await awardPoints(
+            userId,
+            'PROFILE_COMPLETE',
+            50,
+            'Completed profile setup'
+          );
+          console.log(`🎯 Profile completion points awarded to user ${userId}`);
+        }
+      } catch (gamError) {
+        console.error('Gamification profile complete error:', gamError);
+      }
+    }
+
+    res.json({ user: updatedUser });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 

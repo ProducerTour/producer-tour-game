@@ -17,6 +17,7 @@ import {
 } from '../utils/export-generator';
 import { emailService } from '../services/email.service';
 import { stripeService } from '../services/stripe.service';
+import * as gamificationService from '../services/gamification.service';
 
 const router = Router();
 
@@ -457,6 +458,35 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     if (!statement) {
       return res.status(404).json({ error: 'Statement not found' });
+    }
+
+    // Award points for viewing statement (only for writers, once per statement)
+    if (req.user!.role === 'WRITER') {
+      try {
+        // Check if user already viewed this statement
+        const existingView = await prisma.gamificationEvent.findFirst({
+          where: {
+            userId: req.user!.id,
+            eventType: 'STATEMENT_VIEWED',
+            metadata: {
+              path: ['statementId'],
+              equals: id
+            }
+          }
+        });
+
+        if (!existingView) {
+          await gamificationService.awardPoints(
+            req.user!.id,
+            'STATEMENT_VIEWED',
+            10,
+            `Viewed statement: ${statement.filename || id}`,
+            { statementId: id }
+          );
+        }
+      } catch (gamError) {
+        console.error('Gamification statement view error:', gamError);
+      }
     }
 
     res.json(statement);
@@ -1199,8 +1229,11 @@ router.post(
           });
         }
 
-        return updatedStatement;
+        return { updatedStatement, writerBalanceUpdates };
       });
+
+      // Extract for use in milestone checks
+      const writerBalanceUpdatesMap = result.writerBalanceUpdates;
 
       // Send email notifications to writers (async, don't wait)
       // Get payment summary for each writer
@@ -1273,7 +1306,7 @@ router.post(
             commissionAmount,
             netPayment,
             songCount,
-            paymentDate: formatExportDate(result.paymentProcessedAt),
+            paymentDate: formatExportDate(result.updatedStatement.paymentProcessedAt),
           };
         });
 
@@ -1281,15 +1314,68 @@ router.post(
         await emailService.sendBulkPaymentNotifications(notifications, 1500);
       });
 
+      // Check for revenue milestones asynchronously (don't block response)
+      setImmediate(async () => {
+        const milestones = [
+          { threshold: 1, points: 25, label: '$1 earned' },
+          { threshold: 100, points: 100, label: '$100 earned' },
+          { threshold: 1000, points: 250, label: '$1,000 earned' },
+          { threshold: 10000, points: 500, label: '$10,000 earned' },
+        ];
+
+        for (const [userId, netAmount] of writerBalanceUpdatesMap.entries()) {
+          try {
+            // Get the user's current lifetime earnings (after this payment)
+            const user = await prisma.user.findUnique({
+              where: { id: userId },
+              select: { lifetimeEarnings: true, role: true }
+            });
+
+            if (!user || user.role === 'ADMIN') continue;
+
+            const currentLifetime = Number(user.lifetimeEarnings);
+            const previousLifetime = currentLifetime - netAmount;
+
+            // Check each milestone
+            for (const milestone of milestones) {
+              // Did they cross this milestone with this payment?
+              if (previousLifetime < milestone.threshold && currentLifetime >= milestone.threshold) {
+                // Check if already awarded this milestone
+                const existingAward = await prisma.gamificationEvent.findFirst({
+                  where: {
+                    userId,
+                    eventType: 'REVENUE_MILESTONE',
+                    metadata: { path: ['milestone'], equals: milestone.threshold }
+                  }
+                });
+
+                if (!existingAward) {
+                  await gamificationService.awardPoints(
+                    userId,
+                    'REVENUE_MILESTONE',
+                    milestone.points,
+                    `Revenue milestone: ${milestone.label}`,
+                    { milestone: milestone.threshold, lifetimeEarnings: currentLifetime }
+                  );
+                  console.log(`🎯 Revenue milestone ${milestone.label} awarded to user ${userId}`);
+                }
+              }
+            }
+          } catch (gamError) {
+            console.error(`Gamification revenue milestone error for user ${userId}:`, gamError);
+          }
+        }
+      });
+
       // Return payment confirmation
       res.json({
         success: true,
         statement: {
-          id: result.id,
-          paymentStatus: result.paymentStatus,
-          paymentProcessedAt: result.paymentProcessedAt,
-          totalPaidToWriters: Number(result.totalNet),
-          commissionToProducerTour: Number(result.totalCommission)
+          id: result.updatedStatement.id,
+          paymentStatus: result.updatedStatement.paymentStatus,
+          paymentProcessedAt: result.updatedStatement.paymentProcessedAt,
+          totalPaidToWriters: Number(statement.totalNet),
+          commissionToProducerTour: Number(statement.totalCommission)
         },
         message: 'Statement marked as PAID. Writer balances updated. Stripe transfers will occur when writers request withdrawals.'
       });
