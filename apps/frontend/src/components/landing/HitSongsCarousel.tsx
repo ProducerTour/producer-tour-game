@@ -94,7 +94,7 @@ const streamCounts: Record<string, string> = {
 export function HitSongsCarousel() {
   const [songs, setSongs] = useState<HitSong[]>(hitSongsData);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
 
   // Fetch songs from Spotify API
   useEffect(() => {

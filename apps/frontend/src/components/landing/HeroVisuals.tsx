@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 
 /**
@@ -14,8 +13,8 @@ export function FloatingParticles() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let width: number;
-    let height: number;
+    let width: number = canvas.offsetWidth || 800;
+    let height: number = canvas.offsetHeight || 600;
 
     const resize = () => {
       width = canvas.offsetWidth;
