@@ -100,7 +100,7 @@ export default function ToolPermissionsSettings() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white mb-2">Tool Permissions</h2>
-          <p className="text-gray-400">
+          <p className="text-text-muted">
             Configure which roles have access to each tool in the Tools Hub
           </p>
         </div>
@@ -108,7 +108,7 @@ export default function ToolPermissionsSettings() {
           <div className="flex gap-3">
             <button
               onClick={handleReset}
-              className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+              className="px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10 transition-colors"
             >
               Reset
             </button>
@@ -131,10 +131,10 @@ export default function ToolPermissionsSettings() {
       </div>
 
       {/* Permissions Table */}
-      <div className="bg-slate-800 rounded-lg overflow-hidden border border-slate-700">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-slate-700">
+            <thead className="bg-white/[0.08]">
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-white">
                   Tool
@@ -146,11 +146,11 @@ export default function ToolPermissionsSettings() {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700">
+            <tbody className="divide-y divide-white/[0.08]">
               {toolPermissions.map((tool, index) => (
                 <tr
                   key={tool.id}
-                  className={index % 2 === 0 ? 'bg-slate-800/50' : 'bg-slate-800'}
+                  className={index % 2 === 0 ? 'bg-white/[0.04]' : 'bg-surface'}
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -167,7 +167,7 @@ export default function ToolPermissionsSettings() {
                           className={`relative inline-flex items-center justify-center w-6 h-6 rounded transition-all ${
                             hasAccess
                               ? 'bg-green-500 hover:bg-green-600'
-                              : 'bg-slate-600 hover:bg-slate-500'
+                              : 'bg-white/20 hover:bg-white/30'
                           }`}
                         >
                           {hasAccess && (
@@ -198,9 +198,9 @@ export default function ToolPermissionsSettings() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+        <div className="bg-surface rounded-lg p-6 border border-white/[0.08]">
           <h3 className="text-lg font-semibold text-white mb-2">Quick Presets</h3>
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-text-muted mb-4">
             Apply common permission configurations
           </p>
           <div className="space-y-2">
@@ -231,9 +231,9 @@ export default function ToolPermissionsSettings() {
           </div>
         </div>
 
-        <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+        <div className="bg-surface rounded-lg p-6 border border-white/[0.08]">
           <h3 className="text-lg font-semibold text-white mb-2">Permission Summary</h3>
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-text-muted mb-4">
             Current access counts by role
           </p>
           <div className="space-y-2">
@@ -241,7 +241,7 @@ export default function ToolPermissionsSettings() {
               const toolCount = toolPermissions.filter(tool => tool.roles.includes(role)).length;
               return (
                 <div key={role} className="flex justify-between items-center text-sm">
-                  <span className="text-gray-300 font-medium">{role}</span>
+                  <span className="text-text-secondary font-medium">{role}</span>
                   <span className="text-blue-400">
                     {toolCount} / {toolPermissions.length} tools
                   </span>

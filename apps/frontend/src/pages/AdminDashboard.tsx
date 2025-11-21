@@ -37,11 +37,17 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   return (
-    <div className="flex flex-col h-screen bg-slate-900 overflow-hidden">
+    <div className="flex flex-col h-screen bg-surface overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-brand-blue/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-green-500/5 rounded-full blur-[100px]" />
+      </div>
+
       {/* Impersonation Banner */}
       <ImpersonationBanner />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* Left Sidebar */}
         <Sidebar
           activeTab={activeTab}
@@ -96,7 +102,7 @@ function DashboardOverview() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-400">Loading dashboard...</div>
+        <div className="text-text-secondary">Loading dashboard...</div>
       </div>
     );
   }
@@ -142,10 +148,10 @@ function DashboardOverview() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Chart */}
-        <div className="bg-slate-800 rounded-xl shadow-lg p-6">
+        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-white">Revenue Overview</h3>
-            <select className="bg-slate-700 text-gray-300 text-sm rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            <select className="bg-white/5 text-text-secondary text-sm rounded-xl px-3 py-2 border border-white/10 focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50">
               <option>Last 12 months</option>
               <option>Last 6 months</option>
               <option>Last 3 months</option>
@@ -194,14 +200,14 @@ function DashboardOverview() {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-64 text-gray-500">
+            <div className="flex items-center justify-center h-64 text-text-muted">
               No revenue data available
             </div>
           )}
         </div>
 
         {/* PRO Distribution */}
-        <div className="bg-slate-800 rounded-xl shadow-lg p-6">
+        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-lg p-6">
           <h3 className="text-lg font-semibold text-white mb-6">Statement Distribution</h3>
           {stats?.statementsByPRO && stats.statementsByPRO.length > 0 ? (
             <div className="space-y-4">
@@ -215,14 +221,14 @@ function DashboardOverview() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-3 h-3 rounded-full ${colors[index % 3]}`}></div>
-                        <span className="text-gray-300 font-medium">{item.proType}</span>
+                        <span className="text-text-secondary font-medium">{item.proType}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-white font-semibold">{item.count}</span>
-                        <span className="text-gray-400 text-sm ml-2">{percentage}%</span>
+                        <span className="text-text-muted text-sm ml-2">{percentage}%</span>
                       </div>
                     </div>
-                    <div className="w-full bg-slate-700 rounded-full h-2">
+                    <div className="w-full bg-white/10 rounded-full h-2">
                       <div
                         className={`${colors[index % 3]} h-2 rounded-full transition-all duration-500`}
                         style={{ width: `${percentage}%` }}
@@ -233,7 +239,7 @@ function DashboardOverview() {
               })}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-64 text-gray-500">
+            <div className="flex items-center justify-center h-64 text-text-muted">
               No statement data available
             </div>
           )}
@@ -243,10 +249,10 @@ function DashboardOverview() {
       {/* Recent Activity & Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Statements */}
-        <div className="lg:col-span-2 bg-slate-800 rounded-xl shadow-lg p-6">
+        <div className="lg:col-span-2 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-white">Recent Statements</h3>
-            <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+            <button className="text-brand-blue hover:text-brand-blue/80 text-sm font-medium">
               View All →
             </button>
           </div>
@@ -255,10 +261,10 @@ function DashboardOverview() {
               recentStatements.map((statement: any) => (
                 <div
                   key={statement.id}
-                  className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors"
+                  className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                       statement.proType === 'BMI' ? 'bg-blue-500/20' :
                       statement.proType === 'ASCAP' ? 'bg-cyan-500/20' :
                       'bg-purple-500/20'
@@ -267,7 +273,7 @@ function DashboardOverview() {
                     </div>
                     <div>
                       <p className="text-white font-medium">{statement.filename}</p>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-text-muted text-sm">
                         {statement.proType} • {statement.itemCount || 0} items
                       </p>
                     </div>
@@ -287,28 +293,28 @@ function DashboardOverview() {
                 </div>
               ))
             ) : (
-              <div className="text-center text-gray-500 py-8">No recent statements</div>
+              <div className="text-center text-text-muted py-8">No recent statements</div>
             )}
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-slate-800 rounded-xl shadow-lg p-6">
+        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-lg p-6">
           <h3 className="text-lg font-semibold text-white mb-6">Quick Actions</h3>
           <div className="space-y-3">
-            <button className="w-full flex items-center gap-3 p-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg text-white font-medium transition-all shadow-lg shadow-blue-500/50">
+            <button className="w-full flex items-center gap-3 p-4 bg-gradient-to-r from-brand-blue to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl text-white font-medium transition-all shadow-lg shadow-brand-blue/30">
               <span className="text-xl">📊</span>
               <span>Upload Statement</span>
             </button>
-            <button className="w-full flex items-center gap-3 p-4 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-medium transition-colors">
+            <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-colors">
               <span className="text-xl">👥</span>
               <span>Add Writer</span>
             </button>
-            <button className="w-full flex items-center gap-3 p-4 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-medium transition-colors">
+            <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-colors">
               <span className="text-xl">📄</span>
               <span>Upload Document</span>
             </button>
-            <button className="w-full flex items-center gap-3 p-4 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-medium transition-colors">
+            <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-colors">
               <span className="text-xl">📈</span>
               <span>View Reports</span>
             </button>
@@ -403,13 +409,13 @@ function StatementsTab() {
   return (
     <div className="space-y-8">
       {/* Upload Section */}
-      <div className="bg-slate-700/30 rounded-lg p-6">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6">
         <h3 className="text-lg font-medium text-white mb-4">Upload New Statement</h3>
 
         <div className="space-y-4">
           {/* PRO Selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-text-secondary mb-2">
               Select Statement Type
             </label>
             <div className="flex gap-3">
@@ -417,10 +423,10 @@ function StatementsTab() {
                 <button
                   key={pro}
                   onClick={() => setSelectedPRO(pro)}
-                  className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                  className={`px-6 py-3 rounded-xl font-medium transition-colors ${
                     selectedPRO === pro
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-slate-600 text-gray-300 hover:bg-slate-500'
+                      ? 'bg-brand-blue text-white'
+                      : 'bg-white/5 text-text-secondary border border-white/10 hover:bg-white/10'
                   }`}
                 >
                   {pro}
@@ -431,7 +437,7 @@ function StatementsTab() {
 
           {/* File Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-text-secondary mb-2">
               {selectedPRO === 'MLC' ? 'TSV File' : 'CSV File'}
             </label>
             <div className="flex items-center gap-4">
@@ -440,18 +446,18 @@ function StatementsTab() {
                 type="file"
                 accept={selectedPRO === 'MLC' ? '.tsv,.txt' : '.csv'}
                 onChange={handleFileChange}
-                className="block w-full text-sm text-gray-400
+                className="block w-full text-sm text-text-muted
                   file:mr-4 file:py-2 file:px-4
-                  file:rounded-lg file:border-0
+                  file:rounded-xl file:border-0
                   file:text-sm file:font-semibold
-                  file:bg-primary-500 file:text-white
-                  hover:file:bg-primary-600
+                  file:bg-brand-blue file:text-white
+                  hover:file:bg-brand-blue/90
                   file:cursor-pointer cursor-pointer"
               />
               <button
                 onClick={handleUpload}
                 disabled={!selectedFile || uploading}
-                className="px-6 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                className="px-6 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {uploading ? 'Uploading...' : 'Upload & Process'}
               </button>
@@ -474,13 +480,13 @@ function StatementsTab() {
       <div>
         <h3 className="text-lg font-medium text-white mb-4">Statement Queue</h3>
         {isLoading ? (
-          <div className="text-center text-gray-400 py-8">Loading...</div>
+          <div className="text-center text-text-secondary py-8">Loading...</div>
         ) : queueStatements.length > 0 ? (
           <div className="space-y-3">
             {queueStatements.map((statement: any) => (
               <div
                 key={statement.id}
-                className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors"
+                className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors"
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
@@ -501,7 +507,7 @@ function StatementsTab() {
                       {statement.status}
                     </span>
                   </div>
-                  <div className="flex gap-4 mt-2 text-sm text-gray-400">
+                  <div className="flex gap-4 mt-2 text-sm text-text-muted">
                     <span>Items: {statement.itemCount || 0}</span>
                     <span>Performances: {Number(statement.totalPerformances).toLocaleString()}</span>
                     <span className="text-green-400">
@@ -514,7 +520,7 @@ function StatementsTab() {
                   {statement.status === 'UPLOADED' && (
                     <button
                       onClick={() => setReviewingStatement(statement)}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
+                      className="px-4 py-2 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-brand-blue/90 transition-colors"
                     >
                       Review & Assign
                     </button>
@@ -523,7 +529,7 @@ function StatementsTab() {
                     <button
                       onClick={() => publishMutation.mutate(statement.id)}
                       disabled={publishMutation.isPending}
-                      className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 disabled:bg-gray-600 transition-colors"
+                      className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 disabled:opacity-50 transition-colors"
                     >
                       Publish
                     </button>
@@ -531,7 +537,7 @@ function StatementsTab() {
                   <button
                     onClick={() => setDeletingStatement(statement)}
                     disabled={deleteMutation.isPending}
-                    className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium hover:bg-red-500/30 disabled:bg-gray-600 transition-colors"
+                    className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-sm font-medium hover:bg-red-500/30 disabled:opacity-50 transition-colors"
                   >
                     Delete
                   </button>
@@ -540,7 +546,7 @@ function StatementsTab() {
             ))}
           </div>
         ) : (
-          <p className="text-gray-400 text-center py-8">No statements in queue</p>
+          <p className="text-text-muted text-center py-8">No statements in queue</p>
         )}
       </div>
 
@@ -548,13 +554,13 @@ function StatementsTab() {
       <div>
         <h3 className="text-lg font-medium text-white mb-4">Completed Statements</h3>
         {isLoading ? (
-          <div className="text-center text-gray-400 py-8">Loading...</div>
+          <div className="text-center text-text-secondary py-8">Loading...</div>
         ) : completedStatements.length > 0 ? (
           <div className="space-y-3">
             {completedStatements.map((statement: any) => (
               <div
                 key={statement.id}
-                className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors"
+                className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors"
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
@@ -570,7 +576,7 @@ function StatementsTab() {
                       PUBLISHED
                     </span>
                   </div>
-                  <div className="flex gap-4 mt-2 text-sm text-gray-400">
+                  <div className="flex gap-4 mt-2 text-sm text-text-muted">
                     <span>Items: {statement.itemCount || 0}</span>
                     <span>Performances: {Number(statement.totalPerformances).toLocaleString()}</span>
                     <span className="text-green-400">
@@ -583,7 +589,7 @@ function StatementsTab() {
                   <button
                     onClick={() => setDeletingStatement(statement)}
                     disabled={deleteMutation.isPending}
-                    className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-sm font-medium hover:bg-red-500/30 disabled:bg-gray-600 transition-colors"
+                    className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-sm font-medium hover:bg-red-500/30 disabled:opacity-50 transition-colors"
                   >
                     Delete
                   </button>
@@ -592,7 +598,7 @@ function StatementsTab() {
             ))}
           </div>
         ) : (
-          <p className="text-gray-400 text-center py-8">No completed statements</p>
+          <p className="text-text-muted text-center py-8">No completed statements</p>
         )}
       </div>
 
@@ -935,33 +941,33 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-slate-700">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-md w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-6 border-b border-white/[0.08]">
           <h3 className="text-xl font-bold text-white">Review & Assign Writers</h3>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-text-secondary mt-1">
             {statement.filename} • {displayRows.length} {isMLC ? 'publisher rows' : 'songs'}
           </p>
         </div>
 
         {/* Summary Stats Bar */}
-        <div className="px-6 pt-4 pb-2 bg-slate-700/20 border-b border-slate-700/50">
+        <div className="px-6 pt-4 pb-2 bg-white/[0.02] border-b border-white/[0.06]">
           <div className="grid grid-cols-4 gap-3 text-sm">
-            <div className="bg-slate-700/30 rounded-lg p-3">
-              <div className="text-gray-400 text-xs mb-1">Total Revenue</div>
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-3">
+              <div className="text-text-muted text-xs mb-1">Total Revenue</div>
               <div className="text-white font-semibold">${formatCurrency(summaryStats.totalRevenue)}</div>
             </div>
             {smartAssignResults && (
               <>
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3">
                   <div className="text-green-400 text-xs mb-1">✓ Auto-assigned</div>
                   <div className="text-white font-semibold">{summaryStats.autoCount}</div>
                 </div>
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
                   <div className="text-yellow-400 text-xs mb-1">⚠ Review Suggested</div>
                   <div className="text-white font-semibold">{summaryStats.suggestedCount}</div>
                 </div>
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
                   <div className="text-red-400 text-xs mb-1">✗ Manual Required</div>
                   <div className="text-white font-semibold">{summaryStats.manualCount}</div>
                 </div>
@@ -971,7 +977,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
         </div>
 
         {/* Filter Toolbar */}
-        <div className="px-6 py-3 bg-slate-700/10 border-b border-slate-700/50 space-y-3">
+        <div className="px-6 py-3 bg-white/[0.02] border-b border-white/[0.06] space-y-3">
           <div className="flex gap-3">
             {/* Search */}
             <div className="flex-1 relative">
@@ -980,12 +986,12 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                 placeholder="🔍 Search songs or publishers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-white transition-colors"
                 >
                   ✕
                 </button>
@@ -997,7 +1003,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
               >
                 <option value="all">All Rows</option>
                 <option value="auto">✓ Auto-assigned</option>
@@ -1010,7 +1016,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+              className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
             >
               <option value="revenue-desc">Revenue: High → Low</option>
               <option value="revenue-asc">Revenue: Low → High</option>
@@ -1020,34 +1026,34 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
           </div>
 
           {/* Showing X of Y */}
-          <div className="text-xs text-gray-400">
+          <div className="text-xs text-text-muted">
             Showing {summaryStats.filteredRows} of {summaryStats.totalRows} rows
             {summaryStats.filteredRows < summaryStats.totalRows && (
-              <span className="text-primary-400 ml-1">(filtered)</span>
+              <span className="text-brand-blue ml-1">(filtered)</span>
             )}
           </div>
         </div>
 
         <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Smart Assign & Quick Assign Section */}
-          <div className="bg-slate-700/30 rounded-lg p-4 space-y-4">
+          <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4 space-y-4">
             {/* Smart Assign */}
             <div>
               <h4 className="text-sm font-medium text-white mb-3">🧠 Smart Assign (AI Matching)</h4>
-              <p className="text-xs text-gray-400 mb-3">
+              <p className="text-xs text-text-muted mb-3">
                 Automatically match writers using IPI numbers, name similarity, and historical assignments
               </p>
               <button
                 onClick={handleSmartAssign}
                 disabled={smartAssigning}
-                className="w-full px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                className="w-full px-4 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:bg-white/10 disabled:text-text-muted disabled:cursor-not-allowed transition-colors"
               >
                 {smartAssigning ? '⏳ Analyzing...' : '✨ Smart Assign Writers'}
               </button>
             </div>
 
             {/* Divider */}
-            <div className="border-t border-slate-600"></div>
+            <div className="border-t border-white/[0.08]"></div>
 
             {/* Manual Assign All */}
             <div>
@@ -1056,7 +1062,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                 <select
                   value={assignAllWriter}
                   onChange={(e) => setAssignAllWriter(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                 >
                   <option value="">Select a writer...</option>
                   {writersList.map((writer: any) => (
@@ -1070,7 +1076,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                 <button
                   onClick={handleAssignAll}
                   disabled={!assignAllWriter}
-                  className="px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 bg-brand-blue text-white rounded-xl font-medium hover:bg-brand-blue/90 disabled:bg-white/10 disabled:text-text-muted disabled:cursor-not-allowed transition-colors"
                 >
                   Assign All
                 </button>
@@ -1119,57 +1125,57 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                       }}
                       className="pb-4"
                     >
-                      <div className="bg-slate-700/30 rounded-lg p-4 space-y-3">
+                      <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4 space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       {/* Title + Badge */}
                       <div className="flex items-center gap-2 mb-2">
                         <p className="font-medium text-white">{row.workTitle}</p>
                         {badgeInfo && (
-                          <span className={`px-2 py-0.5 text-xs border rounded ${badgeInfo.class}`}>
+                          <span className={`px-2 py-0.5 text-xs border rounded-lg ${badgeInfo.class}`}>
                             {badgeInfo.badge}
                           </span>
                         )}
                       </div>
 
                       {/* Revenue + Performances */}
-                      <p className="text-sm text-gray-400 mb-3">
+                      <p className="text-sm text-text-muted mb-3">
                         ${formatCurrency(row.revenue)} • {row.performances} performances
                       </p>
 
                       {/* MLC: Publisher Info Card */}
                       {isMLC && row.publisherInfo && (
-                        <div className="bg-slate-800/50 rounded-lg p-3 space-y-2 border border-slate-600/30 mb-3">
+                        <div className="bg-white/[0.03] rounded-xl p-3 space-y-2 border border-white/[0.06] mb-3">
                           {row.publisherInfo.originalPublisherName && (
                             <div className="flex items-start gap-2 text-sm">
-                              <span className="text-gray-500 font-medium min-w-[75px]">Publisher:</span>
+                              <span className="text-text-muted font-medium min-w-[75px]">Publisher:</span>
                               <div>
-                                <span className="text-blue-400 font-medium">{row.publisherInfo.originalPublisherName}</span>
+                                <span className="text-brand-blue font-medium">{row.publisherInfo.originalPublisherName}</span>
                                 {row.publisherInfo.originalPublisherIpi && (
-                                  <span className="text-gray-500 text-xs ml-2">IPI: {row.publisherInfo.originalPublisherIpi}</span>
+                                  <span className="text-text-muted text-xs ml-2">IPI: {row.publisherInfo.originalPublisherIpi}</span>
                                 )}
                               </div>
                             </div>
                           )}
 
                           {(row.publisherInfo.dspName || row.publisherInfo.territory) && (
-                            <div className="flex items-center gap-4 text-sm text-gray-400">
+                            <div className="flex items-center gap-4 text-sm text-text-secondary">
                               {row.publisherInfo.dspName && (
                                 <div>
-                                  <span className="text-gray-500">Platform:</span> {row.publisherInfo.dspName}
-                                  {row.publisherInfo.consumerOffering && <span className="text-gray-500"> ({row.publisherInfo.consumerOffering})</span>}
+                                  <span className="text-text-muted">Platform:</span> {row.publisherInfo.dspName}
+                                  {row.publisherInfo.consumerOffering && <span className="text-text-muted"> ({row.publisherInfo.consumerOffering})</span>}
                                 </div>
                               )}
                               {row.publisherInfo.territory && (
-                                <div><span className="text-gray-500">Territory:</span> {row.publisherInfo.territory}</div>
+                                <div><span className="text-text-muted">Territory:</span> {row.publisherInfo.territory}</div>
                               )}
                             </div>
                           )}
 
                           {row.publisherInfo.workWriterList && row.publisherInfo.workWriterList.length > 0 && (
                             <div className="text-sm">
-                              <span className="text-gray-500">Work Writers:</span>{' '}
-                              <span className="text-gray-400">{row.publisherInfo.workWriterList.map((w: any) => w.name).join(', ')}</span>
+                              <span className="text-text-muted">Work Writers:</span>{' '}
+                              <span className="text-text-secondary">{row.publisherInfo.workWriterList.map((w: any) => w.name).join(', ')}</span>
                             </div>
                           )}
                         </div>
@@ -1178,7 +1184,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
                     <button
                       onClick={() => addWriter(rowKey)}
-                      className="px-3 py-1 bg-primary-500/20 text-primary-400 border border-primary-500/30 rounded-lg text-sm font-medium hover:bg-primary-500/30 transition-colors whitespace-nowrap"
+                      className="px-3 py-1.5 bg-brand-blue/20 text-brand-blue border border-brand-blue/30 rounded-xl text-sm font-medium hover:bg-brand-blue/30 transition-colors whitespace-nowrap"
                     >
                       + Add Writer
                     </button>
@@ -1191,8 +1197,8 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                         <select
                           value={assignment.userId}
                           onChange={(e) => updateWriter(rowKey, writerIndex, 'userId', e.target.value)}
-                          className={`col-span-4 px-3 py-2 border rounded-lg focus:outline-none ${
-                            assignment.userId ? 'bg-slate-700 border-green-500/50 text-white' : 'bg-slate-700 border-slate-600 text-gray-400'
+                          className={`col-span-4 px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue/50 ${
+                            assignment.userId ? 'bg-white/5 border-green-500/50 text-white' : 'bg-white/5 border-white/10 text-text-muted'
                           }`}
                         >
                           <option value="">Select writer...</option>
@@ -1210,7 +1216,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                           placeholder="Writer IPI"
                           value={assignment.writerIpiNumber}
                           onChange={(e) => updateWriter(rowKey, writerIndex, 'writerIpiNumber', e.target.value)}
-                          className="col-span-2 px-2 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                          className="col-span-2 px-2 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                         />
 
                         <input
@@ -1218,7 +1224,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                           placeholder="Publisher IPI"
                           value={assignment.publisherIpiNumber}
                           onChange={(e) => updateWriter(rowKey, writerIndex, 'publisherIpiNumber', e.target.value)}
-                          className="col-span-2 px-2 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                          className="col-span-2 px-2 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                         />
 
                         <div className="col-span-2 relative">
@@ -1229,15 +1235,15 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                             step="0.01"
                             value={assignment.splitPercentage}
                             onChange={(e) => updateWriter(rowKey, writerIndex, 'splitPercentage', e.target.value)}
-                            className="w-full px-2 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                            className="w-full px-2 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                           />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">%</span>
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs pointer-events-none">%</span>
                         </div>
 
                         <button
                           onClick={() => removeWriter(rowKey, writerIndex)}
                           disabled={rowAssignments.length <= 1}
-                          className="col-span-2 px-2 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-medium hover:bg-red-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          className="col-span-2 px-2 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-medium hover:bg-red-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                         >
                           Remove
                         </button>
@@ -1247,7 +1253,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
                   {/* Split Total Warning */}
                   {Math.abs(splitTotal - 100) > 0.01 && (
-                    <div className="text-sm text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+                    <div className="text-sm text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-3 py-2">
                       Total: {splitTotal.toFixed(2)}% (Note: Splits don't equal 100%, but this is allowed)
                     </div>
                   )}
@@ -1261,17 +1267,17 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
         </div>
 
 
-        <div className="p-6 border-t border-slate-700 flex gap-3">
+        <div className="p-6 border-t border-white/[0.08] flex gap-3">
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-600 transition-colors"
+            className="flex-1 px-4 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:bg-white/10 disabled:text-text-muted transition-colors"
           >
             {saving ? 'Saving...' : 'Save Assignments'}
           </button>
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-slate-700 text-gray-300 rounded-lg font-medium hover:bg-slate-600 transition-colors"
+            className="flex-1 px-4 py-2.5 bg-white/5 text-text-secondary border border-white/10 rounded-xl font-medium hover:bg-white/10 transition-colors"
           >
             Cancel
           </button>
@@ -1286,34 +1292,34 @@ function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
   const isConfirmEnabled = confirmText.toLowerCase() === 'delete';
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-md p-6 max-w-md w-full mx-4">
         <h3 className="text-xl font-semibold text-white mb-4">Delete Statement</h3>
 
         <div className="space-y-4">
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
             <p className="text-red-400 text-sm">
               ⚠️ Warning: This action cannot be undone!
             </p>
           </div>
 
           <div className="space-y-2">
-            <p className="text-gray-300">
+            <p className="text-text-secondary">
               You are about to delete the following statement:
             </p>
-            <div className="bg-slate-700/50 rounded-lg p-3">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-3">
               <p className="text-white font-medium">{statement.filename}</p>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-text-muted mt-1">
                 {statement.proType} • {statement.itemCount || 0} items
               </p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <p className="text-gray-300 text-sm">
+            <p className="text-text-secondary text-sm">
               This will permanently remove this statement and all associated data from the system.
             </p>
-            <p className="text-gray-300 text-sm font-medium">
+            <p className="text-text-secondary text-sm font-medium">
               To confirm deletion, type <span className="text-red-400 font-mono">delete</span> below:
             </p>
             <input
@@ -1321,7 +1327,7 @@ function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder="Type 'delete' to confirm"
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-red-500/50"
               autoFocus
             />
           </div>
@@ -1330,14 +1336,14 @@ function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-slate-700 text-gray-300 rounded-lg font-medium hover:bg-slate-600 transition-colors"
+            className="flex-1 px-4 py-2.5 bg-white/5 text-text-secondary border border-white/10 rounded-xl font-medium hover:bg-white/10 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={!isConfirmEnabled}
-            className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 disabled:bg-white/10 disabled:text-text-muted disabled:cursor-not-allowed transition-colors"
           >
             Delete Statement
           </button>
@@ -1456,7 +1462,7 @@ function UsersTab() {
         <h3 className="text-lg font-medium text-white">User Management</h3>
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
+          className="px-4 py-2.5 bg-brand-blue text-white rounded-xl font-medium hover:bg-brand-blue/90 transition-colors"
         >
           + Add User
         </button>
@@ -1464,33 +1470,33 @@ function UsersTab() {
 
       {/* Users Table */}
       {isLoading ? (
-        <div className="text-center text-gray-400 py-8">Loading...</div>
+        <div className="text-center text-text-secondary py-8">Loading...</div>
       ) : usersData?.users?.length > 0 ? (
-        <div className="bg-slate-700/30 rounded-lg overflow-x-auto">
+        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-slate-700/50">
+            <thead className="bg-white/[0.04]">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                   Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                   Email
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Writer IPI</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Publisher IPI</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">PRO</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Commission</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Writer IPI</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Publisher IPI</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">PRO</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Commission</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700">
+            <tbody className="divide-y divide-white/[0.06]">
               {usersData.users.map((user: any) => (
-                <tr key={user.id} className="hover:bg-slate-700/30 transition-colors">
+                <tr key={user.id} className="hover:bg-white/[0.03] transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-white">
                       {user.firstName || user.middleName || user.lastName
@@ -1499,7 +1505,7 @@ function UsersTab() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-400">{user.email}</div>
+                    <div className="text-sm text-text-secondary">{user.email}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -1510,10 +1516,10 @@ function UsersTab() {
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{formatIpiDisplay(user.writerIpiNumber)}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{formatIpiDisplay(user.publisherIpiNumber)}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.producer?.proAffiliation || '-'}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-400">{user.commissionOverrideRate != null ? `${Number(user.commissionOverrideRate).toFixed(2)}%` : 'Default'}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{formatIpiDisplay(user.writerIpiNumber)}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{formatIpiDisplay(user.publisherIpiNumber)}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{user.producer?.proAffiliation || '-'}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{user.commissionOverrideRate != null ? `${Number(user.commissionOverrideRate).toFixed(2)}%` : 'Default'}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex gap-2 justify-end">
                       <button
@@ -1549,46 +1555,46 @@ function UsersTab() {
           </table>
         </div>
       ) : (
-        <p className="text-gray-400 text-center py-8">No users found</p>
+        <p className="text-text-muted text-center py-8">No users found</p>
       )}
 
       {/* Add User Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-md p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-white mb-4">Add New User</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Email *
                 </label>
                 <input
                   type="email"
                   value={newUser.email}
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                   placeholder="user@example.com"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Password *
                 </label>
                 <input
                   type="password"
                   value={newUser.password}
                   onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Role *
                 </label>
                 <select
                   value={newUser.role}
                   onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                 >
                   <option value="WRITER">Writer</option>
                   <option value="ADMIN">Admin</option>
@@ -1600,37 +1606,37 @@ function UsersTab() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   First Name
                 </label>
                 <input
                   type="text"
                   value={newUser.firstName}
                   onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Middle Name
                 </label>
                 <input
                   type="text"
                   value={newUser.middleName}
                   onChange={(e) => setNewUser({ ...newUser, middleName: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                   placeholder="Optional"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Last Name
                 </label>
                 <input
                   type="text"
                   value={newUser.lastName}
                   onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                 />
               </div>
 
@@ -1639,76 +1645,76 @@ function UsersTab() {
                 <>
                   {newUser.role === 'WRITER' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-text-secondary mb-1">
                         Writer IPI Number
                       </label>
                       <input
                         type="text"
                         value={newUser.writerIpiNumber}
                         onChange={(e) => setNewUser({ ...newUser, writerIpiNumber: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                         placeholder="Writer IPI/CAE Number"
                       />
                     </div>
                   )}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary mb-1">
                       Publisher Name
                     </label>
                     <input
                       type="text"
                       value={newUser.publisherName}
                       onChange={(e) => setNewUser({ ...newUser, publisherName: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                       placeholder="Publisher Name"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary mb-1">
                       Publisher IPI Number
                     </label>
                     <input
                       type="text"
                       value={newUser.publisherIpiNumber}
                       onChange={(e) => setNewUser({ ...newUser, publisherIpiNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                       placeholder="Publisher IPI/CAE Number"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary mb-1">
                       Sub Publisher Name / Administrator
                     </label>
                     <input
                       type="text"
                       value={newUser.subPublisherName}
                       onChange={(e) => setNewUser({ ...newUser, subPublisherName: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                       placeholder="Sub Publisher Name / Administrator"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary mb-1">
                       Sub Publisher IPI Number
                     </label>
                     <input
                       type="text"
                       value={newUser.subPublisherIpiNumber}
                       onChange={(e) => setNewUser({ ...newUser, subPublisherIpiNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                       placeholder="Sub Publisher IPI Number"
                     />
                   </div>
                   {newUser.role === 'WRITER' && (
                     <>
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-text-secondary mb-1">
                           PRO Affiliation
                         </label>
                         <select
                           value={newUser.proAffiliation}
                           onChange={(e) => setNewUser({ ...newUser, proAffiliation: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                         >
                           <option value="BMI">BMI</option>
                           <option value="ASCAP">ASCAP</option>
@@ -1718,7 +1724,7 @@ function UsersTab() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-text-secondary mb-1">
                           Commission Override (%)
                         </label>
                         <input
@@ -1728,10 +1734,10 @@ function UsersTab() {
                           step={0.01}
                           value={newUser.commissionOverrideRate}
                           onChange={(e) => setNewUser({ ...newUser, commissionOverrideRate: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                           placeholder="Leave blank to use default"
                         />
-                        <p className="text-xs text-gray-400 mt-1">If left blank, uses the global commission rate.</p>
+                        <p className="text-xs text-text-muted mt-1">If left blank, uses the global commission rate.</p>
                       </div>
                     </>
                   )}
@@ -1740,15 +1746,15 @@ function UsersTab() {
 
               {/* Viewer-specific fields */}
               {newUser.role === 'VIEWER' && (
-                <div className="flex items-center gap-2 p-3 bg-slate-700/30 rounded-lg">
+                <div className="flex items-center gap-2 p-3 bg-white/[0.04] border border-white/[0.08] rounded-xl">
                   <input
                     type="checkbox"
                     id="canUploadStatements"
                     checked={newUser.canUploadStatements}
                     onChange={(e) => setNewUser({ ...newUser, canUploadStatements: e.target.checked })}
-                    className="w-4 h-4 text-primary-600 bg-slate-700 border-slate-600 rounded focus:ring-primary-500 focus:ring-2"
+                    className="w-4 h-4 text-brand-blue bg-white/5 border-white/20 rounded focus:ring-brand-blue/50 focus:ring-2"
                   />
-                  <label htmlFor="canUploadStatements" className="text-sm text-gray-300">
+                  <label htmlFor="canUploadStatements" className="text-sm text-text-secondary">
                     Allow statement uploads
                   </label>
                 </div>
@@ -1758,13 +1764,13 @@ function UsersTab() {
               <button
                 onClick={handleAddUser}
                 disabled={createMutation.isPending}
-                className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-gray-600 transition-colors"
+                className="flex-1 px-4 py-2.5 bg-brand-blue text-white rounded-xl font-medium hover:bg-brand-blue/90 disabled:bg-white/10 disabled:text-text-muted transition-colors"
               >
                 {createMutation.isPending ? 'Creating...' : 'Create User'}
               </button>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="flex-1 px-4 py-2 bg-slate-700 text-gray-300 rounded-lg font-medium hover:bg-slate-600 transition-colors"
+                className="flex-1 px-4 py-2.5 bg-white/5 text-text-secondary border border-white/10 rounded-xl font-medium hover:bg-white/10 transition-colors"
               >
                 Cancel
               </button>
@@ -1775,41 +1781,41 @@ function UsersTab() {
 
       {/* Edit User Modal */}
       {editingUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-md p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-white mb-4">Edit User</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Email *
                 </label>
                 <input
                   type="email"
                   value={editingUser.email}
                   onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   New Password (leave blank to keep current)
                 </label>
                 <input
                   type="password"
                   value={editingUser.password || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                   placeholder="Leave blank to keep current password"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Role *
                 </label>
                 <select
                   value={editingUser.role}
                   onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                 >
                   <option value="WRITER">Writer</option>
                   <option value="ADMIN">Admin</option>
@@ -1821,37 +1827,37 @@ function UsersTab() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   First Name
                 </label>
                 <input
                   type="text"
                   value={editingUser.firstName || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Middle Name
                 </label>
                 <input
                   type="text"
                   value={editingUser.middleName || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, middleName: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                   placeholder="Optional"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text-secondary mb-1">
                   Last Name
                 </label>
                 <input
                   type="text"
                   value={editingUser.lastName || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                 />
               </div>
 
@@ -1860,76 +1866,76 @@ function UsersTab() {
                 <>
                   {editingUser.role === 'WRITER' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-text-secondary mb-1">
                         Writer IPI Number
                       </label>
                       <input
                         type="text"
                         value={editingUser.writerIpiNumber || ''}
                         onChange={(e) => setEditingUser({ ...editingUser, writerIpiNumber: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                         placeholder="Writer IPI/CAE Number"
                       />
                     </div>
                   )}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary mb-1">
                       Publisher Name
                     </label>
                     <input
                       type="text"
                       value={editingUser.publisherName || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, publisherName: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                       placeholder="Publisher Name"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary mb-1">
                       Publisher IPI Number
                     </label>
                     <input
                       type="text"
                       value={editingUser.publisherIpiNumber || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, publisherIpiNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                       placeholder="Publisher IPI/CAE Number"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary mb-1">
                       Sub Publisher Name / Administrator
                     </label>
                     <input
                       type="text"
                       value={editingUser.subPublisherName || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, subPublisherName: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                       placeholder="Sub Publisher Name / Administrator"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-text-secondary mb-1">
                       Sub Publisher IPI Number
                     </label>
                     <input
                       type="text"
                       value={editingUser.subPublisherIpiNumber || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, subPublisherIpiNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                       placeholder="Sub Publisher IPI Number"
                     />
                   </div>
                   {editingUser.role === 'WRITER' && (
                     <>
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-text-secondary mb-1">
                           PRO Affiliation
                         </label>
                         <select
                           value={editingUser.producer?.proAffiliation || 'OTHER'}
                           onChange={(e) => setEditingUser({ ...editingUser, producer: { ...(editingUser.producer || {}), proAffiliation: e.target.value } })}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                         >
                           <option value="BMI">BMI</option>
                           <option value="ASCAP">ASCAP</option>
@@ -1939,7 +1945,7 @@ function UsersTab() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-text-secondary mb-1">
                           Commission Override (%)
                         </label>
                         <input
@@ -1949,10 +1955,10 @@ function UsersTab() {
                           step={0.01}
                           value={editingUser.commissionOverrideRate ?? ''}
                           onChange={(e) => setEditingUser({ ...editingUser, commissionOverrideRate: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                           placeholder="Leave blank to use default"
                         />
-                        <p className="text-xs text-gray-400 mt-1">Writer sees net = writer split minus commission. Blank uses global rate.</p>
+                        <p className="text-xs text-text-muted mt-1">Writer sees net = writer split minus commission. Blank uses global rate.</p>
                       </div>
                     </>
                   )}
@@ -1961,15 +1967,15 @@ function UsersTab() {
 
               {/* Viewer-specific fields */}
               {editingUser.role === 'VIEWER' && (
-                <div className="flex items-center gap-2 p-3 bg-slate-700/30 rounded-lg">
+                <div className="flex items-center gap-2 p-3 bg-white/[0.04] border border-white/[0.08] rounded-xl">
                   <input
                     type="checkbox"
                     id="editCanUploadStatements"
                     checked={editingUser.canUploadStatements || false}
                     onChange={(e) => setEditingUser({ ...editingUser, canUploadStatements: e.target.checked })}
-                    className="w-4 h-4 text-primary-600 bg-slate-700 border-slate-600 rounded focus:ring-primary-500 focus:ring-2"
+                    className="w-4 h-4 text-brand-blue bg-white/5 border-white/20 rounded focus:ring-brand-blue/50 focus:ring-2"
                   />
-                  <label htmlFor="editCanUploadStatements" className="text-sm text-gray-300">
+                  <label htmlFor="editCanUploadStatements" className="text-sm text-text-secondary">
                     Allow statement uploads
                   </label>
                 </div>
@@ -1979,13 +1985,13 @@ function UsersTab() {
               <button
                 onClick={handleUpdateUser}
                 disabled={updateMutation.isPending}
-                className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-gray-600 transition-colors"
+                className="flex-1 px-4 py-2.5 bg-brand-blue text-white rounded-xl font-medium hover:bg-brand-blue/90 disabled:bg-white/10 disabled:text-text-muted transition-colors"
               >
                 {updateMutation.isPending ? 'Updating...' : 'Update User'}
               </button>
               <button
                 onClick={() => setEditingUser(null)}
-                className="flex-1 px-4 py-2 bg-slate-700 text-gray-300 rounded-lg font-medium hover:bg-slate-600 transition-colors"
+                className="flex-1 px-4 py-2.5 bg-white/5 text-text-secondary border border-white/10 rounded-xl font-medium hover:bg-white/10 transition-colors"
               >
                 Cancel
               </button>
@@ -2080,7 +2086,7 @@ function AnalyticsTab() {
       <h3 className="text-lg font-medium text-white">Platform Analytics</h3>
 
       {isLoading ? (
-        <div className="text-center text-gray-400 py-8">Loading...</div>
+        <div className="text-center text-text-secondary py-8">Loading...</div>
       ) : (
         <>
           {/* Stats Cards - 5 across */}
@@ -2328,45 +2334,45 @@ function AnalyticsTab() {
               </div>
 
               {/* Platform Details Table */}
-              <div className="bg-slate-700/30 rounded-lg p-6">
+              <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h5 className="text-md font-medium text-white">Platform Details</h5>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-text-muted">
                     {platformData.platforms.length} platform{platformData.platforms.length !== 1 ? 's' : ''}
                   </span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="border-b-2 border-slate-600">
+                    <thead className="border-b-2 border-white/[0.12]">
                       <tr>
-                        <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Platform</th>
-                        <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Service Type</th>
-                        <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Items</th>
-                        <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Gross Revenue</th>
-                        <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Net Revenue</th>
+                        <th className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wider py-3 px-2">Platform</th>
+                        <th className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wider py-3 px-2">Service Type</th>
+                        <th className="text-right text-xs font-semibold text-text-secondary uppercase tracking-wider py-3 px-2">Items</th>
+                        <th className="text-right text-xs font-semibold text-text-secondary uppercase tracking-wider py-3 px-2">Gross Revenue</th>
+                        <th className="text-right text-xs font-semibold text-text-secondary uppercase tracking-wider py-3 px-2">Net Revenue</th>
                       </tr>
                     </thead>
                     <tbody>
                       {platformData.platforms.map((platform: any) => (
                         <tr
                           key={platform.platform}
-                          className="border-b border-slate-700/50 hover:bg-slate-600/20 transition-colors"
+                          className="border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors"
                         >
                           <td className="py-3.5 px-2 text-white font-semibold">{platform.platform}</td>
-                          <td className="py-3.5 px-2 text-sm text-gray-400">
+                          <td className="py-3.5 px-2 text-sm text-text-muted">
                             <span className="inline-flex flex-wrap gap-1">
                               {platform.offerings.length > 0 ? (
                                 platform.offerings.map((offering: string, i: number) => (
-                                  <span key={i} className="px-2 py-0.5 bg-slate-600/40 rounded text-xs">
+                                  <span key={i} className="px-2 py-0.5 bg-white/[0.08] rounded-lg text-xs">
                                     {offering}
                                   </span>
                                 ))
                               ) : (
-                                <span className="text-gray-500">-</span>
+                                <span className="text-text-muted">-</span>
                               )}
                             </span>
                           </td>
-                          <td className="py-3.5 px-2 text-right text-gray-300 font-medium">{platform.count.toLocaleString()}</td>
+                          <td className="py-3.5 px-2 text-right text-text-secondary font-medium">{platform.count.toLocaleString()}</td>
                           <td className="py-3.5 px-2 text-right text-green-400 font-semibold">
                             ${Number(platform.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
@@ -2376,7 +2382,7 @@ function AnalyticsTab() {
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="border-t-2 border-slate-600 bg-slate-700/20">
+                    <tfoot className="border-t-2 border-white/[0.12] bg-white/[0.04]">
                       <tr>
                         <td className="py-3.5 px-2 text-white font-bold text-sm">TOTAL</td>
                         <td className="py-3.5 px-2"></td>
@@ -2480,24 +2486,24 @@ function AnalyticsTab() {
               </div>
 
               {/* Organization Details Table */}
-              <div className="bg-slate-700/30 rounded-lg p-6">
-                <h5 className="text-sm font-medium text-gray-400 mb-4">Organization Details</h5>
+              <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
+                <h5 className="text-sm font-medium text-text-muted mb-4">Organization Details</h5>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="border-b border-slate-600">
+                    <thead className="border-b border-white/[0.12]">
                       <tr>
-                        <th className="text-left text-xs font-medium text-gray-400 uppercase py-2">Organization</th>
-                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Statements</th>
-                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Revenue</th>
-                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Net</th>
-                        <th className="text-right text-xs font-medium text-gray-400 uppercase py-2">Commission</th>
+                        <th className="text-left text-xs font-medium text-text-muted uppercase py-2">Organization</th>
+                        <th className="text-right text-xs font-medium text-text-muted uppercase py-2">Statements</th>
+                        <th className="text-right text-xs font-medium text-text-muted uppercase py-2">Revenue</th>
+                        <th className="text-right text-xs font-medium text-text-muted uppercase py-2">Net</th>
+                        <th className="text-right text-xs font-medium text-text-muted uppercase py-2">Commission</th>
                       </tr>
                     </thead>
                     <tbody>
                       {organizationData.organizations.map((org: any) => (
-                        <tr key={org.organization} className="border-b border-slate-700/50">
+                        <tr key={org.organization} className="border-b border-white/[0.06]">
                           <td className="py-3 text-white font-medium">{org.organization}</td>
-                          <td className="py-3 text-right text-gray-300">{org.count}</td>
+                          <td className="py-3 text-right text-text-secondary">{org.count}</td>
                           <td className="py-3 text-right text-green-400 font-medium">
                             ${Number(org.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
@@ -2510,7 +2516,7 @@ function AnalyticsTab() {
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="border-t border-slate-600">
+                    <tfoot className="border-t border-white/[0.12]">
                       <tr>
                         <td className="py-3 text-white font-bold">Total</td>
                         <td className="text-right text-white font-bold">{organizationData.totalCount}</td>
@@ -2537,13 +2543,13 @@ function AnalyticsTab() {
               onToggleExpand={toggleChartExpansion}
             >
               {territoryLoading ? (
-                <div className="h-full flex items-center justify-center text-gray-400">
+                <div className="h-full flex items-center justify-center text-text-secondary">
                   Loading territory data...
                 </div>
               ) : territoryData?.territories && territoryData.territories.length > 0 ? (
                 <TerritoryHeatmap territories={territoryData.territories} />
               ) : (
-                <div className="h-full flex items-center justify-center text-gray-400">
+                <div className="h-full flex items-center justify-center text-text-muted">
                   No territory data available yet. Territory information will appear once statements with location data are processed.
                 </div>
               )}
@@ -2558,7 +2564,7 @@ function AnalyticsTab() {
                 {stats.recentStatements.map((statement: any) => (
                   <div
                     key={statement.id}
-                    className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg"
+                    className="flex items-center justify-between p-3 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.06] transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -2604,9 +2610,9 @@ function StatCard({ title, value, icon, color, percentage, trend, gradient }: an
   // New modern card design with gradient
   if (gradient) {
     return (
-      <div className="bg-slate-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6 hover:bg-white/[0.06] transition-colors">
         <div className="flex items-center justify-between mb-4">
-          <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center text-2xl shadow-lg`}>
+          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-2xl shadow-lg`}>
             {icon}
           </div>
           {percentage && (
@@ -2617,17 +2623,17 @@ function StatCard({ title, value, icon, color, percentage, trend, gradient }: an
             </span>
           )}
         </div>
-        <h3 className="text-sm font-medium text-gray-400 mb-2">{title}</h3>
+        <h3 className="text-sm font-medium text-text-muted mb-2">{title}</h3>
         <p className="text-3xl font-bold text-white">{value}</p>
       </div>
     );
   }
 
-  // Legacy card design
+  // Legacy card design updated to premium style
   return (
-    <div className={`bg-gradient-to-br ${colorClasses[color]} border rounded-lg p-6`}>
+    <div className={`rounded-2xl bg-gradient-to-br ${colorClasses[color]} border p-6 hover:bg-white/[0.02] transition-colors`}>
       <div className="text-3xl mb-2">{icon}</div>
-      <h3 className="text-sm font-medium text-gray-400 mb-1">{title}</h3>
+      <h3 className="text-sm font-medium text-text-muted mb-1">{title}</h3>
       <p className="text-3xl font-bold text-white">{value}</p>
     </div>
   );

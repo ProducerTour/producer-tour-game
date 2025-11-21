@@ -76,7 +76,7 @@ export default function PendingPlacementsQueue() {
       toast.success(
         <div>
           <div className="font-semibold">Submission Approved!</div>
-          <div className="text-sm text-slate-400">Added to writer's Claims</div>
+          <div className="text-sm text-text-muted">Added to writer's Claims</div>
         </div>,
         { icon: '✅', duration: 4000 }
       );
@@ -172,11 +172,17 @@ export default function PendingPlacementsQueue() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 p-6">
+    <div className="min-h-screen bg-surface p-6">
       <Toaster position="top-right" />
 
+      {/* Background Effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-brand-blue/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-green-500/5 rounded-full blur-[100px]" />
+      </div>
+
       {/* Header */}
-      <div className="mb-8">
+      <div className="relative mb-8">
         <div className="flex items-center gap-4 mb-4">
           <motion.div
             className="p-3 rounded-xl bg-gradient-to-br from-yellow-600 to-orange-600"
@@ -187,44 +193,44 @@ export default function PendingPlacementsQueue() {
           </motion.div>
           <div>
             <h1 className="text-3xl font-bold text-white">Pending Placements Queue</h1>
-            <p className="text-slate-400 mt-1">Review and approve work registration submissions</p>
+            <p className="text-text-secondary mt-1">Review and approve work registration submissions</p>
           </div>
         </div>
 
         {/* Search */}
         <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by title, artist, or album..."
-            className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
           />
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="relative grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <motion.div
-          className="p-4 bg-slate-800 rounded-xl border border-slate-700"
+          className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08]"
           whileHover={{ scale: 1.02 }}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-slate-400 text-sm">Pending Review</p>
+              <p className="text-text-muted text-sm">Pending Review</p>
               <p className="text-3xl font-bold text-white">{submissions.length}</p>
             </div>
             <Clock className="w-8 h-8 text-yellow-400" />
           </div>
         </motion.div>
         <motion.div
-          className="p-4 bg-slate-800 rounded-xl border border-slate-700"
+          className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08]"
           whileHover={{ scale: 1.02 }}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-slate-400 text-sm">Awaiting Documents</p>
+              <p className="text-text-muted text-sm">Awaiting Documents</p>
               <p className="text-3xl font-bold text-white">
                 {submissions.filter((s) => s.status === 'DOCUMENTS_REQUESTED').length}
               </p>
@@ -233,12 +239,12 @@ export default function PendingPlacementsQueue() {
           </div>
         </motion.div>
         <motion.div
-          className="p-4 bg-slate-800 rounded-xl border border-slate-700"
+          className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08]"
           whileHover={{ scale: 1.02 }}
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-slate-400 text-sm">Today's Submissions</p>
+              <p className="text-text-muted text-sm">Today's Submissions</p>
               <p className="text-3xl font-bold text-white">
                 {submissions.filter(
                   (s) =>
@@ -272,7 +278,7 @@ export default function PendingPlacementsQueue() {
         >
           <CheckCircle2 className="w-20 h-20 mx-auto mb-4 text-green-600" />
           <h3 className="text-2xl font-bold text-white mb-2">All Caught Up!</h3>
-          <p className="text-slate-400">
+          <p className="text-text-muted">
             {searchQuery ? 'No submissions match your search.' : 'No pending submissions at the moment.'}
           </p>
         </motion.div>
@@ -284,7 +290,7 @@ export default function PendingPlacementsQueue() {
           {filteredSubmissions.map((submission, index) => (
             <motion.div
               key={submission.id}
-              className="bg-slate-800 rounded-xl border border-slate-700 hover:border-blue-500 transition-all duration-300 overflow-hidden"
+              className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] hover:border-blue-500 transition-all duration-300 overflow-hidden"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -293,7 +299,7 @@ export default function PendingPlacementsQueue() {
             >
               {/* Main Content */}
               <div
-                className="p-6 cursor-pointer hover:bg-slate-800/50 transition-colors rounded-t-xl"
+                className="p-6 cursor-pointer hover:bg-white/[0.02] transition-colors rounded-t-xl"
                 onClick={() => toggleExpand(submission.id)}
               >
                 <div className="flex items-start gap-6">
@@ -308,8 +314,8 @@ export default function PendingPlacementsQueue() {
                         transition={{ type: "spring", stiffness: 300 }}
                       />
                     ) : (
-                      <div className="w-32 h-32 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center shadow-xl">
-                        <Music className="w-16 h-16 text-slate-500" />
+                      <div className="w-32 h-32 rounded-lg bg-gradient-to-br from-white/[0.08] to-white/[0.02] flex items-center justify-center shadow-xl">
+                        <Music className="w-16 h-16 text-text-muted" />
                       </div>
                     )}
                   </div>
@@ -321,15 +327,15 @@ export default function PendingPlacementsQueue() {
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-2xl font-bold text-white">{submission.title}</h3>
                           {expandedId !== submission.id && (
-                            <span className="text-slate-500 text-xs flex items-center gap-1">
+                            <span className="text-text-muted text-xs flex items-center gap-1">
                               <ChevronDown className="w-3 h-3" />
                               Click to expand
                             </span>
                           )}
                         </div>
-                        <p className="text-slate-300 text-lg">{submission.artist}</p>
+                        <p className="text-text-secondary text-lg">{submission.artist}</p>
                         {submission.albumName && (
-                          <p className="text-slate-500 mt-1">Album: {submission.albumName}</p>
+                          <p className="text-text-muted mt-1">Album: {submission.albumName}</p>
                         )}
                       </div>
                       <SubmissionStatusBadge status={submission.status} />
@@ -337,7 +343,7 @@ export default function PendingPlacementsQueue() {
 
                     {/* Metadata */}
                     <div className="flex flex-wrap gap-3 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-slate-400">
+                      <div className="flex items-center gap-2 text-sm text-text-muted">
                         <Clock className="w-4 h-4" />
                         <span>{formatDate(submission.submittedAt)}</span>
                       </div>
@@ -383,7 +389,7 @@ export default function PendingPlacementsQueue() {
                         disabled={submission.status === 'DOCUMENTS_REQUESTED'}
                         className={`px-6 py-2.5 ${
                           submission.status === 'DOCUMENTS_REQUESTED'
-                            ? 'bg-slate-600 cursor-not-allowed opacity-50'
+                            ? 'bg-white/10 cursor-not-allowed opacity-50'
                             : 'bg-yellow-600 hover:bg-yellow-700'
                         } text-white rounded-lg font-semibold shadow-lg shadow-yellow-600/30 flex items-center gap-2`}
                         whileHover={submission.status !== 'DOCUMENTS_REQUESTED' ? { scale: 1.05, boxShadow: '0 10px 30px rgba(234, 179, 8, 0.4)' } : {}}
@@ -412,50 +418,50 @@ export default function PendingPlacementsQueue() {
 
               {/* Expanded Details */}
               {expandedId === submission.id && (
-                <div className="px-6 pb-6 border-t border-slate-700">
+                <div className="px-6 pb-6 border-t border-white/[0.08]">
                     <div className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Left Column */}
                       <div className="space-y-4">
                         <h4 className="text-white font-semibold mb-3">Submission Details</h4>
                         <div>
-                          <p className="text-slate-400 text-sm mb-1">Submitted At</p>
+                          <p className="text-text-muted text-sm mb-1">Submitted At</p>
                           <p className="text-white">{formatDate(submission.submittedAt)}</p>
                         </div>
                         {submission.reviewedAt && (
                           <div>
-                            <p className="text-slate-400 text-sm mb-1">Reviewed At</p>
+                            <p className="text-text-muted text-sm mb-1">Reviewed At</p>
                             <p className="text-white">{formatDate(submission.reviewedAt)}</p>
                           </div>
                         )}
                         {submission.caseNumber && (
                           <div>
-                            <p className="text-slate-400 text-sm mb-1">Case Number</p>
+                            <p className="text-text-muted text-sm mb-1">Case Number</p>
                             <p className="text-white font-mono font-semibold text-green-400">{submission.caseNumber}</p>
                           </div>
                         )}
                         {submission.isrc && (
                           <div>
-                            <p className="text-slate-400 text-sm mb-1">ISRC</p>
+                            <p className="text-text-muted text-sm mb-1">ISRC</p>
                             <p className="text-white font-mono">{submission.isrc}</p>
                           </div>
                         )}
                         {submission.spotifyTrackId && (
                           <div>
-                            <p className="text-slate-400 text-sm mb-1">Spotify Track ID</p>
+                            <p className="text-text-muted text-sm mb-1">Spotify Track ID</p>
                             <p className="text-white font-mono">{submission.spotifyTrackId}</p>
                           </div>
                         )}
                         <div>
-                          <p className="text-slate-400 text-sm mb-1">Platform</p>
+                          <p className="text-text-muted text-sm mb-1">Platform</p>
                           <p className="text-white">{submission.platform || 'SPOTIFY'}</p>
                         </div>
                         <div>
-                          <p className="text-slate-400 text-sm mb-1">Release Date</p>
+                          <p className="text-text-muted text-sm mb-1">Release Date</p>
                           <p className="text-white">{formatDate(submission.releaseDate)}</p>
                         </div>
                         {(submission.streams !== undefined || submission.estimatedStreams !== undefined) && (
                           <div>
-                            <p className="text-slate-400 text-sm mb-1">Streams</p>
+                            <p className="text-text-muted text-sm mb-1">Streams</p>
                             <p className="text-white">
                               {submission.streams ? submission.streams.toLocaleString() :
                                submission.estimatedStreams ? `~${submission.estimatedStreams.toLocaleString()} (estimated)` :
@@ -470,37 +476,37 @@ export default function PendingPlacementsQueue() {
                         <h4 className="text-white font-semibold mb-3">Track Metadata</h4>
                         {submission.genre && (
                           <div>
-                            <p className="text-slate-400 text-sm mb-1">Genre</p>
+                            <p className="text-text-muted text-sm mb-1">Genre</p>
                             <p className="text-white">{submission.genre}</p>
                           </div>
                         )}
                         {submission.label && (
                           <div>
-                            <p className="text-slate-400 text-sm mb-1">Label</p>
+                            <p className="text-text-muted text-sm mb-1">Label</p>
                             <p className="text-white">{submission.label}</p>
                           </div>
                         )}
                         {submission.releaseYear && (
                           <div>
-                            <p className="text-slate-400 text-sm mb-1">Release Year</p>
+                            <p className="text-text-muted text-sm mb-1">Release Year</p>
                             <p className="text-white">{submission.releaseYear}</p>
                           </div>
                         )}
                         {submission.musicbrainzId && (
                           <div>
-                            <p className="text-slate-400 text-sm mb-1">MusicBrainz ID</p>
+                            <p className="text-text-muted text-sm mb-1">MusicBrainz ID</p>
                             <p className="text-white font-mono text-sm">{submission.musicbrainzId}</p>
                           </div>
                         )}
                         {submission.audioDbArtistId && (
                           <div>
-                            <p className="text-slate-400 text-sm mb-1">AudioDB Artist ID</p>
+                            <p className="text-text-muted text-sm mb-1">AudioDB Artist ID</p>
                             <p className="text-white font-mono text-sm">{submission.audioDbArtistId}</p>
                           </div>
                         )}
                         {submission.audioDbAlbumId && (
                           <div>
-                            <p className="text-slate-400 text-sm mb-1">AudioDB Album ID</p>
+                            <p className="text-text-muted text-sm mb-1">AudioDB Album ID</p>
                             <p className="text-white font-mono text-sm">{submission.audioDbAlbumId}</p>
                           </div>
                         )}
@@ -509,17 +515,17 @@ export default function PendingPlacementsQueue() {
 
                     {/* Notes Section */}
                     {submission.notes && (
-                      <div className="mt-6 pt-6 border-t border-slate-700">
+                      <div className="mt-6 pt-6 border-t border-white/[0.08]">
                         <h4 className="text-white font-semibold mb-3">Submission Notes</h4>
-                        <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                          <p className="text-slate-300 whitespace-pre-wrap">{submission.notes}</p>
+                        <div className="p-4 bg-white/[0.04] rounded-lg border border-white/[0.08]">
+                          <p className="text-text-secondary whitespace-pre-wrap">{submission.notes}</p>
                         </div>
                       </div>
                     )}
 
                     {/* Documents Requested Section */}
                     {submission.documentsRequested && (
-                      <div className="mt-6 pt-6 border-t border-slate-700">
+                      <div className="mt-6 pt-6 border-t border-white/[0.08]">
                         <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
                           <AlertCircle className="w-5 h-5 text-yellow-400" />
                           Documents Requested
@@ -532,7 +538,7 @@ export default function PendingPlacementsQueue() {
 
                     {/* Denial Reason Section */}
                     {submission.denialReason && (
-                      <div className="mt-6 pt-6 border-t border-slate-700">
+                      <div className="mt-6 pt-6 border-t border-white/[0.08]">
                         <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
                           <XCircle className="w-5 h-5 text-red-400" />
                           Denial Reason
@@ -545,14 +551,14 @@ export default function PendingPlacementsQueue() {
 
                     {/* Credits/Collaborators Section */}
                     {submission.credits && submission.credits.length > 0 && (
-                      <div className="mt-6 pt-6 border-t border-slate-700">
+                      <div className="mt-6 pt-6 border-t border-white/[0.08]">
                         <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
                           <Users className="w-5 h-5 text-purple-400" />
                           Collaborators & Credits ({submission.credits.length})
                         </h4>
                         <div className="space-y-3">
                           {submission.credits.map((credit, idx) => (
-                            <div key={credit.id || idx} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                            <div key={credit.id || idx} className="flex items-center justify-between p-4 bg-white/[0.04] rounded-lg border border-white/[0.08]">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
                                   <p className="text-white font-semibold">
@@ -563,26 +569,26 @@ export default function PendingPlacementsQueue() {
                                   )}
                                 </div>
                                 <div className="flex flex-wrap gap-3 text-sm">
-                                  <span className="text-slate-400">{credit.role}</span>
+                                  <span className="text-text-muted">{credit.role}</span>
                                   {credit.pro && (
-                                    <span className="text-slate-500">PRO: {credit.pro}</span>
+                                    <span className="text-text-muted">PRO: {credit.pro}</span>
                                   )}
                                   {credit.ipiNumber && (
-                                    <span className="text-slate-500 font-mono">IPI: {credit.ipiNumber}</span>
+                                    <span className="text-text-muted font-mono">IPI: {credit.ipiNumber}</span>
                                   )}
                                 </div>
                                 {credit.notes && (
-                                  <p className="text-slate-500 text-sm mt-1">{credit.notes}</p>
+                                  <p className="text-text-muted text-sm mt-1">{credit.notes}</p>
                                 )}
                               </div>
                               <div className="text-right">
                                 <p className="text-2xl font-bold text-green-400">{credit.splitPercentage}%</p>
-                                <p className="text-xs text-slate-500">Split</p>
+                                <p className="text-xs text-text-muted">Split</p>
                               </div>
                             </div>
                           ))}
                         </div>
-                        <div className="mt-3 text-sm text-slate-400">
+                        <div className="mt-3 text-sm text-text-muted">
                           Total Split: <span className={`font-semibold ${submission.credits.reduce((sum, c) => sum + Number(c.splitPercentage), 0) === 100 ? 'text-green-400' : 'text-yellow-400'}`}>
                             {Number(submission.credits.reduce((sum, c) => sum + Number(c.splitPercentage), 0)).toFixed(2)}%
                           </span>
@@ -592,25 +598,25 @@ export default function PendingPlacementsQueue() {
 
                     {/* Documents Section */}
                     {submission.documents && submission.documents.length > 0 && (
-                      <div className="mt-6 pt-6 border-t border-slate-700">
+                      <div className="mt-6 pt-6 border-t border-white/[0.08]">
                         <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
                           <Paperclip className="w-5 h-5 text-blue-400" />
                           Uploaded Documents ({submission.documents.length})
                         </h4>
                         <div className="space-y-2">
                           {submission.documents.map((doc, idx) => (
-                            <div key={doc.id || idx} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-slate-700/50 hover:border-blue-500/50 transition-colors group">
+                            <div key={doc.id || idx} className="flex items-center justify-between p-4 bg-white/[0.04] rounded-lg border border-white/[0.08] hover:border-brand-blue/50 transition-colors group">
                               <div className="flex-1 min-w-0 mr-4">
                                 <p className="text-white font-medium truncate">{doc.originalName}</p>
                                 <div className="flex flex-wrap gap-3 mt-1">
                                   <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs border border-blue-500/30">
                                     {doc.category}
                                   </span>
-                                  <span className="text-slate-500 text-xs">{formatFileSize(doc.fileSize)}</span>
-                                  <span className="text-slate-500 text-xs">{formatDate(doc.uploadedAt)}</span>
+                                  <span className="text-text-muted text-xs">{formatFileSize(doc.fileSize)}</span>
+                                  <span className="text-text-muted text-xs">{formatDate(doc.uploadedAt)}</span>
                                 </div>
                                 {doc.description && (
-                                  <p className="text-slate-400 text-sm mt-1">{doc.description}</p>
+                                  <p className="text-text-muted text-sm mt-1">{doc.description}</p>
                                 )}
                               </div>
                               <motion.button
@@ -682,18 +688,18 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <motion.div
-        className="bg-slate-800 rounded-2xl w-full max-w-2xl border border-slate-700 overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="bg-surface rounded-2xl w-full max-w-2xl border border-white/[0.08] overflow-hidden max-h-[90vh] overflow-y-auto"
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
       >
         {/* Header */}
-        <div className="p-6 border-b border-slate-700 bg-gradient-to-r from-green-600/20 to-emerald-600/20">
+        <div className="p-6 border-b border-white/[0.08] bg-gradient-to-r from-green-600/20 to-emerald-600/20">
           <h2 className="text-2xl font-bold text-white flex items-center gap-3">
             <CheckCircle2 className="w-6 h-6 text-green-400" />
             Approve Submission
           </h2>
-          <p className="text-slate-300 mt-2">
+          <p className="text-text-secondary mt-2">
             <span className="font-semibold">{submission.title}</span> by {submission.artist}
           </p>
         </div>
@@ -702,14 +708,14 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
         <div className="p-6 space-y-6">
           {/* Deal Terms */}
           <div>
-            <label className="block text-slate-300 font-semibold mb-2">
+            <label className="block text-text-secondary font-semibold mb-2">
               Deal Terms <span className="text-red-400">*</span>
             </label>
             <textarea
               value={dealTerms}
               onChange={(e) => setDealTerms(e.target.value)}
               placeholder="Enter the deal terms and agreements for this placement..."
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[120px]"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-green-500/50 min-h-[120px]"
               rows={5}
             />
           </div>
@@ -717,7 +723,7 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
           {/* Financial Terms */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-slate-300 font-semibold mb-2 flex items-center gap-2">
+              <label className="block text-text-secondary font-semibold mb-2 flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
                 Advance Amount (Optional)
               </label>
@@ -728,12 +734,12 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
                 placeholder="0.00"
                 step="0.01"
                 min="0"
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-green-500/50"
               />
             </div>
 
             <div>
-              <label className="block text-slate-300 font-semibold mb-2 flex items-center gap-2">
+              <label className="block text-text-secondary font-semibold mb-2 flex items-center gap-2">
                 <Percent className="w-4 h-4" />
                 Royalty Percentage (Optional)
               </label>
@@ -745,7 +751,7 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
                 step="0.01"
                 min="0"
                 max="100"
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-green-500/50"
               />
             </div>
           </div>
@@ -762,7 +768,7 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
             <motion.button
               onClick={handleSubmit}
               disabled={isSubmitting || !dealTerms.trim()}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-xl font-semibold shadow-lg flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-white/10 disabled:to-white/10 text-white rounded-xl font-semibold shadow-lg flex items-center justify-center gap-2"
               whileHover={!isSubmitting && dealTerms.trim() ? { scale: 1.02 } : {}}
               whileTap={!isSubmitting && dealTerms.trim() ? { scale: 0.98 } : {}}
             >
@@ -785,7 +791,7 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
             <motion.button
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-6 py-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-white rounded-xl font-semibold"
+              className="px-6 py-3 bg-white/5 hover:bg-white/10 disabled:bg-white/5 text-white rounded-xl font-semibold"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -826,18 +832,18 @@ function DenyModal({ submission, onClose, onSubmit }: DenyModalProps) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <motion.div
-        className="bg-slate-800 rounded-2xl w-full max-w-2xl border border-slate-700 overflow-hidden"
+        className="bg-surface rounded-2xl w-full max-w-2xl border border-white/[0.08] overflow-hidden"
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
       >
         {/* Header */}
-        <div className="p-6 border-b border-slate-700 bg-gradient-to-r from-red-600/20 to-rose-600/20">
+        <div className="p-6 border-b border-white/[0.08] bg-gradient-to-r from-red-600/20 to-rose-600/20">
           <h2 className="text-2xl font-bold text-white flex items-center gap-3">
             <XCircle className="w-6 h-6 text-red-400" />
             Deny Submission
           </h2>
-          <p className="text-slate-300 mt-2">
+          <p className="text-text-secondary mt-2">
             <span className="font-semibold">{submission.title}</span> by {submission.artist}
           </p>
         </div>
@@ -846,14 +852,14 @@ function DenyModal({ submission, onClose, onSubmit }: DenyModalProps) {
         <div className="p-6 space-y-6">
           {/* Reason */}
           <div>
-            <label className="block text-slate-300 font-semibold mb-2">
+            <label className="block text-text-secondary font-semibold mb-2">
               Reason for Denial <span className="text-red-400">*</span>
             </label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Provide a clear reason for denying this submission..."
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[120px]"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-red-500/50 min-h-[120px]"
               rows={5}
             />
           </div>
@@ -870,7 +876,7 @@ function DenyModal({ submission, onClose, onSubmit }: DenyModalProps) {
             <motion.button
               onClick={handleSubmit}
               disabled={isSubmitting || !reason.trim()}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-xl font-semibold shadow-lg flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 disabled:from-white/10 disabled:to-white/10 text-white rounded-xl font-semibold shadow-lg flex items-center justify-center gap-2"
               whileHover={!isSubmitting && reason.trim() ? { scale: 1.02 } : {}}
               whileTap={!isSubmitting && reason.trim() ? { scale: 0.98 } : {}}
             >
@@ -893,7 +899,7 @@ function DenyModal({ submission, onClose, onSubmit }: DenyModalProps) {
             <motion.button
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-6 py-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-white rounded-xl font-semibold"
+              className="px-6 py-3 bg-white/5 hover:bg-white/10 disabled:bg-white/5 text-white rounded-xl font-semibold"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -934,18 +940,18 @@ function RequestDocumentsModal({ submission, onClose, onSubmit }: RequestDocumen
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <motion.div
-        className="bg-slate-800 rounded-2xl w-full max-w-2xl border border-slate-700 overflow-hidden"
+        className="bg-surface rounded-2xl w-full max-w-2xl border border-white/[0.08] overflow-hidden"
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
       >
         {/* Header */}
-        <div className="p-6 border-b border-slate-700 bg-gradient-to-r from-yellow-600/20 to-orange-600/20">
+        <div className="p-6 border-b border-white/[0.08] bg-gradient-to-r from-yellow-600/20 to-orange-600/20">
           <h2 className="text-2xl font-bold text-white flex items-center gap-3">
             <FileText className="w-6 h-6 text-yellow-400" />
             Request Documents
           </h2>
-          <p className="text-slate-300 mt-2">
+          <p className="text-text-secondary mt-2">
             <span className="font-semibold">{submission.title}</span> by {submission.artist}
           </p>
         </div>
@@ -954,14 +960,14 @@ function RequestDocumentsModal({ submission, onClose, onSubmit }: RequestDocumen
         <div className="p-6 space-y-6">
           {/* Documents field */}
           <div>
-            <label className="block text-slate-300 font-semibold mb-2">
+            <label className="block text-text-secondary font-semibold mb-2">
               Required Documents <span className="text-red-400">*</span>
             </label>
             <textarea
               value={documentsRequested}
               onChange={(e) => setDocumentsRequested(e.target.value)}
               placeholder="Specify what documents are needed (e.g., split sheet, master recording agreement, etc.)..."
-              className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 min-h-[120px]"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-yellow-500/50 min-h-[120px]"
               rows={5}
             />
           </div>
@@ -978,7 +984,7 @@ function RequestDocumentsModal({ submission, onClose, onSubmit }: RequestDocumen
             <motion.button
               onClick={handleSubmit}
               disabled={isSubmitting || !documentsRequested.trim()}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-xl font-semibold shadow-lg flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:from-white/10 disabled:to-white/10 text-white rounded-xl font-semibold shadow-lg flex items-center justify-center gap-2"
               whileHover={!isSubmitting && documentsRequested.trim() ? { scale: 1.02 } : {}}
               whileTap={!isSubmitting && documentsRequested.trim() ? { scale: 0.98 } : {}}
             >
@@ -1001,7 +1007,7 @@ function RequestDocumentsModal({ submission, onClose, onSubmit }: RequestDocumen
             <motion.button
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-6 py-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-white rounded-xl font-semibold"
+              className="px-6 py-3 bg-white/5 hover:bg-white/10 disabled:bg-white/5 text-white rounded-xl font-semibold"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >

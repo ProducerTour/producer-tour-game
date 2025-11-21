@@ -270,13 +270,13 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-surface">
       <Navigation />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-          <p className="text-gray-400">Manage your account settings and preferences</p>
+          <p className="text-text-muted">Manage your account settings and preferences</p>
         </div>
 
         {/* Message Banner */}
@@ -293,13 +293,13 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar Navigation */}
           <div className="lg:col-span-1">
-            <nav className="bg-slate-800 rounded-lg p-2 space-y-1">
+            <nav className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-2 space-y-1">
               <button
                 onClick={() => setActiveSection('profile')}
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                   activeSection === 'profile'
                     ? 'bg-primary-500/20 text-primary-400'
-                    : 'text-gray-300 hover:bg-slate-700/50'
+                    : 'text-text-secondary hover:bg-white/[0.04]'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -312,7 +312,7 @@ export default function SettingsPage() {
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                   activeSection === 'password'
                     ? 'bg-primary-500/20 text-primary-400'
-                    : 'text-gray-300 hover:bg-slate-700/50'
+                    : 'text-text-secondary hover:bg-white/[0.04]'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -326,7 +326,7 @@ export default function SettingsPage() {
                   className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                     activeSection === 'payments'
                       ? 'bg-primary-500/20 text-primary-400'
-                      : 'text-gray-300 hover:bg-slate-700/50'
+                      : 'text-text-secondary hover:bg-white/[0.04]'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -340,7 +340,7 @@ export default function SettingsPage() {
                 className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                   activeSection === 'notifications'
                     ? 'bg-primary-500/20 text-primary-400'
-                    : 'text-gray-300 hover:bg-slate-700/50'
+                    : 'text-text-secondary hover:bg-white/[0.04]'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -355,7 +355,7 @@ export default function SettingsPage() {
                     className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                       activeSection === 'system'
                         ? 'bg-primary-500/20 text-primary-400'
-                        : 'text-gray-300 hover:bg-slate-700/50'
+                        : 'text-text-secondary hover:bg-white/[0.04]'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -368,7 +368,7 @@ export default function SettingsPage() {
                     className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                       activeSection === 'publishers'
                         ? 'bg-primary-500/20 text-primary-400'
-                        : 'text-gray-300 hover:bg-slate-700/50'
+                        : 'text-text-secondary hover:bg-white/[0.04]'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -381,7 +381,7 @@ export default function SettingsPage() {
                     className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                       activeSection === 'documentation'
                         ? 'bg-primary-500/20 text-primary-400'
-                        : 'text-gray-300 hover:bg-slate-700/50'
+                        : 'text-text-secondary hover:bg-white/[0.04]'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -396,7 +396,7 @@ export default function SettingsPage() {
 
           {/* Content Area */}
           <div className="lg:col-span-3">
-            <div className="bg-slate-800 rounded-lg p-6">
+            <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
               {/* Profile Section */}
               {activeSection === 'profile' && (
                 <div>
@@ -404,51 +404,51 @@ export default function SettingsPage() {
                   <form onSubmit={handleProfileSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-text-secondary mb-2">
                           First Name
                         </label>
                         <input
                           type="text"
                           value={profileData.firstName}
                           onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
-                          className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-text-secondary mb-2">
                           Last Name
                         </label>
                         <input
                           type="text"
                           value={profileData.lastName}
                           onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
-                          className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-text-secondary mb-2">
                         Email Address
                       </label>
                       <input
                         type="email"
                         value={profileData.email}
                         onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
                       />
                     </div>
 
                     {/* Writer IPI - only for WRITER role */}
                     {user?.role === 'WRITER' && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-text-secondary mb-2">
                           Writer IPI Number
                         </label>
-                        <div className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                        <div className="w-full px-4 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-white">
                           {user?.writerIpiNumber || 'Not set'}
                         </div>
-                        <p className="text-sm text-gray-400 mt-1">
+                        <p className="text-sm text-text-muted mt-1">
                           Contact your administrator to update your Writer IPI number
                         </p>
                       </div>
@@ -457,23 +457,23 @@ export default function SettingsPage() {
                     {/* Publisher IPI - for WRITER and PUBLISHER roles */}
                     {(user?.role === 'WRITER' || user?.role === 'PUBLISHER') && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-text-secondary mb-2">
                           Publisher IPI Number
                         </label>
-                        <div className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                        <div className="w-full px-4 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-white">
                           {user?.publisherIpiNumber || 'Not set'}
                         </div>
-                        <p className="text-sm text-gray-400 mt-1">
+                        <p className="text-sm text-text-muted mt-1">
                           Contact your administrator to update your Publisher IPI number
                         </p>
                       </div>
                     )}
 
-                    <div className="flex justify-end pt-4 border-t border-slate-700">
+                    <div className="flex justify-end pt-4 border-t border-white/[0.08]">
                       <button
                         type="submit"
                         disabled={updateProfileMutation.isPending}
-                        className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                        className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-white/20 disabled:cursor-not-allowed transition-colors"
                       >
                         {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
                       </button>
@@ -488,49 +488,49 @@ export default function SettingsPage() {
                   <h2 className="text-2xl font-bold text-white mb-6">Change Password</h2>
                   <form onSubmit={handlePasswordSubmit} className="space-y-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-text-secondary mb-2">
                         Current Password
                       </label>
                       <input
                         type="password"
                         value={passwordData.currentPassword}
                         onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-text-secondary mb-2">
                         New Password
                       </label>
                       <input
                         type="password"
                         value={passwordData.newPassword}
                         onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
                       />
-                      <p className="text-sm text-gray-400 mt-1">
+                      <p className="text-sm text-text-muted mt-1">
                         Password must be at least 6 characters
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-text-secondary mb-2">
                         Confirm New Password
                       </label>
                       <input
                         type="password"
                         value={passwordData.confirmPassword}
                         onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
                       />
                     </div>
 
-                    <div className="flex justify-end pt-4 border-t border-slate-700">
+                    <div className="flex justify-end pt-4 border-t border-white/[0.08]">
                       <button
                         type="submit"
                         disabled={updatePasswordMutation.isPending}
-                        className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                        className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-white/20 disabled:cursor-not-allowed transition-colors"
                       >
                         {updatePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
                       </button>
@@ -552,10 +552,10 @@ export default function SettingsPage() {
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-6">Notification Preferences</h2>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
+                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
                       <div>
                         <h3 className="text-white font-medium">Email Notifications</h3>
-                        <p className="text-sm text-gray-400">Receive email updates about new statements</p>
+                        <p className="text-sm text-text-muted">Receive email updates about new statements</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
@@ -564,14 +564,14 @@ export default function SettingsPage() {
                           checked={notificationPrefs.emailNotificationsEnabled}
                           onChange={(e) => handlePreferenceToggle('emailNotificationsEnabled', e.target.checked)}
                         />
-                        <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                        <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
                       </label>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
+                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
                       <div>
                         <h3 className="text-white font-medium">Statement Notifications</h3>
-                        <p className="text-sm text-gray-400">Get notified when new statements are published</p>
+                        <p className="text-sm text-text-muted">Get notified when new statements are published</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
@@ -580,14 +580,14 @@ export default function SettingsPage() {
                           checked={notificationPrefs.statementNotificationsEnabled}
                           onChange={(e) => handlePreferenceToggle('statementNotificationsEnabled', e.target.checked)}
                         />
-                        <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                        <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
                       </label>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
+                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
                       <div>
                         <h3 className="text-white font-medium">Monthly Summary</h3>
-                        <p className="text-sm text-gray-400">Receive monthly earning summaries</p>
+                        <p className="text-sm text-text-muted">Receive monthly earning summaries</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
@@ -596,11 +596,11 @@ export default function SettingsPage() {
                           checked={notificationPrefs.monthlySummaryEnabled}
                           onChange={(e) => handlePreferenceToggle('monthlySummaryEnabled', e.target.checked)}
                         />
-                        <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                        <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
                       </label>
                     </div>
 
-                    <p className="text-sm text-gray-400 pt-4">
+                    <p className="text-sm text-text-muted pt-4">
                       Changes are saved automatically. Disable notifications to prevent emails during payment testing.
                     </p>
                   </div>
@@ -611,19 +611,19 @@ export default function SettingsPage() {
               {activeSection === 'publishers' && user?.role === 'ADMIN' && (
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-6">Producer Tour Publishers</h2>
-                  <p className="text-gray-400 mb-6">
+                  <p className="text-text-muted mb-6">
                     Manage your Producer Tour publisher IPIs. These are used for MLC statement matching to identify which writers use Producer Tour as their publisher.
                   </p>
 
                   {/* Add/Edit Publisher Form */}
-                  <div className="bg-slate-700/30 rounded-lg p-6 mb-6">
+                  <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-6 mb-6">
                     <h3 className="text-lg font-semibold text-white mb-4">
                       {isEditing ? 'Edit Publisher' : 'Add New Publisher'}
                     </h3>
                     <form onSubmit={handlePublisherSubmit} className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                          <label className="block text-sm font-medium text-text-secondary mb-2">
                             Publisher Name *
                           </label>
                           <input
@@ -631,12 +631,12 @@ export default function SettingsPage() {
                             value={publisherForm.publisherName}
                             onChange={(e) => setPublisherForm({ ...publisherForm, publisherName: e.target.value })}
                             placeholder="e.g., Producer Tour ASCAP"
-                            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                          <label className="block text-sm font-medium text-text-secondary mb-2">
                             IPI Number *
                           </label>
                           <input
@@ -644,13 +644,13 @@ export default function SettingsPage() {
                             value={publisherForm.ipiNumber}
                             onChange={(e) => setPublisherForm({ ...publisherForm, ipiNumber: e.target.value })}
                             placeholder="e.g., 1266292635"
-                            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
                             required
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-text-secondary mb-2">
                           Notes (Optional)
                         </label>
                         <textarea
@@ -658,7 +658,7 @@ export default function SettingsPage() {
                           onChange={(e) => setPublisherForm({ ...publisherForm, notes: e.target.value })}
                           placeholder="Additional notes..."
                           rows={2}
-                          className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
                         />
                       </div>
                       {isEditing && (
@@ -670,7 +670,7 @@ export default function SettingsPage() {
                             onChange={(e) => setPublisherForm({ ...publisherForm, isActive: e.target.checked })}
                             className="w-4 h-4"
                           />
-                          <label htmlFor="isActive" className="text-sm text-gray-300">
+                          <label htmlFor="isActive" className="text-sm text-text-secondary">
                             Active
                           </label>
                         </div>
@@ -679,7 +679,7 @@ export default function SettingsPage() {
                         <button
                           type="submit"
                           disabled={createPublisherMutation.isPending || updatePublisherMutation.isPending}
-                          className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+                          className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-white/20 disabled:cursor-not-allowed transition-colors"
                         >
                           {isEditing ? 'Update Publisher' : 'Add Publisher'}
                         </button>
@@ -687,7 +687,7 @@ export default function SettingsPage() {
                           <button
                             type="button"
                             onClick={handleCancelEdit}
-                            className="px-6 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors"
+                            className="px-6 py-2 bg-white/20 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors"
                           >
                             Cancel
                           </button>
@@ -700,14 +700,14 @@ export default function SettingsPage() {
                   <div className="space-y-3">
                     <h3 className="text-lg font-semibold text-white mb-4">Configured Publishers</h3>
                     {!publishersData?.data?.publishers?.length ? (
-                      <div className="text-center py-8 text-gray-400">
+                      <div className="text-center py-8 text-text-muted">
                         No publishers configured yet. Add one above to get started.
                       </div>
                     ) : (
                       publishersData.data.publishers.map((publisher: any) => (
                         <div
                           key={publisher.id}
-                          className="bg-slate-700/30 rounded-lg p-4 flex items-center justify-between"
+                          className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-4 flex items-center justify-between"
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-3">
@@ -715,14 +715,14 @@ export default function SettingsPage() {
                               <span className={`px-2 py-1 rounded text-xs ${
                                 publisher.isActive
                                   ? 'bg-green-500/20 text-green-400'
-                                  : 'bg-gray-500/20 text-gray-400'
+                                  : 'bg-gray-500/20 text-text-muted'
                               }`}>
                                 {publisher.isActive ? 'Active' : 'Inactive'}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-400 mt-1">IPI: {publisher.ipiNumber}</p>
+                            <p className="text-sm text-text-muted mt-1">IPI: {publisher.ipiNumber}</p>
                             {publisher.notes && (
-                              <p className="text-sm text-gray-500 mt-1">{publisher.notes}</p>
+                              <p className="text-sm text-text-muted mt-1">{publisher.notes}</p>
                             )}
                           </div>
                           <div className="flex gap-2">
@@ -751,20 +751,20 @@ export default function SettingsPage() {
               {activeSection === 'system' && user?.role === 'ADMIN' && (
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-6">System Settings</h2>
-                  <p className="text-gray-400 mb-8">Configure system-wide settings that affect all users</p>
+                  <p className="text-text-muted mb-8">Configure system-wide settings that affect all users</p>
 
                   <div className="space-y-6">
                     {/* Minimum Withdrawal Amount */}
-                    <div className="bg-slate-700/30 rounded-lg p-6">
-                      <label className="block text-sm font-medium text-gray-300 mb-4">
+                    <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-6">
+                      <label className="block text-sm font-medium text-text-secondary mb-4">
                         Minimum Withdrawal Amount
                       </label>
-                      <p className="text-sm text-gray-400 mb-4">
+                      <p className="text-sm text-text-muted mb-4">
                         Set the minimum amount writers must have in their available balance before they can request a withdrawal.
                       </p>
                       <div className="flex items-center gap-4">
                         <div className="relative flex-1 max-w-xs">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted">$</span>
                           <input
                             type="number"
                             min="0"
@@ -775,7 +775,7 @@ export default function SettingsPage() {
                               ...systemSettings,
                               minimumWithdrawalAmount: parseFloat(e.target.value) || 0
                             })}
-                            className="w-full pl-8 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="w-full pl-8 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                           />
                         </div>
                         <button
@@ -786,7 +786,7 @@ export default function SettingsPage() {
                           {updateSystemSettingsMutation.isPending ? 'Saving...' : 'Save'}
                         </button>
                       </div>
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-xs text-text-muted mt-2">
                         Current: ${systemSettings.minimumWithdrawalAmount.toFixed(2)} • Recommended: $50.00 - $100.00
                       </p>
                     </div>

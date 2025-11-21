@@ -1,4 +1,5 @@
 import './LandingPageNew.css';
+import 'lenis/dist/lenis.css';
 import {
   Header,
   Hero,
@@ -15,6 +16,7 @@ import {
   Footer,
   Divider
 } from '../components/landing';
+import SmoothScroll from '../components/SmoothScroll';
 
 /**
  * Producer Tour Landing Page
@@ -23,6 +25,7 @@ import {
  * - React 18 + TypeScript
  * - Tailwind CSS (design system in tailwind.config.js)
  * - Framer Motion (scroll reveals, stagger animations)
+ * - Lenis (buttery-smooth scrolling)
  *
  * Section Order:
  * 1. Hero - Main value prop + dashboard preview
@@ -40,53 +43,55 @@ import {
  */
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-surface text-white overflow-x-hidden">
-      {/* Fixed Header */}
-      <Header />
+    <SmoothScroll>
+      <div className="min-h-screen bg-surface text-white overflow-x-hidden">
+        {/* Fixed Header */}
+        <Header />
 
-      {/* Main Content */}
-      <main>
-        {/* Hero Section */}
-        <Hero />
+        {/* Main Content */}
+        <main>
+          {/* Hero Section */}
+          <Hero />
 
-        {/* Live Stats Counter */}
-        <LiveCounter />
+          {/* Live Stats Counter */}
+          <LiveCounter />
 
-        {/* Hit Songs Carousel - Producer Community */}
-        <HitSongsCarousel />
+          {/* Hit Songs Carousel - Producer Community */}
+          <HitSongsCarousel />
 
-        {/* Divider */}
-        <div className="max-w-6xl mx-auto px-4">
-          <Divider />
-        </div>
+          {/* Divider */}
+          <div className="max-w-6xl mx-auto px-4">
+            <Divider />
+          </div>
 
-        {/* Interactive Royalty Estimator */}
-        <RoyaltyEstimator />
+          {/* Interactive Royalty Estimator */}
+          <RoyaltyEstimator />
 
-        {/* How Royalties Flow */}
-        <RoyaltyFlow />
+          {/* How Royalties Flow */}
+          <RoyaltyFlow />
 
-        {/* Features Section */}
-        <FeaturesSection />
+          {/* Features Section */}
+          <FeaturesSection />
 
-        {/* Process Section */}
-        <ProcessSection />
+          {/* Process Section */}
+          <ProcessSection />
 
-        {/* FAQ Section */}
-        <FAQSection />
+          {/* FAQ Section */}
+          <FAQSection />
 
-        {/* Email Signup */}
-        <EmailSignupSection />
+          {/* Email Signup */}
+          <EmailSignupSection />
 
-        {/* Discord Community */}
-        <DiscordSection />
+          {/* Discord Community */}
+          <DiscordSection />
 
-        {/* Final CTA */}
-        <CTASection />
-      </main>
+          {/* Final CTA */}
+          <CTASection />
+        </main>
 
-      {/* Footer */}
-      <Footer />
-    </div>
+        {/* Footer */}
+        <Footer />
+      </div>
+    </SmoothScroll>
   );
 }

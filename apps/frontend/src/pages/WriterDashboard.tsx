@@ -191,11 +191,17 @@ export default function WriterDashboard() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-900 overflow-hidden">
+    <div className="flex flex-col h-screen bg-surface overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-brand-blue/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-green-500/5 rounded-full blur-[100px]" />
+      </div>
+
       {/* Impersonation Banner */}
       <ImpersonationBanner />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* Left Sidebar */}
         <Sidebar
           activeTab={activeTab}
@@ -208,14 +214,14 @@ export default function WriterDashboard() {
 
         {/* Payment Status Indicator */}
         {paymentStatusLoading ? (
-          <div className="mb-6 bg-slate-800/50 rounded-lg p-4">
+          <div className="mb-6 rounded-xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-4">
             <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-              <p className="text-sm text-gray-400">Loading payment status...</p>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-blue"></div>
+              <p className="text-sm text-text-secondary">Loading payment status...</p>
             </div>
           </div>
         ) : paymentStatusError ? (
-          <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+          <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded-xl p-4">
             <p className="text-sm text-red-400">Failed to load payment status</p>
           </div>
         ) : paymentStatus ? (
@@ -226,7 +232,7 @@ export default function WriterDashboard() {
 
         {/* Stats Cards */}
         {summaryLoading ? (
-          <div className="text-center text-gray-400 py-12">Loading...</div>
+          <div className="text-center text-text-secondary py-12">Loading...</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard
@@ -257,7 +263,7 @@ export default function WriterDashboard() {
         )}
 
         {/* Content */}
-        <div className="bg-slate-800 rounded-lg shadow-xl p-6">
+        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-xl p-6">
             {activeTab === 'overview' && (
               <div className="space-y-8">
                 {/* Wallet Card */}
@@ -306,9 +312,9 @@ export default function WriterDashboard() {
                       </ResponsiveContainer>
                     </ChartCard>
                   ) : (
-                    <div className="bg-slate-700/30 rounded-lg p-6">
+                    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-6">
                       <h3 className="text-lg font-medium text-white mb-4">Earnings Timeline</h3>
-                      <div className="h-[300px] flex items-center justify-center text-gray-400">
+                      <div className="h-[300px] flex items-center justify-center text-text-muted">
                         No earnings data available yet
                       </div>
                     </div>
@@ -362,9 +368,9 @@ export default function WriterDashboard() {
                       </ResponsiveContainer>
                     </ChartCard>
                   ) : (
-                    <div className="bg-slate-700/30 rounded-lg p-6">
+                    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-6">
                       <h3 className="text-lg font-medium text-white mb-4">Revenue by Statement</h3>
-                      <div className="h-[300px] flex items-center justify-center text-gray-400">
+                      <div className="h-[300px] flex items-center justify-center text-text-muted">
                         No statement data available yet
                       </div>
                     </div>
@@ -413,17 +419,17 @@ export default function WriterDashboard() {
                     {songsData.songs.map((song: any, index: number) => (
                       <div
                         key={index}
-                        className="flex items-center gap-4 p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700/70 transition-colors"
+                        className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.1] transition-all"
                       >
                         {/* Rank Number */}
-                        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/30 rounded-lg flex items-center justify-center">
-                          <span className="text-xl font-bold text-blue-400">#{index + 1}</span>
+                        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-brand-blue/20 to-brand-blue/10 border border-brand-blue/30 rounded-xl flex items-center justify-center">
+                          <span className="text-xl font-bold text-brand-blue">#{index + 1}</span>
                         </div>
 
                         {/* Song Info */}
                         <div className="flex-1">
                           <p className="font-medium text-white text-lg">{song.title}</p>
-                          <p className="text-sm text-gray-400">
+                          <p className="text-sm text-text-secondary">
                             {song.totalPerformances.toLocaleString()} performances • {song.statementCount} statements
                           </p>
                         </div>
@@ -438,7 +444,7 @@ export default function WriterDashboard() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-400 text-center py-8">No songs found</p>
+                  <p className="text-text-muted text-center py-8">No songs found</p>
                 )}
               </div>
             )}
@@ -455,7 +461,7 @@ export default function WriterDashboard() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-400 text-center py-8">No statements available yet</p>
+                  <p className="text-text-muted text-center py-8">No statements available yet</p>
                 )}
               </div>
             )}
@@ -481,8 +487,8 @@ export default function WriterDashboard() {
       {/* Withdrawal Modal */}
       {showWithdrawModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-lg shadow-2xl max-w-md w-full border border-slate-600">
-            <div className="flex items-center justify-between p-6 border-b border-slate-700">
+          <div className="rounded-2xl bg-gradient-to-b from-white/[0.1] to-white/[0.02] border border-white/[0.1] backdrop-blur-xl shadow-2xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-white/[0.08]">
               <h3 className="text-xl font-bold text-white">Request Withdrawal</h3>
               <button
                 onClick={() => {
@@ -497,11 +503,11 @@ export default function WriterDashboard() {
 
             <div className="p-6 space-y-4">
               <div>
-                <p className="text-gray-300 text-sm mb-4">
+                <p className="text-text-secondary text-sm mb-4">
                   Request a withdrawal from your available balance. Your request will be reviewed by an administrator.
                 </p>
-                <div className="bg-slate-900/50 rounded-lg p-4 mb-4">
-                  <p className="text-xs text-gray-400 mb-1">Available Balance</p>
+                <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-4 mb-4">
+                  <p className="text-xs text-text-muted mb-1">Available Balance</p>
                   <p className="text-2xl font-bold text-white">
                     ${walletBalance?.availableBalance.toFixed(2) || '0.00'}
                   </p>
@@ -509,11 +515,11 @@ export default function WriterDashboard() {
               </div>
 
               <div>
-                <label htmlFor="withdrawAmount" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="withdrawAmount" className="block text-sm font-medium text-text-secondary mb-2">
                   Withdrawal Amount
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted">$</span>
                   <input
                     type="number"
                     id="withdrawAmount"
@@ -524,18 +530,18 @@ export default function WriterDashboard() {
                     }}
                     min="50"
                     step="0.01"
-                    className="w-full pl-8 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="w-full pl-8 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
                     placeholder="0.00"
                   />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-text-muted mt-2">
                   Minimum withdrawal: ${(walletBalance?.minimumWithdrawalAmount || 50).toFixed(2)}
                 </p>
               </div>
 
               {withdrawError && (
-                <div className="bg-red-900/30 border border-red-700 rounded-lg p-3">
-                  <p className="text-sm text-red-200">{withdrawError}</p>
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+                  <p className="text-sm text-red-400">{withdrawError}</p>
                 </div>
               )}
 
@@ -545,14 +551,14 @@ export default function WriterDashboard() {
                     setShowWithdrawModal(false);
                     setWithdrawError('');
                   }}
-                  className="flex-1 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+                  className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl border border-white/10 hover:bg-white/10 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleWithdrawSubmit}
                   disabled={withdrawMutation.isPending}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-3 bg-white text-surface font-semibold rounded-xl hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {withdrawMutation.isPending ? 'Submitting...' : 'Request Withdrawal'}
                 </button>
@@ -661,24 +667,24 @@ function ClaimsSection() {
       </div>
 
       {isLoading ? (
-        <div className="text-center text-gray-400 py-12">Loading submissions...</div>
+        <div className="text-center text-text-secondary py-12">Loading submissions...</div>
       ) : (
         <>
           {/* Recent Notifications */}
           {recentNotifications.length > 0 && (
-            <div className="mb-6 bg-slate-800 border border-slate-700 rounded-lg p-6">
+            <div className="mb-6 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6">
               <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <span>🔔</span> Recent Updates
               </h4>
               <div className="space-y-3">
                 {recentNotifications.map((notification: any) => (
-                  <div key={notification.id} className="flex items-start gap-4 p-3 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                  <div key={notification.id} className="flex items-start gap-4 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-white font-medium text-sm">{notification.title}</p>
                         {getStatusBadge(notification.status)}
                       </div>
-                      <p className="text-slate-400 text-xs mb-1">{notification.artist}</p>
+                      <p className="text-text-muted text-xs mb-1">{notification.artist}</p>
                       {notification.status === 'DENIED' && notification.denialReason && (
                         <p className="text-red-400 text-sm mt-2">Reason: {notification.denialReason}</p>
                       )}
@@ -691,14 +697,14 @@ function ClaimsSection() {
                     </div>
                     <div className="flex items-start gap-2">
                       <div className="text-right">
-                        <p className="text-slate-500 text-xs">{formatDate(notification.reviewedAt)}</p>
+                        <p className="text-text-muted text-xs">{formatDate(notification.reviewedAt)}</p>
                       </div>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           dismissNotification(notification.id);
                         }}
-                        className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                        className="text-text-muted hover:text-red-400 transition-colors p-1"
                         title="Dismiss notification"
                       >
                         <X className="h-4 w-4" />
@@ -714,50 +720,50 @@ function ClaimsSection() {
           <div className="mb-6 flex flex-wrap gap-2">
             <button
               onClick={() => setActiveFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-4 py-2 rounded-xl font-medium transition-all ${
                 activeFilter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-brand-blue text-white'
+                  : 'bg-white/5 text-text-secondary border border-white/10 hover:bg-white/10'
               }`}
             >
               All ({allSubmissions.length})
             </button>
             <button
               onClick={() => setActiveFilter('approved')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-4 py-2 rounded-xl font-medium transition-all ${
                 activeFilter === 'approved'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-white/5 text-text-secondary border border-white/10 hover:bg-white/10'
               }`}
             >
               Approved ({approvedClaims.length})
             </button>
             <button
               onClick={() => setActiveFilter('pending')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-4 py-2 rounded-xl font-medium transition-all ${
                 activeFilter === 'pending'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-brand-blue text-white'
+                  : 'bg-white/5 text-text-secondary border border-white/10 hover:bg-white/10'
               }`}
             >
               Pending ({pendingClaims.length})
             </button>
             <button
               onClick={() => setActiveFilter('documents_requested')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-4 py-2 rounded-xl font-medium transition-all ${
                 activeFilter === 'documents_requested'
-                  ? 'bg-yellow-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-yellow-500 text-white'
+                  : 'bg-white/5 text-text-secondary border border-white/10 hover:bg-white/10'
               }`}
             >
               Docs Requested ({documentsRequestedClaims.length})
             </button>
             <button
               onClick={() => setActiveFilter('denied')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-4 py-2 rounded-xl font-medium transition-all ${
                 activeFilter === 'denied'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  ? 'bg-red-500 text-white'
+                  : 'bg-white/5 text-text-secondary border border-white/10 hover:bg-white/10'
               }`}
             >
               Denied ({deniedClaims.length})
@@ -767,11 +773,11 @@ function ClaimsSection() {
           {/* Submissions List */}
           {filteredSubmissions.length === 0 ? (
             <div className="text-center py-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-700/50 mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/[0.05] border border-white/[0.08] mb-4">
                 <span className="text-3xl">📋</span>
               </div>
               <h4 className="text-xl font-semibold text-white mb-2">No Submissions</h4>
-              <p className="text-gray-400 mb-6">
+              <p className="text-text-secondary mb-6">
                 {activeFilter === 'all'
                   ? 'You haven\'t submitted any work registrations yet'
                   : `No ${activeFilter.replace('_', ' ')} submissions`}
@@ -782,7 +788,7 @@ function ClaimsSection() {
               {filteredSubmissions.map((claim: any) => (
                 <div
                   key={claim.id}
-                  className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden hover:border-purple-500/50 transition-all"
+                  className="rounded-2xl bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/[0.08] overflow-hidden hover:border-purple-500/30 transition-all"
                 >
                   {/* Header - Always Visible */}
                   <div
@@ -1017,11 +1023,11 @@ function ProfileSection() {
 
       <div className="space-y-6">
         {/* User Info Section */}
-        <div className="bg-slate-700/30 rounded-lg p-6">
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6">
           <h4 className="text-md font-medium text-white mb-4">Account Information</h4>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Name</label>
+              <label className="block text-sm font-medium text-text-muted mb-1">Name</label>
               <p className="text-white">
                 {user?.firstName || user?.lastName
                   ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
@@ -1029,20 +1035,20 @@ function ProfileSection() {
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Email</label>
+              <label className="block text-sm font-medium text-text-muted mb-1">Email</label>
               <p className="text-white">{user?.email}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Role</label>
+              <label className="block text-sm font-medium text-text-muted mb-1">Role</label>
               <p className="text-white">{user?.role}</p>
             </div>
           </div>
         </div>
 
         {/* IPI Numbers Section */}
-        <div className="bg-slate-700/30 rounded-lg p-6">
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6">
           <h4 className="text-md font-medium text-white mb-4">IPI/CAE Numbers</h4>
-          <p className="text-sm text-gray-400 mb-6">
+          <p className="text-sm text-text-secondary mb-6">
             Your IPI (Interested Party Information) numbers help us accurately match your royalty statements.
             {user?.role === 'WRITER' && ' Writers typically have a Writer IPI number.'}
             {user?.role === 'PUBLISHER' && ' Publishers typically have a Publisher IPI number.'}
@@ -1052,7 +1058,7 @@ function ProfileSection() {
             {/* Writer IPI Number - only for WRITER role */}
             {user?.role === 'WRITER' && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text-secondary mb-2">
                   Writer IPI Number
                 </label>
                 {isEditing ? (
@@ -1060,15 +1066,15 @@ function ProfileSection() {
                     type="text"
                     value={formData.writerIpiNumber}
                     onChange={(e) => setFormData({ ...formData, writerIpiNumber: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
                     placeholder="Enter your Writer IPI/CAE Number"
                   />
                 ) : (
-                  <div className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                  <div className="px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white">
                     {user?.writerIpiNumber ? (
                       formatIpiDisplay(user.writerIpiNumber)
                     ) : (
-                      <span className="text-gray-500">Not set - Contact administrator</span>
+                      <span className="text-text-muted">Not set - Contact administrator</span>
                     )}
                   </div>
                 )}
@@ -1078,7 +1084,7 @@ function ProfileSection() {
             {/* Publisher IPI Number - for both WRITER and PUBLISHER roles */}
             {(user?.role === 'WRITER' || user?.role === 'PUBLISHER') && (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text-secondary mb-2">
                   Publisher IPI Number
                 </label>
                 {isEditing ? (
@@ -1086,15 +1092,15 @@ function ProfileSection() {
                     type="text"
                     value={formData.publisherIpiNumber}
                     onChange={(e) => setFormData({ ...formData, publisherIpiNumber: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
                     placeholder="Enter your Publisher IPI/CAE Number"
                   />
                 ) : (
-                  <div className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                  <div className="px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white">
                     {user?.publisherIpiNumber ? (
                       formatIpiDisplay(user.publisherIpiNumber)
                     ) : (
-                      <span className="text-gray-500">Not set - Contact administrator</span>
+                      <span className="text-text-muted">Not set - Contact administrator</span>
                     )}
                   </div>
                 )}
@@ -1108,14 +1114,14 @@ function ProfileSection() {
               <button
                 onClick={handleSave}
                 disabled={updateMutation.isPending}
-                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-600 transition-colors"
+                className="flex-1 px-4 py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:opacity-50 transition-colors"
               >
                 {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
               </button>
               <button
                 onClick={handleCancel}
                 disabled={updateMutation.isPending}
-                className="flex-1 px-4 py-2 bg-slate-700 text-gray-300 rounded-lg font-medium hover:bg-slate-600 disabled:bg-gray-600 transition-colors"
+                className="flex-1 px-4 py-3 bg-white/5 text-text-secondary rounded-xl border border-white/10 font-medium hover:bg-white/10 disabled:opacity-50 transition-colors"
               >
                 Cancel
               </button>
@@ -1124,8 +1130,8 @@ function ProfileSection() {
         </div>
 
         {/* Help Text */}
-        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-          <p className="text-sm text-blue-300">
+        <div className="bg-brand-blue/10 border border-brand-blue/30 rounded-xl p-4">
+          <p className="text-sm text-brand-blue">
             <strong>Note:</strong> {user?.role === 'ADMIN'
               ? "IPI numbers can be found on PRO membership portals (ASCAP, BMI, SESAC, etc.)."
               : "To update your IPI numbers, please contact your administrator. IPI numbers can be found on your PRO membership portal (ASCAP, BMI, SESAC, etc.)."}
@@ -1194,53 +1200,53 @@ function WriterDocumentsSection() {
   return (
     <div>
       <h3 className="text-lg font-medium text-white mb-4">My Documents</h3>
-      <p className="text-sm text-gray-400 mb-6">
+      <p className="text-sm text-text-secondary mb-6">
         Access your contracts, statements, and other important documents
       </p>
 
       {isLoading ? (
-        <div className="text-center text-gray-400 py-8">Loading...</div>
+        <div className="text-center text-text-secondary py-8">Loading...</div>
       ) : documentsData?.documents?.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {documentsData.documents.map((doc: any) => (
             <div
               key={doc.id}
-              className="bg-slate-700/30 border border-slate-600 rounded-lg p-5 hover:border-primary-500/50 transition-all"
+              className="rounded-2xl bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/[0.08] p-5 hover:border-brand-blue/30 transition-all"
             >
               {/* Document Icon & Name */}
               <div className="flex items-start gap-3 mb-3">
-                <div className="flex-shrink-0 w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="flex-shrink-0 w-12 h-12 bg-brand-blue/20 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-medium text-white truncate">{doc.originalName}</h4>
-                  <p className="text-xs text-gray-400 mt-1">{formatFileSize(doc.fileSize)}</p>
+                  <p className="text-xs text-text-muted mt-1">{formatFileSize(doc.fileSize)}</p>
                 </div>
               </div>
 
               {/* Description */}
               {doc.description && (
-                <p className="text-xs text-gray-400 mb-3 line-clamp-2">{doc.description}</p>
+                <p className="text-xs text-text-muted mb-3 line-clamp-2">{doc.description}</p>
               )}
 
               {/* Category Badge */}
               <div className="mb-3">
-                <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-500/20 text-blue-400">
+                <span className="px-2 py-1 text-xs font-medium rounded-full bg-brand-blue/20 text-brand-blue border border-brand-blue/30">
                   {getCategoryLabel(doc.category)}
                 </span>
               </div>
 
               {/* Upload Date */}
-              <p className="text-xs text-gray-500 mb-4">
+              <p className="text-xs text-text-muted mb-4">
                 Uploaded: {formatDate(doc.createdAt)}
               </p>
 
               {/* Download Button */}
               <button
                 onClick={() => handleDownload(doc.id, doc.originalName)}
-                className="w-full px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-lg transition-colors"
+                className="w-full px-4 py-2.5 bg-white text-surface text-sm font-semibold rounded-xl hover:bg-white/90 transition-colors"
               >
                 Download
               </button>
@@ -1249,11 +1255,13 @@ function WriterDocumentsSection() {
         </div>
       ) : (
         <div className="text-center py-12">
-          <svg className="mx-auto h-12 w-12 text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <p className="text-gray-400">No documents available yet</p>
-          <p className="text-sm text-gray-500 mt-2">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/[0.05] border border-white/[0.08] mb-4">
+            <svg className="h-8 w-8 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <p className="text-text-secondary">No documents available yet</p>
+          <p className="text-sm text-text-muted mt-2">
             Documents will appear here when your admin uploads them
           </p>
         </div>
@@ -1263,18 +1271,22 @@ function WriterDocumentsSection() {
 }
 
 function StatCard({ title, value, subtitle, color }: { title: string; value: string; subtitle: string; color: 'blue' | 'green' | 'purple' | 'orange' }) {
-  const colorClasses: Record<string, string> = {
-    blue: 'from-blue-500/20 to-blue-600/20 border-blue-500/30',
-    green: 'from-green-500/20 to-green-600/20 border-green-500/30',
-    purple: 'from-purple-500/20 to-purple-600/20 border-purple-500/30',
-    orange: 'from-orange-500/20 to-orange-600/20 border-orange-500/30',
+  const colorClasses: Record<string, { gradient: string; border: string; accent: string }> = {
+    blue: { gradient: 'from-brand-blue/20 to-brand-blue/5', border: 'border-brand-blue/30', accent: 'bg-brand-blue' },
+    green: { gradient: 'from-green-500/20 to-green-500/5', border: 'border-green-500/30', accent: 'bg-green-500' },
+    purple: { gradient: 'from-purple-500/20 to-purple-500/5', border: 'border-purple-500/30', accent: 'bg-purple-500' },
+    orange: { gradient: 'from-orange-500/20 to-orange-500/5', border: 'border-orange-500/30', accent: 'bg-orange-500' },
   };
 
+  const styles = colorClasses[color];
+
   return (
-    <div className={`bg-gradient-to-br ${colorClasses[color]} border rounded-lg p-6`}>
-      <h3 className="text-sm font-medium text-gray-400 mb-2">{title}</h3>
+    <div className={`relative overflow-hidden bg-gradient-to-br ${styles.gradient} ${styles.border} border rounded-2xl p-6 backdrop-blur-sm`}>
+      {/* Accent line */}
+      <div className={`absolute top-0 left-0 right-0 h-1 ${styles.accent}`} />
+      <h3 className="text-sm font-medium text-text-secondary mb-2">{title}</h3>
       <p className="text-3xl font-bold text-white mb-1">{value}</p>
-      <p className="text-xs text-gray-400">{subtitle}</p>
+      <p className="text-xs text-text-muted">{subtitle}</p>
     </div>
   );
 }
@@ -1285,7 +1297,7 @@ function PaymentStatusIndicator({ status }: { status: any }) {
       case 'RECENT':
         return {
           color: 'bg-green-500',
-          borderColor: 'border-green-500/50',
+          borderColor: 'border-green-500/30',
           bgColor: 'bg-green-500/10',
           icon: '🟢',
           label: 'Paid'
@@ -1293,7 +1305,7 @@ function PaymentStatusIndicator({ status }: { status: any }) {
       case 'PENDING':
         return {
           color: 'bg-yellow-500',
-          borderColor: 'border-yellow-500/50',
+          borderColor: 'border-yellow-500/30',
           bgColor: 'bg-yellow-500/10',
           icon: '🟡',
           label: 'Pending'
@@ -1302,7 +1314,7 @@ function PaymentStatusIndicator({ status }: { status: any }) {
       default:
         return {
           color: 'bg-red-500',
-          borderColor: 'border-red-500/50',
+          borderColor: 'border-red-500/30',
           bgColor: 'bg-red-500/10',
           icon: '🔴',
           label: 'No Payments'
@@ -1313,7 +1325,7 @@ function PaymentStatusIndicator({ status }: { status: any }) {
   const config = getStatusConfig();
 
   return (
-    <div className={`${config.bgColor} ${config.borderColor} border rounded-lg p-4`}>
+    <div className={`${config.bgColor} ${config.borderColor} border rounded-2xl p-4 backdrop-blur-sm`}>
       <div className="flex items-center gap-4">
         {/* Pulsing Status Light */}
         <div className="flex-shrink-0">
@@ -1330,7 +1342,7 @@ function PaymentStatusIndicator({ status }: { status: any }) {
           <p className="text-sm font-medium text-white">
             Payment Status: <span className="font-bold">{config.label}</span>
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-text-muted mt-0.5">
             {status.status === 'PENDING' ? 'You have a payment pending' : status.message}
           </p>
         </div>
@@ -1339,14 +1351,14 @@ function PaymentStatusIndicator({ status }: { status: any }) {
         {(status.unpaidAmount > 0 || status.pendingAmount > 0) && (
           <div className="flex-shrink-0 text-right">
             {status.unpaidAmount > 0 && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-text-muted">
                 <span className="font-medium text-red-400">
                   ${Number(status.unpaidAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span> unpaid
               </p>
             )}
             {status.pendingAmount > 0 && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-text-muted">
                 <span className="font-medium text-yellow-400">
                   ${Number(status.pendingAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span> pending

@@ -89,11 +89,11 @@ export default function TourMilesConfig() {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-white">Tour Miles Configuration</h2>
-        <p className="text-slate-400 text-sm">Manage gamification settings, users, rewards, and achievements</p>
+        <p className="text-text-muted text-sm">Manage gamification settings, users, rewards, and achievements</p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex space-x-1 bg-slate-800/50 p-1 rounded-lg">
+      <div className="flex space-x-1 bg-white/[0.04] p-1 rounded-lg">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -101,7 +101,7 @@ export default function TourMilesConfig() {
             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
               activeTab === tab.id
                 ? 'bg-blue-600 text-white'
-                : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                : 'text-text-muted hover:text-white hover:bg-white/10'
             }`}
           >
             <tab.icon className="w-4 h-4" />
@@ -111,7 +111,7 @@ export default function TourMilesConfig() {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-slate-900 rounded-xl border border-slate-700 p-6">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'rewards' && <RewardManagement />}
         {activeTab === 'achievements' && <AchievementManagement />}
@@ -149,18 +149,18 @@ function UserManagement() {
       {/* Search & Actions */}
       <div className="flex items-center justify-between">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
           <input
             type="text"
             placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+            className="pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-blue-500"
           />
         </div>
         <button
           onClick={() => refetch()}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"
+          className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10"
         >
           <RefreshCw className="w-4 h-4" />
           Refresh
@@ -175,7 +175,7 @@ function UserManagement() {
       ) : (
         <div className="space-y-2">
           {filteredUsers?.map((user) => (
-            <div key={user.id} className="bg-slate-800 rounded-lg border border-slate-700">
+            <div key={user.id} className="bg-white/[0.06] rounded-lg border border-white/[0.08]">
               <div
                 className="flex items-center justify-between p-4 cursor-pointer"
                 onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
@@ -185,7 +185,7 @@ function UserManagement() {
                     <p className="text-white font-medium">
                       {user.name}
                     </p>
-                    <p className="text-slate-400 text-sm">{user.email}</p>
+                    <p className="text-text-muted text-sm">{user.email}</p>
                   </div>
                   <span
                     className={`px-2 py-1 rounded text-xs ${
@@ -200,36 +200,36 @@ function UserManagement() {
                     <p className="text-yellow-400 font-bold">
                       {user.points?.toLocaleString() || 0} TP
                     </p>
-                    <p className="text-slate-400 text-xs">
+                    <p className="text-text-muted text-xs">
                       {user.tier || 'BRONZE'} • {user.achievementCount} achievements
                     </p>
                   </div>
                   {expandedUser === user.id ? (
-                    <ChevronUp className="w-5 h-5 text-slate-400" />
+                    <ChevronUp className="w-5 h-5 text-text-muted" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-slate-400" />
+                    <ChevronDown className="w-5 h-5 text-text-muted" />
                   )}
                 </div>
               </div>
 
               {/* Expanded Details */}
               {expandedUser === user.id && (
-                <div className="border-t border-slate-700 p-4 space-y-4">
+                <div className="border-t border-white/[0.08] p-4 space-y-4">
                   <div className="grid grid-cols-4 gap-4">
-                    <div className="bg-slate-700/50 rounded p-3">
-                      <p className="text-slate-400 text-xs">Total Points</p>
+                    <div className="bg-white/[0.06] rounded p-3">
+                      <p className="text-text-muted text-xs">Total Points</p>
                       <p className="text-white font-bold">{user.points?.toLocaleString() || 0}</p>
                     </div>
-                    <div className="bg-slate-700/50 rounded p-3">
-                      <p className="text-slate-400 text-xs">Lifetime Points</p>
+                    <div className="bg-white/[0.06] rounded p-3">
+                      <p className="text-text-muted text-xs">Lifetime Points</p>
                       <p className="text-white font-bold">{user.totalEarned?.toLocaleString() || 0}</p>
                     </div>
-                    <div className="bg-slate-700/50 rounded p-3">
-                      <p className="text-slate-400 text-xs">Current Streak</p>
+                    <div className="bg-white/[0.06] rounded p-3">
+                      <p className="text-text-muted text-xs">Current Streak</p>
                       <p className="text-white font-bold">{user.currentStreak || 0} days</p>
                     </div>
-                    <div className="bg-slate-700/50 rounded p-3">
-                      <p className="text-slate-400 text-xs">Redemptions</p>
+                    <div className="bg-white/[0.06] rounded p-3">
+                      <p className="text-text-muted text-xs">Redemptions</p>
                       <p className="text-white font-bold">{user.redemptionCount}</p>
                     </div>
                   </div>
@@ -316,38 +316,38 @@ function PointsModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md border border-slate-700">
+      <div className="bg-surface rounded-xl p-6 w-full max-w-md border border-white/[0.08]">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-white">
             {action === 'award' ? 'Award Points' : 'Deduct Points'}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button onClick={onClose} className="text-text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <p className="text-slate-400 mb-4">
+        <p className="text-text-muted mb-4">
           {action === 'award' ? 'Award points to' : 'Deduct points from'} <span className="text-white">{userName}</span>
         </p>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Points</label>
+            <label className="block text-sm text-text-muted mb-1">Points</label>
             <input
               type="number"
               min="1"
               value={points}
               onChange={(e) => setPoints(parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Reason</label>
+            <label className="block text-sm text-text-muted mb-1">Reason</label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Enter reason for this adjustment..."
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white resize-none"
+              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white resize-none"
               rows={3}
             />
           </div>
@@ -356,7 +356,7 @@ function PointsModal({
         <div className="flex justify-end gap-2 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-400 hover:text-white"
+            className="px-4 py-2 text-text-muted hover:text-white"
           >
             Cancel
           </button>
@@ -415,7 +415,7 @@ function RewardManagement() {
         <div className="flex gap-2">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -439,19 +439,19 @@ function RewardManagement() {
           {rewards?.map((reward) => (
             <div
               key={reward.id}
-              className={`bg-slate-800 rounded-lg border p-4 ${
-                reward.isActive ? 'border-slate-700' : 'border-red-500/30 opacity-60'
+              className={`bg-white/[0.06] rounded-lg border p-4 ${
+                reward.isActive ? 'border-white/[0.08]' : 'border-red-500/30 opacity-60'
               }`}
             >
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="text-white font-medium">{reward.name}</h4>
-                  <p className="text-slate-400 text-sm line-clamp-2">{reward.description}</p>
+                  <p className="text-text-muted text-sm line-clamp-2">{reward.description}</p>
                 </div>
                 <div className="flex gap-1">
                   <button
                     onClick={() => setEditingReward(reward)}
-                    className="p-1 text-slate-400 hover:text-white"
+                    className="p-1 text-text-muted hover:text-white"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -461,7 +461,7 @@ function RewardManagement() {
                         deleteMutation.mutate(reward.id);
                       }
                     }}
-                    className="p-1 text-slate-400 hover:text-red-400"
+                    className="p-1 text-text-muted hover:text-red-400"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -485,7 +485,7 @@ function RewardManagement() {
                   </span>
                 )}
                 {reward.inventory !== null && (
-                  <span className="px-2 py-1 bg-slate-600 text-slate-300 rounded text-xs">
+                  <span className="px-2 py-1 bg-white/10 text-text-secondary rounded text-xs">
                     {reward.inventory} left
                   </span>
                 )}
@@ -573,54 +573,54 @@ function RewardModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto py-8">
-      <div className="bg-slate-800 rounded-xl p-6 w-full max-w-lg border border-slate-700">
+      <div className="bg-surface rounded-xl p-6 w-full max-w-lg border border-white/[0.08]">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-white">
             {reward ? 'Edit Reward' : 'Create Reward'}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button onClick={onClose} className="text-text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Name</label>
+            <label className="block text-sm text-text-muted mb-1">Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Description</label>
+            <label className="block text-sm text-text-muted mb-1">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white resize-none"
+              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white resize-none"
               rows={3}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Cost (TP)</label>
+              <label className="block text-sm text-text-muted mb-1">Cost (TP)</label>
               <input
                 type="number"
                 min="0"
                 value={formData.cost}
                 onChange={(e) => setFormData({ ...formData, cost: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Category</label>
+              <label className="block text-sm text-text-muted mb-1">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
               >
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -631,22 +631,22 @@ function RewardModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Role Restriction</label>
+              <label className="block text-sm text-text-muted mb-1">Role Restriction</label>
               <select
                 value={formData.roleRestriction}
                 onChange={(e) => setFormData({ ...formData, roleRestriction: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
               >
                 <option value="">All Roles</option>
                 <option value="WRITER">WRITER only</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Tier Restriction</label>
+              <label className="block text-sm text-text-muted mb-1">Tier Restriction</label>
               <select
                 value={formData.tierRestriction}
                 onChange={(e) => setFormData({ ...formData, tierRestriction: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
               >
                 <option value="">All Tiers</option>
                 {tiers.map((tier) => (
@@ -658,14 +658,14 @@ function RewardModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Inventory (optional)</label>
+              <label className="block text-sm text-text-muted mb-1">Inventory (optional)</label>
               <input
                 type="number"
                 min="0"
                 value={formData.inventory}
                 onChange={(e) => setFormData({ ...formData, inventory: e.target.value })}
                 placeholder="Unlimited"
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
               />
             </div>
             <div className="flex items-end">
@@ -674,16 +674,16 @@ function RewardModal({
                   type="checkbox"
                   checked={formData.isActive}
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-600"
+                  className="w-4 h-4 rounded border-white/10"
                 />
-                <span className="text-slate-400">Active</span>
+                <span className="text-text-muted">Active</span>
               </label>
             </div>
           </div>
         </div>
 
         <div className="flex justify-end gap-2 mt-6">
-          <button onClick={onClose} className="px-4 py-2 text-slate-400 hover:text-white">
+          <button onClick={onClose} className="px-4 py-2 text-text-muted hover:text-white">
             Cancel
           </button>
           <button
@@ -739,7 +739,7 @@ function AchievementManagement() {
         <div className="flex gap-2">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -763,8 +763,8 @@ function AchievementManagement() {
           {achievements?.map((achievement) => (
             <div
               key={achievement.id}
-              className={`bg-slate-800 rounded-lg border p-4 ${
-                achievement.isActive ? 'border-slate-700' : 'border-red-500/30 opacity-60'
+              className={`bg-white/[0.06] rounded-lg border p-4 ${
+                achievement.isActive ? 'border-white/[0.08]' : 'border-red-500/30 opacity-60'
               }`}
             >
               <div className="flex items-start justify-between">
@@ -774,13 +774,13 @@ function AchievementManagement() {
                   </div>
                   <div>
                     <h4 className="text-white font-medium">{achievement.name}</h4>
-                    <p className="text-slate-400 text-sm line-clamp-1">{achievement.description}</p>
+                    <p className="text-text-muted text-sm line-clamp-1">{achievement.description}</p>
                   </div>
                 </div>
                 <div className="flex gap-1">
                   <button
                     onClick={() => setEditingAchievement(achievement)}
-                    className="p-1 text-slate-400 hover:text-white"
+                    className="p-1 text-text-muted hover:text-white"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -790,7 +790,7 @@ function AchievementManagement() {
                         deleteMutation.mutate(achievement.id);
                       }
                     }}
-                    className="p-1 text-slate-400 hover:text-red-400"
+                    className="p-1 text-text-muted hover:text-red-400"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -803,7 +803,7 @@ function AchievementManagement() {
                 <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">
                   {achievement.category}
                 </span>
-                <span className="px-2 py-1 bg-slate-600 text-slate-300 rounded text-xs">
+                <span className="px-2 py-1 bg-white/10 text-text-secondary rounded text-xs">
                   {achievement._count.userAchievements} unlocked
                 </span>
               </div>
@@ -878,54 +878,54 @@ function AchievementModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-xl p-6 w-full max-w-lg border border-slate-700">
+      <div className="bg-surface rounded-xl p-6 w-full max-w-lg border border-white/[0.08]">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-white">
             {achievement ? 'Edit Achievement' : 'Create Achievement'}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button onClick={onClose} className="text-text-muted hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Name</label>
+            <label className="block text-sm text-text-muted mb-1">Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Description</label>
+            <label className="block text-sm text-text-muted mb-1">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white resize-none"
+              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white resize-none"
               rows={3}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Points Reward</label>
+              <label className="block text-sm text-text-muted mb-1">Points Reward</label>
               <input
                 type="number"
                 min="0"
                 value={formData.points}
                 onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Category</label>
+              <label className="block text-sm text-text-muted mb-1">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
               >
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -939,14 +939,14 @@ function AchievementModal({
               type="checkbox"
               checked={formData.isActive}
               onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className="w-4 h-4 rounded border-slate-600"
+              className="w-4 h-4 rounded border-white/10"
             />
-            <span className="text-slate-400">Active</span>
+            <span className="text-text-muted">Active</span>
           </div>
         </div>
 
         <div className="flex justify-end gap-2 mt-6">
-          <button onClick={onClose} className="px-4 py-2 text-slate-400 hover:text-white">
+          <button onClick={onClose} className="px-4 py-2 text-text-muted hover:text-white">
             Cancel
           </button>
           <button
@@ -1039,12 +1039,12 @@ function PointConfiguration() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-white">Point Configuration</h3>
-          <p className="text-slate-400 text-sm">Configure how many Tour Points are awarded for each action</p>
+          <p className="text-text-muted text-sm">Configure how many Tour Points are awarded for each action</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -1052,7 +1052,7 @@ function PointConfiguration() {
             <>
               <button
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2 text-slate-400 hover:text-white"
+                className="px-4 py-2 text-text-muted hover:text-white"
               >
                 Cancel
               </button>
@@ -1085,11 +1085,11 @@ function PointConfiguration() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.entries(isEditing ? editedConfig : currentConfig).map(([key, value]) => (
-            <div key={key} className="bg-slate-800 rounded-lg border border-slate-700 p-4">
+            <div key={key} className="bg-white/[0.06] rounded-lg border border-white/[0.08] p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white font-medium">{eventLabels[key] || key}</p>
-                  <p className="text-slate-400 text-xs">{key}</p>
+                  <p className="text-text-muted text-xs">{key}</p>
                 </div>
                 {isEditing ? (
                   <input
@@ -1099,7 +1099,7 @@ function PointConfiguration() {
                     onChange={(e) =>
                       setEditedConfig({ ...editedConfig, [key]: parseInt(e.target.value) || 0 })
                     }
-                    className="w-24 px-3 py-1 bg-slate-700 border border-slate-600 rounded text-white text-right"
+                    className="w-24 px-3 py-1 bg-white/5 border border-white/10 rounded text-white text-right"
                   />
                 ) : (
                   <span className="text-yellow-400 font-bold text-lg">{value} TP</span>

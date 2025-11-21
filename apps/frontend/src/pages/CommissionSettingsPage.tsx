@@ -86,7 +86,7 @@ export default function CommissionSettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Commission Settings</h1>
-        <p className="text-slate-400 mt-1">Changes apply only to statements published after the update.</p>
+        <p className="text-text-muted mt-1">Changes apply only to statements published after the update.</p>
       </div>
 
       {message.text && (
@@ -98,36 +98,36 @@ export default function CommissionSettingsPage() {
       )}
 
       {/* Current Settings */}
-      <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
         <h2 className="text-white font-semibold mb-4">Current Settings</h2>
         {loadingSettings ? (
-          <div className="text-slate-400">Loading current settings...</div>
+          <div className="text-text-muted">Loading current settings...</div>
         ) : settingsData ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <div className="text-slate-400 text-sm">Commission Rate</div>
+              <div className="text-text-muted text-sm">Commission Rate</div>
               <div className="text-2xl text-blue-400 font-bold">{Number(settingsData.commissionRate).toFixed(2)}%</div>
             </div>
             <div>
-              <div className="text-slate-400 text-sm">Recipient</div>
+              <div className="text-text-muted text-sm">Recipient</div>
               <div className="text-white font-medium">{settingsData.recipientName}</div>
             </div>
             <div>
-              <div className="text-slate-400 text-sm">Effective Date</div>
+              <div className="text-text-muted text-sm">Effective Date</div>
               <div className="text-white font-medium">{formatDate(settingsData.effectiveDate)}</div>
             </div>
           </div>
         ) : (
-          <div className="text-slate-400">No settings found. Using defaults (0%).</div>
+          <div className="text-text-muted">No settings found. Using defaults (0%).</div>
         )}
       </div>
 
       {/* Update Form */}
-      <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
         <h2 className="text-white font-semibold mb-4">Update Settings</h2>
         <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-slate-400 text-sm mb-2">Commission Rate (%)</label>
+            <label className="block text-text-muted text-sm mb-2">Commission Rate (%)</label>
             <input
               type="number"
               min="0"
@@ -135,26 +135,26 @@ export default function CommissionSettingsPage() {
               step="0.01"
               value={form.commissionRate}
               onChange={(e) => setForm({ ...form, commissionRate: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
             />
           </div>
           <div>
-            <label className="block text-slate-400 text-sm mb-2">Recipient Name</label>
+            <label className="block text-text-muted text-sm mb-2">Recipient Name</label>
             <input
               type="text"
               value={form.recipientName}
               onChange={(e) => setForm({ ...form, recipientName: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
               placeholder="e.g., Producer Tour"
             />
           </div>
           <div>
-            <label className="block text-slate-400 text-sm mb-2">Description (optional)</label>
+            <label className="block text-text-muted text-sm mb-2">Description (optional)</label>
             <input
               type="text"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
               placeholder="Reason for change"
             />
           </div>
@@ -169,19 +169,19 @@ export default function CommissionSettingsPage() {
           </div>
         </form>
 
-        <p className="text-xs text-slate-400 mt-3">Note: Changes only affect statements published after this update. Historical statement items remain unchanged.</p>
+        <p className="text-xs text-text-muted mt-3">Note: Changes only affect statements published after this update. Historical statement items remain unchanged.</p>
       </div>
 
       {/* History Table */}
-      <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
         <h2 className="text-white font-semibold mb-4">Rate Change History</h2>
         {loadingHistory ? (
-          <div className="text-slate-400">Loading history...</div>
+          <div className="text-text-muted">Loading history...</div>
         ) : historyData && historyData.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-700 text-slate-400">
+                <tr className="border-b border-white/[0.08] text-text-muted">
                   <th className="text-left py-2">Effective</th>
                   <th className="text-left py-2">Rate</th>
                   <th className="text-left py-2">Recipient</th>
@@ -191,13 +191,13 @@ export default function CommissionSettingsPage() {
               </thead>
               <tbody>
                 {historyData.map((row) => (
-                  <tr key={row.id} className="border-b border-slate-800">
+                  <tr key={row.id} className="border-b border-white/[0.04]">
                     <td className="py-2 text-white">{formatDate(row.effectiveDate)}</td>
                     <td className="py-2 text-white">{Number(row.commissionRate).toFixed(2)}%</td>
-                    <td className="py-2 text-slate-300">{row.recipientName}</td>
-                    <td className="py-2 text-slate-300">{row.description || '-'}</td>
+                    <td className="py-2 text-text-secondary">{row.recipientName}</td>
+                    <td className="py-2 text-text-secondary">{row.description || '-'}</td>
                     <td className="py-2">
-                      <span className={`px-2 py-1 rounded text-xs ${row.isActive ? 'bg-green-500/20 text-green-400' : 'bg-slate-600/40 text-slate-300'}`}>
+                      <span className={`px-2 py-1 rounded text-xs ${row.isActive ? 'bg-green-500/20 text-green-400' : 'bg-white/[0.08] text-text-secondary'}`}>
                         {row.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
@@ -207,7 +207,7 @@ export default function CommissionSettingsPage() {
             </table>
           </div>
         ) : (
-          <div className="text-slate-400">No history available.</div>
+          <div className="text-text-muted">No history available.</div>
         )}
       </div>
     </div>

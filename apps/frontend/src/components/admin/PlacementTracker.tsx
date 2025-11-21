@@ -331,11 +331,11 @@ const PlacementTracker: React.FC = () => {
     ? placements
     : placements.filter(p => p.clientFullName === clientFilter);
 
-  const inputClass = "block w-full py-2.5 px-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent";
+  const inputClass = "block w-full py-2.5 px-3 bg-white/10 border border-white/[0.08] rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent";
   const labelClass = "block mb-1 text-xs font-medium text-gray-300 uppercase tracking-wide";
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-surface text-white">
       <div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
@@ -386,13 +386,13 @@ const PlacementTracker: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3 text-sm mb-4">
           <button
             onClick={handleSelectAll}
-            className="px-3 py-1.5 rounded-md border border-slate-600 bg-slate-800 text-gray-300 hover:bg-slate-700"
+            className="px-3 py-1.5 rounded-md border border-white/[0.08] bg-white/[0.06] text-gray-300 hover:bg-white/10"
           >
             Select All
           </button>
           <button
             onClick={handleClearSelection}
-            className="px-3 py-1.5 rounded-md border border-slate-600 bg-slate-800 text-gray-300 hover:bg-slate-700"
+            className="px-3 py-1.5 rounded-md border border-white/[0.08] bg-white/[0.06] text-gray-300 hover:bg-white/10"
           >
             Clear Selection
           </button>
@@ -402,9 +402,9 @@ const PlacementTracker: React.FC = () => {
         </div>
 
         {/* Main Table */}
-        <div className="overflow-x-auto bg-slate-800 rounded-lg shadow-xl">
-          <table className="min-w-full divide-y divide-slate-700">
-            <thead className="bg-slate-900">
+        <div className="overflow-x-auto rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] shadow-xl">
+          <table className="min-w-full divide-y divide-white/[0.08]">
+            <thead className="bg-white/[0.04]">
               <tr>
                 <th className="py-3 px-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Client</th>
                 <th className="py-3 px-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Song & Artist</th>
@@ -417,7 +417,7 @@ const PlacementTracker: React.FC = () => {
                 <th className="py-3 px-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700">
+            <tbody className="divide-y divide-white/[0.08]">
               {filteredPlacements.map(placement => (
                 <tr
                   key={placement.id}
@@ -425,7 +425,7 @@ const PlacementTracker: React.FC = () => {
                   className={`cursor-pointer transition-colors ${
                     selectedPlacements.has(placement.id)
                       ? 'bg-blue-900/30 shadow-[inset_4px_0_#3B82F6]'
-                      : 'hover:bg-slate-700/30'
+                      : 'hover:bg-white/[0.04]'
                   }`}
                 >
                   <td className="py-4 px-4 text-sm text-gray-300">
@@ -485,7 +485,7 @@ const PlacementTracker: React.FC = () => {
         {/* Form Modal */}
         {showFormModal && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-800 p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-surface p-6 sm:p-8 rounded-2xl shadow-xl border border-white/[0.08] w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-semibold mb-6 text-white">
                 {editingPlacement ? 'Edit Placement' : 'Add New Placement'}
               </h2>
@@ -589,7 +589,7 @@ const PlacementTracker: React.FC = () => {
                     </div>
 
                     {/* Legal Fee Section */}
-                    <fieldset className="space-y-4 bg-slate-700/30 p-4 rounded-lg">
+                    <fieldset className="space-y-4 bg-white/[0.04] p-4 rounded-lg">
                       <legend className="text-xs font-semibold text-gray-300 mb-2 uppercase">Legal Fee</legend>
                       <div>
                         <label className={labelClass}>Amount</label>
@@ -682,7 +682,7 @@ const PlacementTracker: React.FC = () => {
                   </div>
 
                   {/* Contracting Info */}
-                  <fieldset className="md:col-span-3 mt-4 bg-slate-700/30 border border-slate-600 rounded-lg p-4">
+                  <fieldset className="md:col-span-3 mt-4 bg-white/[0.04] border border-white/[0.08] rounded-lg p-4">
                     <legend className="text-xs font-semibold text-gray-300 mb-2 uppercase">Contracting Info</legend>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -765,7 +765,7 @@ const PlacementTracker: React.FC = () => {
                         type="checkbox"
                         checked={formData.released}
                         onChange={(e) => setFormData({...formData, released: e.target.checked})}
-                        className="w-5 h-5 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
+                        className="w-5 h-5 text-blue-600 bg-white/10 border-white/[0.08] rounded focus:ring-blue-500 focus:ring-2"
                       />
                       <label className="ml-3 text-sm font-medium text-gray-300">Released?</label>
                     </div>
@@ -863,11 +863,11 @@ const PlacementTracker: React.FC = () => {
                 </div>
 
                 {/* Form Actions */}
-                <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-slate-700">
+                <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-white/[0.08]">
                   <button
                     type="button"
                     onClick={handleCloseForm}
-                    className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md shadow-sm font-semibold text-sm text-gray-300 hover:bg-slate-600"
+                    className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md shadow-sm font-semibold text-sm text-gray-300 hover:bg-white/15"
                   >
                     Cancel
                   </button>
@@ -886,7 +886,7 @@ const PlacementTracker: React.FC = () => {
         {/* Billing AI Modal */}
         {showBillingModal && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-800 w-full max-w-6xl max-h-[95vh] overflow-y-auto rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6">
+            <div className="bg-surface w-full max-w-6xl max-h-[95vh] overflow-y-auto rounded-2xl shadow-2xl border border-white/[0.08] p-6 sm:p-8 space-y-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold tracking-wide text-indigo-400 uppercase">Billing AI Tool</p>
@@ -896,7 +896,7 @@ const PlacementTracker: React.FC = () => {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowBillingModal(false)}
-                    className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md shadow-sm font-semibold text-sm text-gray-300 hover:bg-slate-600"
+                    className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md shadow-sm font-semibold text-sm text-gray-300 hover:bg-white/15"
                   >
                     Close
                   </button>
@@ -926,7 +926,7 @@ const PlacementTracker: React.FC = () => {
                             className={`w-full text-left rounded-lg border p-4 transition ${
                               activeBillingDeal === id
                                 ? 'border-blue-500 bg-blue-900/30 ring-1 ring-blue-400'
-                                : 'border-slate-600 bg-slate-700/30 hover:border-blue-400'
+                                : 'border-white/[0.08] bg-white/[0.04] hover:border-blue-400'
                             }`}
                           >
                             <div className="text-sm font-medium text-white">{placement.clientFullName}</div>
@@ -944,7 +944,7 @@ const PlacementTracker: React.FC = () => {
 
                 {/* Main Content - Billing Form */}
                 <section className="lg:col-span-2 space-y-6">
-                  <div className="bg-slate-700/30 border border-slate-600 rounded-xl p-4">
+                  <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4">
                     <p className="text-xs font-semibold text-gray-400 uppercase">Active deal</p>
                     {activeBillingDeal ? (
                       <>
@@ -1093,7 +1093,7 @@ const PlacementTracker: React.FC = () => {
                       <button
                         type="button"
                         onClick={handleUseContractingInfo}
-                        className="px-3 py-1.5 rounded-md border border-slate-600 bg-slate-700 text-sm text-gray-300 hover:bg-slate-600"
+                        className="px-3 py-1.5 rounded-md border border-white/[0.08] bg-white/10 text-sm text-gray-300 hover:bg-white/15"
                       >
                         Use placement contracting info
                       </button>
@@ -1222,25 +1222,25 @@ const PlacementTracker: React.FC = () => {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3">
-                        <button type="button" className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600">
+                        <button type="button" className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md text-sm font-semibold text-gray-300 hover:bg-white/15">
                           Save Invoice Draft
                         </button>
-                        <button type="button" className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600">
+                        <button type="button" className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md text-sm font-semibold text-gray-300 hover:bg-white/15">
                           Export Invoice (HTML)
                         </button>
-                        <button type="button" className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600">
+                        <button type="button" className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md text-sm font-semibold text-gray-300 hover:bg-white/15">
                           Export Invoice (DOC)
                         </button>
-                        <button type="button" className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600">
+                        <button type="button" className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md text-sm font-semibold text-gray-300 hover:bg-white/15">
                           Export Invoice (PDF)
                         </button>
-                        <button type="button" className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600">
+                        <button type="button" className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md text-sm font-semibold text-gray-300 hover:bg-white/15">
                           Export Billing Package (JSON)
                         </button>
                         <span className="text-xs text-gray-500">No draft saved yet.</span>
                       </div>
 
-                      <div className="bg-slate-700/30 rounded-xl p-6">
+                      <div className="bg-white/[0.04] rounded-xl p-6">
                         <div className="bg-white rounded-lg p-6 text-gray-900">
                           <div className="text-center text-sm text-gray-500">
                             Invoice draft will appear here once you select a placement.
@@ -1254,7 +1254,7 @@ const PlacementTracker: React.FC = () => {
                     </section>
 
                     {/* Banking Details */}
-                    <fieldset className="space-y-4 bg-slate-700/30 border border-slate-600 rounded-xl p-4">
+                    <fieldset className="space-y-4 bg-white/[0.04] border border-white/[0.08] rounded-xl p-4">
                       <legend className="text-xs font-semibold text-gray-300 uppercase">Wire / Banking Details</legend>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -1324,7 +1324,7 @@ const PlacementTracker: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setShowBillingModal(false)}
-                        className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600"
+                        className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md text-sm font-semibold text-gray-300 hover:bg-white/15"
                       >
                         Cancel
                       </button>
@@ -1345,7 +1345,7 @@ const PlacementTracker: React.FC = () => {
         {/* Legal AI Modal */}
         {showLegalModal && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-800 w-full max-w-6xl max-h-[95vh] overflow-y-auto rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6">
+            <div className="bg-surface w-full max-w-6xl max-h-[95vh] overflow-y-auto rounded-2xl shadow-2xl border border-white/[0.08] p-6 sm:p-8 space-y-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold tracking-wide text-green-400 uppercase">Legal AI Tool</p>
@@ -1354,7 +1354,7 @@ const PlacementTracker: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setShowLegalModal(false)}
-                  className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md shadow-sm font-semibold text-sm text-gray-300 hover:bg-slate-600"
+                  className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md shadow-sm font-semibold text-sm text-gray-300 hover:bg-white/15"
                 >
                   Close
                 </button>
@@ -1381,7 +1381,7 @@ const PlacementTracker: React.FC = () => {
                         return (
                           <div
                             key={id}
-                            className="rounded-lg border border-slate-600 bg-slate-700/30 p-4"
+                            className="rounded-lg border border-white/[0.08] bg-white/[0.04] p-4"
                           >
                             <div className="flex items-start justify-between mb-2">
                               <div className="text-sm font-medium text-white">{placement.clientFullName}</div>
@@ -1406,7 +1406,7 @@ const PlacementTracker: React.FC = () => {
                 {/* Main Content - Legal Tools */}
                 <section className="lg:col-span-2 space-y-6">
                   {/* Contract Analysis Section */}
-                  <div className="bg-slate-700/30 border border-slate-600 rounded-xl p-4 space-y-4">
+                  <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4 space-y-4">
                     <div>
                       <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Contract Review</p>
                       <p className="text-sm text-gray-300">Upload or link to contracts for AI-powered analysis and redline tracking.</p>
@@ -1435,7 +1435,7 @@ const PlacementTracker: React.FC = () => {
 
                     <div>
                       <label className={labelClass}>Contract Upload</label>
-                      <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center hover:border-slate-500 transition-colors">
+                      <div className="border-2 border-dashed border-white/[0.08] rounded-lg p-6 text-center hover:border-white/20 transition-colors">
                         <div className="text-gray-400 text-sm mb-2">
                           <svg className="mx-auto h-12 w-12 mb-3" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                             <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1448,7 +1448,7 @@ const PlacementTracker: React.FC = () => {
                   </div>
 
                   {/* AI Analysis Tools */}
-                  <div className="bg-slate-700/30 border border-slate-600 rounded-xl p-4 space-y-4">
+                  <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4 space-y-4">
                     <p className="text-xs font-semibold text-gray-400 uppercase">Legal AI Actions</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1475,7 +1475,7 @@ const PlacementTracker: React.FC = () => {
                   </div>
 
                   {/* Legal Terms Reference */}
-                  <div className="bg-slate-700/30 border border-slate-600 rounded-xl p-4 space-y-4">
+                  <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4 space-y-4">
                     <p className="text-xs font-semibold text-gray-400 uppercase">Deal Terms & Legal Notes</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1533,7 +1533,7 @@ const PlacementTracker: React.FC = () => {
                   </div>
 
                   {/* Legal Fee Tracking */}
-                  <div className="bg-slate-700/30 border border-slate-600 rounded-xl p-4 space-y-4">
+                  <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4 space-y-4">
                     <p className="text-xs font-semibold text-gray-400 uppercase">Legal Fee Information</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1582,7 +1582,7 @@ const PlacementTracker: React.FC = () => {
                   </div>
 
                   {/* AI Analysis Results */}
-                  <div className="bg-slate-700/30 border border-slate-600 rounded-xl p-4 space-y-4">
+                  <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-semibold text-gray-400 uppercase">AI Analysis Results</p>
                       <span className="text-xs text-gray-500">No analysis run yet</span>
@@ -1597,23 +1597,23 @@ const PlacementTracker: React.FC = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <button className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600">
+                      <button className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md text-sm font-semibold text-gray-300 hover:bg-white/15">
                         Export Analysis Report (PDF)
                       </button>
-                      <button className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600">
+                      <button className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md text-sm font-semibold text-gray-300 hover:bg-white/15">
                         Save Legal Package (JSON)
                       </button>
-                      <button className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600">
+                      <button className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md text-sm font-semibold text-gray-300 hover:bg-white/15">
                         Generate Agreement (DOCX)
                       </button>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-slate-700">
+                  <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-white/[0.08]">
                     <button
                       onClick={() => setShowLegalModal(false)}
-                      className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm font-semibold text-gray-300 hover:bg-slate-600"
+                      className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md text-sm font-semibold text-gray-300 hover:bg-white/15"
                     >
                       Close
                     </button>

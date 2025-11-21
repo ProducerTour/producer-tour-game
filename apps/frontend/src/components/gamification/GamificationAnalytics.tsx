@@ -98,16 +98,16 @@ const MetricCard = ({
   const meetsTarget = target ? numValue >= target : true;
 
   return (
-    <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+    <div className="bg-white/[0.06] rounded-xl p-4 border border-white/[0.08]">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-slate-400 text-sm">{title}</span>
-        <Icon className="w-5 h-5 text-slate-500" />
+        <span className="text-text-muted text-sm">{title}</span>
+        <Icon className="w-5 h-5 text-text-muted" />
       </div>
       <div className="flex items-end gap-2">
         <span className="text-2xl font-bold text-white">{value}{suffix}</span>
         {trend && (
           <span className={`flex items-center text-sm ${
-            trend === 'up' ? 'text-green-400' : trend === 'down' ? 'text-red-400' : 'text-slate-400'
+            trend === 'up' ? 'text-green-400' : trend === 'down' ? 'text-red-400' : 'text-text-muted'
           }`}>
             {trend === 'up' ? <ArrowUp className="w-4 h-4" /> :
              trend === 'down' ? <ArrowDown className="w-4 h-4" /> :
@@ -118,12 +118,12 @@ const MetricCard = ({
       {target && (
         <div className="mt-2">
           <div className="flex justify-between text-xs mb-1">
-            <span className="text-slate-400">Target: {target}{suffix}</span>
+            <span className="text-text-muted">Target: {target}{suffix}</span>
             <span className={meetsTarget ? 'text-green-400' : 'text-yellow-400'}>
               {meetsTarget ? 'On Track' : 'Below Target'}
             </span>
           </div>
-          <div className="w-full bg-slate-700 rounded-full h-1.5">
+          <div className="w-full bg-white/10 rounded-full h-1.5">
             <div
               className={`h-1.5 rounded-full ${meetsTarget ? 'bg-green-500' : 'bg-yellow-500'}`}
               style={{ width: `${Math.min(100, (numValue / target) * 100)}%` }}
@@ -200,11 +200,11 @@ export default function GamificationAnalytics() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">Gamification Analytics</h2>
-          <p className="text-slate-400 text-sm">Last updated: {new Date(data.timestamp).toLocaleString()}</p>
+          <p className="text-text-muted text-sm">Last updated: {new Date(data.timestamp).toLocaleString()}</p>
         </div>
         <button
           onClick={() => refetch()}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"
+          className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/15"
         >
           <RefreshCw className="w-4 h-4" />
           Refresh
@@ -212,7 +212,7 @@ export default function GamificationAnalytics() {
       </div>
 
       {/* Engagement Metrics */}
-      <div className="bg-slate-900 rounded-xl p-6 border border-slate-700">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-blue-400" />
           Engagement Metrics
@@ -249,7 +249,7 @@ export default function GamificationAnalytics() {
 
         {/* DAU Trend Chart (simple bar representation) */}
         <div className="mt-6">
-          <h4 className="text-sm font-medium text-slate-400 mb-3">DAU Trend (Last 7 Days)</h4>
+          <h4 className="text-sm font-medium text-text-muted mb-3">DAU Trend (Last 7 Days)</h4>
           <div className="flex items-end gap-1 h-24">
             {engagement.dauTrend.trend.map((day, i) => {
               const maxCount = Math.max(...engagement.dauTrend.trend.map(d => d.count), 1);
@@ -261,33 +261,33 @@ export default function GamificationAnalytics() {
                     style={{ height: `${Math.max(height, 4)}%` }}
                     title={`${day.date}: ${day.count} users`}
                   />
-                  <span className="text-xs text-slate-500">{day.date.split('-')[2]}</span>
+                  <span className="text-xs text-text-muted">{day.date.split('-')[2]}</span>
                 </div>
               );
             })}
           </div>
-          <p className="text-sm text-slate-400 mt-2">Average: {engagement.dauTrend.averageDAU} users/day</p>
+          <p className="text-sm text-text-muted mt-2">Average: {engagement.dauTrend.averageDAU} users/day</p>
         </div>
 
         {/* Streak Stats */}
         <div className="mt-6 grid grid-cols-3 gap-4">
-          <div className="bg-slate-800 rounded-lg p-3 text-center">
+          <div className="bg-white/[0.06] rounded-lg p-3 border border-white/[0.08] text-center">
             <div className="text-2xl font-bold text-orange-400">{engagement.streaks.streak30Plus.count}</div>
-            <div className="text-xs text-slate-400">30+ Day Streaks</div>
+            <div className="text-xs text-text-muted">30+ Day Streaks</div>
           </div>
-          <div className="bg-slate-800 rounded-lg p-3 text-center">
+          <div className="bg-white/[0.06] rounded-lg p-3 border border-white/[0.08] text-center">
             <div className="text-2xl font-bold text-yellow-400">{engagement.streaks.averageStreak}</div>
-            <div className="text-xs text-slate-400">Avg Streak Days</div>
+            <div className="text-xs text-text-muted">Avg Streak Days</div>
           </div>
-          <div className="bg-slate-800 rounded-lg p-3 text-center">
+          <div className="bg-white/[0.06] rounded-lg p-3 border border-white/[0.08] text-center">
             <div className="text-2xl font-bold text-red-400">{engagement.streaks.longestStreak}</div>
-            <div className="text-xs text-slate-400">Longest Streak</div>
+            <div className="text-xs text-text-muted">Longest Streak</div>
           </div>
         </div>
       </div>
 
       {/* Growth Metrics */}
-      <div className="bg-slate-900 rounded-xl p-6 border border-slate-700">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Users className="w-5 h-5 text-green-400" />
           Growth Metrics
@@ -322,12 +322,12 @@ export default function GamificationAnalytics() {
         {/* Top Referrers */}
         {growth.referrals.topReferrers.length > 0 && (
           <div className="mt-6">
-            <h4 className="text-sm font-medium text-slate-400 mb-3">Top Referrers</h4>
+            <h4 className="text-sm font-medium text-text-muted mb-3">Top Referrers</h4>
             <div className="space-y-2">
               {growth.referrals.topReferrers.slice(0, 5).map((referrer, i) => (
-                <div key={referrer.userId} className="flex items-center justify-between bg-slate-800 rounded-lg p-3">
+                <div key={referrer.userId} className="flex items-center justify-between bg-white/[0.06] rounded-lg p-3 border border-white/[0.08]">
                   <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold text-slate-500">#{i + 1}</span>
+                    <span className="text-lg font-bold text-text-muted">#{i + 1}</span>
                     <span className="text-white">{referrer.name}</span>
                   </div>
                   <div className="flex items-center gap-4">
@@ -342,12 +342,12 @@ export default function GamificationAnalytics() {
 
         {/* Social Platform Breakdown */}
         <div className="mt-6">
-          <h4 className="text-sm font-medium text-slate-400 mb-3">Shares by Platform</h4>
+          <h4 className="text-sm font-medium text-text-muted mb-3">Shares by Platform</h4>
           <div className="grid grid-cols-4 gap-2">
             {Object.entries(growth.socialShares.platformBreakdown).map(([platform, count]) => (
-              <div key={platform} className="bg-slate-800 rounded-lg p-3 text-center">
+              <div key={platform} className="bg-white/[0.06] rounded-lg p-3 border border-white/[0.08] text-center">
                 <div className="text-lg font-bold text-white">{count}</div>
-                <div className="text-xs text-slate-400">{platform}</div>
+                <div className="text-xs text-text-muted">{platform}</div>
               </div>
             ))}
           </div>
@@ -355,7 +355,7 @@ export default function GamificationAnalytics() {
       </div>
 
       {/* Platform Health */}
-      <div className="bg-slate-900 rounded-xl p-6 border border-slate-700">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <CheckCircle className="w-5 h-5 text-purple-400" />
           Platform Health
@@ -394,10 +394,10 @@ export default function GamificationAnalytics() {
         {/* Popular Rewards */}
         {platformHealth.rewardRedemption.popularRewards.length > 0 && (
           <div className="mt-6">
-            <h4 className="text-sm font-medium text-slate-400 mb-3">Most Popular Rewards</h4>
+            <h4 className="text-sm font-medium text-text-muted mb-3">Most Popular Rewards</h4>
             <div className="space-y-2">
               {platformHealth.rewardRedemption.popularRewards.map((reward) => (
-                <div key={reward.rewardId} className="flex items-center justify-between bg-slate-800 rounded-lg p-3">
+                <div key={reward.rewardId} className="flex items-center justify-between bg-white/[0.06] rounded-lg p-3 border border-white/[0.08]">
                   <div className="flex items-center gap-3">
                     <span className="text-lg">🎁</span>
                     <span className="text-white">{reward.name}</span>
@@ -413,7 +413,7 @@ export default function GamificationAnalytics() {
       {/* Tier Distribution & Point Economy */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Tier Distribution */}
-        <div className="bg-slate-900 rounded-xl p-6 border border-slate-700">
+        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Award className="w-5 h-5 text-yellow-400" />
             Tier Distribution
@@ -423,34 +423,34 @@ export default function GamificationAnalytics() {
               <TierBadge key={tier.tier} {...tier} />
             ))}
           </div>
-          <p className="text-slate-400 text-sm mt-4 text-center">
+          <p className="text-text-muted text-sm mt-4 text-center">
             Total Users: {gamification.tierDistribution.total}
           </p>
         </div>
 
         {/* Point Economy */}
-        <div className="bg-slate-900 rounded-xl p-6 border border-slate-700">
+        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Target className="w-5 h-5 text-blue-400" />
             Point Economy (30 Days)
           </h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-slate-400">Points Earned</span>
+              <span className="text-text-muted">Points Earned</span>
               <span className="text-green-400 font-bold">+{gamification.pointEconomy.pointsEarned.toLocaleString()} TP</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-400">Points Spent</span>
+              <span className="text-text-muted">Points Spent</span>
               <span className="text-red-400 font-bold">-{gamification.pointEconomy.pointsSpent.toLocaleString()} TP</span>
             </div>
-            <div className="border-t border-slate-700 pt-4">
+            <div className="border-t border-white/[0.08] pt-4">
               <div className="flex justify-between items-center">
-                <span className="text-slate-400">In Circulation</span>
+                <span className="text-text-muted">In Circulation</span>
                 <span className="text-yellow-400 font-bold">{gamification.pointEconomy.circulation.totalInCirculation.toLocaleString()} TP</span>
               </div>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-slate-400">Earn:Spend Ratio</span>
+              <span className="text-text-muted">Earn:Spend Ratio</span>
               <span className={`font-bold ${gamification.pointEconomy.earnToSpendRatio > 0.3 ? 'text-green-400' : 'text-yellow-400'}`}>
                 {gamification.pointEconomy.earnToSpendRatio.toFixed(2)}
               </span>
@@ -460,20 +460,20 @@ export default function GamificationAnalytics() {
       </div>
 
       {/* Achievement Unlock Rates */}
-      <div className="bg-slate-900 rounded-xl p-6 border border-slate-700">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Award className="w-5 h-5 text-purple-400" />
           Achievement Unlock Rates
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {gamification.achievements.achievements.slice(0, 8).map(achievement => (
-            <div key={achievement.id} className="bg-slate-800 rounded-lg p-3">
+            <div key={achievement.id} className="bg-white/[0.06] rounded-lg p-3 border border-white/[0.08]">
               <div className="text-sm font-medium text-white truncate">{achievement.name}</div>
               <div className="flex items-center justify-between mt-1">
-                <span className="text-xs text-slate-400">{achievement.unlockCount} users</span>
+                <span className="text-xs text-text-muted">{achievement.unlockCount} users</span>
                 <span className="text-xs text-purple-400">{achievement.unlockRate}%</span>
               </div>
-              <div className="w-full bg-slate-700 rounded-full h-1 mt-2">
+              <div className="w-full bg-white/10 rounded-full h-1 mt-2">
                 <div
                   className="h-1 rounded-full bg-purple-500"
                   style={{ width: `${achievement.unlockRate}%` }}
