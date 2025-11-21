@@ -164,6 +164,30 @@ class SpotifyService {
   }
 
   /**
+   * Get multiple tracks by IDs
+   */
+  async getMultipleTracks(trackIds: string[]): Promise<SpotifyTrack[]> {
+    try {
+      const token = await this.getAccessToken();
+
+      // Spotify allows up to 50 tracks per request
+      const response = await this.axiosInstance.get<{ tracks: SpotifyTrack[] }>('/tracks', {
+        params: {
+          ids: trackIds.slice(0, 50).join(','),
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.data.tracks.filter(Boolean); // Filter out null values for invalid IDs
+    } catch (error) {
+      console.error('Spotify multiple tracks lookup error:', error);
+      throw new Error('Failed to get track details');
+    }
+  }
+
+  /**
    * Format track data for frontend consumption
    */
   formatTrackData(track: SpotifyTrack) {
@@ -180,6 +204,22 @@ class SpotifyService {
       popularity: track.popularity,
       image: track.album.images[0]?.url || null,
       spotifyUrl: `https://open.spotify.com/track/${track.id}`,
+    };
+  }
+
+  /**
+   * Format track data for landing page hit songs carousel
+   */
+  formatForLandingPage(track: SpotifyTrack, producerName: string) {
+    return {
+      id: track.id,
+      title: track.name,
+      artist: track.artists.map((a) => a.name).join(', '),
+      producer: producerName,
+      coverArt: track.album.images[0]?.url || null,
+      previewUrl: track.preview_url,
+      spotifyUrl: `https://open.spotify.com/track/${track.id}`,
+      popularity: track.popularity,
     };
   }
 }

@@ -4,6 +4,7 @@ import { useAuthStore } from './store/auth.store';
 
 // Pages
 import LandingPage from './pages/LandingPage';
+import LandingPageNew from './pages/LandingPageNew';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -143,7 +144,10 @@ function App() {
           }
         />
 
-        <Route path="/" element={<LandingPage />} />
+        {/* Old Landing Page (kept for reference) */}
+        <Route path="/old" element={<LandingPage />} />
+
+        <Route path="/" element={<LandingPageNew />} />
       </Routes>
     </BrowserRouter>
   );

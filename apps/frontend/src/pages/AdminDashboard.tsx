@@ -15,12 +15,13 @@ import PlacementTracker from '../components/admin/PlacementTracker';
 import PendingPlacementsQueue from './PendingPlacementsQueue';
 import RewardRedemptionsTab from '../components/admin/RewardRedemptionsTab';
 import GamificationAnalytics from '../components/gamification/GamificationAnalytics';
+import TourMilesConfig from '../components/admin/TourMilesConfig';
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { formatIpiDisplay } from '../utils/ipi-helper';
 import { useAuthStore } from '../store/auth.store';
 
-type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'active-placements' | 'pending-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics';
+type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'active-placements' | 'pending-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config';
 
 // Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
 const formatChartCurrency = (value: any): string => {
@@ -63,6 +64,7 @@ export default function AdminDashboard() {
             {activeTab === 'commission' && <CommissionSettingsPage />}
             {activeTab === 'reward-redemptions' && <RewardRedemptionsTab />}
             {activeTab === 'gamification-analytics' && <GamificationAnalytics />}
+            {activeTab === 'tour-miles-config' && <TourMilesConfig />}
           </div>
         </main>
       </div>

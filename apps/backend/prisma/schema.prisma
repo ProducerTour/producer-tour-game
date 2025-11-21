@@ -775,6 +775,8 @@ enum GamificationEventType {
   REWARD_REDEEMED
   ADMIN_AWARDED
   ADMIN_DEDUCTED
+  REWARD_REFUNDED
+  CONFIG_UPDATED
 }
 
 enum AchievementCategory {
@@ -1001,4 +1003,16 @@ model DailyCheckIn {
   @@index([userId])
   @@index([checkInDate])
   @@map("daily_check_ins")
+}
+
+// Gamification configuration (admin-managed)
+model GamificationConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique  // e.g., "point_values", "tier_thresholds", "multipliers"
+  value     Json                // Configuration values as JSON
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gamification_config")
 }

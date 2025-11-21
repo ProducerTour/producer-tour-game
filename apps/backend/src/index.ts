@@ -32,6 +32,7 @@ import audioDBRoutes from './routes/audiodb.routes';
 import workRegistrationRoutes from './routes/work-registration.routes';
 import creditSuggestionsRoutes from './routes/creditSuggestions.routes';
 import gamificationRoutes from './routes/gamification.routes';
+import spotifyRoutes from './routes/spotify.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -68,6 +69,7 @@ app.use(helmet({
 // Middleware - CORS Configuration
 const allowedOrigins = [
   'http://localhost:5173', // Local development
+  'http://localhost:5174', // Local development (alternate port)
   'http://localhost:3000',  // Local backend
   'https://website-frontend-producer-tour.vercel.app', // Vercel production domain
   'https://producertour.com', // Custom domain
@@ -158,6 +160,7 @@ app.use('/api/audiodb', audioDBRoutes);
 app.use('/api/work-registration', workRegistrationRoutes);
 app.use('/api/credit-suggestions', creditSuggestionsRoutes);
 app.use('/api/gamification', gamificationRoutes);
+app.use('/api/spotify', spotifyRoutes);
 
 // Error handling
 app.use(notFoundHandler);
