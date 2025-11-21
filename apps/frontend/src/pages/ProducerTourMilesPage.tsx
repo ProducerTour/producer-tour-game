@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { gamificationApi } from '../lib/api';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import AchievementGallery from '../components/gamification/AchievementGallery';
@@ -77,14 +77,6 @@ export default function ProducerTourMilesPage() {
     queryKey: ['gamification-rewards'],
     queryFn: async () => {
       const response = await gamificationApi.getRewards();
-      return response.data;
-    },
-  });
-
-  const { data: leaderboard, isLoading: leaderboardLoading } = useQuery({
-    queryKey: ['gamification-leaderboard'],
-    queryFn: async () => {
-      const response = await gamificationApi.getLeaderboard({ limit: 10 });
       return response.data;
     },
   });

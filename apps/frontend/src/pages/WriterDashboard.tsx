@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dashboardApi, statementApi, documentApi, userApi, payoutApi } from '../lib/api';
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import Sidebar, { type NavItem } from '../components/Sidebar';
+import Sidebar from '../components/Sidebar';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';

@@ -49,7 +49,7 @@ export default function SocialShareButtons({ referralCode }: SocialShareButtonsP
   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
   const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
-  const discordUrl = `https://discord.com`; // Discord doesn't have direct share URL, users copy link
+  // Discord doesn't have direct share URL, users copy link instead
 
   return (
     <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 border border-slate-700">

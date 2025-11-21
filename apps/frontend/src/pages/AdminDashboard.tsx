@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { dashboardApi, statementApi, userApi, authApi } from '../lib/api';
 import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import Sidebar, { type NavItem } from '../components/Sidebar';
+import Sidebar from '../components/Sidebar';
 import ToolsHub from '../components/ToolsHub';
 import ToolPermissionsSettings from '../components/ToolPermissionsSettings';
 import DocumentsTab from '../components/DocumentsTab';
