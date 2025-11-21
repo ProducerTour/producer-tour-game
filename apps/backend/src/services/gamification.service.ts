@@ -156,7 +156,8 @@ export const deductPoints = async (
 
     const newTotalSpent = current.totalSpent + points;
     const newPoints = current.points - points;
-    const newTier = calculateTier(newPoints);
+    // Tiers are based on totalEarned, not current points (prevents tier downgrade when spending)
+    const newTier = calculateTier(current.totalEarned);
 
     const updated = await tx.gamificationPoints.update({
       where: { userId },
@@ -678,7 +679,7 @@ export const checkAchievements = async (userId: string) => {
         break;
 
       case 'first_work_submission':
-        const workSubmissions = await prisma.workRegistration.count({
+        const workSubmissions = await prisma.placement.count({
           where: { userId }
         });
         unlocked = workSubmissions > 0;

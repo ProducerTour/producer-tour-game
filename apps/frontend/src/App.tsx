@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/auth.store';
 
 // Pages
@@ -40,6 +41,39 @@ function App() {
 
   return (
     <BrowserRouter>
+      {/* Global Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#1e293b',
+            color: '#f1f5f9',
+            border: '1px solid #334155',
+            borderRadius: '12px',
+            padding: '16px',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.4)',
+          },
+          success: {
+            iconTheme: {
+              primary: '#22c55e',
+              secondary: '#1e293b',
+            },
+            style: {
+              borderLeft: '4px solid #22c55e',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#1e293b',
+            },
+            style: {
+              borderLeft: '4px solid #ef4444',
+            },
+          },
+        }}
+      />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

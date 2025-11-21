@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { authenticate, AuthRequest, requireAdmin } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 import { emailService } from '../services/email.service';
+import { initializeUserGamification, recordReferralSignup } from '../services/gamification.service';
 
 const router = Router();
 
@@ -21,6 +22,7 @@ const registerSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   role: z.enum(['ADMIN', 'WRITER', 'LEGAL']).optional(),
+  referralCode: z.string().optional(),
 });
 
 const forgotPasswordSchema = z.object({
@@ -122,6 +124,19 @@ router.post('/register', async (req: Request, res: Response) => {
         role: data.role || 'WRITER',
       },
     });
+
+    // Initialize gamification for the new user
+    try {
+      await initializeUserGamification(user.id);
+
+      // If a referral code was provided, record the referral signup
+      if (data.referralCode) {
+        await recordReferralSignup(data.referralCode, user.id);
+      }
+    } catch (gamificationError) {
+      console.error('Failed to initialize gamification:', gamificationError);
+      // Continue registration even if gamification fails
+    }
 
     // Generate token
     const expiresIn = (process.env.JWT_EXPIRES_IN ?? '7d') as SignOptions['expiresIn'];

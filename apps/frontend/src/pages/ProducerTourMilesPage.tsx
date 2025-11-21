@@ -10,6 +10,7 @@ import LevelUpModal from '../components/gamification/LevelUpModal';
 import AchievementUnlockModal from '../components/gamification/AchievementUnlockModal';
 import PointsToast from '../components/gamification/PointsToast';
 import { Trophy, Gift, Star, TrendingUp, Users, Calendar, Zap, Award } from 'lucide-react';
+import { rewardRedeemedToast, errorToast } from '../lib/toast';
 
 const TIER_COLORS = {
   BRONZE: '#CD7F32',
@@ -117,8 +118,15 @@ export default function ProducerTourMilesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gamification-stats'] });
       queryClient.invalidateQueries({ queryKey: ['gamification-rewards'] });
+      // Show toast notification
+      if (selectedReward) {
+        rewardRedeemedToast(selectedReward.name, selectedReward.cost);
+      }
       setShowRedemptionModal(false);
       setSelectedReward(null);
+    },
+    onError: () => {
+      errorToast('Failed to redeem reward. Please try again.');
     },
   });
 

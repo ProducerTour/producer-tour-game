@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
+import { awardPoints, checkAchievements } from '../services/gamification.service';
 
 const router = Router();
 
@@ -253,6 +254,30 @@ router.post('/', async (req: AuthRequest, res: Response) => {
         credits: true,
       },
     });
+
+    // Gamification: Award points for work submission
+    try {
+      // Check if this is the user's first placement
+      const placementCount = await prisma.placement.count({
+        where: { userId }
+      });
+
+      if (placementCount === 1) {
+        // Award 100 TP for first work submission
+        await awardPoints(
+          userId,
+          'WORK_SUBMISSION',
+          100,
+          'First work submission'
+        );
+
+        // Check and unlock achievements (including "First Steps")
+        await checkAchievements(userId);
+      }
+    } catch (gamificationError) {
+      console.error('Failed to award work submission points:', gamificationError);
+      // Continue even if gamification fails
+    }
 
     res.status(201).json({
       success: true,

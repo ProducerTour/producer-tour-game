@@ -1121,9 +1121,10 @@ router.post(
             orderBy: { redeemedAt: 'desc' } // Get most recent if multiple
           });
 
-          if (activeRedemption && activeRedemption.reward.metadata) {
-            const metadata = activeRedemption.reward.metadata as any;
-            const reductionPercent = metadata.reductionPercent || 0;
+          if (activeRedemption && activeRedemption.reward.details) {
+            // Try both `details` (from seed) and `metadata` (for future compatibility)
+            const data = activeRedemption.reward.details as any;
+            const reductionPercent = data.commissionReduction || data.reductionPercent || 0;
             if (reductionPercent > 0) {
               commissionReductions.set(userId, {
                 reductionPercent,
