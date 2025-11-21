@@ -1,32 +1,21 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
 import { useQuery } from '@tanstack/react-query';
+import { getNavigationForRole, type NavSection, type NavItem } from '../config/navigation.config';
 
-interface TabItem {
-  id: string;
-  label: string;
-  icon: string;
-  children?: Array<{ id: string; label: string; icon: string }>;
-  path?: string;
-  badge?: number;
-  badgeColor?: 'blue' | 'green' | 'yellow' | 'red' | 'purple';
-}
-
-interface NavSection {
-  id: string;
-  label: string;
-  items: TabItem[];
-}
+// Re-export types for backward compatibility
+export type { NavSection, NavItem };
 
 interface SidebarProps {
   activeTab?: string;
   onTabChange?: (tab: string) => void;
-  tabs?: TabItem[];
+  tabs?: NavItem[]; // Optional override for custom tabs in dashboard
 }
 
 export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) {
   const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
   const [expandedSections, setExpandedSections] = useState<string[]>(['main']);
   const [expandedTabs, setExpandedTabs] = useState<string[]>(['placement-deals']); // Auto-expand placement tracker
 
@@ -67,64 +56,40 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
     );
   };
 
-  // Admin navigation structure
-  const adminSections: NavSection[] = [
-    {
-      id: 'main',
-      label: 'Main',
-      items: tabs || [
-        { id: 'overview', label: 'Dashboard', icon: '🏠', path: '/admin' },
-        { id: 'statements', label: 'Statements', icon: '📊', path: '/admin' },
-        { id: 'writers', label: 'Writers', icon: '👥', path: '/admin' },
-        { id: 'analytics', label: 'Analytics', icon: '📈', path: '/admin' },
-        { id: 'documents', label: 'Documents', icon: '📄', path: '/admin' },
-      ]
-    },
-    {
-      id: 'tools',
-      label: 'Tools & Apps',
-      items: [
-        { id: 'tools', label: 'Tools Hub', icon: '🛠️', path: '/admin' },
-        { id: 'spotify', label: 'Spotify Lookup', icon: '🎵', path: '/admin' },
-      ]
-    }
-  ];
+  // Get navigation from centralized config and apply dynamic badges
+  const sections = useMemo(() => {
+    const baseNav = getNavigationForRole(user?.role || 'WRITER');
 
-  // Writer navigation structure
-  const writerSections: NavSection[] = [
-    {
-      id: 'main',
-      label: 'Main',
-      items: tabs || [
-        { id: 'overview', label: 'Dashboard', icon: '🏠', path: '/writer' },
-        { id: 'songs', label: 'My Songs', icon: '🎵', path: '/writer' },
-        { id: 'statements', label: 'My Statements', icon: '📊', path: '/writer' },
-        { id: 'documents', label: 'Documents', icon: '📄', path: '/writer' },
-        { id: 'payments', label: 'Payments', icon: '💳', path: '/writer' },
+    // If tabs prop is provided, override the first section's items (for dashboard compatibility)
+    if (tabs) {
+      return [
         {
-          id: 'claims',
-          label: 'Claims',
-          icon: '✅',
-          path: '/writer',
-          badge: approvedClaimsCount > 0 ? approvedClaimsCount : undefined,
-          badgeColor: 'green'
+          ...baseNav[0],
+          items: tabs,
         },
-        { id: 'profile', label: 'Profile', icon: '👤', path: '/writer' },
-      ]
-    },
-    {
-      id: 'tools',
-      label: 'Tools & Apps',
-      items: [
-        { id: 'tools', label: 'Tools Hub', icon: '🛠️', path: '/writer' },
-      ]
+        ...baseNav.slice(1),
+      ];
     }
-  ];
 
-  const sections = isAdmin ? adminSections : writerSections;
+    // Apply dynamic badges to navigation items
+    return baseNav.map((section) => ({
+      ...section,
+      items: section.items.map((item) => {
+        // Add claims badge for writers
+        if (item.id === 'claims' && !isAdmin) {
+          return {
+            ...item,
+            badge: approvedClaimsCount > 0 ? approvedClaimsCount : undefined,
+            badgeColor: 'green' as const,
+          };
+        }
+        return item;
+      }),
+    }));
+  }, [user?.role, tabs, approvedClaimsCount, isAdmin]);
 
   return (
-    <div className="flex flex-col h-screen w-64 bg-gradient-to-b from-slate-900 to-slate-800 border-r border-slate-700 shadow-2xl">
+    <div className="fixed left-0 top-0 flex flex-col h-screen w-64 bg-gradient-to-b from-slate-900 to-slate-800 border-r border-slate-700 shadow-2xl z-[60]">
       {/* Logo Section */}
       <div className="p-6 border-b border-slate-700">
         <div className="flex items-center gap-3">
@@ -201,48 +166,80 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
 
                   return (
                     <div key={item.id}>
-                      <button
-                        onClick={() => {
-                          if (hasChildren) {
-                            toggleTab(item.id);
-                          } else {
-                            onTabChange?.(item.id);
-                          }
-                        }}
-                        className={`w-full px-6 py-3 flex items-center gap-3 transition-all ${
-                          isActive
-                            ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-l-4 border-blue-500 text-white'
-                            : 'text-gray-400 hover:text-white hover:bg-slate-700/50 border-l-4 border-transparent'
-                        }`}
-                      >
-                        <span className="text-xl">{item.icon}</span>
-                        <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
-                        {item.badge !== undefined && item.badge > 0 && (
-                          <span className={`
-                            px-2 py-0.5 rounded-full text-xs font-semibold
-                            ${item.badgeColor === 'green' ? 'bg-green-500/20 text-green-400 border border-green-500/40' : ''}
-                            ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
-                            ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
-                            ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
-                            ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
-                            ${!item.badgeColor ? 'bg-slate-500/20 text-slate-400 border border-slate-500/40' : ''}
-                          `}>
-                            {item.badge}
-                          </span>
-                        )}
-                        {hasChildren && (
-                          <svg
-                            className={`w-4 h-4 transition-transform ${
-                              isExpanded ? 'rotate-180' : ''
-                            }`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        )}
-                      </button>
+                      {/* Use Link for navigation paths, button for tab changes */}
+                      {item.path && !hasChildren ? (
+                        <Link
+                          to={item.path}
+                          className={`w-full px-6 py-3 flex items-center gap-3 transition-all ${
+                            isActive
+                              ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-l-4 border-blue-500 text-white'
+                              : 'text-gray-400 hover:text-white hover:bg-slate-700/50 border-l-4 border-transparent'
+                          }`}
+                        >
+                          <span className="text-xl">{item.icon}</span>
+                          <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
+                          {item.badge !== undefined && item.badge > 0 && (
+                            <span className={`
+                              px-2 py-0.5 rounded-full text-xs font-semibold
+                              ${item.badgeColor === 'green' ? 'bg-green-500/20 text-green-400 border border-green-500/40' : ''}
+                              ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
+                              ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
+                              ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
+                              ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
+                              ${!item.badgeColor ? 'bg-slate-500/20 text-slate-400 border border-slate-500/40' : ''}
+                            `}>
+                              {item.badge}
+                            </span>
+                          )}
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (hasChildren) {
+                              toggleTab(item.id);
+                            } else if (onTabChange) {
+                              onTabChange(item.id);
+                            } else {
+                              // If no onTabChange (e.g., from /tour-miles), navigate to dashboard
+                              const dashboardPath = user?.role === 'ADMIN' ? '/admin' : '/dashboard';
+                              navigate(dashboardPath);
+                            }
+                          }}
+                          className={`w-full px-6 py-3 flex items-center gap-3 transition-all ${
+                            isActive
+                              ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-l-4 border-blue-500 text-white'
+                              : 'text-gray-400 hover:text-white hover:bg-slate-700/50 border-l-4 border-transparent'
+                          }`}
+                        >
+                          <span className="text-xl">{item.icon}</span>
+                          <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
+                          {item.badge !== undefined && item.badge > 0 && (
+                            <span className={`
+                              px-2 py-0.5 rounded-full text-xs font-semibold
+                              ${item.badgeColor === 'green' ? 'bg-green-500/20 text-green-400 border border-green-500/40' : ''}
+                              ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
+                              ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
+                              ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
+                              ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
+                              ${!item.badgeColor ? 'bg-slate-500/20 text-slate-400 border border-slate-500/40' : ''}
+                            `}>
+                              {item.badge}
+                            </span>
+                          )}
+                          {hasChildren && (
+                            <svg
+                              className={`w-4 h-4 transition-transform ${
+                                isExpanded ? 'rotate-180' : ''
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
 
                       {/* Sub-items */}
                       {hasChildren && isExpanded && (
@@ -252,7 +249,15 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                             return (
                               <button
                                 key={child.id}
-                                onClick={() => onTabChange?.(child.id)}
+                                onClick={() => {
+                                  if (onTabChange) {
+                                    onTabChange(child.id);
+                                  } else {
+                                    // If no onTabChange (e.g., from /tour-miles), navigate to dashboard
+                                    const dashboardPath = user?.role === 'ADMIN' ? '/admin' : '/dashboard';
+                                    navigate(dashboardPath);
+                                  }
+                                }}
                                 className={`w-full px-6 py-2 flex items-center gap-3 transition-all ${
                                   isChildActive
                                     ? 'bg-gradient-to-r from-purple-500/20 to-purple-600/20 border-l-4 border-purple-500 text-white'

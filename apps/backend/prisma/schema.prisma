@@ -176,6 +176,14 @@ model User {
   userDocuments         Document[]        @relation("UserDocuments")
   payoutRequests        PayoutRequest[]
 
+  // Gamification relations
+  gamificationPoints    GamificationPoints?
+  gamificationEvents    GamificationEvent[]
+  achievements          UserAchievement[]
+  rewardRedemptions     RewardRedemption[]
+  socialShares          SocialShare[]
+  dailyCheckIns         DailyCheckIn[]
+
   @@map("users")
 }
 
@@ -729,4 +737,268 @@ model SystemSettings {
   updatedAt DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+// ========================================
+// GAMIFICATION SYSTEM - Producer Tour Miles
+// ========================================
+
+enum GamificationTier {
+  BRONZE   // 0-999 TP
+  SILVER   // 1,000-4,999 TP
+  GOLD     // 5,000-14,999 TP
+  DIAMOND  // 15,000-49,999 TP
+  ELITE    // 50,000+ TP
+}
+
+enum GamificationEventType {
+  DAILY_CHECK_IN
+  WEEKLY_STREAK_BONUS
+  MONTHLY_STREAK_BONUS
+  SOCIAL_SHARE
+  DISCORD_SHARE
+  REFERRAL_SIGNUP
+  REFERRAL_CONVERSION
+  PROFILE_COMPLETE
+  PROFILE_PHOTO_UPLOAD
+  STRIPE_CONNECTED
+  WORK_SUBMITTED
+  WORK_APPROVED
+  REVENUE_MILESTONE
+  PAYOUT_COMPLETED
+  STATEMENT_VIEWED
+  FEEDBACK_SUBMITTED
+  BUG_REPORTED
+  FEATURE_SUGGESTED
+  ACHIEVEMENT_UNLOCKED
+  LEVEL_UP
+  REWARD_REDEEMED
+  ADMIN_AWARDED
+  ADMIN_DEDUCTED
+}
+
+enum AchievementCategory {
+  SOCIAL
+  PLATFORM
+  REVENUE
+  COMMUNITY
+  ENGAGEMENT
+  MILESTONE
+}
+
+enum AchievementTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+}
+
+enum RewardCategory {
+  COMMISSION
+  PAYOUT
+  PLATFORM
+  SUBSCRIPTION
+  PHYSICAL
+}
+
+enum RedemptionStatus {
+  PENDING
+  APPROVED
+  COMPLETED
+  DENIED
+  EXPIRED
+}
+
+// User's gamification points and level
+model GamificationPoints {
+  id          String            @id @default(cuid())
+  userId      String            @unique
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  points      Int               @default(0)           // Current point balance
+  totalEarned Int               @default(0)           // Lifetime points earned
+  totalSpent  Int               @default(0)           // Lifetime points spent on rewards
+  tier        GamificationTier  @default(BRONZE)      // Current tier level
+
+  // Streak tracking
+  lastCheckIn     DateTime?
+  currentStreak   Int           @default(0)           // Days in a row
+  longestStreak   Int           @default(0)           // All-time best
+
+  // Referral tracking
+  referralCode    String        @unique               // Unique code for this user
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([tier])
+  @@index([points])
+  @@map("gamification_points")
+}
+
+// Log of all point transactions
+model GamificationEvent {
+  id          String                @id @default(cuid())
+  userId      String
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  eventType   GamificationEventType
+  points      Int                   // Positive for earning, negative for spending
+  description String?
+  metadata    Json?                 // Additional context (e.g., work ID, reward ID)
+
+  // Admin actions
+  adminId     String?               // If manually awarded/deducted by admin
+  adminReason String?               // Required reason for manual adjustments
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("gamification_events")
+}
+
+// Achievement definitions
+model Achievement {
+  id          String               @id @default(cuid())
+  name        String               @unique
+  description String
+  icon        String               // URL or icon identifier
+  points      Int                  // Bonus points awarded when unlocked
+
+  // Criteria for unlocking (JSON rules)
+  criteria    Json                 // e.g., {"type": "work_count", "threshold": 5}
+
+  tier        AchievementTier
+  category    AchievementCategory
+  isActive    Boolean              @default(true)
+
+  // Relations
+  userAchievements UserAchievement[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([tier])
+  @@index([isActive])
+  @@map("achievements")
+}
+
+// User's unlocked achievements
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  unlockedAt    DateTime @default(now())
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+  @@map("user_achievements")
+}
+
+// Reward store items
+model Reward {
+  id          String         @id @default(cuid())
+  name        String
+  description String
+  cost        Int            // Point cost
+
+  category    RewardCategory
+  type        String         // COMMISSION_REDUCTION, PRIORITY_PAYOUT, CREDIT, etc.
+
+  // Restrictions
+  roleRestriction    String?          // null = all, or "WRITER", "VIEWER"
+  tierRestriction    GamificationTier? // Minimum tier required (e.g., ELITE for 10% reduction)
+  isActive           Boolean          @default(true)
+  inventory          Int?             // null = unlimited, number = limited stock
+
+  // Reward details (JSON)
+  details     Json           // e.g., {"percentage": 5, "applies_to": "single_payout"}
+
+  // Relations
+  redemptions RewardRedemption[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([roleRestriction])
+  @@index([tierRestriction])
+  @@index([isActive])
+  @@map("rewards")
+}
+
+// User's reward redemptions
+model RewardRedemption {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rewardId    String
+  reward      Reward           @relation(fields: [rewardId], references: [id])
+
+  pointsCost  Int              // Cost at time of redemption
+  status      RedemptionStatus @default(PENDING)
+
+  // For physical items
+  adminId     String?          // Admin who approved/denied
+  adminNotes  String?
+
+  // For commission reductions (applies to single payout)
+  appliedToPayoutId String?    // ID of PayoutRequest this was applied to
+  expiresAt         DateTime?   // When this redemption expires (if applicable)
+  isActive          Boolean    @default(true)
+
+  redeemedAt  DateTime @default(now())
+  processedAt DateTime?
+
+  @@index([userId])
+  @@index([rewardId])
+  @@index([status])
+  @@index([appliedToPayoutId])
+  @@map("reward_redemptions")
+}
+
+// Social shares tracking
+model SocialShare {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  platform    String   // TWITTER, FACEBOOK, DISCORD, etc.
+  clicks      Int      @default(0)
+  signups     Int      @default(0)   // Referral signups
+  conversions Int      @default(0)   // Referral conversions to paying customers
+
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([platform])
+  @@map("social_shares")
+}
+
+// Daily check-ins
+model DailyCheckIn {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  checkInDate DateTime @db.Date     // Date only, no time
+  pointsEarned Int     @default(10)
+  streakDay   Int                   // Which day in the streak (1, 2, 3, etc.)
+
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, checkInDate])
+  @@index([userId])
+  @@index([checkInDate])
+  @@map("daily_check_ins")
 }

@@ -19,6 +19,7 @@ import AdvanceEstimatorToolPage from './pages/AdvanceEstimatorToolPage';
 import SettingsPage from './pages/SettingsPage';
 import WorkRegistrationTool from './pages/WorkRegistrationTool';
 import MySubmissions from './pages/MySubmissions';
+import ProducerTourMilesPage from './pages/ProducerTourMilesPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -95,6 +96,15 @@ function App() {
           element={
             <PrivateRoute>
               <SettingsPage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/tour-miles"
+          element={
+            <PrivateRoute>
+              <ProducerTourMilesPage />
             </PrivateRoute>
           }
         />

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { dashboardApi, statementApi, userApi, authApi } from '../lib/api';
 import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import Sidebar from '../components/Sidebar';
+import Sidebar, { type NavItem } from '../components/Sidebar';
 import ToolsHub from '../components/ToolsHub';
 import ToolPermissionsSettings from '../components/ToolPermissionsSettings';
 import DocumentsTab from '../components/DocumentsTab';
@@ -13,12 +13,13 @@ import PayoutsTab from '../components/PayoutsTab';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import PlacementTracker from '../components/admin/PlacementTracker';
 import PendingPlacementsQueue from './PendingPlacementsQueue';
+import RewardRedemptionsTab from '../components/admin/RewardRedemptionsTab';
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { formatIpiDisplay } from '../utils/ipi-helper';
 import { useAuthStore } from '../store/auth.store';
 
-type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'active-placements' | 'pending-placements' | 'tool-permissions';
+type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'active-placements' | 'pending-placements' | 'tool-permissions' | 'reward-redemptions';
 
 // Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
 const formatChartCurrency = (value: any): string => {
@@ -33,27 +34,6 @@ const formatChartCurrency = (value: any): string => {
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
-  const adminTabs = [
-    { id: 'overview', label: 'Dashboard', icon: '🏠' },
-    { id: 'statements', label: 'Statements', icon: '📊' },
-    { id: 'users', label: 'Users', icon: '👥' },
-    { id: 'analytics', label: 'Analytics', icon: '📈' },
-    { id: 'payouts', label: 'Payouts', icon: '💰' },
-    {
-      id: 'placement-deals',
-      label: 'Placement Tracker',
-      icon: '🎵',
-      children: [
-        { id: 'pending-placements', label: 'Pending Placements', icon: '⏳' },
-        { id: 'active-placements', label: 'Producer Clearances', icon: '✅' },
-      ],
-    },
-    { id: 'documents', label: 'Documents', icon: '📄' },
-    { id: 'tools', label: 'Tools Hub', icon: '🛠️' },
-    { id: 'tool-permissions', label: 'Tool Permissions', icon: '🔐' },
-    { id: 'commission', label: 'Commission Settings', icon: '💼' },
-  ];
-
   return (
     <div className="flex flex-col h-screen bg-slate-900 overflow-hidden">
       {/* Impersonation Banner */}
@@ -64,11 +44,10 @@ export default function AdminDashboard() {
         <Sidebar
           activeTab={activeTab}
           onTabChange={(tab) => setActiveTab(tab as TabType)}
-          tabs={adminTabs}
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 ml-64 overflow-y-auto">
           <div className="p-8">
             {activeTab === 'overview' && <DashboardOverview />}
             {activeTab === 'statements' && <StatementsTab />}
@@ -81,6 +60,7 @@ export default function AdminDashboard() {
             {activeTab === 'tools' && <ToolsHub />}
             {activeTab === 'tool-permissions' && <ToolPermissionsSettings />}
             {activeTab === 'commission' && <CommissionSettingsPage />}
+            {activeTab === 'reward-redemptions' && <RewardRedemptionsTab />}
           </div>
         </main>
       </div>

@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { prisma } from '../lib/prisma';
+import * as gamificationService from './gamification.service';
 
 // Initialize Stripe only if API key is available
 let stripe: Stripe | null = null;
@@ -112,6 +113,10 @@ export const stripeService = {
       const status = onboardingComplete ? 'complete' :
                      account.details_submitted ? 'restricted' : 'pending';
 
+      // Check if this is the first time completing onboarding
+      const wasIncomplete = !user.stripeOnboardingComplete;
+      const isNowComplete = onboardingComplete;
+
       // Update user record
       await prisma.user.update({
         where: { id: userId },
@@ -121,6 +126,20 @@ export const stripeService = {
           stripeDetailsSubmitted: account.details_submitted,
         },
       });
+
+      // Award gamification points for first-time Stripe connection
+      if (wasIncomplete && isNowComplete) {
+        try {
+          await gamificationService.awardPoints(
+            userId,
+            'STRIPE_CONNECTED',
+            100,
+            'Connected Stripe account for payouts'
+          );
+        } catch (gamError) {
+          console.error('Gamification award error:', gamError);
+        }
+      }
 
       return {
         onboardingComplete,

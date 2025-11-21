@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authenticate, AuthRequest, requireAdmin } from '../middleware/auth.middleware';
 import { prisma } from '../lib/prisma';
 import { stripeService } from '../services/stripe.service';
+import * as gamificationService from '../services/gamification.service';
 
 const router = Router();
 
@@ -410,6 +411,18 @@ router.post('/:id/approve', authenticate, requireAdmin, async (req: AuthRequest,
           pendingBalance: { decrement: Number(payout.amount) },
         },
       });
+
+      // Award gamification points for payout completion
+      try {
+        await gamificationService.awardPoints(
+          payout.userId,
+          'PAYOUT_COMPLETED',
+          50,
+          `Payout completed: $${Number(payout.amount).toFixed(2)}`
+        );
+      } catch (gamError) {
+        console.error('Gamification award error:', gamError);
+      }
     }
 
     res.json({

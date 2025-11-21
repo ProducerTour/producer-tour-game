@@ -1099,6 +1099,40 @@ router.post(
 
       // Process payment in transaction
       const result = await prisma.$transaction(async (tx) => {
+        // Check for active commission reduction redemptions for each writer
+        const userIds = [...new Set(statement.items.map(item => item.userId))];
+        const commissionReductions = new Map<string, { reductionPercent: number; redemptionId: string }>();
+
+        for (const userId of userIds) {
+          // Find active commission reduction redemptions
+          const activeRedemption = await tx.rewardRedemption.findFirst({
+            where: {
+              userId,
+              isActive: true,
+              status: 'APPROVED',
+              expiresAt: { gte: new Date() },
+              reward: {
+                type: 'COMMISSION_REDUCTION'
+              }
+            },
+            include: {
+              reward: true
+            },
+            orderBy: { redeemedAt: 'desc' } // Get most recent if multiple
+          });
+
+          if (activeRedemption && activeRedemption.reward.metadata) {
+            const metadata = activeRedemption.reward.metadata as any;
+            const reductionPercent = metadata.reductionPercent || 0;
+            if (reductionPercent > 0) {
+              commissionReductions.set(userId, {
+                reductionPercent,
+                redemptionId: activeRedemption.id
+              });
+            }
+          }
+        }
+
         // Update statement
         const updatedStatement = await tx.statement.update({
           where: { id },
@@ -1119,13 +1153,27 @@ router.post(
         });
 
         // Update writer balances - add net revenue to their available balance
-        // Group by writer and sum their net revenue
+        // Group by writer and sum their net revenue (with commission reductions applied)
         const writerBalanceUpdates = new Map<string, number>();
+        const appliedReductions = new Set<string>();
 
         for (const item of statement.items) {
-          const netRevenue = Number(item.netRevenue);
-          const currentTotal = writerBalanceUpdates.get(item.userId) || 0;
-          writerBalanceUpdates.set(item.userId, currentTotal + netRevenue);
+          let netRevenue = Number(item.netRevenue);
+          const userId = item.userId;
+
+          // Apply commission reduction if available
+          if (commissionReductions.has(userId)) {
+            const { reductionPercent, redemptionId } = commissionReductions.get(userId)!;
+            const commissionAmount = Number(item.commissionAmount);
+            const commissionRefund = (commissionAmount * reductionPercent) / 100;
+            netRevenue += commissionRefund;
+            appliedReductions.add(redemptionId);
+
+            console.log(`💰 Applied ${reductionPercent}% commission reduction for user ${userId}: +$${commissionRefund.toFixed(2)}`);
+          }
+
+          const currentTotal = writerBalanceUpdates.get(userId) || 0;
+          writerBalanceUpdates.set(userId, currentTotal + netRevenue);
         }
 
         // Update each writer's balance
@@ -1135,6 +1183,17 @@ router.post(
             data: {
               availableBalance: { increment: netAmount },
               lifetimeEarnings: { increment: netAmount }
+            }
+          });
+        }
+
+        // Mark commission reduction redemptions as used
+        for (const redemptionId of appliedReductions) {
+          await tx.rewardRedemption.update({
+            where: { id: redemptionId },
+            data: {
+              isActive: false,
+              appliedToPayoutId: id
             }
           });
         }

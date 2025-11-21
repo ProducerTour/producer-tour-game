@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dashboardApi, statementApi, documentApi, userApi, payoutApi } from '../lib/api';
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import Sidebar from '../components/Sidebar';
+import Sidebar, { type NavItem } from '../components/Sidebar';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
@@ -74,17 +74,6 @@ export default function WriterDashboard() {
       [chartId]: !prev[chartId]
     }));
   };
-
-  const writerTabs = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'songs', label: 'My Songs', icon: '🎵' },
-    { id: 'statements', label: 'Statements', icon: '📄' },
-    { id: 'documents', label: 'Documents', icon: '📁' },
-    { id: 'payments', label: 'Payments', icon: '💳' },
-    { id: 'claims', label: 'Claims', icon: '✅' },
-    { id: 'profile', label: 'Profile', icon: '👤' },
-    { id: 'tools', label: 'Tools Hub', icon: '🛠️' },
-  ];
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['dashboard-summary'],
@@ -211,11 +200,10 @@ export default function WriterDashboard() {
         <Sidebar
           activeTab={activeTab}
           onTabChange={(tab) => setActiveTab(tab as 'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile' | 'tools' | 'claims')}
-          tabs={writerTabs}
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 ml-64 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Payment Status Indicator */}

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, XCircle, FileText, Music, AlertCircle,
   DollarSign, Percent, Calendar, Clock,
-  ChevronDown, ChevronUp, Search, Users, Paperclip, Download
+  ChevronDown, Search, Users, Paperclip, Download
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { workRegistrationApi, WorkSubmission } from '@/lib/workRegistrationApi';

@@ -435,3 +435,25 @@ export const placementDealApi = {
   // Get summary statistics
   getStats: () => api.get('/placement-deals/stats/summary'),
 };
+
+// Gamification API - Producer Tour Miles
+export const gamificationApi = {
+  // Get user gamification stats
+  getStats: () => api.get('/gamification/stats'),
+
+  // Perform daily check-in
+  checkIn: () => api.post('/gamification/check-in'),
+
+  // Get leaderboard
+  getLeaderboard: (params?: { limit?: number; tier?: string }) =>
+    api.get('/gamification/leaderboard', { params }),
+
+  // Get available rewards
+  getRewards: () => api.get('/gamification/rewards'),
+
+  // Redeem a reward
+  redeemReward: (rewardId: string) => api.post(`/gamification/rewards/${rewardId}/redeem`),
+
+  // Track social share
+  trackSocialShare: (platform: string) => api.post('/gamification/social-share', { platform }),
+};
