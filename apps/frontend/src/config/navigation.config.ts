@@ -74,6 +74,7 @@ export const adminNavigation: NavSection[] = [
       },
       { id: 'documents', label: 'Documents', icon: '📄' },
       { id: 'tour-miles', label: 'Tour Miles', icon: '🎯', path: '/tour-miles' },
+      { id: 'gamification-analytics', label: 'Gamification KPIs', icon: '📊' },
       { id: 'reward-redemptions', label: 'Reward Redemptions', icon: '🎁' },
       { id: 'tools', label: 'Tools Hub', icon: '🛠️' },
       { id: 'tool-permissions', label: 'Tool Permissions', icon: '🔐' },

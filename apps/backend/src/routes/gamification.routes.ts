@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { authenticate, AuthRequest, requireAdmin } from '../middleware/auth.middleware';
 import * as gamificationService from '../services/gamification.service';
+import * as analyticsService from '../services/gamificationAnalytics.service';
 import { GamificationTier } from '../generated/client';
 import { prisma } from '../lib/prisma';
 
@@ -292,6 +293,112 @@ router.post('/admin/redemptions/:id/deny', authenticate, requireAdmin, async (re
   } catch (error) {
     console.error('Deny redemption error:', error);
     res.status(500).json({ error: 'Failed to deny redemption' });
+  }
+});
+
+// ===== ANALYTICS ENDPOINTS (Admin only) =====
+
+// Get comprehensive dashboard analytics
+router.get('/admin/analytics', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const dashboard = await analyticsService.getComprehensiveDashboard();
+    res.json(dashboard);
+  } catch (error) {
+    console.error('Get analytics error:', error);
+    res.status(500).json({ error: 'Failed to get analytics' });
+  }
+});
+
+// Get DAU trend
+router.get('/admin/analytics/dau', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const days = parseInt(req.query.days as string) || 30;
+    const dauTrend = await analyticsService.getDAUTrend(days);
+    res.json(dauTrend);
+  } catch (error) {
+    console.error('Get DAU error:', error);
+    res.status(500).json({ error: 'Failed to get DAU data' });
+  }
+});
+
+// Get engagement metrics
+router.get('/admin/analytics/engagement', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const [participation, checkInRate, streaks] = await Promise.all([
+      analyticsService.getParticipationRate(),
+      analyticsService.getDailyCheckInRate(),
+      analyticsService.getStreakRates(),
+    ]);
+    res.json({ participation, checkInRate, streaks });
+  } catch (error) {
+    console.error('Get engagement error:', error);
+    res.status(500).json({ error: 'Failed to get engagement metrics' });
+  }
+});
+
+// Get growth metrics
+router.get('/admin/analytics/growth', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const days = parseInt(req.query.days as string) || 30;
+    const [referrals, socialShares] = await Promise.all([
+      analyticsService.getReferralMetrics(days),
+      analyticsService.getSocialShareMetrics(days),
+    ]);
+    res.json({ referrals, socialShares });
+  } catch (error) {
+    console.error('Get growth error:', error);
+    res.status(500).json({ error: 'Failed to get growth metrics' });
+  }
+});
+
+// Get platform health metrics
+router.get('/admin/analytics/health', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const days = parseInt(req.query.days as string) || 30;
+    const [workRegistration, profileCompletion, stripeOnboarding, rewardRedemption] = await Promise.all([
+      analyticsService.getWorkRegistrationMetrics(days),
+      analyticsService.getProfileCompletionMetrics(),
+      analyticsService.getStripeOnboardingMetrics(),
+      analyticsService.getRewardRedemptionMetrics(),
+    ]);
+    res.json({ workRegistration, profileCompletion, stripeOnboarding, rewardRedemption });
+  } catch (error) {
+    console.error('Get platform health error:', error);
+    res.status(500).json({ error: 'Failed to get platform health metrics' });
+  }
+});
+
+// Get tier distribution
+router.get('/admin/analytics/tiers', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const tierDistribution = await analyticsService.getTierDistribution();
+    res.json(tierDistribution);
+  } catch (error) {
+    console.error('Get tiers error:', error);
+    res.status(500).json({ error: 'Failed to get tier distribution' });
+  }
+});
+
+// Get achievement metrics
+router.get('/admin/analytics/achievements', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const achievements = await analyticsService.getAchievementMetrics();
+    res.json(achievements);
+  } catch (error) {
+    console.error('Get achievements error:', error);
+    res.status(500).json({ error: 'Failed to get achievement metrics' });
+  }
+});
+
+// Get point economy metrics
+router.get('/admin/analytics/points', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const days = parseInt(req.query.days as string) || 30;
+    const pointEconomy = await analyticsService.getPointEconomyMetrics(days);
+    res.json(pointEconomy);
+  } catch (error) {
+    console.error('Get points error:', error);
+    res.status(500).json({ error: 'Failed to get point economy metrics' });
   }
 });
 
