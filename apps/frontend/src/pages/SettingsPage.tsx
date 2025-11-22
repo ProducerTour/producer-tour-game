@@ -86,6 +86,7 @@ export default function SettingsPage() {
 
   // Profile photo state
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const tourHubPhotoInputRef = useRef<HTMLInputElement>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>((user as any)?.profilePhotoUrl || null);
 
@@ -462,9 +463,8 @@ export default function SettingsPage() {
     if (file.size > MAX_PHOTO_SIZE) {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
       toast.error(`File too large (${sizeMB}MB). Maximum size is 2MB.`);
-      if (photoInputRef.current) {
-        photoInputRef.current.value = '';
-      }
+      if (photoInputRef.current) photoInputRef.current.value = '';
+      if (tourHubPhotoInputRef.current) tourHubPhotoInputRef.current.value = '';
       return;
     }
 
@@ -488,9 +488,8 @@ export default function SettingsPage() {
       toast.error(errorMessage);
     } finally {
       setIsUploadingPhoto(false);
-      if (photoInputRef.current) {
-        photoInputRef.current.value = '';
-      }
+      if (photoInputRef.current) photoInputRef.current.value = '';
+      if (tourHubPhotoInputRef.current) tourHubPhotoInputRef.current.value = '';
     }
   };
 
@@ -1173,7 +1172,7 @@ export default function SettingsPage() {
                       </div>
                       <div className="flex flex-col gap-2">
                         <input
-                          ref={photoInputRef}
+                          ref={tourHubPhotoInputRef}
                           type="file"
                           accept="image/jpeg,image/png,image/gif,image/webp"
                           onChange={handlePhotoSelect}
@@ -1181,7 +1180,7 @@ export default function SettingsPage() {
                         />
                         <button
                           type="button"
-                          onClick={() => photoInputRef.current?.click()}
+                          onClick={() => tourHubPhotoInputRef.current?.click()}
                           disabled={isUploadingPhoto}
                           className="px-4 py-2 bg-primary-500/20 text-primary-400 rounded-lg text-sm font-medium hover:bg-primary-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
                         >

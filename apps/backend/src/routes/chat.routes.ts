@@ -1,62 +1,31 @@
-import { Router, Request, Response } from 'express';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { Router, Response } from 'express';
+import { UploadedFile } from 'express-fileupload';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 import { emitToConversation, emitToUser, isUserOnline, getOnlineUsers } from '../socket';
 
 const router = Router();
 
-// Configure multer for chat file uploads
-const chatStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = process.env.UPLOAD_DIR || './uploads/chat';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, `chat-${uniqueSuffix}${ext}`);
-  }
-});
-
-const chatUpload = multer({
-  storage: chatStorage,
-  limits: {
-    fileSize: parseInt(process.env.MAX_CHAT_FILE_SIZE || '10485760') // 10MB default
-  },
-  fileFilter: (req, file, cb) => {
-    // Allow common file types for chat
-    const allowedMimes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'text/csv',
-      'text/plain',
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'audio/mpeg',
-      'audio/wav',
-      'audio/ogg',
-      'video/mp4',
-      'video/webm'
-    ];
-
-    if (allowedMimes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('File type not allowed'));
-    }
-  }
-});
+// Allowed MIME types for chat file uploads
+const CHAT_ALLOWED_MIMES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv',
+  'text/plain',
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'audio/mpeg',
+  'audio/wav',
+  'audio/ogg',
+  'video/mp4',
+  'video/webm'
+];
+const MAX_CHAT_FILE_SIZE = 5 * 1024 * 1024; // 5MB for chat files
 
 // Get all conversations for the current user
 router.get('/conversations', authenticate, async (req: AuthRequest, res: Response) => {
@@ -508,32 +477,57 @@ router.get('/users/search', authenticate, async (req: AuthRequest, res: Response
   }
 });
 
-// Upload a file for chat
-router.post('/upload', authenticate, chatUpload.single('file'), async (req: AuthRequest, res: Response) => {
+// Upload a file for chat (uses express-fileupload, stores as base64 data URL)
+router.post('/upload', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+    // Check if files were uploaded
+    if (!req.files || !req.files.file) {
+      console.error('Chat file upload: No file in request');
+      return res.status(400).json({
+        error: 'No file selected',
+        message: 'Please select a file to upload.'
+      });
     }
 
-    // Generate file URL based on environment
-    const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`;
-    const fileUrl = `${baseUrl}/uploads/chat/${req.file.filename}`;
+    const file = req.files.file as UploadedFile;
+    const userId = req.user!.id;
+
+    console.log(`Chat file upload: User ${userId}, file size: ${file.size} bytes, mimetype: ${file.mimetype}`);
+
+    // Validate file type
+    if (!CHAT_ALLOWED_MIMES.includes(file.mimetype)) {
+      return res.status(400).json({
+        error: 'Invalid file type',
+        message: 'This file type is not allowed. Please upload a supported file type.'
+      });
+    }
+
+    // Validate file size
+    if (file.size > MAX_CHAT_FILE_SIZE) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      return res.status(400).json({
+        error: 'File too large',
+        message: `File is ${sizeMB}MB. Maximum size is 5MB. Please compress your file.`
+      });
+    }
+
+    // Convert file buffer to base64 data URL
+    const base64 = file.data.toString('base64');
+    const fileUrl = `data:${file.mimetype};base64,${base64}`;
+    console.log(`Chat file upload: Base64 length: ${fileUrl.length} chars`);
 
     res.json({
       success: true,
       file: {
-        fileName: req.file.originalname,
+        fileName: file.name,
         fileUrl,
-        fileSize: req.file.size,
-        fileMimeType: req.file.mimetype,
+        fileSize: file.size,
+        fileMimeType: file.mimetype,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Chat file upload error:', error);
-    // Clean up file if error occurs
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
+    console.error('Error stack:', error.stack);
     res.status(500).json({ error: 'Failed to upload file' });
   }
 });

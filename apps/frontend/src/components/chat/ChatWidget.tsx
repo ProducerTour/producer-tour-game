@@ -4,7 +4,30 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Paperclip, Search, ChevronLeft, Circle, Users, UserPlus, Check, XIcon, Download, FileText, Loader2, UsersRound, Plus } from 'lucide-react';
 import { useSocket } from '../../hooks/useSocket';
 import { useAuthStore } from '../../store/auth.store';
-import { api } from '../../lib/api';
+import { api, chatSettingsApi } from '../../lib/api';
+
+// Play notification sound using Web Audio API
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.value = 800; // Hz
+    oscillator.type = 'sine';
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.warn('Could not play notification sound:', error);
+  }
+};
 
 interface User {
   id: string;
@@ -104,6 +127,11 @@ export function ChatWidget() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactRequests, setContactRequests] = useState<ContactRequest[]>([]);
 
+  // Chat settings state
+  const [chatSoundEnabled, setChatSoundEnabled] = useState(true);
+  const [chatDesktopNotifications, setChatDesktopNotifications] = useState(true);
+  const [chatMessagePreview, setChatMessagePreview] = useState(true);
+
   // Group chat state
   const [isGroupMode, setIsGroupMode] = useState(false);
   const [selectedParticipants, setSelectedParticipants] = useState<User[]>([]);
@@ -152,6 +180,24 @@ export function ChatWidget() {
     fetchContacts();
   }, [isOpen, user]);
 
+  // Fetch chat settings
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchChatSettings = async () => {
+      try {
+        const { data } = await chatSettingsApi.getSettings();
+        setChatSoundEnabled(data.chatSoundEnabled ?? true);
+        setChatDesktopNotifications(data.chatDesktopNotifications ?? true);
+        setChatMessagePreview(data.chatMessagePreview ?? true);
+      } catch (error) {
+        console.error('Failed to fetch chat settings:', error);
+      }
+    };
+
+    fetchChatSettings();
+  }, [user]);
+
   // Subscribe to new messages
   useEffect(() => {
     const unsubscribe = onNewMessage((message) => {
@@ -179,14 +225,32 @@ export function ChatWidget() {
         )
       );
 
-      // Update total unread
-      if (activeConversation?.id !== message.conversationId) {
+      // Update total unread and play notification sound
+      if (activeConversation?.id !== message.conversationId && message.senderId !== user?.id) {
         setTotalUnread((prev) => prev + 1);
+
+        // Play notification sound if enabled
+        if (chatSoundEnabled) {
+          playNotificationSound();
+        }
+
+        // Show desktop notification if enabled and browser supports it
+        if (chatDesktopNotifications && 'Notification' in window && Notification.permission === 'granted') {
+          const sender = message.sender;
+          const senderName = sender ? `${sender.firstName} ${sender.lastName}` : 'New message';
+          const body = chatMessagePreview ? message.content : 'You have a new message';
+
+          new Notification(senderName, {
+            body,
+            icon: '/favicon.ico',
+            tag: message.conversationId,
+          });
+        }
       }
     });
 
     return unsubscribe;
-  }, [activeConversation, onNewMessage, markAsRead]);
+  }, [activeConversation, onNewMessage, markAsRead, chatSoundEnabled, chatDesktopNotifications, chatMessagePreview, user?.id]);
 
   // Join active conversation room
   useEffect(() => {
