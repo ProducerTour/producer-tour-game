@@ -368,14 +368,14 @@ export default function LandingPage() {
       {/* PRICING SECTION */}
       <section className="pricing-section" id="pricing">
         <div className="container">
-          <div className="section-header scroll-animate">
+          <div className="section-header">
             <h2>Choose Your Plan</h2>
             <p>Whether you're managing publishing rights or creating music, we have the tools to help you succeed.</p>
           </div>
 
           <div className="pricing-grid">
             {/* Publishing Admins Plan */}
-            <div className="pricing-card scroll-animate">
+            <div className="pricing-card">
               <div className="pricing-header">
                 <span className="pricing-badge">For Publishing Admins</span>
                 <h3>Admin Suite</h3>
@@ -407,7 +407,7 @@ export default function LandingPage() {
             </div>
 
             {/* Creators Plan */}
-            <div className="pricing-card featured scroll-animate">
+            <div className="pricing-card featured">
               <div className="pricing-popular">Most Popular</div>
               <div className="pricing-header">
                 <span className="pricing-badge">For Creators</span>

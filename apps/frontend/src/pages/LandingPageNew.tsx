@@ -8,6 +8,7 @@ import {
   RoyaltyEstimator,
   RoyaltyFlow,
   FeaturesSection,
+  PricingSection,
   ProcessSection,
   FAQSection,
   CTASection,
@@ -35,11 +36,12 @@ import SmoothScroll from '../components/SmoothScroll';
  * 5. Royalty Flow - Visualization of money flow
  * 6. Features - Core benefits (publishing admin focused)
  * 7. Process - How it works (4 steps)
- * 8. FAQ - Filterable accordion
- * 9. Email Signup - Newsletter
- * 10. Discord - Community CTA
- * 11. CTA - Final conversion
- * 12. Footer
+ * 8. Pricing - Two plans (Publishing Admins & Creators)
+ * 9. FAQ - Filterable accordion
+ * 10. Email Signup - Newsletter
+ * 11. Discord - Community CTA
+ * 12. CTA - Final conversion
+ * 13. Footer
  */
 export default function LandingPage() {
   return (
@@ -75,6 +77,9 @@ export default function LandingPage() {
 
           {/* Process Section */}
           <ProcessSection />
+
+          {/* Pricing Section */}
+          <PricingSection />
 
           {/* FAQ Section */}
           <FAQSection />
