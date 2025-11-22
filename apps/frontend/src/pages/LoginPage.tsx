@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, ArrowRight, Music2, Loader2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Music2, Loader2, User } from 'lucide-react';
 import { authApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 
 export default function LoginPage() {
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -20,18 +24,54 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await authApi.login(email, password);
-      setAuth(response.data.user, response.data.token);
+      if (isSignUp) {
+        // Validation for sign up
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          setLoading(false);
+          return;
+        }
+        if (password.length < 10) {
+          setError('Password must be at least 10 characters');
+          setLoading(false);
+          return;
+        }
+
+        // Register new user (defaults to CUSTOMER role)
+        const response = await authApi.register({
+          email,
+          password,
+          firstName: firstName || undefined,
+          lastName: lastName || undefined,
+        });
+        setAuth(response.data.user, response.data.token);
+      } else {
+        // Login existing user
+        const response = await authApi.login(email, password);
+        setAuth(response.data.user, response.data.token);
+      }
 
       // Wait for Zustand persist to complete before navigating
       setTimeout(() => {
         navigate('/dashboard');
       }, 100);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed');
+      const errorMsg = err.response?.data?.error;
+      if (Array.isArray(errorMsg)) {
+        setError(errorMsg[0]?.message || 'An error occurred');
+      } else {
+        setError(errorMsg || (isSignUp ? 'Registration failed' : 'Login failed'));
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleMode = () => {
+    setIsSignUp(!isSignUp);
+    setError('');
+    setPassword('');
+    setConfirmPassword('');
   };
 
   return (
@@ -115,11 +155,15 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          {/* Login Card */}
+          {/* Login/SignUp Card */}
           <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-8">
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-white mb-2">Welcome back</h2>
-              <p className="text-text-secondary">Sign in to access your dashboard</p>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                {isSignUp ? 'Create your account' : 'Welcome back'}
+              </h2>
+              <p className="text-text-secondary">
+                {isSignUp ? 'Sign up to get started with Producer Tour' : 'Sign in to access your dashboard'}
+              </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -131,6 +175,45 @@ export default function LoginPage() {
                 >
                   <p className="text-sm text-red-400">{error}</p>
                 </motion.div>
+              )}
+
+              {/* Name Fields (Sign Up only) */}
+              {isSignUp && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="firstName" className="block text-sm font-medium text-text-secondary mb-2">
+                      First Name
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <User className="w-5 h-5 text-text-muted" />
+                      </div>
+                      <input
+                        id="firstName"
+                        type="text"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
+                        placeholder="John"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="lastName" className="block text-sm font-medium text-text-secondary mb-2">
+                      Last Name
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="lastName"
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
+                        placeholder="Doe"
+                      />
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Email Field */}
@@ -160,12 +243,14 @@ export default function LoginPage() {
                   <label htmlFor="password" className="block text-sm font-medium text-text-secondary">
                     Password
                   </label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm text-brand-blue hover:text-brand-blue/80 transition-colors"
-                  >
-                    Forgot password?
-                  </Link>
+                  {!isSignUp && (
+                    <Link
+                      to="/forgot-password"
+                      className="text-sm text-brand-blue hover:text-brand-blue/80 transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
+                  )}
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -178,10 +263,33 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
-                    placeholder="Enter your password"
+                    placeholder={isSignUp ? 'Create a password (min 10 chars)' : 'Enter your password'}
                   />
                 </div>
               </div>
+
+              {/* Confirm Password Field (Sign Up only) */}
+              {isSignUp && (
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-text-secondary mb-2">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Lock className="w-5 h-5 text-text-muted" />
+                    </div>
+                    <input
+                      id="confirmPassword"
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
+                      placeholder="Confirm your password"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Submit Button */}
               <button
@@ -192,11 +300,11 @@ export default function LoginPage() {
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Signing in...
+                    {isSignUp ? 'Creating account...' : 'Signing in...'}
                   </>
                 ) : (
                   <>
-                    Sign in
+                    {isSignUp ? 'Create Account' : 'Sign in'}
                     <ArrowRight className="w-5 h-5" />
                   </>
                 )}
@@ -209,18 +317,42 @@ export default function LoginPage() {
                 <div className="w-full border-t border-white/10" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-surface-100 text-text-muted">New to Producer Tour?</span>
+                <span className="px-4 bg-surface-100 text-text-muted">
+                  {isSignUp ? 'Already have an account?' : 'New to Producer Tour?'}
+                </span>
               </div>
             </div>
 
-            {/* Apply Link */}
-            <Link
-              to="/apply"
+            {/* Toggle Sign Up / Sign In */}
+            <button
+              type="button"
+              onClick={toggleMode}
               className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-white/5 text-white font-medium rounded-xl border border-white/10 hover:bg-white/10 hover:border-white/20 hover:-translate-y-0.5 transition-all duration-300"
             >
-              Apply for membership
+              {isSignUp ? 'Sign in instead' : 'Create an account'}
               <ArrowRight className="w-4 h-4" />
-            </Link>
+            </button>
+
+            {/* Apply Link (for writers) */}
+            {!isSignUp && (
+              <>
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-white/10" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-surface-100 text-text-muted">Looking for writer membership?</span>
+                  </div>
+                </div>
+                <Link
+                  to="/apply"
+                  className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-brand-blue/10 text-brand-blue font-medium rounded-xl border border-brand-blue/20 hover:bg-brand-blue/20 hover:border-brand-blue/30 hover:-translate-y-0.5 transition-all duration-300"
+                >
+                  Apply for writer membership
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Footer Links */}

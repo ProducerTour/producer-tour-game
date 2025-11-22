@@ -21,7 +21,7 @@ const registerSchema = z.object({
   password: z.string().min(10, 'Password must be at least 10 characters'),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
-  role: z.enum(['ADMIN', 'WRITER', 'LEGAL']).optional(),
+  role: z.enum(['ADMIN', 'WRITER', 'LEGAL', 'CUSTOMER']).optional(),
   referralCode: z.string().optional(),
 });
 
@@ -115,14 +115,14 @@ router.post('/register', async (req: Request, res: Response) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    // Create user
+    // Create user - default to CUSTOMER role for public signups
     const user = await prisma.user.create({
       data: {
         email: data.email,
         password: hashedPassword,
         firstName: data.firstName,
         lastName: data.lastName,
-        role: data.role || 'WRITER',
+        role: data.role || 'CUSTOMER',
       },
     });
 

@@ -365,6 +365,103 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* PRICING SECTION */}
+      <section className="pricing-section" id="pricing">
+        <div className="container">
+          <div className="section-header scroll-animate">
+            <h2>Choose Your Plan</h2>
+            <p>Whether you're managing publishing rights or creating music, we have the tools to help you succeed.</p>
+          </div>
+
+          <div className="pricing-grid">
+            {/* Publishing Admins Plan */}
+            <div className="pricing-card scroll-animate">
+              <div className="pricing-header">
+                <span className="pricing-badge">For Publishing Admins</span>
+                <h3>Admin Suite</h3>
+                <div className="pricing-price">
+                  <span className="price-amount">$49</span>
+                  <span className="price-period">/month</span>
+                </div>
+                <p className="pricing-description">Essential tools for managing publishing administration and tracking royalties</p>
+              </div>
+              <ul className="pricing-features">
+                <li>
+                  <span className="feature-check">✓</span>
+                  <span>Metadata Index Tool</span>
+                </li>
+                <li>
+                  <span className="feature-check">✓</span>
+                  <span>Pub Deal Simulator</span>
+                </li>
+                <li>
+                  <span className="feature-check">✓</span>
+                  <span>Advance Estimator</span>
+                </li>
+                <li>
+                  <span className="feature-check">✓</span>
+                  <span>Priority Support</span>
+                </li>
+              </ul>
+              <Link to="/login" className="btn btn-secondary pricing-btn">Get Started</Link>
+            </div>
+
+            {/* Creators Plan */}
+            <div className="pricing-card featured scroll-animate">
+              <div className="pricing-popular">Most Popular</div>
+              <div className="pricing-header">
+                <span className="pricing-badge">For Creators</span>
+                <h3>Creator Pro</h3>
+                <div className="pricing-price">
+                  <span className="price-amount">$29</span>
+                  <span className="price-period">/month</span>
+                </div>
+                <p className="pricing-description">Everything you need to grow your music career and maximize opportunities</p>
+              </div>
+              <ul className="pricing-features">
+                <li>
+                  <span className="feature-check">✓</span>
+                  <span>Type Beat Video Uploader with Bulk Scheduling</span>
+                </li>
+                <li>
+                  <span className="feature-check">✓</span>
+                  <span>Opportunities Portal</span>
+                </li>
+                <li>
+                  <span className="feature-check">✓</span>
+                  <span>Pub Deal Simulator</span>
+                </li>
+                <li>
+                  <span className="feature-check">✓</span>
+                  <span>Advance Estimator</span>
+                </li>
+                <li>
+                  <span className="feature-check">✓</span>
+                  <span>Metadata Index Tool</span>
+                </li>
+                <li>
+                  <span className="feature-check">✓</span>
+                  <span>My Tour Profile</span>
+                </li>
+                <li>
+                  <span className="feature-check">✓</span>
+                  <span>Premium Discord Roles</span>
+                </li>
+                <li>
+                  <span className="feature-check">✓</span>
+                  <span>Access to Producer Tour Events</span>
+                </li>
+                <li>
+                  <span className="feature-check">✓</span>
+                  <span>And much more...</span>
+                </li>
+              </ul>
+              <Link to="/login" className="btn btn-primary pricing-btn">Get Started</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ SECTION */}
       <section className="faq-section">
         <div className="container">
