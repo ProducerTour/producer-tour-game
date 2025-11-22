@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Music, Sparkles, CheckCircle2, ArrowRight, Plus, CircleDollarSign, BarChart3 } from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { SpotifyTrackLookup } from '@/components/SpotifyTrackLookup';
 import { CollaboratorForm, Collaborator } from '@/components/CollaboratorForm';
 import { DocumentUpload, UploadedDocument } from '@/components/DocumentUpload';

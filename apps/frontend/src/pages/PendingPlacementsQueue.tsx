@@ -5,7 +5,7 @@ import {
   DollarSign, Percent, Calendar, Clock,
   ChevronDown, Search, Users, Paperclip, Download, Check, X, AlertTriangle
 } from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { workRegistrationApi, WorkSubmission } from '@/lib/workRegistrationApi';
 import { SubmissionStatusBadge } from '@/components/SubmissionStatusBadge';
 
