@@ -966,15 +966,46 @@ export default function MetadataIndexPage() {
                     <h3 className="font-medium text-white">My Lists</h3>
                     <span className="text-xs text-text-muted">{savedLists.length} list{savedLists.length !== 1 ? 's' : ''}</span>
                   </div>
+                  {/* Pearl Button - New List */}
                   <button
                     onClick={() => {
                       const name = prompt('Enter list name:');
                       if (name) createNewList(name);
                     }}
-                    className="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-sm font-medium hover:bg-blue-500/30 transition-colors flex items-center gap-1"
+                    className="group relative rounded-full bg-[#080808] transition-all duration-200 active:translate-y-1"
+                    style={{
+                      boxShadow: `
+                        inset 0 0.3rem 0.9rem rgba(255, 255, 255, 0.3),
+                        inset 0 -0.1rem 0.3rem rgba(0, 0, 0, 0.7),
+                        inset 0 -0.4rem 0.9rem rgba(255, 255, 255, 0.5),
+                        0 1.5rem 1.5rem rgba(0, 0, 0, 0.3),
+                        0 0.5rem 0.5rem -0.3rem rgba(0, 0, 0, 0.8)
+                      `
+                    }}
                   >
-                    <Plus className="w-4 h-4" />
-                    New List
+                    <div className="relative overflow-hidden rounded-full px-5 py-2.5">
+                      {/* Top shine effect */}
+                      <div
+                        className="absolute left-[6%] right-[6%] top-[12%] bottom-[40%] rounded-t-2xl transition-all duration-300 group-hover:opacity-40 group-hover:translate-y-[5%]"
+                        style={{
+                          boxShadow: 'inset 0 10px 8px -10px rgba(255, 255, 255, 0.8)',
+                          background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0) 100%)'
+                        }}
+                      />
+                      {/* Gloss orb effect */}
+                      <div
+                        className="absolute left-[-15%] right-[-15%] bottom-[25%] top-[-100%] rounded-full bg-white/[0.12] transition-all duration-300 group-hover:-translate-y-[5%]"
+                      />
+                      {/* Button content */}
+                      <p
+                        className="relative z-10 flex items-center gap-2 text-sm font-medium text-white/70 transition-all duration-200 translate-y-[2%] group-hover:-translate-y-[4%]"
+                        style={{ maskImage: 'linear-gradient(to bottom, white 40%, transparent)' }}
+                      >
+                        <span className="group-hover:hidden">&#10023;</span>
+                        <span className="hidden group-hover:inline">&#10022;</span>
+                        New List
+                      </p>
+                    </div>
                   </button>
                 </div>
 
