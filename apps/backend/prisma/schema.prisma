@@ -159,6 +159,18 @@ model User {
   statementNotificationsEnabled  Boolean @default(true)  // Statement/payment emails
   monthlySummaryEnabled          Boolean @default(false) // Monthly earning summaries
 
+  // Profile & Writer Tour Hub fields
+  profilePhotoUrl    String?   // URL to profile photo
+  bio                String?   @db.Text // Writer bio/about section
+  location           String?   // City, State or Country
+  website            String?   // Personal website URL
+  spotifyArtistUrl   String?   // Spotify artist profile URL
+  instagramHandle    String?   // Instagram username (without @)
+  twitterHandle      String?   // Twitter/X username (without @)
+  linkedinUrl        String?   // LinkedIn profile URL
+  isPublicProfile    Boolean   @default(false) // Whether profile is visible publicly
+  profileSlug        String?   @unique // URL slug for public profile (e.g., "john-smith")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

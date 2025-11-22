@@ -26,6 +26,7 @@ import SettingsPage from './pages/SettingsPage';
 import WorkRegistrationTool from './pages/WorkRegistrationTool';
 import MySubmissions from './pages/MySubmissions';
 import ProducerTourMilesPage from './pages/ProducerTourMilesPage';
+import WriterTourHubPage from './pages/WriterTourHubPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -157,6 +158,9 @@ function App() {
 
         {/* Old Landing Page (kept for reference) */}
         <Route path="/old" element={<LandingPage />} />
+
+        {/* Public Writer Profile */}
+        <Route path="/writer/:slug" element={<WriterTourHubPage />} />
 
         <Route path="/" element={<LandingPageNew />} />
       </Routes>

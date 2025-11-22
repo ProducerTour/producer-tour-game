@@ -329,6 +329,97 @@ router.post('/:id/request-documents', async (req: AuthRequest, res: Response) =>
 });
 
 /**
+ * PUT /api/work-registration/:id/edit
+ * Writer edits their submission (only allowed for PENDING and DOCUMENTS_REQUESTED status)
+ */
+router.put('/:id/edit', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+    const { title, artist, notes, credits } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Get the submission
+    const submission = await prisma.placement.findUnique({
+      where: { id },
+      include: { credits: true },
+    });
+
+    if (!submission) {
+      return res.status(404).json({ error: 'Submission not found' });
+    }
+
+    if (submission.userId !== userId) {
+      return res.status(403).json({ error: 'Not your submission' });
+    }
+
+    // Only allow editing for PENDING and DOCUMENTS_REQUESTED status
+    if (submission.status !== 'PENDING' && submission.status !== 'DOCUMENTS_REQUESTED') {
+      return res.status(400).json({
+        error: 'Cannot edit submission. Only pending or documents-requested submissions can be edited.'
+      });
+    }
+
+    // Update the placement
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (artist !== undefined) updateData.artist = artist;
+    if (notes !== undefined) updateData.notes = notes;
+
+    const updatedPlacement = await prisma.placement.update({
+      where: { id },
+      data: updateData,
+    });
+
+    // If credits are provided, update them
+    if (credits && Array.isArray(credits)) {
+      // Delete existing credits
+      await prisma.placementCredit.deleteMany({
+        where: { placementId: id },
+      });
+
+      // Create new credits
+      if (credits.length > 0) {
+        await prisma.placementCredit.createMany({
+          data: credits.map((credit: any, index: number) => ({
+            placementId: id,
+            firstName: credit.firstName || '',
+            lastName: credit.lastName || '',
+            role: credit.role || 'WRITER',
+            splitPercentage: credit.splitPercentage || 0,
+            pro: credit.pro || null,
+            ipiNumber: credit.ipiNumber || null,
+            isPrimary: index === 0,
+            notes: credit.notes || null,
+          })),
+        });
+      }
+    }
+
+    // Fetch updated placement with credits
+    const result = await prisma.placement.findUnique({
+      where: { id },
+      include: {
+        credits: true,
+        documents: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Submission updated successfully',
+      placement: result,
+    });
+  } catch (error) {
+    console.error('Edit submission error:', error);
+    res.status(500).json({ error: 'Failed to edit submission' });
+  }
+});
+
+/**
  * POST /api/work-registration/:id/resubmit
  * Writer resubmits after providing requested documents
  */

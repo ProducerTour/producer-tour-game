@@ -163,6 +163,35 @@ class WorkRegistrationAPI {
       throw error;
     }
   }
+
+  async edit(
+    submissionId: string,
+    data: {
+      title?: string;
+      artist?: string;
+      notes?: string;
+      credits?: Array<{
+        firstName: string;
+        lastName: string;
+        role: string;
+        splitPercentage: number;
+        pro?: string;
+        ipiNumber?: string;
+      }>;
+    }
+  ): Promise<any> {
+    try {
+      const response = await axios.put(
+        `${API_URL}/api/work-registration/${submissionId}/edit`,
+        data,
+        { headers: this.getAuthHeaders() }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Edit submission error:', error);
+      throw error;
+    }
+  }
 }
 
 export const workRegistrationApi = new WorkRegistrationAPI();

@@ -1,7 +1,7 @@
 import { useAuthStore } from '../store/auth.store';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import logo from '@/assets/images/logos/451293708_472378049044476_4990757197796537602_n.jpg';
+import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 
 interface NavigationProps {
   activeTab?: string;
@@ -16,7 +16,7 @@ export default function Navigation({ activeTab, onTabChange, tabs }: NavigationP
   const isAdmin = user?.role === 'ADMIN';
 
   return (
-    <nav className="bg-slate-800 border-b border-slate-700">
+    <nav className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700/50 backdrop-blur-sm shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo and Brand */}
@@ -24,12 +24,13 @@ export default function Navigation({ activeTab, onTabChange, tabs }: NavigationP
             <div className="flex-shrink-0 flex items-center">
               <div className="flex items-center gap-3">
                 <img
-                  src={logo}
+                  src={whiteLogo}
                   alt="Producer Tour"
                   className="h-10 w-auto"
                 />
-                <div>
-                  <p className="text-xs text-gray-400">Publishing Portal</p>
+                <div className="hidden sm:block">
+                  <p className="text-sm font-semibold text-white">Producer Tour</p>
+                  <p className="text-xs text-slate-400">Publishing Portal</p>
                 </div>
               </div>
             </div>

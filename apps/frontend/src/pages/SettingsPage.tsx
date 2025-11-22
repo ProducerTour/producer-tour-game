@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen } from 'lucide-react';
-import { userApi, settingsApi, preferencesApi, systemSettingsApi } from '../lib/api';
+import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen, Camera, Trash2, Loader2, Plane, Globe, Music, Instagram, Twitter, Linkedin, ExternalLink, Copy, Check, ArrowLeft } from 'lucide-react';
+import { userApi, settingsApi, preferencesApi, systemSettingsApi, api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
-import Navigation from '../components/Navigation';
 import AdminGuide from '../components/AdminGuide';
 import { PaymentSettings } from '../components/PaymentSettings';
 import {
@@ -20,10 +20,19 @@ import {
   AlertDialogTrigger,
 } from '../components/ui';
 
+type SettingsSection = 'profile' | 'password' | 'payments' | 'notifications' | 'publishers' | 'documentation' | 'system' | 'tourhub';
+
 export default function SettingsPage() {
   const { user, updateUser } = useAuthStore();
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<'profile' | 'password' | 'payments' | 'notifications' | 'publishers' | 'documentation' | 'system'>('profile');
+  const [searchParams] = useSearchParams();
+
+  // Check for section query param (e.g., /settings?section=tourhub)
+  const sectionParam = searchParams.get('section') as SettingsSection | null;
+  const validSections: SettingsSection[] = ['profile', 'password', 'payments', 'notifications', 'publishers', 'documentation', 'system', 'tourhub'];
+  const initialSection: SettingsSection = sectionParam && validSections.includes(sectionParam) ? sectionParam : 'profile';
+
+  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | '', text: string }>({ type: '', text: '' });
 
   // Publisher management state
@@ -64,6 +73,25 @@ export default function SettingsPage() {
     minimumWithdrawalAmount: 50,
   });
 
+  // Profile photo state
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>((user as any)?.profilePhotoUrl || null);
+
+  // Writer Tour Hub state
+  const [tourHubForm, setTourHubForm] = useState({
+    bio: '',
+    location: '',
+    website: '',
+    spotifyArtistUrl: '',
+    instagramHandle: '',
+    twitterHandle: '',
+    linkedinUrl: '',
+    isPublicProfile: false,
+    profileSlug: ''
+  });
+  const [slugCopied, setSlugCopied] = useState(false);
+
   // Fetch system settings (admin only)
   const { data: systemSettingsData } = useQuery({
     queryKey: ['system-settings'],
@@ -73,6 +101,43 @@ export default function SettingsPage() {
     },
     enabled: user?.role === 'ADMIN' && activeSection === 'system',
   });
+
+  // Fetch user profile for Tour Hub
+  const { data: tourHubProfileData } = useQuery<{
+    bio?: string;
+    location?: string;
+    website?: string;
+    spotifyArtistUrl?: string;
+    instagramHandle?: string;
+    twitterHandle?: string;
+    linkedinUrl?: string;
+    isPublicProfile?: boolean;
+    profileSlug?: string;
+  }>({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
+      const response = await api.get('/profile/me');
+      return response.data;
+    },
+    enabled: activeSection === 'tourhub',
+  });
+
+  // Update Tour Hub form when profile data loads
+  useEffect(() => {
+    if (tourHubProfileData) {
+      setTourHubForm({
+        bio: tourHubProfileData.bio || '',
+        location: tourHubProfileData.location || '',
+        website: tourHubProfileData.website || '',
+        spotifyArtistUrl: tourHubProfileData.spotifyArtistUrl || '',
+        instagramHandle: tourHubProfileData.instagramHandle || '',
+        twitterHandle: tourHubProfileData.twitterHandle || '',
+        linkedinUrl: tourHubProfileData.linkedinUrl || '',
+        isPublicProfile: tourHubProfileData.isPublicProfile || false,
+        profileSlug: tourHubProfileData.profileSlug || ''
+      });
+    }
+  }, [tourHubProfileData]);
 
   // Update local state when system settings data loads
   useEffect(() => {
@@ -155,6 +220,46 @@ export default function SettingsPage() {
   const handleSystemSettingsUpdate = () => {
     console.log('💾 Saving system settings:', systemSettings);
     updateSystemSettingsMutation.mutate(systemSettings);
+  };
+
+  // Tour Hub mutation
+  const updateTourHubMutation = useMutation({
+    mutationFn: (data: typeof tourHubForm) => api.put('/profile/hub', data),
+    onSuccess: (response) => {
+      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      if (response.data.user) {
+        updateUser({ ...user!, ...response.data.user });
+      }
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    },
+    onError: (error: any) => {
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update profile' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    }
+  });
+
+  const handleTourHubSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateTourHubMutation.mutate(tourHubForm);
+  };
+
+  const generateSlug = () => {
+    const slug = `${user?.firstName || ''}-${user?.lastName || ''}`
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    setTourHubForm({ ...tourHubForm, profileSlug: slug });
+  };
+
+  const copyProfileUrl = () => {
+    if (tourHubForm.profileSlug) {
+      const url = `${window.location.origin}/writer/${tourHubForm.profileSlug}`;
+      navigator.clipboard.writeText(url);
+      setSlugCopied(true);
+      setTimeout(() => setSlugCopied(false), 2000);
+    }
   };
 
   // Publisher queries and mutations
@@ -281,11 +386,79 @@ export default function SettingsPage() {
     deletePublisherMutation.mutate(id);
   };
 
-  return (
-    <div className="min-h-screen bg-surface">
-      <Navigation />
+  // Photo upload handlers
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    setIsUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('photo', file);
+
+      const response = await api.post('/profile/photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (response.data.success) {
+        setProfilePhotoUrl(response.data.user.profilePhotoUrl);
+        updateUser({ ...user!, profilePhotoUrl: response.data.user.profilePhotoUrl } as any);
+        setMessage({ type: 'success', text: 'Profile photo updated!' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to upload photo' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } finally {
+      setIsUploadingPhoto(false);
+      if (photoInputRef.current) {
+        photoInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    setIsUploadingPhoto(true);
+    try {
+      await api.delete('/profile/photo');
+      setProfilePhotoUrl(null);
+      updateUser({ ...user!, profilePhotoUrl: null } as any);
+      setMessage({ type: 'success', text: 'Profile photo removed!' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to remove photo' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-surface relative">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-brand-blue/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-green-500/5 rounded-full blur-[100px]" />
+      </div>
+
+      {/* Header with Back Button */}
+      <header className="bg-slate-800/50 backdrop-blur-sm border-b border-white/10 sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>Back to Dashboard</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <Settings className="w-5 h-5 text-primary-400" />
+            <span className="font-semibold text-white">Settings</span>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-0">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
           <p className="text-text-muted">Manage your account settings and preferences</p>
@@ -360,6 +533,19 @@ export default function SettingsPage() {
                   <span className="font-medium">Notifications</span>
                 </div>
               </button>
+              <button
+                onClick={() => setActiveSection('tourhub')}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  activeSection === 'tourhub'
+                    ? 'bg-primary-500/20 text-primary-400'
+                    : 'text-text-secondary hover:bg-white/[0.04]'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Plane className="w-4 h-4" />
+                  <span className="font-medium">My Tour Profile</span>
+                </div>
+              </button>
               {user?.role === 'ADMIN' && (
                 <>
                   <button
@@ -413,6 +599,68 @@ export default function SettingsPage() {
               {activeSection === 'profile' && (
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-6">Profile Information</h2>
+
+                  {/* Profile Photo */}
+                  <div className="mb-8">
+                    <label className="block text-sm font-medium text-text-secondary mb-4">
+                      Profile Photo
+                    </label>
+                    <div className="flex items-center gap-6">
+                      <div className="relative">
+                        <div className="w-24 h-24 rounded-full overflow-hidden bg-white/10 flex items-center justify-center">
+                          {profilePhotoUrl ? (
+                            <img
+                              src={profilePhotoUrl}
+                              alt="Profile"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-3xl font-bold text-white/40">
+                              {user?.firstName?.[0]}{user?.lastName?.[0]}
+                            </span>
+                          )}
+                        </div>
+                        {isUploadingPhoto && (
+                          <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 text-white animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <input
+                          ref={photoInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          onChange={handlePhotoSelect}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => photoInputRef.current?.click()}
+                          disabled={isUploadingPhoto}
+                          className="px-4 py-2 bg-primary-500/20 text-primary-400 rounded-lg text-sm font-medium hover:bg-primary-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                          <Camera className="w-4 h-4" />
+                          {profilePhotoUrl ? 'Change Photo' : 'Upload Photo'}
+                        </button>
+                        {profilePhotoUrl && (
+                          <button
+                            type="button"
+                            onClick={handleDeletePhoto}
+                            disabled={isUploadingPhoto}
+                            className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-text-muted mt-2">
+                      Recommended: Square image, at least 200x200px. Max 5MB.
+                    </p>
+                  </div>
+
                   <form onSubmit={handleProfileSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
@@ -601,6 +849,222 @@ export default function SettingsPage() {
                       Changes are saved automatically. Disable notifications to prevent emails during payment testing.
                     </p>
                   </div>
+                </div>
+              )}
+
+              {/* Writer Tour Hub Section */}
+              {activeSection === 'tourhub' && (
+                <div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center">
+                      <Plane className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">My Tour Profile</h2>
+                      <p className="text-text-muted text-sm">Customize your public profile</p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleTourHubSubmit} className="space-y-6">
+                    {/* Profile URL / Slug */}
+                    <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-6">
+                      <label className="block text-sm font-medium text-text-secondary mb-2">
+                        Profile URL
+                      </label>
+                      <div className="flex gap-3">
+                        <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg">
+                          <span className="text-text-muted">{window.location.origin}/writer/</span>
+                          <input
+                            type="text"
+                            value={tourHubForm.profileSlug}
+                            onChange={(e) => setTourHubForm({ ...tourHubForm, profileSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                            placeholder="your-name"
+                            className="flex-1 bg-transparent text-white focus:outline-none"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={generateSlug}
+                          className="px-4 py-2 bg-white/10 text-text-secondary rounded-lg hover:bg-white/20 transition-colors text-sm"
+                        >
+                          Generate
+                        </button>
+                        {tourHubForm.profileSlug && (
+                          <button
+                            type="button"
+                            onClick={copyProfileUrl}
+                            className="px-4 py-2 bg-primary-500/20 text-primary-400 rounded-lg hover:bg-primary-500/30 transition-colors flex items-center gap-2"
+                          >
+                            {slugCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            {slugCopied ? 'Copied!' : 'Copy'}
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-text-muted mt-2">
+                        Only lowercase letters, numbers, and hyphens allowed
+                      </p>
+                      {tourHubForm.profileSlug && (
+                        <a
+                          href={`/writer/${tourHubForm.profileSlug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sm text-primary-400 hover:text-primary-300 mt-2"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Preview your public profile
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Public Profile Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
+                      <div>
+                        <h3 className="text-white font-medium">Make Profile Public</h3>
+                        <p className="text-sm text-text-muted">Allow anyone to view your Writer Tour Hub profile</p>
+                      </div>
+                      <Switch
+                        checked={tourHubForm.isPublicProfile}
+                        onCheckedChange={(checked) => setTourHubForm({ ...tourHubForm, isPublicProfile: checked })}
+                      />
+                    </div>
+
+                    {/* Bio */}
+                    <div>
+                      <label className="block text-sm font-medium text-text-secondary mb-2">
+                        Bio
+                      </label>
+                      <textarea
+                        value={tourHubForm.bio}
+                        onChange={(e) => setTourHubForm({ ...tourHubForm, bio: e.target.value })}
+                        placeholder="Tell people about yourself, your music journey, achievements..."
+                        rows={4}
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50 resize-none"
+                      />
+                    </div>
+
+                    {/* Location */}
+                    <div>
+                      <label className="block text-sm font-medium text-text-secondary mb-2">
+                        Location
+                      </label>
+                      <input
+                        type="text"
+                        value={tourHubForm.location}
+                        onChange={(e) => setTourHubForm({ ...tourHubForm, location: e.target.value })}
+                        placeholder="e.g., Los Angeles, CA"
+                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                      />
+                    </div>
+
+                    {/* Social Links */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-white">Social & Web Links</h3>
+
+                      <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-text-secondary mb-2">
+                          <Globe className="w-4 h-4" />
+                          Website
+                        </label>
+                        <input
+                          type="url"
+                          value={tourHubForm.website}
+                          onChange={(e) => setTourHubForm({ ...tourHubForm, website: e.target.value })}
+                          placeholder="https://yourwebsite.com"
+                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-green-400 mb-2">
+                          <Music className="w-4 h-4" />
+                          Spotify Artist URL
+                        </label>
+                        <input
+                          type="url"
+                          value={tourHubForm.spotifyArtistUrl}
+                          onChange={(e) => setTourHubForm({ ...tourHubForm, spotifyArtistUrl: e.target.value })}
+                          placeholder="https://open.spotify.com/artist/..."
+                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-green-500/50"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-pink-400 mb-2">
+                            <Instagram className="w-4 h-4" />
+                            Instagram
+                          </label>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg">
+                            <span className="text-text-muted">@</span>
+                            <input
+                              type="text"
+                              value={tourHubForm.instagramHandle}
+                              onChange={(e) => setTourHubForm({ ...tourHubForm, instagramHandle: e.target.value.replace('@', '') })}
+                              placeholder="username"
+                              className="flex-1 bg-transparent text-white focus:outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-sky-400 mb-2">
+                            <Twitter className="w-4 h-4" />
+                            Twitter / X
+                          </label>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg">
+                            <span className="text-text-muted">@</span>
+                            <input
+                              type="text"
+                              value={tourHubForm.twitterHandle}
+                              onChange={(e) => setTourHubForm({ ...tourHubForm, twitterHandle: e.target.value.replace('@', '') })}
+                              placeholder="username"
+                              className="flex-1 bg-transparent text-white focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-blue-400 mb-2">
+                          <Linkedin className="w-4 h-4" />
+                          LinkedIn
+                        </label>
+                        <input
+                          type="url"
+                          value={tourHubForm.linkedinUrl}
+                          onChange={(e) => setTourHubForm({ ...tourHubForm, linkedinUrl: e.target.value })}
+                          placeholder="https://linkedin.com/in/..."
+                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-blue-500/50"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Info Box */}
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                      <div className="flex gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                          <Info className="w-4 h-4 text-purple-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-purple-300 mb-1">About Your Public Profile</p>
+                          <p className="text-sm text-purple-200/80">
+                            Your public profile showcases your placements, achievements, and Tour Miles.
+                            Share your profile URL with others to show off your success!
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4 border-t border-white/[0.08]">
+                      <button
+                        type="submit"
+                        disabled={updateTourHubMutation.isPending}
+                        className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-white/20 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {updateTourHubMutation.isPending ? 'Saving...' : 'Save Profile'}
+                      </button>
+                    </div>
+                  </form>
                 </div>
               )}
 

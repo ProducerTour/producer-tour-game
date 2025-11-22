@@ -33,6 +33,7 @@ export const writerNavigation: NavSection[] = [
     id: 'main',
     label: 'Main',
     items: [
+      { id: 'tour-profile', label: 'My Tour Profile', icon: 'target', path: '/settings?section=tourhub' },
       { id: 'overview', label: 'Dashboard', icon: 'dashboard' },
       { id: 'songs', label: 'My Songs', icon: 'music' },
       { id: 'statements', label: 'My Statements', icon: 'chart' },
@@ -41,6 +42,7 @@ export const writerNavigation: NavSection[] = [
       { id: 'claims', label: 'Claims', icon: 'check-circle' },
       { id: 'tour-miles', label: 'Tour Miles', icon: 'target', path: '/tour-miles' },
       { id: 'profile', label: 'Profile', icon: 'user' },
+      { id: 'tools', label: 'Tools Hub', icon: 'tools' },
     ],
   },
   {

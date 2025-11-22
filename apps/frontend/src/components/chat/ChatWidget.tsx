@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Paperclip, Search, ChevronLeft, Circle, Users, UserPlus, Check, XIcon, Download, FileText, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Paperclip, Search, ChevronLeft, Circle, Users, UserPlus, Check, XIcon, Download, FileText, Loader2, UsersRound, Plus } from 'lucide-react';
 import { useSocket } from '../../hooks/useSocket';
 import { useAuthStore } from '../../store/auth.store';
 import { api } from '../../lib/api';
@@ -97,6 +97,11 @@ export function ChatWidget() {
   const [totalUnread, setTotalUnread] = useState(0);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactRequests, setContactRequests] = useState<ContactRequest[]>([]);
+
+  // Group chat state
+  const [isGroupMode, setIsGroupMode] = useState(false);
+  const [selectedParticipants, setSelectedParticipants] = useState<User[]>([]);
+  const [groupName, setGroupName] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -336,6 +341,44 @@ export function ChatWidget() {
     } catch (error) {
       console.error('Failed to start conversation:', error);
     }
+  };
+
+  const toggleParticipant = (targetUser: User) => {
+    setSelectedParticipants((prev) => {
+      const exists = prev.find((p) => p.id === targetUser.id);
+      if (exists) {
+        return prev.filter((p) => p.id !== targetUser.id);
+      }
+      return [...prev, targetUser];
+    });
+  };
+
+  const createGroupChat = async () => {
+    if (selectedParticipants.length < 2) {
+      return;
+    }
+
+    try {
+      const { data } = await api.post('/chat/conversations', {
+        type: 'GROUP',
+        name: groupName.trim() || `Group (${selectedParticipants.length + 1})`,
+        participantIds: selectedParticipants.map((p) => p.id),
+      });
+
+      setConversations((prev) => [data, ...prev]);
+      setActiveConversation(data);
+      resetNewChatState();
+    } catch (error) {
+      console.error('Failed to create group chat:', error);
+    }
+  };
+
+  const resetNewChatState = () => {
+    setShowNewChat(false);
+    setIsGroupMode(false);
+    setSelectedParticipants([]);
+    setGroupName('');
+    setSearchQuery('');
   };
 
   const getOtherParticipant = (conv: Conversation) => {
@@ -580,7 +623,65 @@ export function ChatWidget() {
                     {/* New Chat Button */}
                     <div className="p-3">
                       {showNewChat ? (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
+                          {/* Toggle between direct and group chat */}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setIsGroupMode(false)}
+                              className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${
+                                !isGroupMode
+                                  ? 'bg-blue-500 text-white'
+                                  : 'bg-slate-700 text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              <MessageCircle className="w-3 h-3 inline mr-1" />
+                              Direct
+                            </button>
+                            <button
+                              onClick={() => setIsGroupMode(true)}
+                              className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${
+                                isGroupMode
+                                  ? 'bg-purple-500 text-white'
+                                  : 'bg-slate-700 text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              <UsersRound className="w-3 h-3 inline mr-1" />
+                              Group
+                            </button>
+                          </div>
+
+                          {/* Group name input (only in group mode) */}
+                          {isGroupMode && (
+                            <input
+                              type="text"
+                              placeholder="Group name..."
+                              value={groupName}
+                              onChange={(e) => setGroupName(e.target.value)}
+                              className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                            />
+                          )}
+
+                          {/* Selected participants (group mode) */}
+                          {isGroupMode && selectedParticipants.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {selectedParticipants.map((p) => (
+                                <span
+                                  key={p.id}
+                                  className="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs"
+                                >
+                                  {p.firstName}
+                                  <button
+                                    onClick={() => toggleParticipant(p)}
+                                    className="hover:text-red-400"
+                                  >
+                                    <XIcon className="w-3 h-3" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Search input */}
                           <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <input
@@ -592,57 +693,89 @@ export function ChatWidget() {
                               autoFocus
                             />
                           </div>
+
+                          {/* Search results */}
                           {searchResults.length > 0 && (
                             <div className="bg-slate-800 rounded-lg border border-slate-700 max-h-48 overflow-y-auto">
-                              {searchResults.map((u) => (
-                                <div
-                                  key={u.id}
-                                  className="w-full p-3 flex items-center gap-3 hover:bg-slate-700 transition"
-                                >
-                                  <button
-                                    onClick={() => startNewConversation(u)}
-                                    className="flex items-center gap-3 flex-1 text-left"
+                              {searchResults.map((u) => {
+                                const isSelected = selectedParticipants.some((p) => p.id === u.id);
+                                return (
+                                  <div
+                                    key={u.id}
+                                    className={`w-full p-3 flex items-center gap-3 hover:bg-slate-700 transition ${
+                                      isSelected ? 'bg-purple-500/10' : ''
+                                    }`}
                                   >
-                                    <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm font-medium">
-                                      {u.firstName?.[0]}
-                                      {u.lastName?.[0]}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-white truncate">
-                                        {u.firstName} {u.lastName}
-                                      </p>
-                                      <p className="text-xs text-slate-500 truncate">{u.role}</p>
-                                    </div>
-                                    {u.isOnline && <Circle className="w-2 h-2 fill-green-500 text-green-500" />}
-                                  </button>
-                                  {/* Add as contact button */}
-                                  {!isContact(u.id) && !hasPendingRequest(u.id) && (
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        sendContactRequest(u.id);
-                                      }}
-                                      className="p-1.5 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition"
-                                      title="Add as contact"
+                                      onClick={() => isGroupMode ? toggleParticipant(u) : startNewConversation(u)}
+                                      className="flex items-center gap-3 flex-1 text-left"
                                     >
-                                      <UserPlus className="w-4 h-4 text-green-400" />
+                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                                        isSelected ? 'bg-purple-500/30 text-purple-300' : 'bg-blue-500/20 text-blue-400'
+                                      }`}>
+                                        {u.firstName?.[0]}
+                                        {u.lastName?.[0]}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-white truncate">
+                                          {u.firstName} {u.lastName}
+                                        </p>
+                                        <p className="text-xs text-slate-500 truncate">{u.role}</p>
+                                      </div>
+                                      {u.isOnline && <Circle className="w-2 h-2 fill-green-500 text-green-500" />}
                                     </button>
-                                  )}
-                                  {hasPendingRequest(u.id) && (
-                                    <span className="text-xs text-yellow-400">Pending</span>
-                                  )}
-                                  {isContact(u.id) && (
-                                    <Check className="w-4 h-4 text-green-400" />
-                                  )}
-                                </div>
-                              ))}
+                                    {isGroupMode ? (
+                                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                        isSelected ? 'bg-purple-500 border-purple-500' : 'border-slate-500'
+                                      }`}>
+                                        {isSelected && <Check className="w-3 h-3 text-white" />}
+                                      </div>
+                                    ) : (
+                                      <>
+                                        {!isContact(u.id) && !hasPendingRequest(u.id) && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              sendContactRequest(u.id);
+                                            }}
+                                            className="p-1.5 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition"
+                                            title="Add as contact"
+                                          >
+                                            <UserPlus className="w-4 h-4 text-green-400" />
+                                          </button>
+                                        )}
+                                        {hasPendingRequest(u.id) && (
+                                          <span className="text-xs text-yellow-400">Pending</span>
+                                        )}
+                                        {isContact(u.id) && (
+                                          <Check className="w-4 h-4 text-green-400" />
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
+
+                          {/* Create group button */}
+                          {isGroupMode && selectedParticipants.length >= 2 && (
+                            <button
+                              onClick={createGroupChat}
+                              className="w-full py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 transition"
+                            >
+                              Create Group ({selectedParticipants.length + 1} members)
+                            </button>
+                          )}
+
+                          {isGroupMode && selectedParticipants.length < 2 && selectedParticipants.length > 0 && (
+                            <p className="text-xs text-slate-500 text-center">
+                              Select at least 2 participants for a group chat
+                            </p>
+                          )}
+
                           <button
-                            onClick={() => {
-                              setShowNewChat(false);
-                              setSearchQuery('');
-                            }}
+                            onClick={resetNewChatState}
                             className="w-full py-2 text-sm text-slate-400 hover:text-white transition"
                           >
                             Cancel
@@ -651,9 +784,10 @@ export function ChatWidget() {
                       ) : (
                         <button
                           onClick={() => setShowNewChat(true)}
-                          className="w-full py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg text-blue-400 text-sm font-medium hover:bg-blue-500/20 transition"
+                          className="w-full py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg text-blue-400 text-sm font-medium hover:bg-blue-500/20 transition flex items-center justify-center gap-2"
                         >
-                          + New Conversation
+                          <Plus className="w-4 h-4" />
+                          New Conversation
                         </button>
                       )}
                     </div>

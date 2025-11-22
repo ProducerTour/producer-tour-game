@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Clock, CheckCircle2, XCircle, AlertCircle, Music, Filter, ArrowLeft, Upload, Eye } from 'lucide-react';
+import { FileText, Clock, CheckCircle2, XCircle, AlertCircle, Music, Filter, ArrowLeft, Upload, Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { workRegistrationApi, WorkSubmission } from '@/lib/workRegistrationApi';
 import { SubmissionStatusBadge } from '@/components/SubmissionStatusBadge';
@@ -16,6 +16,7 @@ export default function MySubmissions() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<WorkSubmission | null>(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     loadSubmissions();
@@ -53,6 +54,19 @@ export default function MySubmissions() {
     } catch (error) {
       console.error('Failed to resubmit:', error);
       toast.error('Failed to submit documents');
+    }
+  };
+
+  const handleEdit = async (id: string, data: { title?: string; artist?: string; notes?: string; credits?: any[] }) => {
+    try {
+      await workRegistrationApi.edit(id, data);
+      toast.success('Submission updated successfully!');
+      setShowEditModal(false);
+      setSelectedSubmission(null);
+      loadSubmissions();
+    } catch (error) {
+      console.error('Failed to edit submission:', error);
+      toast.error('Failed to update submission');
     }
   };
 
@@ -353,6 +367,21 @@ export default function MySubmissions() {
 
                         {/* Actions */}
                         <div className="flex gap-2">
+                          {/* Edit button for PENDING and DOCUMENTS_REQUESTED */}
+                          {(submission.status === 'PENDING' || submission.status === 'DOCUMENTS_REQUESTED') && (
+                            <motion.button
+                              onClick={() => {
+                                setSelectedSubmission(submission);
+                                setShowEditModal(true);
+                              }}
+                              className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              <Pencil className="w-4 h-4" />
+                              Edit
+                            </motion.button>
+                          )}
                           {submission.status === 'DOCUMENTS_REQUESTED' && (
                             <motion.button
                               onClick={() => {
@@ -398,6 +427,18 @@ export default function MySubmissions() {
             setSelectedSubmission(null);
           }}
           onSubmit={(notes) => handleResubmit(selectedSubmission.id, notes)}
+        />
+      )}
+
+      {/* Edit Submission Modal */}
+      {showEditModal && selectedSubmission && (
+        <EditSubmissionModal
+          submission={selectedSubmission}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedSubmission(null);
+          }}
+          onSubmit={(data) => handleEdit(selectedSubmission.id, data)}
         />
       )}
     </div>
@@ -499,6 +540,277 @@ function DocumentUploadModal({ submission, onClose, onSubmit }: DocumentUploadMo
                 <>
                   <Upload className="w-5 h-5" />
                   Submit Documents
+                </>
+              )}
+            </motion.button>
+            <motion.button
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-6 py-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-white rounded-xl font-semibold"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Cancel
+            </motion.button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// Edit Submission Modal Component
+interface EditSubmissionModalProps {
+  submission: WorkSubmission;
+  onClose: () => void;
+  onSubmit: (data: { title?: string; artist?: string; notes?: string; credits?: any[] }) => void;
+}
+
+interface CreditForm {
+  firstName: string;
+  lastName: string;
+  role: string;
+  splitPercentage: number;
+  pro?: string;
+  ipiNumber?: string;
+}
+
+function EditSubmissionModal({ submission, onClose, onSubmit }: EditSubmissionModalProps) {
+  const [title, setTitle] = useState(submission.title || '');
+  const [artist, setArtist] = useState(submission.artist || '');
+  const [notes, setNotes] = useState(submission.notes || '');
+  const [credits, setCredits] = useState<CreditForm[]>(
+    submission.credits?.map(c => ({
+      firstName: c.firstName,
+      lastName: c.lastName,
+      role: c.role,
+      splitPercentage: c.splitPercentage,
+      pro: c.pro || '',
+      ipiNumber: c.ipiNumber || '',
+    })) || []
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const addCredit = () => {
+    setCredits([...credits, {
+      firstName: '',
+      lastName: '',
+      role: 'WRITER',
+      splitPercentage: 0,
+      pro: '',
+      ipiNumber: '',
+    }]);
+  };
+
+  const removeCredit = (index: number) => {
+    setCredits(credits.filter((_, i) => i !== index));
+  };
+
+  const updateCredit = (index: number, field: keyof CreditForm, value: string | number) => {
+    const newCredits = [...credits];
+    newCredits[index] = { ...newCredits[index], [field]: value };
+    setCredits(newCredits);
+  };
+
+  const handleSubmit = async () => {
+    if (!title.trim()) {
+      toast.error('Title is required');
+      return;
+    }
+    if (!artist.trim()) {
+      toast.error('Artist is required');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onSubmit({ title, artist, notes, credits });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <motion.div
+        className="bg-slate-800 rounded-2xl w-full max-w-3xl border border-slate-700 overflow-hidden max-h-[90vh] flex flex-col"
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+      >
+        {/* Header */}
+        <div className="p-6 border-b border-slate-700 flex-shrink-0">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+            <Pencil className="w-6 h-6 text-blue-400" />
+            Edit Submission
+          </h2>
+          <p className="text-slate-400 mt-2">
+            Update your work registration details
+          </p>
+        </div>
+
+        {/* Content - Scrollable */}
+        <div className="p-6 overflow-y-auto flex-1">
+          {/* Track Info */}
+          <div className="flex items-start gap-4 mb-6">
+            {submission.albumArtUrl ? (
+              <img
+                src={submission.albumArtUrl}
+                alt={submission.title}
+                className="w-20 h-20 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-lg bg-slate-700 flex items-center justify-center">
+                <Music className="w-10 h-10 text-slate-500" />
+              </div>
+            )}
+            <div className="flex-1 space-y-4">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-2">Title</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-300 font-semibold mb-2">Artist</label>
+                <input
+                  type="text"
+                  value={artist}
+                  onChange={(e) => setArtist(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="mb-6">
+            <label className="block text-slate-300 font-semibold mb-2">Notes</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any additional notes about this submission..."
+              className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
+              rows={3}
+            />
+          </div>
+
+          {/* Credits/Collaborators */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <label className="text-slate-300 font-semibold">Collaborators / Split Sheet</label>
+              <motion.button
+                type="button"
+                onClick={addCredit}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center gap-1"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Plus className="w-4 h-4" />
+                Add Collaborator
+              </motion.button>
+            </div>
+
+            {credits.length === 0 ? (
+              <div className="text-center py-6 text-slate-500 bg-slate-900/50 rounded-lg border border-slate-700">
+                No collaborators added. Click "Add Collaborator" to add split information.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {credits.map((credit, index) => (
+                  <div key={index} className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-slate-400">Collaborator {index + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeCredit(index)}
+                        className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <input
+                        type="text"
+                        placeholder="First Name"
+                        value={credit.firstName}
+                        onChange={(e) => updateCredit(index, 'firstName', e.target.value)}
+                        className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Last Name"
+                        value={credit.lastName}
+                        onChange={(e) => updateCredit(index, 'lastName', e.target.value)}
+                        className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <select
+                        value={credit.role}
+                        onChange={(e) => updateCredit(index, 'role', e.target.value)}
+                        className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="WRITER">Writer</option>
+                        <option value="PRODUCER">Producer</option>
+                        <option value="COMPOSER">Composer</option>
+                        <option value="ARTIST">Artist</option>
+                      </select>
+                      <input
+                        type="number"
+                        placeholder="Split %"
+                        min="0"
+                        max="100"
+                        value={credit.splitPercentage || ''}
+                        onChange={(e) => updateCredit(index, 'splitPercentage', parseFloat(e.target.value) || 0)}
+                        className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="text"
+                        placeholder="PRO (ASCAP, BMI...)"
+                        value={credit.pro || ''}
+                        onChange={(e) => updateCredit(index, 'pro', e.target.value)}
+                        className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="text"
+                        placeholder="IPI Number"
+                        value={credit.ipiNumber || ''}
+                        onChange={(e) => updateCredit(index, 'ipiNumber', e.target.value)}
+                        className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="p-6 border-t border-slate-700 flex-shrink-0">
+          <div className="flex gap-3">
+            <motion.button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-xl font-semibold shadow-lg flex items-center justify-center gap-2"
+              whileHover={!isSubmitting ? { scale: 1.02 } : {}}
+              whileTap={!isSubmitting ? { scale: 0.98 } : {}}
+            >
+              {isSubmitting ? (
+                <>
+                  <motion.div
+                    className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Pencil className="w-5 h-5" />
+                  Save Changes
                 </>
               )}
             </motion.button>
