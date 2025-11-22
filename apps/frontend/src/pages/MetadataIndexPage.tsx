@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Music, Database, Link2, ChevronLeft, Plus, Trash2,
   Check, X, Clock, AlertTriangle, ExternalLink, Play, Pause, FolderPlus,
-  List, FileText, FileSpreadsheet, Copy
+  List, Copy, ChevronUp, ChevronDown, Edit3, ArrowUpDown, FileDown
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -46,6 +46,7 @@ interface SearchResult {
   previewUrl?: string | null;
   externalUrl?: string;
   raw?: any;
+  addedAt?: string;
 }
 
 interface SavedList {
@@ -58,6 +59,7 @@ interface SavedList {
 
 type SearchMode = 'code' | 'keyword' | 'url';
 type MatchStatus = 'matched' | 'partial' | 'unmatched' | 'pending';
+type SortOption = 'artist' | 'title' | 'album' | 'release_date' | 'added';
 
 // API Configuration
 const SPOTIFY_CLIENT_ID = '059f6984e6464abd9144e1eb7556b73c';
@@ -115,6 +117,19 @@ export default function MetadataIndexPage() {
   const [urlInput, setUrlInput] = useState('');
   const [advancedMode, setAdvancedMode] = useState(false);
   const [yearInput, setYearInput] = useState('');
+
+  // Advanced keyword mode fields
+  const [versionInput, setVersionInput] = useState('');
+  const [recordingYearInput, setRecordingYearInput] = useState('');
+  const [fileTypeFilter, setFileTypeFilter] = useState<'all' | 'audio' | 'video'>('all');
+
+  // Real-time search preview
+  const [previewResult, setPreviewResult] = useState<SearchResult | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sort state
+  const [sortOption, setSortOption] = useState<SortOption>('added');
 
   // Results state
   const [isSearching, setIsSearching] = useState(false);
@@ -497,7 +512,7 @@ export default function MetadataIndexPage() {
         toast.success(`Added to ${list.name}`);
         return {
           ...list,
-          items: [...list.items, result],
+          items: [...list.items, { ...result, addedAt: new Date().toISOString() }],
           updatedAt: new Date().toISOString(),
         };
       }
@@ -525,39 +540,261 @@ export default function MetadataIndexPage() {
     toast.success('List deleted');
   };
 
-  const exportList = (list: SavedList, format: 'csv' | 'json') => {
-    let content: string;
-    let filename: string;
-    let type: string;
+  // Rename list
+  const renameList = (listId: string, newName: string) => {
+    setSavedLists(lists => lists.map(list => {
+      if (list.id === listId) {
+        return { ...list, name: newName, updatedAt: new Date().toISOString() };
+      }
+      return list;
+    }));
+    if (viewingList?.id === listId) {
+      setViewingList(prev => prev ? { ...prev, name: newName } : null);
+    }
+    toast.success('List renamed');
+  };
 
+  // Move item up in list
+  const moveItemUp = (listId: string, index: number) => {
+    if (index === 0) return;
+    setSavedLists(lists => lists.map(list => {
+      if (list.id === listId) {
+        const newItems = [...list.items];
+        [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
+        return { ...list, items: newItems, updatedAt: new Date().toISOString() };
+      }
+      return list;
+    }));
+    if (viewingList?.id === listId) {
+      setViewingList(prev => {
+        if (!prev) return null;
+        const newItems = [...prev.items];
+        [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
+        return { ...prev, items: newItems };
+      });
+    }
+  };
+
+  // Move item down in list
+  const moveItemDown = (listId: string, index: number) => {
+    setSavedLists(lists => lists.map(list => {
+      if (list.id === listId && index < list.items.length - 1) {
+        const newItems = [...list.items];
+        [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+        return { ...list, items: newItems, updatedAt: new Date().toISOString() };
+      }
+      return list;
+    }));
+    if (viewingList?.id === listId) {
+      setViewingList(prev => {
+        if (!prev || index >= prev.items.length - 1) return prev;
+        const newItems = [...prev.items];
+        [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+        return { ...prev, items: newItems };
+      });
+    }
+  };
+
+  // Sort list
+  const sortListBy = (list: SavedList, sortBy: SortOption): SearchResult[] => {
+    const items = [...list.items];
+    items.sort((a, b) => {
+      switch (sortBy) {
+        case 'artist':
+          return (a.artist || '').toLowerCase().localeCompare((b.artist || '').toLowerCase());
+        case 'title':
+          return (a.title || '').toLowerCase().localeCompare((b.title || '').toLowerCase());
+        case 'album':
+          return (a.album || '').toLowerCase().localeCompare((b.album || '').toLowerCase());
+        case 'release_date':
+          return (b.releaseDate || '0000').localeCompare(a.releaseDate || '0000'); // Newest first
+        case 'added':
+        default:
+          return (a.addedAt || '').localeCompare(b.addedAt || '');
+      }
+    });
+    return items;
+  };
+
+  // Apply sort to viewing list
+  const applySortToList = (sortBy: SortOption) => {
+    setSortOption(sortBy);
+    if (viewingList) {
+      const sortedItems = sortListBy(viewingList, sortBy);
+      setViewingList({ ...viewingList, items: sortedItems });
+    }
+  };
+
+  // Export functions
+  const exportList = (list: SavedList, format: 'csv' | 'json' | 'excel' | 'word' | 'pdf') => {
     if (format === 'csv') {
-      const headers = ['Title', 'Artist', 'Album', 'ISRC', 'Release Date', 'Source', 'Duration'];
-      const rows = list.items.map(item => [
-        item.title,
-        item.artist,
-        item.album,
-        item.isrc || '',
-        item.releaseDate,
-        item.source,
-        item.duration ? formatDuration(item.duration) : '',
-      ]);
-      content = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
-      filename = `${list.name}.csv`;
-      type = 'text/csv';
-    } else {
-      content = JSON.stringify(list, null, 2);
-      filename = `${list.name}.json`;
-      type = 'application/json';
+      exportToCSV(list);
+    } else if (format === 'json') {
+      exportToJSON(list);
+    } else if (format === 'excel') {
+      exportToExcel(list);
+    } else if (format === 'word') {
+      exportToWord(list);
+    } else if (format === 'pdf') {
+      exportToPDF(list);
+    }
+  };
+
+  const exportToCSV = (list: SavedList) => {
+    const headers = ['#', 'Title', 'Artist', 'Album', 'ISRC', 'Release Date', 'Source', 'Duration', 'Spotify URL', 'MusicBrainz URL'];
+    const rows = list.items.map((item, idx) => [
+      idx + 1,
+      `"${(item.title || '').replace(/"/g, '""')}"`,
+      `"${(item.artist || '').replace(/"/g, '""')}"`,
+      `"${(item.album || '').replace(/"/g, '""')}"`,
+      item.isrc || '',
+      item.releaseDate || '',
+      item.source,
+      item.duration ? formatDuration(item.duration) : '',
+      item.source === 'spotify' && item.externalUrl ? item.externalUrl : '',
+      item.source === 'musicbrainz' && item.externalUrl ? item.externalUrl : '',
+    ]);
+    const content = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    downloadFile(content, `${list.name}.csv`, 'text/csv');
+    toast.success('Exported to CSV');
+  };
+
+  const exportToJSON = (list: SavedList) => {
+    const content = JSON.stringify(list, null, 2);
+    downloadFile(content, `${list.name}.json`, 'application/json');
+    toast.success('Exported to JSON');
+  };
+
+  const exportToExcel = (list: SavedList) => {
+    // Create Excel-compatible XML
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<?mso-application progid="Excel.Sheet"?>\n';
+    xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n';
+    xml += '<Styles>\n';
+    xml += '<Style ss:ID="Header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#1e40af" ss:Pattern="Solid"/></Style>\n';
+    xml += '<Style ss:ID="SpotifyHeader"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#22c55e" ss:Pattern="Solid"/></Style>\n';
+    xml += '<Style ss:ID="MBHeader"><Font ss:Bold="1"/><Interior ss:Color="#facc15" ss:Pattern="Solid"/></Style>\n';
+    xml += '</Styles>\n';
+    xml += '<Worksheet ss:Name="Metadata">\n<Table>\n';
+
+    // Header row
+    xml += '<Row>\n';
+    ['#', 'Title', 'Artist', 'Album', 'ISRC', 'Release Date', 'Duration', 'Source', 'URL'].forEach(h => {
+      xml += `<Cell ss:StyleID="Header"><Data ss:Type="String">${h}</Data></Cell>\n`;
+    });
+    xml += '</Row>\n';
+
+    // Data rows
+    list.items.forEach((item, idx) => {
+      xml += '<Row>\n';
+      xml += `<Cell><Data ss:Type="Number">${idx + 1}</Data></Cell>\n`;
+      xml += `<Cell><Data ss:Type="String">${escapeXml(item.title)}</Data></Cell>\n`;
+      xml += `<Cell><Data ss:Type="String">${escapeXml(item.artist)}</Data></Cell>\n`;
+      xml += `<Cell><Data ss:Type="String">${escapeXml(item.album)}</Data></Cell>\n`;
+      xml += `<Cell><Data ss:Type="String">${item.isrc || ''}</Data></Cell>\n`;
+      xml += `<Cell><Data ss:Type="String">${item.releaseDate || ''}</Data></Cell>\n`;
+      xml += `<Cell><Data ss:Type="String">${item.duration ? formatDuration(item.duration) : ''}</Data></Cell>\n`;
+      xml += `<Cell><Data ss:Type="String">${item.source}</Data></Cell>\n`;
+      xml += `<Cell><Data ss:Type="String">${item.externalUrl || ''}</Data></Cell>\n`;
+      xml += '</Row>\n';
+    });
+
+    xml += '</Table>\n</Worksheet>\n</Workbook>';
+    downloadFile(xml, `${list.name}.xls`, 'application/vnd.ms-excel');
+    toast.success('Exported to Excel');
+  };
+
+  const exportToWord = (list: SavedList) => {
+    let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + list.name + '</title>';
+    html += '<style>';
+    html += 'body { font-family: Calibri, Arial, sans-serif; padding: 40px; }';
+    html += 'h1 { color: #1e40af; border-bottom: 2px solid #2563eb; padding-bottom: 10px; }';
+    html += 'table { width: 100%; border-collapse: collapse; margin-top: 20px; }';
+    html += 'th { background: #1e40af; color: white; padding: 10px; text-align: left; }';
+    html += 'td { padding: 8px; border: 1px solid #e2e8f0; }';
+    html += 'tr:nth-child(even) { background: #f8fafc; }';
+    html += '.spotify { color: #22c55e; } .musicbrainz { color: #eab308; }';
+    html += '</style></head><body>';
+    html += '<h1>Metadata List: ' + list.name + '</h1>';
+    html += '<p><strong>' + list.items.length + '</strong> items | Exported: ' + new Date().toLocaleDateString() + '</p>';
+    html += '<table><thead><tr>';
+    ['#', 'Title', 'Artist', 'Album', 'ISRC', 'Release Date', 'Duration', 'Source'].forEach(h => {
+      html += '<th>' + h + '</th>';
+    });
+    html += '</tr></thead><tbody>';
+    list.items.forEach((item, idx) => {
+      html += '<tr>';
+      html += '<td>' + (idx + 1) + '</td>';
+      html += '<td>' + (item.title || '') + '</td>';
+      html += '<td>' + (item.artist || '') + '</td>';
+      html += '<td>' + (item.album || '') + '</td>';
+      html += '<td style="font-family: monospace;">' + (item.isrc || '') + '</td>';
+      html += '<td>' + (item.releaseDate || '') + '</td>';
+      html += '<td>' + (item.duration ? formatDuration(item.duration) : '') + '</td>';
+      html += '<td class="' + item.source + '">' + item.source + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></body></html>';
+    downloadFile(html, `${list.name}.doc`, 'application/msword');
+    toast.success('Exported to Word');
+  };
+
+  const exportToPDF = (list: SavedList) => {
+    // Open print dialog with formatted HTML
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Please allow popups to export PDF');
+      return;
     }
 
-    const blob = new Blob([content], { type });
+    let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + list.name + '</title>';
+    html += '<style>';
+    html += '* { box-sizing: border-box; margin: 0; padding: 0; }';
+    html += 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; }';
+    html += 'h1 { font-size: 24px; color: #1e40af; border-bottom: 3px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; }';
+    html += '.meta { color: #64748b; margin-bottom: 20px; }';
+    html += '.item { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px; padding: 12px; page-break-inside: avoid; }';
+    html += '.item-title { font-weight: 600; font-size: 14px; }';
+    html += '.item-artist { color: #64748b; font-size: 13px; }';
+    html += '.item-details { display: flex; gap: 16px; margin-top: 8px; font-size: 12px; color: #475569; }';
+    html += '.spotify { color: #22c55e; } .musicbrainz { color: #eab308; }';
+    html += '@media print { body { padding: 20px; } }';
+    html += '</style></head><body>';
+    html += '<h1>' + list.name + '</h1>';
+    html += '<p class="meta"><strong>' + list.items.length + '</strong> items | Exported: ' + new Date().toLocaleDateString() + '</p>';
+
+    list.items.forEach((item, idx) => {
+      html += '<div class="item">';
+      html += '<div class="item-title">' + (idx + 1) + '. ' + (item.title || 'Untitled') + '</div>';
+      html += '<div class="item-artist">' + (item.artist || 'Unknown Artist') + (item.album ? ' — ' + item.album : '') + '</div>';
+      html += '<div class="item-details">';
+      if (item.isrc) html += '<span><strong>ISRC:</strong> ' + item.isrc + '</span>';
+      if (item.releaseDate) html += '<span><strong>Released:</strong> ' + item.releaseDate + '</span>';
+      if (item.duration) html += '<span><strong>Duration:</strong> ' + formatDuration(item.duration) + '</span>';
+      html += '<span class="' + item.source + '"><strong>Source:</strong> ' + item.source + '</span>';
+      html += '</div></div>';
+    });
+
+    html += '</body></html>';
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 300);
+    toast.success('PDF ready - use Print dialog to save');
+  };
+
+  // Helper functions
+  const escapeXml = (str: string) => (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const downloadFile = (content: string, filename: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success(`Exported as ${format.toUpperCase()}`);
   };
 
   const copyIsrc = (isrc: string) => {
@@ -595,8 +832,62 @@ export default function MetadataIndexPage() {
     setAlbumInput('');
     setUrlInput('');
     setYearInput('');
+    setVersionInput('');
+    setRecordingYearInput('');
+    setFileTypeFilter('all');
     setSearchError(null);
+    setPreviewResult(null);
   }, [searchMode]);
+
+  // Real-time search preview with debounce
+  useEffect(() => {
+    // Clear any existing timeout
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+    }
+
+    // Determine if we have enough input to trigger a preview
+    let shouldPreview = false;
+    if (searchMode === 'code' && (isrcInput.trim().length >= 8 || upcInput.trim().length >= 10)) {
+      shouldPreview = true;
+    } else if (searchMode === 'keyword' && artistInput.trim() && (trackInput.trim() || albumInput.trim())) {
+      shouldPreview = true;
+    } else if (searchMode === 'url' && urlInput.trim().includes('spotify.com')) {
+      shouldPreview = true;
+    }
+
+    if (shouldPreview) {
+      setIsPreviewLoading(true);
+      previewTimeoutRef.current = setTimeout(async () => {
+        try {
+          let result: SearchResult | null = null;
+
+          if (searchMode === 'code' && isrcInput.trim()) {
+            result = await searchSpotifyByIsrc(isrcInput.trim());
+          } else if (searchMode === 'keyword' && artistInput.trim()) {
+            result = await searchSpotifyByKeywords(artistInput.trim(), trackInput.trim(), albumInput.trim());
+          } else if (searchMode === 'url' && urlInput.trim()) {
+            result = await searchSpotifyByUrl(urlInput.trim());
+          }
+
+          setPreviewResult(result);
+        } catch (error) {
+          console.error('Preview search error:', error);
+        } finally {
+          setIsPreviewLoading(false);
+        }
+      }, 500); // 500ms debounce
+    } else {
+      setPreviewResult(null);
+      setIsPreviewLoading(false);
+    }
+
+    return () => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+      }
+    };
+  }, [searchMode, isrcInput, upcInput, artistInput, trackInput, albumInput, urlInput]);
 
   return (
     <div className="min-h-screen bg-surface pl-64">
@@ -639,6 +930,7 @@ export default function MetadataIndexPage() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
+              {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <button
@@ -653,20 +945,18 @@ export default function MetadataIndexPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Rename Button */}
                   <button
-                    onClick={() => exportList(viewingList, 'csv')}
-                    className="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm font-medium hover:bg-emerald-500/30 transition-colors flex items-center gap-1"
+                    onClick={() => {
+                      const newName = prompt('Enter new name:', viewingList.name);
+                      if (newName && newName.trim()) renameList(viewingList.id, newName.trim());
+                    }}
+                    className="px-3 py-1.5 bg-white/[0.08] text-text-secondary rounded-lg text-sm font-medium hover:bg-white/[0.12] transition-colors flex items-center gap-1"
                   >
-                    <FileSpreadsheet className="w-4 h-4" />
-                    CSV
+                    <Edit3 className="w-4 h-4" />
+                    Rename
                   </button>
-                  <button
-                    onClick={() => exportList(viewingList, 'json')}
-                    className="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-sm font-medium hover:bg-blue-500/30 transition-colors flex items-center gap-1"
-                  >
-                    <FileText className="w-4 h-4" />
-                    JSON
-                  </button>
+                  {/* Delete Button */}
                   <button
                     onClick={() => {
                       if (confirm('Delete this list?')) deleteList(viewingList.id);
@@ -678,6 +968,66 @@ export default function MetadataIndexPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Sort & Export Options */}
+              {viewingList.items.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 p-4 bg-white/[0.04] border border-white/[0.08] rounded-xl">
+                  <span className="text-xs font-semibold text-text-muted uppercase flex items-center gap-1">
+                    <ArrowUpDown className="w-3 h-3" />
+                    Sort:
+                  </span>
+                  {(['artist', 'title', 'album', 'release_date', 'added'] as SortOption[]).map(option => (
+                    <button
+                      key={option}
+                      onClick={() => applySortToList(option)}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        sortOption === option
+                          ? 'bg-blue-500/20 text-blue-400'
+                          : 'bg-white/[0.08] text-text-muted hover:bg-white/[0.12]'
+                      }`}
+                    >
+                      {option === 'release_date' ? 'Date' : option.charAt(0).toUpperCase() + option.slice(1)}
+                    </button>
+                  ))}
+
+                  <span className="text-white/20 mx-2">|</span>
+
+                  <span className="text-xs font-semibold text-text-muted uppercase flex items-center gap-1">
+                    <FileDown className="w-3 h-3" />
+                    Export:
+                  </span>
+                  <button
+                    onClick={() => exportList(viewingList, 'csv')}
+                    className="px-2 py-1 text-xs rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+                  >
+                    CSV
+                  </button>
+                  <button
+                    onClick={() => exportList(viewingList, 'excel')}
+                    className="px-2 py-1 text-xs rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors"
+                  >
+                    Excel
+                  </button>
+                  <button
+                    onClick={() => exportList(viewingList, 'word')}
+                    className="px-2 py-1 text-xs rounded bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 transition-colors"
+                  >
+                    Word
+                  </button>
+                  <button
+                    onClick={() => exportList(viewingList, 'pdf')}
+                    className="px-2 py-1 text-xs rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                  >
+                    PDF
+                  </button>
+                  <button
+                    onClick={() => exportList(viewingList, 'json')}
+                    className="px-2 py-1 text-xs rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors"
+                  >
+                    JSON
+                  </button>
+                </div>
+              )}
 
               {viewingList.items.length === 0 ? (
                 <div className="text-center py-16">
@@ -718,12 +1068,40 @@ export default function MetadataIndexPage() {
                           )}
                         </div>
                       </div>
-                      <button
-                        onClick={() => removeFromList(viewingList.id, item.id, item.source)}
-                        className="p-2 text-text-muted hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {/* Move up/down and delete buttons */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => moveItemUp(viewingList.id, index)}
+                          disabled={index === 0}
+                          className={`p-1.5 rounded transition-colors ${
+                            index === 0
+                              ? 'text-white/20 cursor-not-allowed'
+                              : 'text-text-muted hover:text-blue-400 hover:bg-blue-500/10'
+                          }`}
+                          title="Move up"
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => moveItemDown(viewingList.id, index)}
+                          disabled={index === viewingList.items.length - 1}
+                          className={`p-1.5 rounded transition-colors ${
+                            index === viewingList.items.length - 1
+                              ? 'text-white/20 cursor-not-allowed'
+                              : 'text-text-muted hover:text-blue-400 hover:bg-blue-500/10'
+                          }`}
+                          title="Move down"
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => removeFromList(viewingList.id, item.id, item.source)}
+                          className="p-1.5 text-text-muted hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                          title="Remove"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -812,6 +1190,7 @@ export default function MetadataIndexPage() {
                         >
                           Advanced
                         </button>
+                        <span className="text-xs text-text-muted ml-2">(Advanced unlocks extra filters)</span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -826,6 +1205,7 @@ export default function MetadataIndexPage() {
                             placeholder="e.g., Taylor Swift"
                             className="w-full px-4 py-2.5 bg-surface border border-white/[0.08] rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                           />
+                          <p className="text-xs text-text-muted mt-1">Required</p>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-text-secondary mb-1">Track Title</label>
@@ -836,12 +1216,13 @@ export default function MetadataIndexPage() {
                             placeholder="e.g., Anti-Hero"
                             className="w-full px-4 py-2.5 bg-surface border border-white/[0.08] rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                           />
+                          <p className="text-xs text-text-muted mt-1">Track title or album name required</p>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-text-secondary mb-1">Album Name</label>
+                          <label className="block text-sm font-medium text-text-secondary mb-1">Album/Release Name</label>
                           <input
                             type="text"
                             value={albumInput}
@@ -849,10 +1230,11 @@ export default function MetadataIndexPage() {
                             placeholder="e.g., Midnights"
                             className="w-full px-4 py-2.5 bg-surface border border-white/[0.08] rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                           />
+                          <p className="text-xs text-text-muted mt-1">Track title or album name required</p>
                         </div>
                         {advancedMode && (
                           <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-1">Year</label>
+                            <label className="block text-sm font-medium text-text-secondary mb-1">Year of Release</label>
                             <input
                               type="text"
                               value={yearInput}
@@ -864,6 +1246,46 @@ export default function MetadataIndexPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Advanced fields */}
+                      {advancedMode && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-white/[0.08]">
+                          <div>
+                            <label className="block text-sm font-medium text-text-secondary mb-1">Version (mix/edit)</label>
+                            <input
+                              type="text"
+                              value={versionInput}
+                              onChange={(e) => setVersionInput(e.target.value)}
+                              placeholder="Radio Edit, Acoustic, etc."
+                              className="w-full px-4 py-2.5 bg-surface border border-white/[0.08] rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-text-secondary mb-1">Year of Recording</label>
+                            <input
+                              type="text"
+                              value={recordingYearInput}
+                              onChange={(e) => setRecordingYearInput(e.target.value)}
+                              placeholder="e.g., 2021"
+                              maxLength={4}
+                              className="w-full px-4 py-2.5 bg-surface border border-white/[0.08] rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-text-secondary mb-1">File Type</label>
+                            <select
+                              value={fileTypeFilter}
+                              onChange={(e) => setFileTypeFilter(e.target.value as 'all' | 'audio' | 'video')}
+                              className="w-full px-4 py-2.5 bg-surface border border-white/[0.08] rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                            >
+                              <option value="all">All File Types</option>
+                              <option value="audio">Audio Files Only</option>
+                              <option value="video">Video Files Only</option>
+                            </select>
+                            <p className="text-xs text-text-muted mt-1">Filter simulated</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -955,6 +1377,37 @@ export default function MetadataIndexPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Real-time Preview Panel */}
+                  {(isPreviewLoading || previewResult) && (
+                    <div className="mt-4 pt-4 border-t border-white/[0.08]">
+                      <p className="text-xs text-text-muted mb-2 flex items-center gap-2">
+                        <Search className="w-3 h-3" />
+                        Live Preview
+                        {isPreviewLoading && <span className="text-blue-400">(searching...)</span>}
+                      </p>
+                      {isPreviewLoading ? (
+                        <div className="flex items-center gap-3 p-3 bg-white/[0.04] rounded-lg">
+                          <div className="w-10 h-10 bg-white/[0.08] rounded animate-pulse" />
+                          <div className="flex-1">
+                            <div className="h-4 bg-white/[0.08] rounded w-3/4 animate-pulse" />
+                            <div className="h-3 bg-white/[0.08] rounded w-1/2 mt-1 animate-pulse" />
+                          </div>
+                        </div>
+                      ) : previewResult ? (
+                        <div className="flex items-center gap-3 p-3 bg-white/[0.04] rounded-lg border border-blue-500/20">
+                          {previewResult.imageUrl && (
+                            <img src={previewResult.imageUrl} alt="" className="w-10 h-10 rounded object-cover" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">{previewResult.title}</p>
+                            <p className="text-xs text-text-secondary truncate">{previewResult.artist}</p>
+                          </div>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">Match found</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1193,6 +1646,126 @@ export default function MetadataIndexPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Detailed Field Comparison Table */}
+                  {spotifyResult && musicbrainzResult && (
+                    <div className="mt-4 bg-white/[0.04] border border-white/[0.08] rounded-2xl overflow-hidden">
+                      <div className="px-4 py-3 bg-white/[0.05] border-b border-white/[0.08] flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Database className="w-4 h-4 text-text-muted" />
+                          <span className="font-medium text-white">Field-by-Field Comparison</span>
+                        </div>
+                        <StatusBadge status={getMatchStatus(spotifyResult, musicbrainzResult)} />
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-white/[0.08]">
+                              <th className="px-4 py-3 text-left text-text-muted font-medium w-28">Field</th>
+                              <th className="px-4 py-3 text-left bg-green-500/10 text-green-400 font-medium">Spotify</th>
+                              <th className="px-4 py-3 text-left bg-purple-500/10 text-purple-400 font-medium">MusicBrainz</th>
+                              <th className="px-4 py-3 text-center text-text-muted font-medium w-24">Match</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {/* Title */}
+                            <tr className={`border-b border-white/[0.05] ${spotifyResult.title === musicbrainzResult.title ? 'bg-green-500/5' : 'bg-yellow-500/5'}`}>
+                              <td className="px-4 py-2.5 text-text-muted font-medium">Title</td>
+                              <td className="px-4 py-2.5 text-white">{spotifyResult.title || '—'}</td>
+                              <td className="px-4 py-2.5 text-white">{musicbrainzResult.title || '—'}</td>
+                              <td className="px-4 py-2.5 text-center">
+                                {spotifyResult.title === musicbrainzResult.title ? (
+                                  <Check className="w-4 h-4 text-green-400 mx-auto" />
+                                ) : (
+                                  <AlertTriangle className="w-4 h-4 text-yellow-400 mx-auto" />
+                                )}
+                              </td>
+                            </tr>
+                            {/* Artist */}
+                            <tr className={`border-b border-white/[0.05] ${spotifyResult.artist === musicbrainzResult.artist ? 'bg-green-500/5' : 'bg-yellow-500/5'}`}>
+                              <td className="px-4 py-2.5 text-text-muted font-medium">Artist</td>
+                              <td className="px-4 py-2.5 text-white">{spotifyResult.artist || '—'}</td>
+                              <td className="px-4 py-2.5 text-white">{musicbrainzResult.artist || '—'}</td>
+                              <td className="px-4 py-2.5 text-center">
+                                {spotifyResult.artist === musicbrainzResult.artist ? (
+                                  <Check className="w-4 h-4 text-green-400 mx-auto" />
+                                ) : spotifyResult.artist?.toLowerCase() === musicbrainzResult.artist?.toLowerCase() ? (
+                                  <span className="text-xs text-yellow-400">~</span>
+                                ) : (
+                                  <AlertTriangle className="w-4 h-4 text-yellow-400 mx-auto" />
+                                )}
+                              </td>
+                            </tr>
+                            {/* Album */}
+                            <tr className={`border-b border-white/[0.05] ${spotifyResult.album === musicbrainzResult.album ? 'bg-green-500/5' : 'bg-yellow-500/5'}`}>
+                              <td className="px-4 py-2.5 text-text-muted font-medium">Album</td>
+                              <td className="px-4 py-2.5 text-white">{spotifyResult.album || '—'}</td>
+                              <td className="px-4 py-2.5 text-white">{musicbrainzResult.album || '—'}</td>
+                              <td className="px-4 py-2.5 text-center">
+                                {spotifyResult.album === musicbrainzResult.album ? (
+                                  <Check className="w-4 h-4 text-green-400 mx-auto" />
+                                ) : (
+                                  <AlertTriangle className="w-4 h-4 text-yellow-400 mx-auto" />
+                                )}
+                              </td>
+                            </tr>
+                            {/* ISRC */}
+                            <tr className={`border-b border-white/[0.05] ${spotifyResult.isrc === musicbrainzResult.isrc ? 'bg-green-500/5' : spotifyResult.isrc && musicbrainzResult.isrc ? 'bg-red-500/5' : 'bg-yellow-500/5'}`}>
+                              <td className="px-4 py-2.5 text-text-muted font-medium">ISRC</td>
+                              <td className="px-4 py-2.5 font-mono text-white">{spotifyResult.isrc || '—'}</td>
+                              <td className="px-4 py-2.5 font-mono text-white">{musicbrainzResult.isrc || '—'}</td>
+                              <td className="px-4 py-2.5 text-center">
+                                {spotifyResult.isrc === musicbrainzResult.isrc && spotifyResult.isrc ? (
+                                  <Check className="w-4 h-4 text-green-400 mx-auto" />
+                                ) : !spotifyResult.isrc || !musicbrainzResult.isrc ? (
+                                  <span className="text-xs text-yellow-400">?</span>
+                                ) : (
+                                  <X className="w-4 h-4 text-red-400 mx-auto" />
+                                )}
+                              </td>
+                            </tr>
+                            {/* Duration */}
+                            <tr className={`border-b border-white/[0.05] ${Math.abs((spotifyResult.duration || 0) - (musicbrainzResult.duration || 0)) < 2000 ? 'bg-green-500/5' : 'bg-yellow-500/5'}`}>
+                              <td className="px-4 py-2.5 text-text-muted font-medium">Duration</td>
+                              <td className="px-4 py-2.5 text-white">{spotifyResult.duration ? formatDuration(spotifyResult.duration) : '—'}</td>
+                              <td className="px-4 py-2.5 text-white">{musicbrainzResult.duration ? formatDuration(musicbrainzResult.duration) : '—'}</td>
+                              <td className="px-4 py-2.5 text-center">
+                                {Math.abs((spotifyResult.duration || 0) - (musicbrainzResult.duration || 0)) < 2000 ? (
+                                  <Check className="w-4 h-4 text-green-400 mx-auto" />
+                                ) : Math.abs((spotifyResult.duration || 0) - (musicbrainzResult.duration || 0)) < 5000 ? (
+                                  <span className="text-xs text-yellow-400">~</span>
+                                ) : (
+                                  <AlertTriangle className="w-4 h-4 text-yellow-400 mx-auto" />
+                                )}
+                              </td>
+                            </tr>
+                            {/* Release Date */}
+                            <tr className="border-b border-white/[0.05]">
+                              <td className="px-4 py-2.5 text-text-muted font-medium">Release Date</td>
+                              <td className="px-4 py-2.5 text-white">{spotifyResult.releaseDate || '—'}</td>
+                              <td className="px-4 py-2.5 text-white">{musicbrainzResult.releaseDate || '—'}</td>
+                              <td className="px-4 py-2.5 text-center">
+                                {spotifyResult.releaseDate === musicbrainzResult.releaseDate ? (
+                                  <Check className="w-4 h-4 text-green-400 mx-auto" />
+                                ) : spotifyResult.releaseDate?.substring(0, 4) === musicbrainzResult.releaseDate?.substring(0, 4) ? (
+                                  <span className="text-xs text-yellow-400">~</span>
+                                ) : (
+                                  <AlertTriangle className="w-4 h-4 text-yellow-400 mx-auto" />
+                                )}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      {/* Legend */}
+                      <div className="px-4 py-2 bg-white/[0.02] border-t border-white/[0.08] flex items-center gap-4 text-xs text-text-muted">
+                        <span className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> Exact match</span>
+                        <span className="flex items-center gap-1"><span className="text-yellow-400">~</span> Close match</span>
+                        <span className="flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-yellow-400" /> Different</span>
+                        <span className="flex items-center gap-1"><X className="w-3 h-3 text-red-400" /> Mismatch</span>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </motion.div>
