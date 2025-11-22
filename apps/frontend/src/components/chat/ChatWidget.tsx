@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Paperclip, Search, ChevronLeft, Circle, Users, UserPlus, Check, XIcon, Download, FileText, Loader2, UsersRound, Plus } from 'lucide-react';
 import { useSocket } from '../../hooks/useSocket';
@@ -72,6 +73,7 @@ type TabType = 'chats' | 'contacts';
 
 export function ChatWidget() {
   const { user } = useAuthStore();
+  const location = useLocation();
   const {
     isConnected,
     onlineUsers,
@@ -83,6 +85,10 @@ export function ChatWidget() {
     markAsRead,
     onNewMessage,
   } = useSocket();
+
+  // Hide chat on landing page and public pages
+  const hiddenPaths = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
+  const isHiddenPage = hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/writer/');
 
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('chats');
@@ -487,7 +493,8 @@ export function ChatWidget() {
     return contacts.some((c) => c.contactId === userId && c.status === 'PENDING');
   };
 
-  if (!user) return null;
+  // Don't render on landing/public pages or if not logged in
+  if (!user || isHiddenPage) return null;
 
   return (
     <>
