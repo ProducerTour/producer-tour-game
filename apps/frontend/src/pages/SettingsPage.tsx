@@ -72,6 +72,7 @@ export default function SettingsPage() {
   // Chat settings state
   const [chatSettings, setChatSettings] = useState({
     chatSoundEnabled: true,
+    chatSoundType: 'chime' as 'chime' | 'pop' | 'ding' | 'bell' | 'subtle',
     chatVisibilityStatus: 'online' as 'online' | 'away' | 'invisible' | 'do_not_disturb',
     chatShowOnlineStatus: true,
     chatShowTypingIndicator: true,
@@ -178,6 +179,7 @@ export default function SettingsPage() {
     if (chatSettingsData) {
       setChatSettings({
         chatSoundEnabled: chatSettingsData.chatSoundEnabled ?? true,
+        chatSoundType: chatSettingsData.chatSoundType ?? 'chime',
         chatVisibilityStatus: chatSettingsData.chatVisibilityStatus ?? 'online',
         chatShowOnlineStatus: chatSettingsData.chatShowOnlineStatus ?? true,
         chatShowTypingIndicator: chatSettingsData.chatShowTypingIndicator ?? true,
@@ -1025,22 +1027,57 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Sound Settings */}
-                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
-                      <div className="flex items-center gap-3">
-                        {chatSettings.chatSoundEnabled ? (
-                          <Volume2 className="w-5 h-5 text-green-400" />
-                        ) : (
-                          <VolumeX className="w-5 h-5 text-gray-400" />
-                        )}
-                        <div>
-                          <h3 className="text-white font-medium">Message Sounds</h3>
-                          <p className="text-sm text-text-muted">Play a sound when you receive new messages</p>
+                    <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {chatSettings.chatSoundEnabled ? (
+                            <Volume2 className="w-5 h-5 text-green-400" />
+                          ) : (
+                            <VolumeX className="w-5 h-5 text-gray-400" />
+                          )}
+                          <div>
+                            <h3 className="text-white font-medium">Message Sounds</h3>
+                            <p className="text-sm text-text-muted">Play a sound when you receive new messages</p>
+                          </div>
                         </div>
+                        <Switch
+                          checked={chatSettings.chatSoundEnabled}
+                          onCheckedChange={(checked) => handleChatSettingToggle('chatSoundEnabled', checked)}
+                        />
                       </div>
-                      <Switch
-                        checked={chatSettings.chatSoundEnabled}
-                        onCheckedChange={(checked) => handleChatSettingToggle('chatSoundEnabled', checked)}
-                      />
+
+                      {/* Sound Type Selector */}
+                      {chatSettings.chatSoundEnabled && (
+                        <div className="pt-2 border-t border-white/[0.08]">
+                          <label className="block text-sm font-medium text-text-secondary mb-2">
+                            Notification Sound
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {[
+                              { value: 'chime', label: 'Chime' },
+                              { value: 'pop', label: 'Pop' },
+                              { value: 'ding', label: 'Ding' },
+                              { value: 'bell', label: 'Bell' },
+                              { value: 'subtle', label: 'Subtle' },
+                            ].map((sound) => (
+                              <button
+                                key={sound.value}
+                                onClick={() => handleChatSettingToggle('chatSoundType', sound.value)}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                                  chatSettings.chatSoundType === sound.value
+                                    ? 'bg-primary-500 text-white'
+                                    : 'bg-white/[0.06] text-text-secondary hover:bg-white/[0.1]'
+                                }`}
+                              >
+                                {sound.label}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-xs text-text-muted mt-2">
+                            Select a sound to preview. The sound will play when you receive new messages.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Desktop Notifications */}

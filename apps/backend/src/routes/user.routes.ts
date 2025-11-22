@@ -356,6 +356,7 @@ router.get('/chat-settings', async (req: AuthRequest, res: Response) => {
       where: { id: userId },
       select: {
         chatSoundEnabled: true,
+        chatSoundType: true,
         chatVisibilityStatus: true,
         chatShowOnlineStatus: true,
         chatShowTypingIndicator: true,
@@ -384,6 +385,7 @@ router.patch('/chat-settings', async (req: AuthRequest, res: Response) => {
     const userId = req.user!.id;
     const {
       chatSoundEnabled,
+      chatSoundType,
       chatVisibilityStatus,
       chatShowOnlineStatus,
       chatShowTypingIndicator,
@@ -396,6 +398,16 @@ router.patch('/chat-settings', async (req: AuthRequest, res: Response) => {
 
     if (typeof chatSoundEnabled === 'boolean') {
       updateData.chatSoundEnabled = chatSoundEnabled;
+    }
+    if (chatSoundType !== undefined) {
+      // Validate sound type
+      const validSoundTypes = ['chime', 'pop', 'ding', 'bell', 'subtle'];
+      if (!validSoundTypes.includes(chatSoundType)) {
+        return res.status(400).json({
+          error: 'Invalid sound type. Must be one of: chime, pop, ding, bell, subtle'
+        });
+      }
+      updateData.chatSoundType = chatSoundType;
     }
     if (chatVisibilityStatus !== undefined) {
       // Validate visibility status
@@ -429,6 +441,7 @@ router.patch('/chat-settings', async (req: AuthRequest, res: Response) => {
       data: updateData,
       select: {
         chatSoundEnabled: true,
+        chatSoundType: true,
         chatVisibilityStatus: true,
         chatShowOnlineStatus: true,
         chatShowTypingIndicator: true,

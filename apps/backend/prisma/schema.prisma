@@ -161,6 +161,7 @@ model User {
 
   // Chat preferences
   chatSoundEnabled        Boolean @default(true)  // Play sound on new messages
+  chatSoundType           String  @default("chime") // chime, pop, ding, bell, subtle
   chatVisibilityStatus    String  @default("online") // online, away, invisible, do_not_disturb
   chatShowOnlineStatus    Boolean @default(true)  // Show online status to others
   chatShowTypingIndicator Boolean @default(true)  // Show typing indicator to others

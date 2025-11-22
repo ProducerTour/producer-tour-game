@@ -1,0 +1,8 @@
+-- Add chat preferences to users table
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "chatSoundEnabled" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "chatSoundType" TEXT NOT NULL DEFAULT 'chime';
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "chatVisibilityStatus" TEXT NOT NULL DEFAULT 'online';
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "chatShowOnlineStatus" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "chatShowTypingIndicator" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "chatMessagePreview" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "chatDesktopNotifications" BOOLEAN NOT NULL DEFAULT true;

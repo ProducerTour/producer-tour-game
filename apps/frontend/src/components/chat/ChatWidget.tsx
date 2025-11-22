@@ -6,24 +6,41 @@ import { useSocket } from '../../hooks/useSocket';
 import { useAuthStore } from '../../store/auth.store';
 import { api, chatSettingsApi } from '../../lib/api';
 
+// Sound configuration for different notification types
+type SoundType = 'chime' | 'pop' | 'ding' | 'bell' | 'subtle';
+
+const SOUND_CONFIGS: Record<SoundType, { frequency: number; duration: number; type: OscillatorType; volume: number; notes?: number[] }> = {
+  chime: { frequency: 880, duration: 0.3, type: 'sine', volume: 0.3, notes: [880, 1100] },
+  pop: { frequency: 600, duration: 0.15, type: 'sine', volume: 0.25 },
+  ding: { frequency: 1200, duration: 0.4, type: 'triangle', volume: 0.25 },
+  bell: { frequency: 800, duration: 0.5, type: 'sine', volume: 0.2, notes: [800, 1000, 1200] },
+  subtle: { frequency: 440, duration: 0.2, type: 'sine', volume: 0.15 },
+};
+
 // Play notification sound using Web Audio API
-const playNotificationSound = () => {
+const playNotificationSound = (soundType: SoundType = 'chime') => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+    const config = SOUND_CONFIGS[soundType] || SOUND_CONFIGS.chime;
+    const notes = config.notes || [config.frequency];
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    notes.forEach((freq, index) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
 
-    oscillator.frequency.value = 800; // Hz
-    oscillator.type = 'sine';
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
 
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      oscillator.frequency.value = freq;
+      oscillator.type = config.type;
 
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.3);
+      const startTime = audioContext.currentTime + (index * 0.1);
+      gainNode.gain.setValueAtTime(config.volume, startTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + config.duration);
+
+      oscillator.start(startTime);
+      oscillator.stop(startTime + config.duration);
+    });
   } catch (error) {
     console.warn('Could not play notification sound:', error);
   }
@@ -129,6 +146,7 @@ export function ChatWidget() {
 
   // Chat settings state
   const [chatSoundEnabled, setChatSoundEnabled] = useState(true);
+  const [chatSoundType, setChatSoundType] = useState<SoundType>('chime');
   const [chatDesktopNotifications, setChatDesktopNotifications] = useState(true);
   const [chatMessagePreview, setChatMessagePreview] = useState(true);
 
@@ -188,6 +206,7 @@ export function ChatWidget() {
       try {
         const { data } = await chatSettingsApi.getSettings();
         setChatSoundEnabled(data.chatSoundEnabled ?? true);
+        setChatSoundType((data.chatSoundType as SoundType) ?? 'chime');
         setChatDesktopNotifications(data.chatDesktopNotifications ?? true);
         setChatMessagePreview(data.chatMessagePreview ?? true);
       } catch (error) {
@@ -231,7 +250,7 @@ export function ChatWidget() {
 
         // Play notification sound if enabled
         if (chatSoundEnabled) {
-          playNotificationSound();
+          playNotificationSound(chatSoundType);
         }
 
         // Show desktop notification if enabled and browser supports it
@@ -250,7 +269,7 @@ export function ChatWidget() {
     });
 
     return unsubscribe;
-  }, [activeConversation, onNewMessage, markAsRead, chatSoundEnabled, chatDesktopNotifications, chatMessagePreview, user?.id]);
+  }, [activeConversation, onNewMessage, markAsRead, chatSoundEnabled, chatSoundType, chatDesktopNotifications, chatMessagePreview, user?.id]);
 
   // Join active conversation room
   useEffect(() => {
