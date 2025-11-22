@@ -1,9 +1,62 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 import { emitToConversation, emitToUser, isUserOnline, getOnlineUsers } from '../socket';
 
 const router = Router();
+
+// Configure multer for chat file uploads
+const chatStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = process.env.UPLOAD_DIR || './uploads/chat';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `chat-${uniqueSuffix}${ext}`);
+  }
+});
+
+const chatUpload = multer({
+  storage: chatStorage,
+  limits: {
+    fileSize: parseInt(process.env.MAX_CHAT_FILE_SIZE || '10485760') // 10MB default
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow common file types for chat
+    const allowedMimes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/csv',
+      'text/plain',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'audio/mpeg',
+      'audio/wav',
+      'audio/ogg',
+      'video/mp4',
+      'video/webm'
+    ];
+
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('File type not allowed'));
+    }
+  }
+});
 
 // Get all conversations for the current user
 router.get('/conversations', authenticate, async (req: AuthRequest, res: Response) => {
@@ -452,6 +505,36 @@ router.get('/users/search', authenticate, async (req: AuthRequest, res: Response
   } catch (error) {
     console.error('Error searching users:', error);
     res.status(500).json({ error: 'Failed to search users' });
+  }
+});
+
+// Upload a file for chat
+router.post('/upload', authenticate, chatUpload.single('file'), async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Generate file URL based on environment
+    const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const fileUrl = `${baseUrl}/uploads/chat/${req.file.filename}`;
+
+    res.json({
+      success: true,
+      file: {
+        fileName: req.file.originalname,
+        fileUrl,
+        fileSize: req.file.size,
+        fileMimeType: req.file.mimetype,
+      },
+    });
+  } catch (error) {
+    console.error('Chat file upload error:', error);
+    // Clean up file if error occurs
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: 'Failed to upload file' });
   }
 });
 

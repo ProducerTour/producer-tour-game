@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Paperclip, Search, ChevronLeft, Circle, Users, UserPlus, Check, XIcon } from 'lucide-react';
+import { MessageCircle, X, Send, Paperclip, Search, ChevronLeft, Circle, Users, UserPlus, Check, XIcon, Download, FileText, Loader2 } from 'lucide-react';
 import { useSocket } from '../../hooks/useSocket';
 import { useAuthStore } from '../../store/auth.store';
 import { api } from '../../lib/api';
@@ -22,6 +22,10 @@ interface Message {
   type: 'TEXT' | 'FILE' | 'SYSTEM';
   createdAt: string;
   sender: User;
+  fileName?: string;
+  fileUrl?: string;
+  fileSize?: number;
+  fileMimeType?: string;
   replyTo?: {
     id: string;
     content: string;
@@ -97,6 +101,8 @@ export function ChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Fetch conversations
   useEffect(() => {
@@ -240,6 +246,53 @@ export function ChatWidget() {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeConversation) return;
+
+    setIsUploading(true);
+    try {
+      // Upload file
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const { data } = await api.post('/chat/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (data.success) {
+        // Send message with file
+        socketSendMessage({
+          conversationId: activeConversation.id,
+          content: file.name,
+          type: 'FILE',
+          fileName: data.file.fileName,
+          fileUrl: data.file.fileUrl,
+          fileSize: data.file.fileSize,
+          fileMimeType: data.file.fileMimeType,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to upload file:', error);
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const isImageFile = (mimeType?: string) => {
+    return mimeType?.startsWith('image/');
   };
 
   const searchUsers = useCallback(async (query: string) => {
@@ -440,6 +493,37 @@ export function ChatWidget() {
                           : 'Offline')}
                     </p>
                   </div>
+                  {/* Add as friend button */}
+                  {activeConversation.type === 'DIRECT' && (() => {
+                    const otherUser = getOtherParticipant(activeConversation);
+                    if (!otherUser) return null;
+                    const isAlreadyContact = isContact(otherUser.id);
+                    const isPending = hasPendingRequest(otherUser.id);
+
+                    if (isAlreadyContact) {
+                      return (
+                        <div className="p-1.5 text-green-400" title="Already a contact">
+                          <Check className="w-4 h-4" />
+                        </div>
+                      );
+                    }
+
+                    if (isPending) {
+                      return (
+                        <span className="text-xs text-yellow-400 px-2">Pending</span>
+                      );
+                    }
+
+                    return (
+                      <button
+                        onClick={() => sendContactRequest(otherUser.id)}
+                        className="p-1.5 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition"
+                        title="Add as friend"
+                      >
+                        <UserPlus className="w-4 h-4 text-green-400" />
+                      </button>
+                    );
+                  })()}
                 </>
               ) : (
                 <>
@@ -744,7 +828,37 @@ export function ChatWidget() {
                                   {msg.sender.firstName}
                                 </p>
                               )}
-                              <p className="text-sm break-words">{msg.content}</p>
+                              {msg.type === 'FILE' && msg.fileUrl ? (
+                                <div className="space-y-2">
+                                  {isImageFile(msg.fileMimeType) ? (
+                                    <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
+                                      <img
+                                        src={msg.fileUrl}
+                                        alt={msg.fileName || 'Image'}
+                                        className="max-w-full rounded-lg max-h-48 object-contain"
+                                      />
+                                    </a>
+                                  ) : (
+                                    <a
+                                      href={msg.fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-2 p-2 bg-black/20 rounded-lg hover:bg-black/30 transition"
+                                    >
+                                      <FileText className="w-8 h-8 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{msg.fileName}</p>
+                                        {msg.fileSize && (
+                                          <p className="text-xs opacity-75">{formatFileSize(msg.fileSize)}</p>
+                                        )}
+                                      </div>
+                                      <Download className="w-4 h-4 flex-shrink-0" />
+                                    </a>
+                                  )}
+                                </div>
+                              ) : (
+                                <p className="text-sm break-words">{msg.content}</p>
+                              )}
                               <p
                                 className={`text-xs mt-1 ${
                                   msg.senderId === user?.id ? 'text-blue-200' : 'text-slate-400'
@@ -763,8 +877,24 @@ export function ChatWidget() {
                   {/* Input */}
                   <div className="p-3 border-t border-slate-700 bg-slate-800/50">
                     <div className="flex items-center gap-2">
-                      <button className="p-2 hover:bg-slate-700 rounded-lg transition text-slate-400 hover:text-white">
-                        <Paperclip className="w-5 h-5" />
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,audio/*,video/*"
+                      />
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="p-2 hover:bg-slate-700 rounded-lg transition text-slate-400 hover:text-white disabled:opacity-50"
+                        title="Attach file"
+                      >
+                        {isUploading ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <Paperclip className="w-5 h-5" />
+                        )}
                       </button>
                       <input
                         ref={inputRef}
