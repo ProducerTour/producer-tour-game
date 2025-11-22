@@ -118,9 +118,17 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       {/* User Profile Section */}
       <div className="px-6 py-4 border-b border-white/[0.08]">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-blue to-green-500 flex items-center justify-center text-white font-semibold shadow-lg">
-            {user?.firstName?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
-          </div>
+          {(user as any)?.profilePhotoUrl ? (
+            <img
+              src={(user as any).profilePhotoUrl}
+              alt={`${user?.firstName} ${user?.lastName}`}
+              className="w-10 h-10 rounded-xl object-cover shadow-lg"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-blue to-green-500 flex items-center justify-center text-white font-semibold shadow-lg">
+              {user?.firstName?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">
               {user?.firstName && user?.lastName

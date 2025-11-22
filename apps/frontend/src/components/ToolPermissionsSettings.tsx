@@ -57,6 +57,12 @@ const INITIAL_TOOL_PERMISSIONS: ToolPermission[] = [
     name: 'Work Registration Tool',
     icon: '✨',
     roles: ['ADMIN', 'WRITER', 'MANAGER', 'LEGAL']
+  },
+  {
+    id: 'metadata-index',
+    name: 'Metadata Index',
+    icon: '🔍',
+    roles: ['ADMIN']
   }
 ];
 

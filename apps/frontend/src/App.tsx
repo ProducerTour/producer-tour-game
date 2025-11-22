@@ -27,6 +27,7 @@ import WorkRegistrationTool from './pages/WorkRegistrationTool';
 import MySubmissions from './pages/MySubmissions';
 import ProducerTourMilesPage from './pages/ProducerTourMilesPage';
 import WriterTourHubPage from './pages/WriterTourHubPage';
+import MetadataIndexPage from './pages/MetadataIndexPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -101,6 +102,7 @@ function App() {
         <Route path="/tools/royalty-portal" element={<RoyaltyPortalPage />} />
         <Route path="/tools/opportunities" element={<OpportunitiesToolPage />} />
         <Route path="/tools/advance-estimator" element={<AdvanceEstimatorToolPage />} />
+        <Route path="/tools/metadata-index" element={<MetadataIndexPage />} />
 
         {/* Work Registration Routes */}
         <Route

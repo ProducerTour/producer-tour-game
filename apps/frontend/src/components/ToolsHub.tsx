@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, BarChart3, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, BarChart3, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 
 interface Tool {
@@ -94,6 +94,16 @@ const TOOLS: Tool[] = [
     url: '/work-registration',
     category: 'Management',
     roles: ['ADMIN', 'WRITER', 'MANAGER', 'LEGAL'] // Available to all roles
+  },
+  {
+    id: 'metadata-index',
+    name: 'Metadata Index',
+    description: 'Search and verify music metadata using ISRC/UPC codes, keywords, or Spotify URLs. Cross-reference with MusicBrainz and manage your research lists.',
+    icon: Search,
+    color: 'from-slate-500 to-slate-600',
+    url: '/tools/metadata-index',
+    category: 'Research',
+    roles: ['ADMIN'] // Admin only by default
   }
 ];
 
@@ -305,7 +315,27 @@ export default function ToolsHub() {
                       </div>
                     </>
                   )}
-                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration'].includes(currentTool.id) && (
+                  {currentTool.id === 'metadata-index' && (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-text-secondary">ISRC/UPC code search & verification</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-text-secondary">Spotify & MusicBrainz cross-reference</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-text-secondary">Save tracks to custom research lists</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-text-secondary">Export data to CSV & JSON</span>
+                      </div>
+                    </>
+                  )}
+                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration', 'metadata-index'].includes(currentTool.id) && (
                     <>
                       <div className="flex items-start gap-3">
                         <Check className="w-5 h-5 text-green-400 flex-shrink-0" />

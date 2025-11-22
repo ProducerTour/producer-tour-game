@@ -52,6 +52,7 @@ router.get('/conversations', authenticate, async (req: AuthRequest, res: Respons
                 lastName: true,
                 email: true,
                 role: true,
+                profilePhotoUrl: true,
               },
             },
           },
@@ -133,7 +134,7 @@ router.post('/conversations', authenticate, async (req: AuthRequest, res: Respon
           participants: {
             include: {
               user: {
-                select: { id: true, firstName: true, lastName: true, email: true, role: true },
+                select: { id: true, firstName: true, lastName: true, email: true, role: true, profilePhotoUrl: true },
               },
             },
           },
@@ -162,7 +163,7 @@ router.post('/conversations', authenticate, async (req: AuthRequest, res: Respon
         participants: {
           include: {
             user: {
-              select: { id: true, firstName: true, lastName: true, email: true, role: true },
+              select: { id: true, firstName: true, lastName: true, email: true, role: true, profilePhotoUrl: true },
             },
           },
         },
@@ -206,7 +207,7 @@ router.get('/conversations/:id', authenticate, async (req: AuthRequest, res: Res
           where: { leftAt: null },
           include: {
             user: {
-              select: { id: true, firstName: true, lastName: true, email: true, role: true },
+              select: { id: true, firstName: true, lastName: true, email: true, role: true, profilePhotoUrl: true },
             },
           },
         },
@@ -226,7 +227,7 @@ router.get('/conversations/:id', authenticate, async (req: AuthRequest, res: Res
       },
       include: {
         sender: {
-          select: { id: true, firstName: true, lastName: true, email: true, role: true },
+          select: { id: true, firstName: true, lastName: true, email: true, role: true, profilePhotoUrl: true },
         },
         replyTo: {
           select: {
@@ -289,7 +290,7 @@ router.post('/conversations/:id/messages', authenticate, async (req: AuthRequest
       },
       include: {
         sender: {
-          select: { id: true, firstName: true, lastName: true, email: true, role: true },
+          select: { id: true, firstName: true, lastName: true, email: true, role: true, profilePhotoUrl: true },
         },
         replyTo: {
           select: {
@@ -425,7 +426,7 @@ router.get('/online-users', authenticate, async (req: AuthRequest, res: Response
     const onlineUserIds = getOnlineUsers();
     const users = await prisma.user.findMany({
       where: { id: { in: onlineUserIds } },
-      select: { id: true, firstName: true, lastName: true, email: true, role: true },
+      select: { id: true, firstName: true, lastName: true, email: true, role: true, profilePhotoUrl: true },
     });
 
     res.json(users);

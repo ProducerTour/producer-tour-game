@@ -53,6 +53,7 @@ interface User {
   email: string;
   role: string;
   isOnline?: boolean;
+  profilePhotoUrl?: string;
 }
 
 interface Message {
@@ -800,12 +801,20 @@ export function ChatWidget() {
                                       onClick={() => isGroupMode ? toggleParticipant(u) : startNewConversation(u)}
                                       className="flex items-center gap-3 flex-1 text-left"
                                     >
-                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                                        isSelected ? 'bg-purple-500/30 text-purple-300' : 'bg-blue-500/20 text-blue-400'
-                                      }`}>
-                                        {u.firstName?.[0]}
-                                        {u.lastName?.[0]}
-                                      </div>
+                                      {u.profilePhotoUrl ? (
+                                        <img
+                                          src={u.profilePhotoUrl}
+                                          alt={`${u.firstName} ${u.lastName}`}
+                                          className={`w-8 h-8 rounded-full object-cover ${isSelected ? 'ring-2 ring-purple-500' : ''}`}
+                                        />
+                                      ) : (
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                                          isSelected ? 'bg-purple-500/30 text-purple-300' : 'bg-blue-500/20 text-blue-400'
+                                        }`}>
+                                          {u.firstName?.[0]}
+                                          {u.lastName?.[0]}
+                                        </div>
+                                      )}
                                       <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-white truncate">
                                           {u.firstName} {u.lastName}
@@ -890,9 +899,17 @@ export function ChatWidget() {
                         className="w-full p-3 flex items-center gap-3 hover:bg-slate-800 transition border-b border-slate-800"
                       >
                         <div className="relative">
-                          <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm font-medium">
-                            {getConversationName(conv).slice(0, 2).toUpperCase()}
-                          </div>
+                          {conv.type === 'DIRECT' && getOtherParticipant(conv)?.profilePhotoUrl ? (
+                            <img
+                              src={getOtherParticipant(conv)?.profilePhotoUrl}
+                              alt={getConversationName(conv)}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm font-medium">
+                              {getConversationName(conv).slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
                           {conv.type === 'DIRECT' &&
                             onlineUsers.has(getOtherParticipant(conv)?.id || '') && (
                               <Circle className="absolute -bottom-0.5 -right-0.5 w-3 h-3 fill-green-500 text-green-500 bg-slate-900 rounded-full" />
@@ -943,10 +960,18 @@ export function ChatWidget() {
                             key={request.id}
                             className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 transition"
                           >
-                            <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 text-sm font-medium">
-                              {request.requester.firstName?.[0]}
-                              {request.requester.lastName?.[0]}
-                            </div>
+                            {request.requester.profilePhotoUrl ? (
+                              <img
+                                src={request.requester.profilePhotoUrl}
+                                alt={`${request.requester.firstName} ${request.requester.lastName}`}
+                                className="w-10 h-10 rounded-full object-cover ring-2 ring-yellow-500/30"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 text-sm font-medium">
+                                {request.requester.firstName?.[0]}
+                                {request.requester.lastName?.[0]}
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-white truncate">
                                 {request.requester.firstName} {request.requester.lastName}
@@ -990,10 +1015,18 @@ export function ChatWidget() {
                             className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 transition"
                           >
                             <div className="relative">
-                              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm font-medium">
-                                {contact.contactUser.firstName?.[0]}
-                                {contact.contactUser.lastName?.[0]}
-                              </div>
+                              {contact.contactUser.profilePhotoUrl ? (
+                                <img
+                                  src={contact.contactUser.profilePhotoUrl}
+                                  alt={`${contact.contactUser.firstName} ${contact.contactUser.lastName}`}
+                                  className="w-10 h-10 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm font-medium">
+                                  {contact.contactUser.firstName?.[0]}
+                                  {contact.contactUser.lastName?.[0]}
+                                </div>
+                              )}
                               {contact.isOnline && (
                                 <Circle className="absolute -bottom-0.5 -right-0.5 w-3 h-3 fill-green-500 text-green-500 bg-slate-900 rounded-full" />
                               )}

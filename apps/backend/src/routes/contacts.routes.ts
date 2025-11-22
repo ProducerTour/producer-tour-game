@@ -28,6 +28,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
         lastName: true,
         email: true,
         role: true,
+        profilePhotoUrl: true,
       },
     });
 
@@ -71,6 +72,7 @@ router.get('/requests', authenticate, async (req: AuthRequest, res: Response) =>
         lastName: true,
         email: true,
         role: true,
+        profilePhotoUrl: true,
       },
     });
 
