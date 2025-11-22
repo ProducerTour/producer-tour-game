@@ -7,8 +7,7 @@ import CommandPalette from './components/CommandPalette';
 import { ChatWidget } from './components/chat';
 
 // Pages
-import LandingPage from './pages/LandingPage';
-import LandingPageNew from './pages/LandingPageNew';
+import LandingPage from './pages/LandingPageNew';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -158,13 +157,10 @@ function App() {
           }
         />
 
-        {/* Old Landing Page (kept for reference) */}
-        <Route path="/old" element={<LandingPage />} />
-
         {/* Public Writer Profile */}
         <Route path="/writer/:slug" element={<WriterTourHubPage />} />
 
-        <Route path="/" element={<LandingPageNew />} />
+        <Route path="/" element={<LandingPage />} />
       </Routes>
     </BrowserRouter>
   );
