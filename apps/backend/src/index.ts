@@ -1,4 +1,5 @@
 import express, { Express, Request, Response } from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
@@ -6,6 +7,7 @@ import fileUpload from 'express-fileupload';
 import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
+import { initializeSocket } from './socket';
 
 // Load environment variables
 dotenv.config();
@@ -33,6 +35,8 @@ import workRegistrationRoutes from './routes/work-registration.routes';
 import creditSuggestionsRoutes from './routes/creditSuggestions.routes';
 import gamificationRoutes from './routes/gamification.routes';
 import spotifyRoutes from './routes/spotify.routes';
+import chatRoutes from './routes/chat.routes';
+import contactsRoutes from './routes/contacts.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -161,16 +165,24 @@ app.use('/api/work-registration', workRegistrationRoutes);
 app.use('/api/credit-suggestions', creditSuggestionsRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/spotify', spotifyRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/contacts', contactsRoutes);
 
 // Error handling
 app.use(notFoundHandler);
 app.use(errorHandler);
 
+// Create HTTP server and initialize Socket.io
+const httpServer = createServer(app);
+const io = initializeSocket(httpServer);
+
 // Start server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 CORS enabled for: ${process.env.CORS_ORIGIN}`);
+  console.log(`🔌 Socket.io ready for connections`);
 });
 
+export { io };
 export default app;

@@ -2,6 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/auth.store';
 
+// Components
+import CommandPalette from './components/CommandPalette';
+import { ChatWidget } from './components/chat';
+
 // Pages
 import LandingPage from './pages/LandingPage';
 import LandingPageNew from './pages/LandingPageNew';
@@ -75,6 +79,13 @@ function App() {
           },
         }}
       />
+
+      {/* Command Palette - Cmd+K / Ctrl+K */}
+      <CommandPalette />
+
+      {/* Chat Widget - visible when logged in */}
+      <ChatWidget />
+
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

@@ -184,6 +184,10 @@ model User {
   socialShares          SocialShare[]
   dailyCheckIns         DailyCheckIn[]
 
+  // Chat relations
+  conversationParticipants ConversationParticipant[]
+  messages                 Message[]
+
   @@map("users")
 }
 
@@ -1015,4 +1019,159 @@ model GamificationConfig {
   updatedAt DateTime @updatedAt
 
   @@map("gamification_config")
+}
+
+// ========================================
+// CHAT SYSTEM - Real-time messaging
+// ========================================
+
+enum ConversationType {
+  DIRECT          // One-on-one conversation
+  GROUP           // Group chat (admin-to-writers, etc.)
+  SUPPORT         // Support ticket conversation
+}
+
+enum MessageType {
+  TEXT
+  FILE
+  SYSTEM          // System messages (user joined, left, etc.)
+}
+
+// Chat conversations
+model Conversation {
+  id          String           @id @default(cuid())
+  type        ConversationType @default(DIRECT)
+  name        String?          // Optional name for group chats
+  description String?          @db.Text
+
+  // For support conversations
+  subject     String?          // Support ticket subject
+  isClosed    Boolean          @default(false)
+  closedAt    DateTime?
+  closedById  String?
+
+  // Metadata
+  metadata    Json?            // Additional conversation data
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([type])
+  @@index([isClosed])
+  @@index([createdAt])
+  @@map("conversations")
+}
+
+// Links users to conversations with their settings
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  userId         String
+
+  // Participant settings
+  isAdmin        Boolean      @default(false)   // Can manage conversation
+  isMuted        Boolean      @default(false)   // Muted notifications
+  isPinned       Boolean      @default(false)   // Pinned conversation
+
+  // Read tracking
+  lastReadAt     DateTime?    // Last time user read this conversation
+  lastReadMsgId  String?      // Last message ID that was read
+
+  // Participation tracking
+  joinedAt       DateTime     @default(now())
+  leftAt         DateTime?    // If user left the conversation
+
+  // Relations
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
+  @@index([lastReadAt])
+  @@map("conversation_participants")
+}
+
+// Chat messages
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+
+  // Message content
+  type           MessageType  @default(TEXT)
+  content        String       @db.Text
+
+  // File attachments (if type = FILE)
+  fileName       String?
+  fileUrl        String?
+  fileSize       Int?
+  fileMimeType   String?
+
+  // Message metadata
+  isEdited       Boolean      @default(false)
+  editedAt       DateTime?
+  isDeleted      Boolean      @default(false)
+  deletedAt      DateTime?
+
+  // Reply to another message
+  replyToId      String?
+  replyTo        Message?     @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        Message[]    @relation("MessageReplies")
+
+  // Reactions (stored as JSON: {"👍": ["userId1", "userId2"], "❤️": ["userId3"]})
+  reactions      Json?
+
+  metadata       Json?        // Additional message data
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@index([replyToId])
+  @@map("messages")
+}
+
+// ========================================
+// CONTACTS SYSTEM - User connections
+// ========================================
+
+enum ContactStatus {
+  PENDING     // Request sent, awaiting acceptance
+  ACCEPTED    // Both users are contacts
+  BLOCKED     // User has blocked the other
+}
+
+// User contacts/friends
+model Contact {
+  id          String        @id @default(cuid())
+  userId      String        // The user who owns this contact
+  contactId   String        // The contact user
+
+  status      ContactStatus @default(PENDING)
+  nickname    String?       // Optional nickname for the contact
+
+  // Who initiated the contact request
+  initiatedBy String
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  acceptedAt  DateTime?     // When the contact was accepted
+  blockedAt   DateTime?     // When the user was blocked
+
+  @@unique([userId, contactId])
+  @@index([userId])
+  @@index([contactId])
+  @@index([status])
+  @@map("contacts")
 }
