@@ -201,7 +201,7 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
                   className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-white focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
                 >
                   {ROLES.map(role => (
-                    <option key={role} value={role}>{role}</option>
+                    <option key={role} value={role} className="bg-slate-800 text-white">{role}</option>
                   ))}
                 </select>
               </div>
@@ -233,9 +233,9 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
                   onChange={(e) => updateCollaborator(index, 'pro', e.target.value)}
                   className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-white focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
                 >
-                  <option value="">Select PRO</option>
+                  <option value="" className="bg-slate-800 text-white">Select PRO</option>
                   {PROS.map(pro => (
-                    <option key={pro} value={pro}>{pro}</option>
+                    <option key={pro} value={pro} className="bg-slate-800 text-white">{pro}</option>
                   ))}
                 </select>
               </div>

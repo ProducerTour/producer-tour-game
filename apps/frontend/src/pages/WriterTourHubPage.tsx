@@ -14,7 +14,10 @@ import {
   User,
   Disc3,
   ExternalLink,
-  Lock
+  Lock,
+  Youtube,
+  CloudRain,
+  Smartphone
 } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -44,6 +47,10 @@ interface WriterProfile {
   instagramHandle: string | null;
   twitterHandle: string | null;
   linkedinUrl: string | null;
+  tiktokHandle: string | null;
+  soundcloudUrl: string | null;
+  youtubeChannelUrl: string | null;
+  appleMusicUrl: string | null;
   isPublicProfile: boolean;
   profileSlug: string;
   createdAt: string;
@@ -274,6 +281,53 @@ export default function WriterTourHubPage() {
                 >
                   <Linkedin className="w-4 h-4" />
                   <span>LinkedIn</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+              {writer.tiktokHandle && (
+                <a
+                  href={`https://tiktok.com/@${writer.tiktokHandle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-600/20 hover:bg-slate-600/30 rounded-lg text-slate-300 hover:text-white transition-colors border border-slate-600/20"
+                >
+                  <Smartphone className="w-4 h-4" />
+                  <span>@{writer.tiktokHandle}</span>
+                </a>
+              )}
+              {writer.youtubeChannelUrl && (
+                <a
+                  href={writer.youtubeChannelUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 rounded-lg text-red-400 hover:text-red-300 transition-colors border border-red-600/20"
+                >
+                  <Youtube className="w-4 h-4" />
+                  <span>YouTube</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+              {writer.appleMusicUrl && (
+                <a
+                  href={writer.appleMusicUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 rounded-lg text-rose-400 hover:text-rose-300 transition-colors border border-rose-600/20"
+                >
+                  <Music className="w-4 h-4" />
+                  <span>Apple Music</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+              {writer.soundcloudUrl && (
+                <a
+                  href={writer.soundcloudUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-600/20 hover:bg-orange-600/30 rounded-lg text-orange-400 hover:text-orange-300 transition-colors border border-orange-600/20"
+                >
+                  <CloudRain className="w-4 h-4" />
+                  <span>SoundCloud</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               )}

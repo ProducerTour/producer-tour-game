@@ -201,8 +201,6 @@ export default function WorkRegistrationTool() {
 
   return (
     <div className="min-h-screen bg-surface relative overflow-hidden">
-      <Toaster position="top-right" />
-
       {/* Background Effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-white/[0.02] rounded-full blur-[120px]" />

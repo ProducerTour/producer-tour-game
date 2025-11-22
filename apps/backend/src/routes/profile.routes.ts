@@ -1,63 +1,55 @@
 import { Router, Response } from 'express';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { UploadedFile } from 'express-fileupload';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 
 const router = Router();
 
-// Configure multer for profile photo uploads
-const profileStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = process.env.UPLOAD_DIR || './uploads/profiles';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, `profile-${uniqueSuffix}${ext}`);
-  }
-});
+// Allowed MIME types for profile photos
+const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
-const profileUpload = multer({
-  storage: profileStorage,
-  limits: {
-    fileSize: parseInt(process.env.MAX_PROFILE_PHOTO_SIZE || '5242880') // 5MB default
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (allowedMimes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files (JPEG, PNG, GIF, WebP) are allowed'));
-    }
-  }
-});
-
-// Upload profile photo
-router.post('/photo', authenticate, profileUpload.single('photo'), async (req: AuthRequest, res: Response) => {
+// Upload profile photo with comprehensive error handling
+// Uses express-fileupload (already configured globally in index.ts)
+router.post('/photo', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+    // Check if files were uploaded
+    if (!req.files || !req.files.photo) {
+      console.error('Profile photo upload: No file in request');
+      return res.status(400).json({
+        error: 'No file selected',
+        message: 'Please select an image file to upload.'
+      });
     }
 
+    const photo = req.files.photo as UploadedFile;
     const userId = req.user!.id;
 
-    // Get old photo URL to delete later
-    const oldUser = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { profilePhotoUrl: true }
-    });
+    console.log(`Profile photo upload: User ${userId}, file size: ${photo.size} bytes, mimetype: ${photo.mimetype}`);
 
-    // Generate file URL
-    const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`;
-    const photoUrl = `${baseUrl}/uploads/profiles/${req.file.filename}`;
+    // Validate file type
+    if (!ALLOWED_MIMES.includes(photo.mimetype)) {
+      return res.status(400).json({
+        error: 'Invalid file type',
+        message: 'Only JPEG, PNG, GIF, and WebP images are allowed.'
+      });
+    }
 
-    // Update user profile
+    // Validate file size
+    if (photo.size > MAX_FILE_SIZE) {
+      const sizeMB = (photo.size / (1024 * 1024)).toFixed(1);
+      return res.status(400).json({
+        error: 'File too large',
+        message: `File is ${sizeMB}MB. Maximum size is 2MB. Please compress your image.`
+      });
+    }
+
+    // Convert file buffer to base64 data URL
+    const base64 = photo.data.toString('base64');
+    const photoUrl = `data:${photo.mimetype};base64,${base64}`;
+    console.log(`Profile photo upload: Base64 length: ${photoUrl.length} chars`);
+
+    // Update user profile with base64 data URL
     const user = await prisma.user.update({
       where: { id: userId },
       data: { profilePhotoUrl: photoUrl },
@@ -69,25 +61,26 @@ router.post('/photo', authenticate, profileUpload.single('photo'), async (req: A
       }
     });
 
-    // Delete old photo file if exists
-    if (oldUser?.profilePhotoUrl) {
-      const oldFilename = oldUser.profilePhotoUrl.split('/').pop();
-      const oldPath = path.join(process.env.UPLOAD_DIR || './uploads/profiles', oldFilename || '');
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
-      }
-    }
-
+    console.log(`Profile photo upload: Success for user ${userId}`);
     res.json({
       success: true,
       user
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Profile photo upload error:', error);
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+    console.error('Error stack:', error.stack);
+
+    if (error.code === 'P2002') {
+      return res.status(500).json({
+        error: 'Database conflict',
+        message: 'A database error occurred. Please try again.'
+      });
     }
-    res.status(500).json({ error: 'Failed to upload profile photo' });
+
+    res.status(500).json({
+      error: 'Save failed',
+      message: 'Failed to save the profile photo. Please try again.'
+    });
   }
 });
 
@@ -95,19 +88,6 @@ router.post('/photo', authenticate, profileUpload.single('photo'), async (req: A
 router.delete('/photo', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { profilePhotoUrl: true }
-    });
-
-    if (user?.profilePhotoUrl) {
-      const filename = user.profilePhotoUrl.split('/').pop();
-      const filePath = path.join(process.env.UPLOAD_DIR || './uploads/profiles', filename || '');
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    }
 
     await prisma.user.update({
       where: { id: userId },
@@ -133,6 +113,10 @@ router.put('/hub', authenticate, async (req: AuthRequest, res: Response) => {
       instagramHandle,
       twitterHandle,
       linkedinUrl,
+      tiktokHandle,
+      soundcloudUrl,
+      youtubeChannelUrl,
+      appleMusicUrl,
       isPublicProfile,
       profileSlug
     } = req.body;
@@ -165,6 +149,10 @@ router.put('/hub', authenticate, async (req: AuthRequest, res: Response) => {
         instagramHandle,
         twitterHandle,
         linkedinUrl,
+        tiktokHandle,
+        soundcloudUrl,
+        youtubeChannelUrl,
+        appleMusicUrl,
         isPublicProfile,
         profileSlug: profileSlug || null
       },
@@ -180,6 +168,10 @@ router.put('/hub', authenticate, async (req: AuthRequest, res: Response) => {
         instagramHandle: true,
         twitterHandle: true,
         linkedinUrl: true,
+        tiktokHandle: true,
+        soundcloudUrl: true,
+        youtubeChannelUrl: true,
+        appleMusicUrl: true,
         isPublicProfile: true,
         profileSlug: true,
       }
@@ -213,6 +205,10 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
         instagramHandle: true,
         twitterHandle: true,
         linkedinUrl: true,
+        tiktokHandle: true,
+        soundcloudUrl: true,
+        youtubeChannelUrl: true,
+        appleMusicUrl: true,
         isPublicProfile: true,
         profileSlug: true,
         createdAt: true,
@@ -249,6 +245,10 @@ router.get('/writer/:slug', async (req, res: Response) => {
         instagramHandle: true,
         twitterHandle: true,
         linkedinUrl: true,
+        tiktokHandle: true,
+        soundcloudUrl: true,
+        youtubeChannelUrl: true,
+        appleMusicUrl: true,
         isPublicProfile: true,
         profileSlug: true,
         createdAt: true,

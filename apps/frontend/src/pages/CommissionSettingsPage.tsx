@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { commissionApi } from '@/lib/api';
 
 type Settings = {
@@ -51,12 +52,14 @@ export default function CommissionSettingsPage() {
     mutationFn: (payload: { commissionRate: number; recipientName: string; description?: string }) =>
       commissionApi.updateSettings(payload),
     onSuccess: () => {
+      toast.success('Commission settings updated!');
       setMessage({ type: 'success', text: 'Commission settings updated. Applies to future statements only.' });
       queryClient.invalidateQueries({ queryKey: ['commission-settings'] });
       queryClient.invalidateQueries({ queryKey: ['commission-settings-history'] });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     },
     onError: (err: any) => {
+      toast.error(err?.response?.data?.error || 'Failed to update settings');
       setMessage({ type: 'error', text: err?.response?.data?.error || 'Failed to update settings' });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     },

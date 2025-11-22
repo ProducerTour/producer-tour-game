@@ -173,7 +173,6 @@ export default function PendingPlacementsQueue() {
 
   return (
     <div className="min-h-screen bg-surface p-6">
-      <Toaster position="top-right" />
 
       {/* Background Effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">

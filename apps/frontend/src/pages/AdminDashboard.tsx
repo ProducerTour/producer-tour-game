@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { dashboardApi, statementApi, userApi, authApi } from '../lib/api';
 import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -370,9 +371,10 @@ function StatementsTab() {
     mutationFn: (statementId: string) => statementApi.publish(statementId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-statements'] });
+      toast.success('Statement published successfully!');
     },
     onError: (error: any) => {
-      alert(error.response?.data?.error || 'Failed to publish statement');
+      toast.error(error.response?.data?.error || 'Failed to publish statement');
     },
   });
 
@@ -380,6 +382,10 @@ function StatementsTab() {
     mutationFn: (statementId: string) => statementApi.delete(statementId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-statements'] });
+      toast.success('Statement deleted');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to delete statement');
     },
   });
 
@@ -1406,6 +1412,10 @@ function UsersTab() {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setShowAddModal(false);
       setNewUser({ email: '', password: '', firstName: '', middleName: '', lastName: '', role: 'WRITER', writerIpiNumber: '', publisherName: '', publisherIpiNumber: '', subPublisherName: '', subPublisherIpiNumber: '', proAffiliation: 'BMI', commissionOverrideRate: '', canUploadStatements: false });
+      toast.success('User created successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to create user');
     },
   });
 
@@ -1414,19 +1424,27 @@ function UsersTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setEditingUser(null);
+      toast.success('User updated successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to update user');
     },
   });
 
-  const deleteMutation = useMutation({
+  const userDeleteMutation = useMutation({
     mutationFn: (userId: string) => userApi.delete(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('User deleted');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to delete user');
     },
   });
 
   const handleAddUser = () => {
     if (!newUser.email || !newUser.password) {
-      alert('Email and password are required');
+      toast.error('Email and password are required');
       return;
     }
     // Prepare payload with optional commission override
@@ -1438,7 +1456,7 @@ function UsersTab() {
 
   const handleUpdateUser = () => {
     if (!editingUser.email) {
-      alert('Email is required');
+      toast.error('Email is required');
       return;
     }
     const { id, ...data } = editingUser;
@@ -1465,10 +1483,11 @@ function UsersTab() {
       const response = await authApi.impersonate(user.id);
       const { token, user: impersonatedUser } = response.data;
       startImpersonation(impersonatedUser, token);
+      toast.success(`Viewing as ${impersonatedUser.firstName} ${impersonatedUser.lastName}`);
       // Redirect to dashboard
       navigate('/dashboard');
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to impersonate user');
+      toast.error(error.response?.data?.error || 'Failed to impersonate user');
     }
   };
 
@@ -1568,7 +1587,7 @@ function UsersTab() {
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() => deleteMutation.mutate(user.id)}
+                                onClick={() => userDeleteMutation.mutate(user.id)}
                                 className="bg-red-500 hover:bg-red-600"
                               >
                                 Delete

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen, Camera, Trash2, Loader2, Plane, Globe, Music, Instagram, Twitter, Linkedin, ExternalLink, Copy, Check, ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen, Camera, Trash2, Loader2, Plane, Globe, Music, Instagram, Twitter, Linkedin, ExternalLink, Copy, Check, ArrowLeft, Youtube, CloudRain, Smartphone } from 'lucide-react';
 import { userApi, settingsApi, preferencesApi, systemSettingsApi, api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import AdminGuide from '../components/AdminGuide';
@@ -87,6 +88,10 @@ export default function SettingsPage() {
     instagramHandle: '',
     twitterHandle: '',
     linkedinUrl: '',
+    tiktokHandle: '',
+    soundcloudUrl: '',
+    youtubeChannelUrl: '',
+    appleMusicUrl: '',
     isPublicProfile: false,
     profileSlug: ''
   });
@@ -111,6 +116,10 @@ export default function SettingsPage() {
     instagramHandle?: string;
     twitterHandle?: string;
     linkedinUrl?: string;
+    tiktokHandle?: string;
+    soundcloudUrl?: string;
+    youtubeChannelUrl?: string;
+    appleMusicUrl?: string;
     isPublicProfile?: boolean;
     profileSlug?: string;
   }>({
@@ -133,6 +142,10 @@ export default function SettingsPage() {
         instagramHandle: tourHubProfileData.instagramHandle || '',
         twitterHandle: tourHubProfileData.twitterHandle || '',
         linkedinUrl: tourHubProfileData.linkedinUrl || '',
+        tiktokHandle: tourHubProfileData.tiktokHandle || '',
+        soundcloudUrl: tourHubProfileData.soundcloudUrl || '',
+        youtubeChannelUrl: tourHubProfileData.youtubeChannelUrl || '',
+        appleMusicUrl: tourHubProfileData.appleMusicUrl || '',
         isPublicProfile: tourHubProfileData.isPublicProfile || false,
         profileSlug: tourHubProfileData.profileSlug || ''
       });
@@ -226,16 +239,14 @@ export default function SettingsPage() {
   const updateTourHubMutation = useMutation({
     mutationFn: (data: typeof tourHubForm) => api.put('/profile/hub', data),
     onSuccess: (response) => {
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      toast.success('Profile updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['user-profile'] });
       if (response.data.user) {
         updateUser({ ...user!, ...response.data.user });
       }
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     },
     onError: (error: any) => {
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to update profile' });
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to update profile');
     }
   });
 
@@ -258,6 +269,7 @@ export default function SettingsPage() {
       const url = `${window.location.origin}/writer/${tourHubForm.profileSlug}`;
       navigator.clipboard.writeText(url);
       setSlugCopied(true);
+      toast.success('Profile URL copied to clipboard!');
       setTimeout(() => setSlugCopied(false), 2000);
     }
   };
@@ -387,28 +399,40 @@ export default function SettingsPage() {
   };
 
   // Photo upload handlers
+  const MAX_PHOTO_SIZE = 2 * 1024 * 1024; // 2MB
+
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Check file size before uploading
+    if (file.size > MAX_PHOTO_SIZE) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      toast.error(`File too large (${sizeMB}MB). Maximum size is 2MB.`);
+      if (photoInputRef.current) {
+        photoInputRef.current.value = '';
+      }
+      return;
+    }
 
     setIsUploadingPhoto(true);
     try {
       const formData = new FormData();
       formData.append('photo', file);
 
-      const response = await api.post('/profile/photo', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // Don't manually set Content-Type - axios will set it with the correct boundary
+      const response = await api.post('/profile/photo', formData);
 
       if (response.data.success) {
         setProfilePhotoUrl(response.data.user.profilePhotoUrl);
         updateUser({ ...user!, profilePhotoUrl: response.data.user.profilePhotoUrl } as any);
-        setMessage({ type: 'success', text: 'Profile photo updated!' });
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        toast.success('Profile photo updated!');
       }
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to upload photo' });
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      console.error('Photo upload error:', error.response?.data);
+      const errorData = error.response?.data;
+      const errorMessage = errorData?.message || errorData?.error || 'Failed to upload photo. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsUploadingPhoto(false);
       if (photoInputRef.current) {
@@ -423,11 +447,9 @@ export default function SettingsPage() {
       await api.delete('/profile/photo');
       setProfilePhotoUrl(null);
       updateUser({ ...user!, profilePhotoUrl: null } as any);
-      setMessage({ type: 'success', text: 'Profile photo removed!' });
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      toast.success('Profile photo removed!');
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to remove photo' });
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to remove photo');
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -489,7 +511,7 @@ export default function SettingsPage() {
               >
                 <div className="flex items-center gap-3">
                   <User className="w-4 h-4" />
-                  <span className="font-medium">Profile</span>
+                  <span className="font-medium">User Info</span>
                 </div>
               </button>
               <button
@@ -598,7 +620,7 @@ export default function SettingsPage() {
               {/* Profile Section */}
               {activeSection === 'profile' && (
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-6">Profile Information</h2>
+                  <h2 className="text-2xl font-bold text-white mb-6">User Information</h2>
 
                   {/* Profile Photo */}
                   <div className="mb-8">
@@ -626,39 +648,48 @@ export default function SettingsPage() {
                           </div>
                         )}
                       </div>
-                      <div className="flex flex-col gap-2">
-                        <input
-                          ref={photoInputRef}
-                          type="file"
-                          accept="image/jpeg,image/png,image/gif,image/webp"
-                          onChange={handlePhotoSelect}
-                          className="hidden"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => photoInputRef.current?.click()}
-                          disabled={isUploadingPhoto}
-                          className="px-4 py-2 bg-primary-500/20 text-primary-400 rounded-lg text-sm font-medium hover:bg-primary-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
-                        >
-                          <Camera className="w-4 h-4" />
-                          {profilePhotoUrl ? 'Change Photo' : 'Upload Photo'}
-                        </button>
-                        {profilePhotoUrl && (
+                      {user?.role === 'ADMIN' && (
+                        <div className="flex flex-col gap-2">
+                          <input
+                            ref={photoInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/gif,image/webp"
+                            onChange={handlePhotoSelect}
+                            className="hidden"
+                          />
                           <button
                             type="button"
-                            onClick={handleDeletePhoto}
+                            onClick={() => photoInputRef.current?.click()}
                             disabled={isUploadingPhoto}
-                            className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
+                            className="px-4 py-2 bg-primary-500/20 text-primary-400 rounded-lg text-sm font-medium hover:bg-primary-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
                           >
-                            <Trash2 className="w-4 h-4" />
-                            Remove
+                            <Camera className="w-4 h-4" />
+                            {profilePhotoUrl ? 'Change Photo' : 'Upload Photo'}
                           </button>
-                        )}
-                      </div>
+                          {profilePhotoUrl && (
+                            <button
+                              type="button"
+                              onClick={handleDeletePhoto}
+                              disabled={isUploadingPhoto}
+                              className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <p className="text-xs text-text-muted mt-2">
-                      Recommended: Square image, at least 200x200px. Max 5MB.
-                    </p>
+                    {user?.role !== 'ADMIN' && (
+                      <p className="text-xs text-text-muted mt-2">
+                        Contact your administrator to update your profile photo
+                      </p>
+                    )}
+                    {user?.role === 'ADMIN' && (
+                      <p className="text-xs text-text-muted mt-2">
+                        Recommended: Square image, at least 200x200px. Max 5MB.
+                      </p>
+                    )}
                   </div>
 
                   <form onSubmit={handleProfileSubmit} className="space-y-6">
@@ -667,23 +698,35 @@ export default function SettingsPage() {
                         <label className="block text-sm font-medium text-text-secondary mb-2">
                           First Name
                         </label>
-                        <input
-                          type="text"
-                          value={profileData.firstName}
-                          onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
-                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
-                        />
+                        {user?.role === 'ADMIN' ? (
+                          <input
+                            type="text"
+                            value={profileData.firstName}
+                            onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                          />
+                        ) : (
+                          <div className="w-full px-4 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-white">
+                            {profileData.firstName || 'Not set'}
+                          </div>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-text-secondary mb-2">
                           Last Name
                         </label>
-                        <input
-                          type="text"
-                          value={profileData.lastName}
-                          onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
-                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
-                        />
+                        {user?.role === 'ADMIN' ? (
+                          <input
+                            type="text"
+                            value={profileData.lastName}
+                            onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
+                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                          />
+                        ) : (
+                          <div className="w-full px-4 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-white">
+                            {profileData.lastName || 'Not set'}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -691,12 +734,18 @@ export default function SettingsPage() {
                       <label className="block text-sm font-medium text-text-secondary mb-2">
                         Email Address
                       </label>
-                      <input
-                        type="email"
-                        value={profileData.email}
-                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
-                      />
+                      {user?.role === 'ADMIN' ? (
+                        <input
+                          type="email"
+                          value={profileData.email}
+                          onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                        />
+                      ) : (
+                        <div className="w-full px-4 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-white">
+                          {profileData.email || 'Not set'}
+                        </div>
+                      )}
                     </div>
 
                     {/* Writer IPI - only for WRITER role */}
@@ -708,9 +757,6 @@ export default function SettingsPage() {
                         <div className="w-full px-4 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-white">
                           {user?.writerIpiNumber || 'Not set'}
                         </div>
-                        <p className="text-sm text-text-muted mt-1">
-                          Contact your administrator to update your Writer IPI number
-                        </p>
                       </div>
                     )}
 
@@ -723,21 +769,36 @@ export default function SettingsPage() {
                         <div className="w-full px-4 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-white">
                           {user?.publisherIpiNumber || 'Not set'}
                         </div>
-                        <p className="text-sm text-text-muted mt-1">
-                          Contact your administrator to update your Publisher IPI number
-                        </p>
                       </div>
                     )}
 
-                    <div className="flex justify-end pt-4 border-t border-white/[0.08]">
-                      <button
-                        type="submit"
-                        disabled={updateProfileMutation.isPending}
-                        className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-white/20 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
-                      </button>
-                    </div>
+                    {user?.role !== 'ADMIN' && (
+                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                        <div className="flex gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                            <Info className="w-4 h-4 text-blue-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-blue-300 mb-1">Read-Only Information</p>
+                            <p className="text-sm text-blue-200/80">
+                              Your user information can only be updated by an administrator. Contact support if you need to make changes.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {user?.role === 'ADMIN' && (
+                      <div className="flex justify-end pt-4 border-t border-white/[0.08]">
+                        <button
+                          type="submit"
+                          disabled={updateProfileMutation.isPending}
+                          className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-white/20 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
+                        </button>
+                      </div>
+                    )}
                   </form>
                 </div>
               )}
@@ -863,6 +924,67 @@ export default function SettingsPage() {
                       <h2 className="text-2xl font-bold text-white">My Tour Profile</h2>
                       <p className="text-text-muted text-sm">Customize your public profile</p>
                     </div>
+                  </div>
+
+                  {/* Profile Photo Section */}
+                  <div className="mb-8 bg-white/[0.04] rounded-xl border border-white/[0.08] p-6">
+                    <label className="block text-sm font-medium text-text-secondary mb-4">
+                      Profile Photo
+                    </label>
+                    <div className="flex items-center gap-6">
+                      <div className="relative">
+                        <div className="w-24 h-24 rounded-full overflow-hidden bg-white/10 flex items-center justify-center">
+                          {profilePhotoUrl ? (
+                            <img
+                              src={profilePhotoUrl}
+                              alt="Profile"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-3xl font-bold text-white/40">
+                              {user?.firstName?.[0]}{user?.lastName?.[0]}
+                            </span>
+                          )}
+                        </div>
+                        {isUploadingPhoto && (
+                          <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 text-white animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <input
+                          ref={photoInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          onChange={handlePhotoSelect}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => photoInputRef.current?.click()}
+                          disabled={isUploadingPhoto}
+                          className="px-4 py-2 bg-primary-500/20 text-primary-400 rounded-lg text-sm font-medium hover:bg-primary-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                          <Camera className="w-4 h-4" />
+                          {profilePhotoUrl ? 'Change Photo' : 'Upload Photo'}
+                        </button>
+                        {profilePhotoUrl && (
+                          <button
+                            type="button"
+                            onClick={handleDeletePhoto}
+                            disabled={isUploadingPhoto}
+                            className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-text-muted mt-2">
+                      Recommended: Square image, at least 200x200px. Max 2MB.
+                    </p>
                   </div>
 
                   <form onSubmit={handleTourHubSubmit} className="space-y-6">
@@ -1036,6 +1158,69 @@ export default function SettingsPage() {
                           placeholder="https://linkedin.com/in/..."
                           className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-blue-500/50"
                         />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
+                            <Smartphone className="w-4 h-4" />
+                            TikTok
+                          </label>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg">
+                            <span className="text-text-muted">@</span>
+                            <input
+                              type="text"
+                              value={tourHubForm.tiktokHandle}
+                              onChange={(e) => setTourHubForm({ ...tourHubForm, tiktokHandle: e.target.value.replace('@', '') })}
+                              placeholder="username"
+                              className="flex-1 bg-transparent text-white focus:outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-red-400 mb-2">
+                            <Youtube className="w-4 h-4" />
+                            YouTube Channel
+                          </label>
+                          <input
+                            type="url"
+                            value={tourHubForm.youtubeChannelUrl}
+                            onChange={(e) => setTourHubForm({ ...tourHubForm, youtubeChannelUrl: e.target.value })}
+                            placeholder="https://youtube.com/@..."
+                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-red-500/50"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-rose-400 mb-2">
+                            <Music className="w-4 h-4" />
+                            Apple Music
+                          </label>
+                          <input
+                            type="url"
+                            value={tourHubForm.appleMusicUrl}
+                            onChange={(e) => setTourHubForm({ ...tourHubForm, appleMusicUrl: e.target.value })}
+                            placeholder="https://music.apple.com/artist/..."
+                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-rose-500/50"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-orange-400 mb-2">
+                            <CloudRain className="w-4 h-4" />
+                            SoundCloud
+                          </label>
+                          <input
+                            type="url"
+                            value={tourHubForm.soundcloudUrl}
+                            onChange={(e) => setTourHubForm({ ...tourHubForm, soundcloudUrl: e.target.value })}
+                            placeholder="https://soundcloud.com/..."
+                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-orange-500/50"
+                          />
+                        </div>
                       </div>
                     </div>
 

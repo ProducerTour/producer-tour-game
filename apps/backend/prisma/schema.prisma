@@ -160,7 +160,7 @@ model User {
   monthlySummaryEnabled          Boolean @default(false) // Monthly earning summaries
 
   // Profile & Writer Tour Hub fields
-  profilePhotoUrl    String?   // URL to profile photo
+  profilePhotoUrl    String?   @db.Text // Base64 encoded profile photo or URL
   bio                String?   @db.Text // Writer bio/about section
   location           String?   // City, State or Country
   website            String?   // Personal website URL
@@ -168,6 +168,10 @@ model User {
   instagramHandle    String?   // Instagram username (without @)
   twitterHandle      String?   // Twitter/X username (without @)
   linkedinUrl        String?   // LinkedIn profile URL
+  tiktokHandle       String?   // TikTok username (without @)
+  soundcloudUrl      String?   // SoundCloud profile URL
+  youtubeChannelUrl  String?   // YouTube channel URL
+  appleMusicUrl      String?   // Apple Music artist URL
   isPublicProfile    Boolean   @default(false) // Whether profile is visible publicly
   profileSlug        String?   @unique // URL slug for public profile (e.g., "john-smith")
 

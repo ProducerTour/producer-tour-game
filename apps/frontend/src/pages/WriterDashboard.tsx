@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { dashboardApi, statementApi, documentApi, userApi, payoutApi } from '../lib/api';
 import { useState } from 'react';
 import Sidebar from '../components/Sidebar';
@@ -62,7 +63,7 @@ export default function WriterDashboard() {
       setShowWithdrawModal(false);
       setWithdrawAmount('');
       setWithdrawError('');
-      alert('Withdrawal request submitted successfully! Awaiting admin approval.');
+      toast.success('Withdrawal request submitted! Awaiting admin approval.');
     },
     onError: (error: any) => {
       const errorMessage = error.response?.data?.error || 'Failed to request withdrawal';
@@ -756,10 +757,10 @@ function ProfileSection() {
         });
       }
       setIsEditing(false);
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
     },
     onError: (error: any) => {
-      alert(error.response?.data?.error || 'Failed to update profile');
+      toast.error(error.response?.data?.error || 'Failed to update profile');
     },
   });
 
@@ -935,7 +936,7 @@ function WriterDocumentsSection() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download error:', error);
-      alert('Failed to download document');
+      toast.error('Failed to download document');
     }
   };
 

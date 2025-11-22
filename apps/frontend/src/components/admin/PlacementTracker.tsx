@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { placementDealApi } from '../../lib/api';
 
 interface Placement {
@@ -99,11 +100,12 @@ const PlacementTracker: React.FC = () => {
       console.log('Placement created successfully');
       queryClient.invalidateQueries({ queryKey: ['placement-deals'] });
       handleCloseForm();
+      toast.success('Placement created successfully!');
     },
     onError: (error: any) => {
       console.error('Create placement error:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
-      alert(`Failed to create placement: ${errorMessage}`);
+      toast.error(`Failed to create placement: ${errorMessage}`);
     },
   });
 
@@ -117,11 +119,12 @@ const PlacementTracker: React.FC = () => {
       console.log('Placement updated successfully');
       queryClient.invalidateQueries({ queryKey: ['placement-deals'] });
       handleCloseForm();
+      toast.success('Placement updated successfully!');
     },
     onError: (error: any) => {
       console.error('Update placement error:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
-      alert(`Failed to update placement: ${errorMessage}`);
+      toast.error(`Failed to update placement: ${errorMessage}`);
     },
   });
 
@@ -130,6 +133,10 @@ const PlacementTracker: React.FC = () => {
     mutationFn: (id: string) => placementDealApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['placement-deals'] });
+      toast.success('Placement deleted');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to delete placement');
     },
   });
 

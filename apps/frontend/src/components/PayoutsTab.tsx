@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { statementApi, payoutApi } from '../lib/api';
 import { DollarSign, Download, Send, CheckCircle, Clock, XCircle, Filter, Wallet, User } from 'lucide-react';
 
@@ -44,6 +45,10 @@ export const PayoutsTab: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-statements'] });
       setSelectedStatements(new Set());
+      toast.success('Payment processed successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to process payment');
     },
   });
 
@@ -83,6 +88,10 @@ export const PayoutsTab: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-withdrawals'] });
       queryClient.invalidateQueries({ queryKey: ['all-payouts'] });
+      toast.success('Withdrawal approved!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to approve withdrawal');
     },
   });
 
@@ -94,6 +103,10 @@ export const PayoutsTab: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-withdrawals'] });
       queryClient.invalidateQueries({ queryKey: ['all-payouts'] });
+      toast.success('Withdrawal cancelled');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to cancel withdrawal');
     },
   });
 

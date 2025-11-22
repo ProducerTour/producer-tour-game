@@ -106,7 +106,6 @@ export default function MySubmissions() {
 
   return (
     <div className="min-h-screen bg-slate-900 relative overflow-hidden">
-      <Toaster position="top-right" />
 
       {/* Animated background gradients */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

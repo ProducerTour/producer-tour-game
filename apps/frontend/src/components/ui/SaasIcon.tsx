@@ -140,6 +140,7 @@ import {
   Globe,
   Play,
   Pause,
+  Plane,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -267,7 +268,8 @@ export type IconName =
   | 'list'
   | 'dashboard'
   | 'home'
-  | 'globe';
+  | 'globe'
+  | 'plane';
 
 // Map icon names to Lucide components
 const iconMap: Record<IconName, LucideIcon> = {
@@ -394,6 +396,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   'dashboard': LayoutDashboard,
   'home': Home,
   'globe': Globe,
+  'plane': Plane,
 };
 
 // Emoji to icon name mapping for easy migration

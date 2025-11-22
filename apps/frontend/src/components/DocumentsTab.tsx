@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { documentApi, userApi } from '../lib/api';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -47,7 +48,11 @@ export default function DocumentsTab() {
     mutationFn: (id: string) => documentApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-documents'] });
-    }
+      toast.success('Document deleted');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to delete document');
+    },
   });
 
   const handleDownload = async (id: string, filename: string) => {
@@ -63,7 +68,7 @@ export default function DocumentsTab() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download error:', error);
-      alert('Failed to download document');
+      toast.error('Failed to download document');
     }
   };
 

@@ -200,7 +200,7 @@ export function DocumentUpload({ documents, onChange, placementId, disabled = fa
                       disabled={doc.uploading || doc.id !== undefined}
                     >
                       {DOCUMENT_CATEGORIES.map(cat => (
-                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                        <option key={cat.value} value={cat.value} className="bg-slate-800 text-white">{cat.label}</option>
                       ))}
                     </select>
                   </div>

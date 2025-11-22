@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { paymentApi } from '../lib/api';
 import { CreditCard, ExternalLink, CheckCircle, AlertCircle, Clock, DollarSign } from 'lucide-react';
 
@@ -60,7 +61,7 @@ export const PaymentSettings: React.FC = () => {
     },
     onError: (error: any) => {
       console.error('Error creating onboarding link:', error);
-      alert(error.response?.data?.error || 'Failed to start onboarding process');
+      toast.error(error.response?.data?.error || 'Failed to start onboarding process');
       setIsOnboarding(false);
     },
   });
@@ -76,7 +77,7 @@ export const PaymentSettings: React.FC = () => {
     },
     onError: (error: any) => {
       console.error('Error getting dashboard link:', error);
-      alert(error.response?.data?.error || 'Failed to access dashboard');
+      toast.error(error.response?.data?.error || 'Failed to access dashboard');
     },
   });
 
