@@ -28,9 +28,12 @@ router.get('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       include: { producer: true },
     });
 
+    // Remove password hash from response for security
+    const sanitizedUsers = users.map(({ password, ...user }) => user);
+
     const total = await prisma.user.count({ where });
 
-    res.json({ users, total });
+    res.json({ users: sanitizedUsers, total });
   } catch (error) {
     console.error('List users error:', error);
     res.status(500).json({ error: 'Failed to fetch users' });

@@ -1565,7 +1565,7 @@ function UsersTab() {
                         View As
                       </button>
                       <button
-                        onClick={() => setEditingUser(user)}
+                        onClick={() => setEditingUser({ ...user, password: '' })}
                         className="text-blue-400 hover:text-blue-300"
                       >
                         Edit
