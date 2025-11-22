@@ -400,6 +400,22 @@ export const preferencesApi = {
   }) => api.patch('/users/preferences', preferences),
 };
 
+// Chat settings API
+export const chatSettingsApi = {
+  // Get chat settings
+  getSettings: () => api.get('/users/chat-settings'),
+
+  // Update chat settings
+  updateSettings: (settings: {
+    chatSoundEnabled?: boolean;
+    chatVisibilityStatus?: 'online' | 'away' | 'invisible' | 'do_not_disturb';
+    chatShowOnlineStatus?: boolean;
+    chatShowTypingIndicator?: boolean;
+    chatMessagePreview?: boolean;
+    chatDesktopNotifications?: boolean;
+  }) => api.patch('/users/chat-settings', settings),
+};
+
 // System settings API (Admin only)
 export const systemSettingsApi = {
   // Get system settings

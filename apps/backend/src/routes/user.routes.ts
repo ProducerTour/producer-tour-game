@@ -344,4 +344,107 @@ router.patch('/preferences', async (req: AuthRequest, res: Response) => {
   }
 });
 
+/**
+ * GET /api/users/chat-settings
+ * Get current user's chat settings
+ */
+router.get('/chat-settings', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        chatSoundEnabled: true,
+        chatVisibilityStatus: true,
+        chatShowOnlineStatus: true,
+        chatShowTypingIndicator: true,
+        chatMessagePreview: true,
+        chatDesktopNotifications: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Get chat settings error:', error);
+    res.status(500).json({ error: 'Failed to get chat settings' });
+  }
+});
+
+/**
+ * PATCH /api/users/chat-settings
+ * Update current user's chat settings
+ */
+router.patch('/chat-settings', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const {
+      chatSoundEnabled,
+      chatVisibilityStatus,
+      chatShowOnlineStatus,
+      chatShowTypingIndicator,
+      chatMessagePreview,
+      chatDesktopNotifications
+    } = req.body;
+
+    // Build update data object with only provided fields
+    const updateData: any = {};
+
+    if (typeof chatSoundEnabled === 'boolean') {
+      updateData.chatSoundEnabled = chatSoundEnabled;
+    }
+    if (chatVisibilityStatus !== undefined) {
+      // Validate visibility status
+      const validStatuses = ['online', 'away', 'invisible', 'do_not_disturb'];
+      if (!validStatuses.includes(chatVisibilityStatus)) {
+        return res.status(400).json({
+          error: 'Invalid visibility status. Must be one of: online, away, invisible, do_not_disturb'
+        });
+      }
+      updateData.chatVisibilityStatus = chatVisibilityStatus;
+    }
+    if (typeof chatShowOnlineStatus === 'boolean') {
+      updateData.chatShowOnlineStatus = chatShowOnlineStatus;
+    }
+    if (typeof chatShowTypingIndicator === 'boolean') {
+      updateData.chatShowTypingIndicator = chatShowTypingIndicator;
+    }
+    if (typeof chatMessagePreview === 'boolean') {
+      updateData.chatMessagePreview = chatMessagePreview;
+    }
+    if (typeof chatDesktopNotifications === 'boolean') {
+      updateData.chatDesktopNotifications = chatDesktopNotifications;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No valid chat settings provided' });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        chatSoundEnabled: true,
+        chatVisibilityStatus: true,
+        chatShowOnlineStatus: true,
+        chatShowTypingIndicator: true,
+        chatMessagePreview: true,
+        chatDesktopNotifications: true
+      }
+    });
+
+    res.json({
+      message: 'Chat settings updated successfully',
+      settings: user
+    });
+  } catch (error) {
+    console.error('Update chat settings error:', error);
+    res.status(500).json({ error: 'Failed to update chat settings' });
+  }
+});
+
 export default router;

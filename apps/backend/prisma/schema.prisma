@@ -159,6 +159,14 @@ model User {
   statementNotificationsEnabled  Boolean @default(true)  // Statement/payment emails
   monthlySummaryEnabled          Boolean @default(false) // Monthly earning summaries
 
+  // Chat preferences
+  chatSoundEnabled        Boolean @default(true)  // Play sound on new messages
+  chatVisibilityStatus    String  @default("online") // online, away, invisible, do_not_disturb
+  chatShowOnlineStatus    Boolean @default(true)  // Show online status to others
+  chatShowTypingIndicator Boolean @default(true)  // Show typing indicator to others
+  chatMessagePreview      Boolean @default(true)  // Show message preview in notifications
+  chatDesktopNotifications Boolean @default(true) // Enable desktop push notifications
+
   // Profile & Writer Tour Hub fields
   profilePhotoUrl    String?   @db.Text // Base64 encoded profile photo or URL
   bio                String?   @db.Text // Writer bio/about section

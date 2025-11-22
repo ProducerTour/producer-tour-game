@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen, Camera, Trash2, Loader2, Plane, Globe, Music, Instagram, Twitter, Linkedin, ExternalLink, Copy, Check, ArrowLeft, Youtube, CloudRain, Smartphone } from 'lucide-react';
-import { userApi, settingsApi, preferencesApi, systemSettingsApi, api } from '../lib/api';
+import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen, Camera, Trash2, Loader2, Plane, Globe, Music, Instagram, Twitter, Linkedin, ExternalLink, Copy, Check, ArrowLeft, Youtube, CloudRain, Smartphone, MessageCircle, Volume2, VolumeX, Eye, EyeOff, BellRing } from 'lucide-react';
+import { userApi, settingsApi, preferencesApi, systemSettingsApi, chatSettingsApi, api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import AdminGuide from '../components/AdminGuide';
 import { PaymentSettings } from '../components/PaymentSettings';
@@ -21,7 +21,7 @@ import {
   AlertDialogTrigger,
 } from '../components/ui';
 
-type SettingsSection = 'profile' | 'password' | 'payments' | 'notifications' | 'publishers' | 'documentation' | 'system' | 'tourhub';
+type SettingsSection = 'profile' | 'password' | 'payments' | 'notifications' | 'chat' | 'publishers' | 'documentation' | 'system' | 'tourhub';
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuthStore();
@@ -30,7 +30,7 @@ export default function SettingsPage() {
 
   // Check for section query param (e.g., /settings?section=tourhub)
   const sectionParam = searchParams.get('section') as SettingsSection | null;
-  const validSections: SettingsSection[] = ['profile', 'password', 'payments', 'notifications', 'publishers', 'documentation', 'system', 'tourhub'];
+  const validSections: SettingsSection[] = ['profile', 'password', 'payments', 'notifications', 'chat', 'publishers', 'documentation', 'system', 'tourhub'];
   const initialSection: SettingsSection = sectionParam && validSections.includes(sectionParam) ? sectionParam : 'profile';
 
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
@@ -69,6 +69,16 @@ export default function SettingsPage() {
     monthlySummaryEnabled: (user as any)?.monthlySummaryEnabled ?? false,
   });
 
+  // Chat settings state
+  const [chatSettings, setChatSettings] = useState({
+    chatSoundEnabled: true,
+    chatVisibilityStatus: 'online' as 'online' | 'away' | 'invisible' | 'do_not_disturb',
+    chatShowOnlineStatus: true,
+    chatShowTypingIndicator: true,
+    chatMessagePreview: true,
+    chatDesktopNotifications: true,
+  });
+
   // System settings state
   const [systemSettings, setSystemSettings] = useState({
     minimumWithdrawalAmount: 50,
@@ -105,6 +115,16 @@ export default function SettingsPage() {
       return response.data;
     },
     enabled: user?.role === 'ADMIN' && activeSection === 'system',
+  });
+
+  // Fetch chat settings
+  const { data: chatSettingsData } = useQuery({
+    queryKey: ['chat-settings'],
+    queryFn: async () => {
+      const response = await chatSettingsApi.getSettings();
+      return response.data;
+    },
+    enabled: activeSection === 'chat',
   });
 
   // Fetch user profile for Tour Hub
@@ -151,6 +171,20 @@ export default function SettingsPage() {
       });
     }
   }, [tourHubProfileData]);
+
+  // Update chat settings when data loads
+  useEffect(() => {
+    if (chatSettingsData) {
+      setChatSettings({
+        chatSoundEnabled: chatSettingsData.chatSoundEnabled ?? true,
+        chatVisibilityStatus: chatSettingsData.chatVisibilityStatus ?? 'online',
+        chatShowOnlineStatus: chatSettingsData.chatShowOnlineStatus ?? true,
+        chatShowTypingIndicator: chatSettingsData.chatShowTypingIndicator ?? true,
+        chatMessagePreview: chatSettingsData.chatMessagePreview ?? true,
+        chatDesktopNotifications: chatSettingsData.chatDesktopNotifications ?? true,
+      });
+    }
+  }, [chatSettingsData]);
 
   // Update local state when system settings data loads
   useEffect(() => {
@@ -208,6 +242,25 @@ export default function SettingsPage() {
     setNotificationPrefs(newPrefs);
     // Immediately save to backend
     updatePreferencesMutation.mutate({ [key]: value });
+  };
+
+  // Chat settings mutation
+  const updateChatSettingsMutation = useMutation({
+    mutationFn: (settings: any) => chatSettingsApi.updateSettings(settings),
+    onSuccess: () => {
+      toast.success('Chat settings updated!');
+      queryClient.invalidateQueries({ queryKey: ['chat-settings'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to update chat settings');
+    }
+  });
+
+  const handleChatSettingToggle = (key: string, value: boolean | string) => {
+    const newSettings = { ...chatSettings, [key]: value };
+    setChatSettings(newSettings);
+    // Immediately save to backend
+    updateChatSettingsMutation.mutate({ [key]: value });
   };
 
   // System settings mutation
@@ -553,6 +606,19 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-3">
                   <Bell className="w-4 h-4" />
                   <span className="font-medium">Notifications</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveSection('chat')}
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  activeSection === 'chat'
+                    ? 'bg-primary-500/20 text-primary-400'
+                    : 'text-text-secondary hover:bg-white/[0.04]'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <MessageCircle className="w-4 h-4" />
+                  <span className="font-medium">Chat</span>
                 </div>
               </button>
               <button
@@ -909,6 +975,159 @@ export default function SettingsPage() {
                     <p className="text-sm text-text-muted pt-4">
                       Changes are saved automatically. Disable notifications to prevent emails during payment testing.
                     </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Chat Settings Section */}
+              {activeSection === 'chat' && (
+                <div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500/20 to-teal-500/20 flex items-center justify-center">
+                      <MessageCircle className="w-5 h-5 text-green-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">Chat Settings</h2>
+                      <p className="text-text-muted text-sm">Manage your chat preferences and privacy</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* Visibility Status */}
+                    <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-6">
+                      <h3 className="text-lg font-semibold text-white mb-4">Visibility Status</h3>
+                      <p className="text-sm text-text-muted mb-4">
+                        Choose how you appear to other users in the chat
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {[
+                          { value: 'online', label: 'Online', color: 'bg-green-500', description: 'Available for chat' },
+                          { value: 'away', label: 'Away', color: 'bg-yellow-500', description: 'Temporarily unavailable' },
+                          { value: 'do_not_disturb', label: 'Do Not Disturb', color: 'bg-red-500', description: 'No notifications' },
+                          { value: 'invisible', label: 'Invisible', color: 'bg-gray-500', description: 'Appear offline' },
+                        ].map((status) => (
+                          <button
+                            key={status.value}
+                            onClick={() => handleChatSettingToggle('chatVisibilityStatus', status.value)}
+                            className={`p-4 rounded-xl border transition-all ${
+                              chatSettings.chatVisibilityStatus === status.value
+                                ? 'border-primary-500 bg-primary-500/10'
+                                : 'border-white/10 hover:border-white/20 bg-white/[0.02]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className={`w-3 h-3 rounded-full ${status.color}`} />
+                              <span className="text-white font-medium text-sm">{status.label}</span>
+                            </div>
+                            <p className="text-xs text-text-muted">{status.description}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Sound Settings */}
+                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
+                      <div className="flex items-center gap-3">
+                        {chatSettings.chatSoundEnabled ? (
+                          <Volume2 className="w-5 h-5 text-green-400" />
+                        ) : (
+                          <VolumeX className="w-5 h-5 text-gray-400" />
+                        )}
+                        <div>
+                          <h3 className="text-white font-medium">Message Sounds</h3>
+                          <p className="text-sm text-text-muted">Play a sound when you receive new messages</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={chatSettings.chatSoundEnabled}
+                        onCheckedChange={(checked) => handleChatSettingToggle('chatSoundEnabled', checked)}
+                      />
+                    </div>
+
+                    {/* Desktop Notifications */}
+                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
+                      <div className="flex items-center gap-3">
+                        <BellRing className="w-5 h-5 text-blue-400" />
+                        <div>
+                          <h3 className="text-white font-medium">Desktop Notifications</h3>
+                          <p className="text-sm text-text-muted">Show push notifications for new messages</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={chatSettings.chatDesktopNotifications}
+                        onCheckedChange={(checked) => handleChatSettingToggle('chatDesktopNotifications', checked)}
+                      />
+                    </div>
+
+                    {/* Message Preview */}
+                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
+                      <div className="flex items-center gap-3">
+                        <Eye className="w-5 h-5 text-purple-400" />
+                        <div>
+                          <h3 className="text-white font-medium">Message Preview</h3>
+                          <p className="text-sm text-text-muted">Show message content in notifications</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={chatSettings.chatMessagePreview}
+                        onCheckedChange={(checked) => handleChatSettingToggle('chatMessagePreview', checked)}
+                      />
+                    </div>
+
+                    {/* Privacy Settings */}
+                    <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-6">
+                      <h3 className="text-lg font-semibold text-white mb-4">Privacy</h3>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {chatSettings.chatShowOnlineStatus ? (
+                              <Eye className="w-5 h-5 text-green-400" />
+                            ) : (
+                              <EyeOff className="w-5 h-5 text-gray-400" />
+                            )}
+                            <div>
+                              <h4 className="text-white font-medium">Show Online Status</h4>
+                              <p className="text-sm text-text-muted">Let others see when you're online</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={chatSettings.chatShowOnlineStatus}
+                            onCheckedChange={(checked) => handleChatSettingToggle('chatShowOnlineStatus', checked)}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <MessageCircle className="w-5 h-5 text-teal-400" />
+                            <div>
+                              <h4 className="text-white font-medium">Show Typing Indicator</h4>
+                              <p className="text-sm text-text-muted">Let others see when you're typing</p>
+                            </div>
+                          </div>
+                          <Switch
+                            checked={chatSettings.chatShowTypingIndicator}
+                            onCheckedChange={(checked) => handleChatSettingToggle('chatShowTypingIndicator', checked)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Info Box */}
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                      <div className="flex gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                          <Info className="w-4 h-4 text-green-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-green-300 mb-1">About Chat Privacy</p>
+                          <p className="text-sm text-green-200/80">
+                            Your privacy settings are synced across all devices. Changes take effect immediately.
+                            When set to "Invisible", you'll appear offline but can still send and receive messages.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
