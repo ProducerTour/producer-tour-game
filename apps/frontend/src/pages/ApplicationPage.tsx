@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import PublicNavigation from '../components/PublicNavigation';
-import './ApplicationPage.css';
 
 interface FormData {
   // Personal Information
@@ -140,7 +139,7 @@ export default function ApplicationPage() {
         hearAboutUs: '',
         additionalInfo: ''
       });
-    } catch (error) {
+    } catch {
       setSubmitMessage({
         type: 'error',
         text: 'Something went wrong. Please try again later.'
@@ -150,69 +149,89 @@ export default function ApplicationPage() {
     }
   };
 
+  const inputClass = "w-full py-3 px-4 bg-white/10 border border-white/[0.08] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all";
+  const inputErrorClass = "w-full py-3 px-4 bg-white/10 border border-red-500 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all";
+  const selectClass = "w-full py-3 px-4 bg-white/10 border border-white/[0.08] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all [&>option]:bg-gray-900 [&>option]:text-white";
+  const selectErrorClass = "w-full py-3 px-4 bg-white/10 border border-red-500 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all [&>option]:bg-gray-900 [&>option]:text-white";
+  const labelClass = "block text-sm font-medium text-gray-300 mb-2";
+
   return (
-    <div className="application-page">
+    <div className="min-h-screen bg-surface text-white">
       <PublicNavigation transparent={false} />
 
-      <div className="application-container">
-        <div className="application-header">
-          <Link to="/" className="back-link">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm font-medium mb-6 transition-all hover:-translate-x-1"
+          >
             ← Back to Home
           </Link>
-          <h1>Apply to Producer Tour</h1>
-          <p className="subtitle">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">
+            Apply to Producer Tour
+          </h1>
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
             Join thousands of independent producers earning real money and taking control of their music careers.
             Your application takes just 5 minutes.
           </p>
         </div>
 
-        <div className="application-content">
-          {/* Progress Indicators */}
-          <div className="application-benefits">
-            <h3>What You'll Get</h3>
-            <ul>
-              <li>
-                <span className="benefit-icon">✓</span>
+        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
+          {/* Benefits Sidebar */}
+          <div className="lg:sticky lg:top-24 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-8 backdrop-blur-xl">
+            <h3 className="text-xl font-semibold text-white mb-6">What You'll Get</h3>
+            <ul className="space-y-6">
+              <li className="flex gap-4">
+                <span className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                  ✓
+                </span>
                 <div>
-                  <strong>80/20 Split in Your Favor</strong>
-                  <p>Keep 80% of all streaming royalties</p>
+                  <strong className="block text-white text-sm font-semibold mb-1">80/20 Split in Your Favor</strong>
+                  <p className="text-sm text-gray-400">Keep 80% of all streaming royalties</p>
                 </div>
               </li>
-              <li>
-                <span className="benefit-icon">✓</span>
+              <li className="flex gap-4">
+                <span className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                  ✓
+                </span>
                 <div>
-                  <strong>Global Distribution</strong>
-                  <p>Reach 150+ platforms in 24-48 hours</p>
+                  <strong className="block text-white text-sm font-semibold mb-1">Global Distribution</strong>
+                  <p className="text-sm text-gray-400">Reach 150+ platforms in 24-48 hours</p>
                 </div>
               </li>
-              <li>
-                <span className="benefit-icon">✓</span>
+              <li className="flex gap-4">
+                <span className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                  ✓
+                </span>
                 <div>
-                  <strong>Real-Time Analytics</strong>
-                  <p>Track earnings and performance live</p>
+                  <strong className="block text-white text-sm font-semibold mb-1">Real-Time Analytics</strong>
+                  <p className="text-sm text-gray-400">Track earnings and performance live</p>
                 </div>
               </li>
-              <li>
-                <span className="benefit-icon">✓</span>
+              <li className="flex gap-4">
+                <span className="flex-shrink-0 w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                  ✓
+                </span>
                 <div>
-                  <strong>Monthly Payouts</strong>
-                  <p>Direct deposits with $1 minimum</p>
+                  <strong className="block text-white text-sm font-semibold mb-1">Monthly Payouts</strong>
+                  <p className="text-sm text-gray-400">Direct deposits with $1 minimum</p>
                 </div>
               </li>
             </ul>
           </div>
 
           {/* Application Form */}
-          <div className="application-form-container">
-            <form className="application-form" onSubmit={handleSubmit}>
+          <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6 sm:p-10 backdrop-blur-xl">
+            <form onSubmit={handleSubmit}>
               {/* Personal Information */}
-              <div className="form-section">
-                <h2>Personal Information</h2>
+              <div className="mb-10 pb-10 border-b border-white/[0.08]">
+                <h2 className="text-2xl font-semibold text-white mb-6">Personal Information</h2>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="firstName">
-                      First Name <span className="required">*</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label htmlFor="firstName" className={labelClass}>
+                      First Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -220,14 +239,14 @@ export default function ApplicationPage() {
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleChange}
-                      className={errors.firstName ? 'error' : ''}
+                      className={errors.firstName ? inputErrorClass : inputClass}
                     />
-                    {errors.firstName && <span className="error-message">{errors.firstName}</span>}
+                    {errors.firstName && <span className="text-red-500 text-sm mt-1 block">{errors.firstName}</span>}
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="lastName">
-                      Last Name <span className="required">*</span>
+                  <div>
+                    <label htmlFor="lastName" className={labelClass}>
+                      Last Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -235,16 +254,16 @@ export default function ApplicationPage() {
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleChange}
-                      className={errors.lastName ? 'error' : ''}
+                      className={errors.lastName ? inputErrorClass : inputClass}
                     />
-                    {errors.lastName && <span className="error-message">{errors.lastName}</span>}
+                    {errors.lastName && <span className="text-red-500 text-sm mt-1 block">{errors.lastName}</span>}
                   </div>
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="email">
-                      Email Address <span className="required">*</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="email" className={labelClass}>
+                      Email Address <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="email"
@@ -252,31 +271,32 @@ export default function ApplicationPage() {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className={errors.email ? 'error' : ''}
+                      className={errors.email ? inputErrorClass : inputClass}
                     />
-                    {errors.email && <span className="error-message">{errors.email}</span>}
+                    {errors.email && <span className="text-red-500 text-sm mt-1 block">{errors.email}</span>}
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="phone">Phone Number (Optional)</label>
+                  <div>
+                    <label htmlFor="phone" className={labelClass}>Phone Number (Optional)</label>
                     <input
                       type="tel"
                       id="phone"
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
+                      className={inputClass}
                     />
                   </div>
                 </div>
               </div>
 
               {/* Artist/Producer Information */}
-              <div className="form-section">
-                <h2>Artist/Producer Information</h2>
+              <div className="mb-10 pb-10 border-b border-white/[0.08]">
+                <h2 className="text-2xl font-semibold text-white mb-6">Artist/Producer Information</h2>
 
-                <div className="form-group">
-                  <label htmlFor="artistName">
-                    Artist/Producer Name <span className="required">*</span>
+                <div className="mb-6">
+                  <label htmlFor="artistName" className={labelClass}>
+                    Artist/Producer Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -284,23 +304,23 @@ export default function ApplicationPage() {
                     name="artistName"
                     value={formData.artistName}
                     onChange={handleChange}
-                    className={errors.artistName ? 'error' : ''}
+                    className={errors.artistName ? inputErrorClass : inputClass}
                     placeholder="The name you produce/release music under"
                   />
-                  {errors.artistName && <span className="error-message">{errors.artistName}</span>}
+                  {errors.artistName && <span className="text-red-500 text-sm mt-1 block">{errors.artistName}</span>}
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="genre">
-                      Primary Genre <span className="required">*</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="genre" className={labelClass}>
+                      Primary Genre <span className="text-red-500">*</span>
                     </label>
                     <select
                       id="genre"
                       name="genre"
                       value={formData.genre}
                       onChange={handleChange}
-                      className={errors.genre ? 'error' : ''}
+                      className={errors.genre ? selectErrorClass : selectClass}
                     >
                       <option value="">Select a genre</option>
                       <option value="hip-hop">Hip-Hop/Rap</option>
@@ -315,19 +335,19 @@ export default function ApplicationPage() {
                       <option value="multi-genre">Multi-Genre</option>
                       <option value="other">Other</option>
                     </select>
-                    {errors.genre && <span className="error-message">{errors.genre}</span>}
+                    {errors.genre && <span className="text-red-500 text-sm mt-1 block">{errors.genre}</span>}
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="yearsExperience">
-                      Years of Experience <span className="required">*</span>
+                  <div>
+                    <label htmlFor="yearsExperience" className={labelClass}>
+                      Years of Experience <span className="text-red-500">*</span>
                     </label>
                     <select
                       id="yearsExperience"
                       name="yearsExperience"
                       value={formData.yearsExperience}
                       onChange={handleChange}
-                      className={errors.yearsExperience ? 'error' : ''}
+                      className={errors.yearsExperience ? selectErrorClass : selectClass}
                     >
                       <option value="">Select experience</option>
                       <option value="less-than-1">Less than 1 year</option>
@@ -336,167 +356,179 @@ export default function ApplicationPage() {
                       <option value="5-10">5-10 years</option>
                       <option value="10+">10+ years</option>
                     </select>
-                    {errors.yearsExperience && <span className="error-message">{errors.yearsExperience}</span>}
+                    {errors.yearsExperience && <span className="text-red-500 text-sm mt-1 block">{errors.yearsExperience}</span>}
                   </div>
                 </div>
               </div>
 
               {/* Music & Portfolio */}
-              <div className="form-section">
-                <h2>Music & Portfolio</h2>
-                <p className="section-description">
+              <div className="mb-10 pb-10 border-b border-white/[0.08]">
+                <h2 className="text-2xl font-semibold text-white mb-2">Music & Portfolio</h2>
+                <p className="text-sm text-gray-400 mb-6">
                   Please provide at least one link to your music so we can review your work.
                 </p>
 
-                <div className="form-group">
-                  <label htmlFor="spotifyLink">Spotify Link</label>
-                  <input
-                    type="url"
-                    id="spotifyLink"
-                    name="spotifyLink"
-                    value={formData.spotifyLink}
-                    onChange={handleChange}
-                    className={errors.spotifyLink ? 'error' : ''}
-                    placeholder="https://open.spotify.com/artist/..."
-                  />
-                  {errors.spotifyLink && <span className="error-message">{errors.spotifyLink}</span>}
-                </div>
+                <div className="space-y-6">
+                  <div>
+                    <label htmlFor="spotifyLink" className={labelClass}>Spotify Link</label>
+                    <input
+                      type="url"
+                      id="spotifyLink"
+                      name="spotifyLink"
+                      value={formData.spotifyLink}
+                      onChange={handleChange}
+                      className={errors.spotifyLink ? inputErrorClass : inputClass}
+                      placeholder="https://open.spotify.com/artist/..."
+                    />
+                    {errors.spotifyLink && <span className="text-red-500 text-sm mt-1 block">{errors.spotifyLink}</span>}
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="appleMusicLink">Apple Music Link</label>
-                  <input
-                    type="url"
-                    id="appleMusicLink"
-                    name="appleMusicLink"
-                    value={formData.appleMusicLink}
-                    onChange={handleChange}
-                    placeholder="https://music.apple.com/..."
-                  />
-                </div>
+                  <div>
+                    <label htmlFor="appleMusicLink" className={labelClass}>Apple Music Link</label>
+                    <input
+                      type="url"
+                      id="appleMusicLink"
+                      name="appleMusicLink"
+                      value={formData.appleMusicLink}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="https://music.apple.com/..."
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="soundcloudLink">SoundCloud Link</label>
-                  <input
-                    type="url"
-                    id="soundcloudLink"
-                    name="soundcloudLink"
-                    value={formData.soundcloudLink}
-                    onChange={handleChange}
-                    placeholder="https://soundcloud.com/..."
-                  />
-                </div>
+                  <div>
+                    <label htmlFor="soundcloudLink" className={labelClass}>SoundCloud Link</label>
+                    <input
+                      type="url"
+                      id="soundcloudLink"
+                      name="soundcloudLink"
+                      value={formData.soundcloudLink}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="https://soundcloud.com/..."
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="instagramHandle">Instagram Handle (Optional)</label>
-                  <input
-                    type="text"
-                    id="instagramHandle"
-                    name="instagramHandle"
-                    value={formData.instagramHandle}
-                    onChange={handleChange}
-                    placeholder="@yourhandle"
-                  />
+                  <div>
+                    <label htmlFor="instagramHandle" className={labelClass}>Instagram Handle (Optional)</label>
+                    <input
+                      type="text"
+                      id="instagramHandle"
+                      name="instagramHandle"
+                      value={formData.instagramHandle}
+                      onChange={handleChange}
+                      className={inputClass}
+                      placeholder="@yourhandle"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Additional Information */}
-              <div className="form-section">
-                <h2>Additional Information</h2>
+              <div className="mb-10">
+                <h2 className="text-2xl font-semibold text-white mb-6">Additional Information</h2>
 
-                <div className="form-group">
-                  <label htmlFor="monthlyStreams">
-                    Approximate Monthly Streams <span className="required">*</span>
-                  </label>
-                  <select
-                    id="monthlyStreams"
-                    name="monthlyStreams"
-                    value={formData.monthlyStreams}
-                    onChange={handleChange}
-                    className={errors.monthlyStreams ? 'error' : ''}
-                  >
-                    <option value="">Select range</option>
-                    <option value="0-1k">0 - 1,000</option>
-                    <option value="1k-10k">1,000 - 10,000</option>
-                    <option value="10k-50k">10,000 - 50,000</option>
-                    <option value="50k-100k">50,000 - 100,000</option>
-                    <option value="100k-500k">100,000 - 500,000</option>
-                    <option value="500k+">500,000+</option>
-                  </select>
-                  {errors.monthlyStreams && <span className="error-message">{errors.monthlyStreams}</span>}
-                </div>
+                <div className="space-y-6">
+                  <div>
+                    <label htmlFor="monthlyStreams" className={labelClass}>
+                      Approximate Monthly Streams <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="monthlyStreams"
+                      name="monthlyStreams"
+                      value={formData.monthlyStreams}
+                      onChange={handleChange}
+                      className={errors.monthlyStreams ? selectErrorClass : selectClass}
+                    >
+                      <option value="">Select range</option>
+                      <option value="0-1k">0 - 1,000</option>
+                      <option value="1k-10k">1,000 - 10,000</option>
+                      <option value="10k-50k">10,000 - 50,000</option>
+                      <option value="50k-100k">50,000 - 100,000</option>
+                      <option value="100k-500k">100,000 - 500,000</option>
+                      <option value="500k+">500,000+</option>
+                    </select>
+                    {errors.monthlyStreams && <span className="text-red-500 text-sm mt-1 block">{errors.monthlyStreams}</span>}
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="hasDistribution">
-                    Do you currently use a distribution service? <span className="required">*</span>
-                  </label>
-                  <select
-                    id="hasDistribution"
-                    name="hasDistribution"
-                    value={formData.hasDistribution}
-                    onChange={handleChange}
-                    className={errors.hasDistribution ? 'error' : ''}
-                  >
-                    <option value="">Select option</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                  </select>
-                  {errors.hasDistribution && <span className="error-message">{errors.hasDistribution}</span>}
-                </div>
+                  <div>
+                    <label htmlFor="hasDistribution" className={labelClass}>
+                      Do you currently use a distribution service? <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="hasDistribution"
+                      name="hasDistribution"
+                      value={formData.hasDistribution}
+                      onChange={handleChange}
+                      className={errors.hasDistribution ? selectErrorClass : selectClass}
+                    >
+                      <option value="">Select option</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                    {errors.hasDistribution && <span className="text-red-500 text-sm mt-1 block">{errors.hasDistribution}</span>}
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="hearAboutUs">
-                    How did you hear about Producer Tour? <span className="required">*</span>
-                  </label>
-                  <select
-                    id="hearAboutUs"
-                    name="hearAboutUs"
-                    value={formData.hearAboutUs}
-                    onChange={handleChange}
-                    className={errors.hearAboutUs ? 'error' : ''}
-                  >
-                    <option value="">Select option</option>
-                    <option value="social-media">Social Media</option>
-                    <option value="google">Google Search</option>
-                    <option value="friend">Friend/Colleague</option>
-                    <option value="youtube">YouTube</option>
-                    <option value="discord">Discord</option>
-                    <option value="other">Other</option>
-                  </select>
-                  {errors.hearAboutUs && <span className="error-message">{errors.hearAboutUs}</span>}
-                </div>
+                  <div>
+                    <label htmlFor="hearAboutUs" className={labelClass}>
+                      How did you hear about Producer Tour? <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      id="hearAboutUs"
+                      name="hearAboutUs"
+                      value={formData.hearAboutUs}
+                      onChange={handleChange}
+                      className={errors.hearAboutUs ? selectErrorClass : selectClass}
+                    >
+                      <option value="">Select option</option>
+                      <option value="social-media">Social Media</option>
+                      <option value="google">Google Search</option>
+                      <option value="friend">Friend/Colleague</option>
+                      <option value="youtube">YouTube</option>
+                      <option value="discord">Discord</option>
+                      <option value="other">Other</option>
+                    </select>
+                    {errors.hearAboutUs && <span className="text-red-500 text-sm mt-1 block">{errors.hearAboutUs}</span>}
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="additionalInfo">
-                    Anything else you'd like us to know? (Optional)
-                  </label>
-                  <textarea
-                    id="additionalInfo"
-                    name="additionalInfo"
-                    value={formData.additionalInfo}
-                    onChange={handleChange}
-                    rows={5}
-                    placeholder="Tell us about your music career goals, notable achievements, or anything else that might be relevant..."
-                  />
+                  <div>
+                    <label htmlFor="additionalInfo" className={labelClass}>
+                      Anything else you'd like us to know? (Optional)
+                    </label>
+                    <textarea
+                      id="additionalInfo"
+                      name="additionalInfo"
+                      value={formData.additionalInfo}
+                      onChange={handleChange}
+                      rows={5}
+                      className={inputClass}
+                      placeholder="Tell us about your music career goals, notable achievements, or anything else that might be relevant..."
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Submit Message */}
               {submitMessage.text && (
-                <div className={`submit-message ${submitMessage.type}`}>
+                <div className={`p-4 rounded-lg mb-6 text-sm font-medium border ${
+                  submitMessage.type === 'success'
+                    ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                    : 'bg-red-500/10 border-red-500/30 text-red-400'
+                }`}>
                   {submitMessage.text}
                 </div>
               )}
 
               {/* Submit Button */}
-              <div className="form-actions">
+              <div className="text-center">
                 <button
                   type="submit"
-                  className="btn btn-primary btn-submit"
                   disabled={isSubmitting}
+                  className="min-w-[240px] px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold rounded-lg shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Application'}
                 </button>
-                <p className="form-note">
+                <p className="text-sm text-gray-500 mt-4 max-w-xl mx-auto leading-relaxed">
                   By submitting this application, you agree to our Terms of Service and Privacy Policy.
                   We'll review your application within 5 business days.
                 </p>

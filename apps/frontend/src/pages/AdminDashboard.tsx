@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { dashboardApi, statementApi, userApi, authApi } from '../lib/api';
 import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Users, BarChart3, CheckCircle2, Music, DollarSign, FileText, TrendingUp, Sparkles, Loader2, AlertTriangle, X, Brain } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ToolsHub from '../components/ToolsHub';
 import ToolPermissionsSettings from '../components/ToolPermissionsSettings';
@@ -16,10 +17,23 @@ import PendingPlacementsQueue from './PendingPlacementsQueue';
 import RewardRedemptionsTab from '../components/admin/RewardRedemptionsTab';
 import GamificationAnalytics from '../components/gamification/GamificationAnalytics';
 import TourMilesConfig from '../components/admin/TourMilesConfig';
+import DashboardOverviewTremor from '../components/admin/DashboardOverviewTremor';
+import AnalyticsTabTremor from '../components/admin/AnalyticsTabTremor';
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { formatIpiDisplay } from '../utils/ipi-helper';
 import { useAuthStore } from '../store/auth.store';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../components/ui';
 
 type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'active-placements' | 'pending-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config';
 
@@ -57,10 +71,10 @@ export default function AdminDashboard() {
         {/* Main Content Area */}
         <main className="flex-1 ml-64 overflow-y-auto">
           <div className="p-8">
-            {activeTab === 'overview' && <DashboardOverview />}
+            {activeTab === 'overview' && <DashboardOverviewTremor />}
             {activeTab === 'statements' && <StatementsTab />}
             {activeTab === 'users' && <UsersTab />}
-            {activeTab === 'analytics' && <AnalyticsTab />}
+            {activeTab === 'analytics' && <AnalyticsTabTremor />}
             {activeTab === 'payouts' && <PayoutsTab />}
             {activeTab === 'pending-placements' && <PendingPlacementsQueue />}
             {activeTab === 'active-placements' && <PlacementTracker />}
@@ -80,7 +94,9 @@ export default function AdminDashboard() {
 
 import CommissionSettingsPage from './CommissionSettingsPage';
 
-function DashboardOverview() {
+// Legacy DashboardOverview - kept for reference, now using DashboardOverviewTremor
+// @ts-expect-error Unused legacy component kept for reference
+function _DashboardOverview() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard-overview'],
     queryFn: async () => {
@@ -116,7 +132,7 @@ function DashboardOverview() {
           value={`$${Number(stats?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
           percentage={stats?.totalRevenueChange !== null && stats?.totalRevenueChange !== undefined ? `${stats.totalRevenueChange > 0 ? '+' : ''}${stats.totalRevenueChange}%` : undefined}
           trend={stats?.totalRevenueTrend || undefined}
-          icon="💰"
+          icon={<DollarSign className="w-6 h-6 text-white" />}
           gradient="from-blue-500 to-blue-600"
         />
         <StatCard
@@ -124,7 +140,7 @@ function DashboardOverview() {
           value={stats?.totalWriters || 0}
           percentage={stats?.totalWritersChange !== null && stats?.totalWritersChange !== undefined ? `${stats.totalWritersChange > 0 ? '+' : ''}${stats.totalWritersChange}%` : undefined}
           trend={stats?.totalWritersTrend || undefined}
-          icon="👥"
+          icon={<Users className="w-6 h-6 text-white" />}
           gradient="from-cyan-500 to-cyan-600"
         />
         <StatCard
@@ -132,7 +148,7 @@ function DashboardOverview() {
           value={stats?.processedStatements || 0}
           percentage={stats?.processedStatementsChange !== null && stats?.processedStatementsChange !== undefined ? `${stats.processedStatementsChange > 0 ? '+' : ''}${stats.processedStatementsChange}%` : undefined}
           trend={stats?.processedStatementsTrend || undefined}
-          icon="📊"
+          icon={<BarChart3 className="w-6 h-6 text-white" />}
           gradient="from-pink-500 to-pink-600"
         />
         <StatCard
@@ -140,7 +156,7 @@ function DashboardOverview() {
           value={stats?.uniqueWorks || 0}
           percentage={stats?.uniqueWorksChange !== null && stats?.uniqueWorksChange !== undefined ? `${stats.uniqueWorksChange > 0 ? '+' : ''}${stats.uniqueWorksChange}%` : undefined}
           trend={stats?.uniqueWorksTrend || undefined}
-          icon="🎵"
+          icon={<Music className="w-6 h-6 text-white" />}
           gradient="from-orange-500 to-orange-600"
         />
       </div>
@@ -269,7 +285,7 @@ function DashboardOverview() {
                       statement.proType === 'ASCAP' ? 'bg-cyan-500/20' :
                       'bg-purple-500/20'
                     }`}>
-                      <span className="text-lg">📊</span>
+                      <BarChart3 className="w-5 h-5 text-white" />
                     </div>
                     <div>
                       <p className="text-white font-medium">{statement.filename}</p>
@@ -303,19 +319,19 @@ function DashboardOverview() {
           <h3 className="text-lg font-semibold text-white mb-6">Quick Actions</h3>
           <div className="space-y-3">
             <button className="w-full flex items-center gap-3 p-4 bg-gradient-to-r from-brand-blue to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl text-white font-medium transition-all shadow-lg shadow-brand-blue/30">
-              <span className="text-xl">📊</span>
+              <BarChart3 className="w-5 h-5" />
               <span>Upload Statement</span>
             </button>
             <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-colors">
-              <span className="text-xl">👥</span>
+              <Users className="w-5 h-5" />
               <span>Add Writer</span>
             </button>
             <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-colors">
-              <span className="text-xl">📄</span>
+              <FileText className="w-5 h-5" />
               <span>Upload Document</span>
             </button>
             <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-colors">
-              <span className="text-xl">📈</span>
+              <TrendingUp className="w-5 h-5" />
               <span>View Reports</span>
             </button>
           </div>
@@ -983,7 +999,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
             <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="🔍 Search songs or publishers..."
+                placeholder="Search songs or publishers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
@@ -993,7 +1009,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                   onClick={() => setSearchQuery('')}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-white transition-colors"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -1006,9 +1022,9 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                 className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
               >
                 <option value="all">All Rows</option>
-                <option value="auto">✓ Auto-assigned</option>
-                <option value="suggested">⚠ Review Suggested</option>
-                <option value="manual">✗ Manual Required</option>
+                <option value="auto">Auto-assigned</option>
+                <option value="suggested">Review Suggested</option>
+                <option value="manual">Manual Required</option>
               </select>
             )}
 
@@ -1039,7 +1055,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
           <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4 space-y-4">
             {/* Smart Assign */}
             <div>
-              <h4 className="text-sm font-medium text-white mb-3">🧠 Smart Assign (AI Matching)</h4>
+              <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2"><Brain className="w-4 h-4" /> Smart Assign (AI Matching)</h4>
               <p className="text-xs text-text-muted mb-3">
                 Automatically match writers using IPI numbers, name similarity, and historical assignments
               </p>
@@ -1048,7 +1064,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                 disabled={smartAssigning}
                 className="w-full px-4 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:bg-white/10 disabled:text-text-muted disabled:cursor-not-allowed transition-colors"
               >
-                {smartAssigning ? '⏳ Analyzing...' : '✨ Smart Assign Writers'}
+                {smartAssigning ? <><Loader2 className="w-4 h-4 mr-2 animate-spin inline" />Analyzing...</> : <><Sparkles className="w-4 h-4 mr-2 inline" />Smart Assign Writers</>}
               </button>
             </div>
 
@@ -1298,8 +1314,8 @@ function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
 
         <div className="space-y-4">
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-            <p className="text-red-400 text-sm">
-              ⚠️ Warning: This action cannot be undone!
+            <p className="text-red-400 text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> Warning: This action cannot be undone!
             </p>
           </div>
 
@@ -1536,16 +1552,30 @@ function UsersTab() {
                         Edit
                       </button>
                       {user.role !== 'ADMIN' && (
-                        <button
-                          onClick={() => {
-                            if (confirm(`Are you sure you want to delete ${user.email}?`)) {
-                              deleteMutation.mutate(user.id);
-                            }
-                          }}
-                          className="text-red-400 hover:text-red-300"
-                        >
-                          Delete
-                        </button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button className="text-red-400 hover:text-red-300">
+                              Delete
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete User</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete {user.email}? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteMutation.mutate(user.id)}
+                                className="bg-red-500 hover:bg-red-600"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
                     </div>
                   </td>
@@ -2003,7 +2033,9 @@ function UsersTab() {
   );
 }
 
-function AnalyticsTab() {
+// Legacy AnalyticsTab - kept for reference, now using AnalyticsTabTremor
+// @ts-expect-error Unused legacy component kept for reference
+function _AnalyticsTab() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
@@ -2094,31 +2126,31 @@ function AnalyticsTab() {
             <StatCard
               title="Total Writers"
               value={stats?.totalWriters || 0}
-              icon="👥"
+              icon={<Users className="w-6 h-6 text-blue-400" />}
               color="blue"
             />
             <StatCard
               title="Total Statements"
               value={stats?.totalStatements || 0}
-              icon="📊"
+              icon={<BarChart3 className="w-6 h-6 text-green-400" />}
               color="green"
             />
             <StatCard
               title="Processed Statements"
               value={stats?.processedStatements || 0}
-              icon="✅"
+              icon={<CheckCircle2 className="w-6 h-6 text-purple-400" />}
               color="purple"
             />
             <StatCard
               title="Unique Works"
               value={stats?.uniqueWorks || 0}
-              icon="🎵"
+              icon={<Music className="w-6 h-6 text-orange-400" />}
               color="orange"
             />
             <StatCard
               title="Total Revenue"
               value={`$${Number(stats?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
-              icon="💰"
+              icon={<DollarSign className="w-6 h-6 text-teal-400" />}
               color="teal"
             />
           </div>

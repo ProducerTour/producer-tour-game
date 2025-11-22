@@ -1,10 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen } from 'lucide-react';
 import { userApi, settingsApi, preferencesApi, systemSettingsApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import Navigation from '../components/Navigation';
 import AdminGuide from '../components/AdminGuide';
 import { PaymentSettings } from '../components/PaymentSettings';
+import {
+  Switch,
+  Checkbox,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../components/ui';
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuthStore();
@@ -264,9 +278,7 @@ export default function SettingsPage() {
   };
 
   const handleDeletePublisher = (id: string) => {
-    if (confirm('Are you sure you want to delete this publisher?')) {
-      deletePublisherMutation.mutate(id);
-    }
+    deletePublisherMutation.mutate(id);
   };
 
   return (
@@ -303,7 +315,7 @@ export default function SettingsPage() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span>👤</span>
+                  <User className="w-4 h-4" />
                   <span className="font-medium">Profile</span>
                 </div>
               </button>
@@ -316,7 +328,7 @@ export default function SettingsPage() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span>🔒</span>
+                  <Lock className="w-4 h-4" />
                   <span className="font-medium">Password</span>
                 </div>
               </button>
@@ -330,7 +342,7 @@ export default function SettingsPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <span>💳</span>
+                    <CreditCard className="w-4 h-4" />
                     <span className="font-medium">Payments</span>
                   </div>
                 </button>
@@ -344,7 +356,7 @@ export default function SettingsPage() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span>🔔</span>
+                  <Bell className="w-4 h-4" />
                   <span className="font-medium">Notifications</span>
                 </div>
               </button>
@@ -359,7 +371,7 @@ export default function SettingsPage() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span>⚙️</span>
+                      <Settings className="w-4 h-4" />
                       <span className="font-medium">System</span>
                     </div>
                   </button>
@@ -372,7 +384,7 @@ export default function SettingsPage() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span>🏢</span>
+                      <Building2 className="w-4 h-4" />
                       <span className="font-medium">Publishers</span>
                     </div>
                   </button>
@@ -385,7 +397,7 @@ export default function SettingsPage() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span>📚</span>
+                      <BookOpen className="w-4 h-4" />
                       <span className="font-medium">Documentation</span>
                     </div>
                   </button>
@@ -557,15 +569,10 @@ export default function SettingsPage() {
                         <h3 className="text-white font-medium">Email Notifications</h3>
                         <p className="text-sm text-text-muted">Receive email updates about new statements</p>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={notificationPrefs.emailNotificationsEnabled}
-                          onChange={(e) => handlePreferenceToggle('emailNotificationsEnabled', e.target.checked)}
-                        />
-                        <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
-                      </label>
+                      <Switch
+                        checked={notificationPrefs.emailNotificationsEnabled}
+                        onCheckedChange={(checked) => handlePreferenceToggle('emailNotificationsEnabled', checked)}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
@@ -573,15 +580,10 @@ export default function SettingsPage() {
                         <h3 className="text-white font-medium">Statement Notifications</h3>
                         <p className="text-sm text-text-muted">Get notified when new statements are published</p>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={notificationPrefs.statementNotificationsEnabled}
-                          onChange={(e) => handlePreferenceToggle('statementNotificationsEnabled', e.target.checked)}
-                        />
-                        <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
-                      </label>
+                      <Switch
+                        checked={notificationPrefs.statementNotificationsEnabled}
+                        onCheckedChange={(checked) => handlePreferenceToggle('statementNotificationsEnabled', checked)}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
@@ -589,15 +591,10 @@ export default function SettingsPage() {
                         <h3 className="text-white font-medium">Monthly Summary</h3>
                         <p className="text-sm text-text-muted">Receive monthly earning summaries</p>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={notificationPrefs.monthlySummaryEnabled}
-                          onChange={(e) => handlePreferenceToggle('monthlySummaryEnabled', e.target.checked)}
-                        />
-                        <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
-                      </label>
+                      <Switch
+                        checked={notificationPrefs.monthlySummaryEnabled}
+                        onCheckedChange={(checked) => handlePreferenceToggle('monthlySummaryEnabled', checked)}
+                      />
                     </div>
 
                     <p className="text-sm text-text-muted pt-4">
@@ -662,15 +659,13 @@ export default function SettingsPage() {
                         />
                       </div>
                       {isEditing && (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
+                        <div className="flex items-center gap-3">
+                          <Checkbox
                             id="isActive"
                             checked={publisherForm.isActive}
-                            onChange={(e) => setPublisherForm({ ...publisherForm, isActive: e.target.checked })}
-                            className="w-4 h-4"
+                            onCheckedChange={(checked) => setPublisherForm({ ...publisherForm, isActive: checked as boolean })}
                           />
-                          <label htmlFor="isActive" className="text-sm text-text-secondary">
+                          <label htmlFor="isActive" className="text-sm text-text-secondary cursor-pointer">
                             Active
                           </label>
                         </div>
@@ -732,13 +727,33 @@ export default function SettingsPage() {
                             >
                               Edit
                             </button>
-                            <button
-                              onClick={() => handleDeletePublisher(publisher.id)}
-                              disabled={deletePublisherMutation.isPending}
-                              className="px-4 py-2 text-sm bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors disabled:opacity-50"
-                            >
-                              Delete
-                            </button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <button
+                                  disabled={deletePublisherMutation.isPending}
+                                  className="px-4 py-2 text-sm bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                                >
+                                  Delete
+                                </button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Publisher</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{publisher.publisherName}"? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeletePublisher(publisher.id)}
+                                    className="bg-red-500 hover:bg-red-600"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
                       ))
@@ -794,7 +809,9 @@ export default function SettingsPage() {
                     {/* Info Box */}
                     <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
                       <div className="flex gap-3">
-                        <span className="text-2xl">ℹ️</span>
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                          <Info className="w-4 h-4 text-blue-400" />
+                        </div>
                         <div>
                           <p className="text-sm font-medium text-blue-300 mb-1">About System Settings</p>
                           <p className="text-sm text-blue-200/80">

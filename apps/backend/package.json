@@ -38,6 +38,7 @@
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.15",
     "papaparse": "^5.4.1",
+    "socket.io": "^4.8.1",
     "stripe": "^19.3.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",

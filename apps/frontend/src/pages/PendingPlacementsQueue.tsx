@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, XCircle, FileText, Music, AlertCircle,
   DollarSign, Percent, Calendar, Clock,
-  ChevronDown, Search, Users, Paperclip, Download
+  ChevronDown, Search, Users, Paperclip, Download, Check, X, AlertTriangle
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { workRegistrationApi, WorkSubmission } from '@/lib/workRegistrationApi';
@@ -78,7 +78,7 @@ export default function PendingPlacementsQueue() {
           <div className="font-semibold">Submission Approved!</div>
           <div className="text-sm text-text-muted">Added to writer's Claims</div>
         </div>,
-        { icon: '✅', duration: 4000 }
+        { icon: <Check className="w-5 h-5 text-green-500" />, duration: 4000 }
       );
       closeModal();
       loadPendingSubmissions();
@@ -94,7 +94,7 @@ export default function PendingPlacementsQueue() {
 
     try {
       await workRegistrationApi.deny(selectedSubmission.id, reason);
-      toast.success('Submission denied and writer notified', { icon: '❌' });
+      toast.success('Submission denied and writer notified', { icon: <X className="w-5 h-5 text-red-500" /> });
       closeModal();
       loadPendingSubmissions();
     } catch (error: any) {
@@ -109,7 +109,7 @@ export default function PendingPlacementsQueue() {
 
     try {
       await workRegistrationApi.requestDocuments(selectedSubmission.id, documentsRequested);
-      toast.success('Document request sent to writer', { icon: '📄' });
+      toast.success('Document request sent to writer', { icon: <FileText className="w-5 h-5 text-yellow-500" /> });
       closeModal();
       loadPendingSubmissions();
     } catch (error: any) {
@@ -758,8 +758,8 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
 
           {/* Info */}
           <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-            <p className="text-green-300 text-sm">
-              ✓ This will create a case in the Placement Tracker and notify the writer
+            <p className="text-green-300 text-sm flex items-center gap-2">
+              <Check className="w-4 h-4" /> This will create a case in the Placement Tracker and notify the writer
             </p>
           </div>
 
@@ -866,8 +866,8 @@ function DenyModal({ submission, onClose, onSubmit }: DenyModalProps) {
 
           {/* Warning */}
           <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-            <p className="text-red-300 text-sm">
-              ⚠️ The writer will be notified of this denial and the reason provided
+            <p className="text-red-300 text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> The writer will be notified of this denial and the reason provided
             </p>
           </div>
 
@@ -974,8 +974,8 @@ function RequestDocumentsModal({ submission, onClose, onSubmit }: RequestDocumen
 
           {/* Info */}
           <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-            <p className="text-yellow-300 text-sm">
-              📄 The writer will be notified and can upload the requested documents
+            <p className="text-yellow-300 text-sm flex items-center gap-2">
+              <FileText className="w-4 h-4" /> The writer will be notified and can upload the requested documents
             </p>
           </div>
 

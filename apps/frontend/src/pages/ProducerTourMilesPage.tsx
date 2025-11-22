@@ -190,34 +190,41 @@ export default function ProducerTourMilesPage() {
   const pointsToNextTier = nextTier && stats ? TIER_THRESHOLDS[nextTier as keyof typeof TIER_THRESHOLDS] - stats.points : 0;
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen bg-surface overflow-hidden">
+      {/* Background Effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-brand-blue/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px]" />
+        <div className="absolute top-1/2 left-0 w-[300px] h-[300px] bg-amber-500/5 rounded-full blur-[80px]" />
+      </div>
+
       <Sidebar />
-      <div className="flex-1 ml-64">
+      <div className="flex-1 ml-64 flex flex-col min-h-0 relative z-10">
         <ImpersonationBanner />
-        <div className="p-8">
+        <div className="flex-1 overflow-y-auto p-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Producer Tour Miles</h1>
-            <p className="text-gray-600">Earn points, unlock rewards, and level up your producer journey</p>
+            <h1 className="text-3xl font-bold text-white mb-2">Producer Tour Miles</h1>
+            <p className="text-gray-400">Earn points, unlock rewards, and level up your producer journey</p>
           </div>
 
           {/* Stats Cards */}
           {!statsLoading && stats && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               {/* Points Card */}
-              <div className="bg-white rounded-lg shadow-md p-6 border-l-4" style={{ borderLeftColor: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }}>
+              <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6 border-l-4" style={{ borderLeftColor: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-600">Tour Points</span>
+                  <span className="text-sm font-medium text-gray-400">Tour Points</span>
                   <Star className="w-5 h-5" style={{ color: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }} />
                 </div>
-                <div className="text-3xl font-bold text-gray-900">{stats.points.toLocaleString()}</div>
+                <div className="text-3xl font-bold text-white">{stats.points.toLocaleString()}</div>
                 <div className="text-xs text-gray-500 mt-1">Lifetime: {stats.totalEarned.toLocaleString()} TP</div>
               </div>
 
               {/* Tier Card */}
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-600">Current Tier</span>
+                  <span className="text-sm font-medium text-gray-400">Current Tier</span>
                   <Trophy className="w-5 h-5" style={{ color: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }} />
                 </div>
                 <div className="text-2xl font-bold" style={{ color: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }}>
@@ -226,11 +233,11 @@ export default function ProducerTourMilesPage() {
                 {nextTier && (
                   <>
                     <div className="mt-3">
-                      <div className="flex justify-between text-xs text-gray-600 mb-1">
+                      <div className="flex justify-between text-xs text-gray-400 mb-1">
                         <span>Progress to {nextTier}</span>
                         <span>{progress.toFixed(0)}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-white/10 rounded-full h-2">
                         <div
                           className="h-2 rounded-full transition-all duration-500"
                           style={{
@@ -248,51 +255,51 @@ export default function ProducerTourMilesPage() {
               </div>
 
               {/* Streak Card */}
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-600">Check-in Streak</span>
-                  <Zap className="w-5 h-5 text-orange-500" />
+                  <span className="text-sm font-medium text-gray-400">Check-in Streak</span>
+                  <Zap className="w-5 h-5 text-orange-400" />
                 </div>
-                <div className="text-3xl font-bold text-gray-900">{stats.currentStreak}</div>
+                <div className="text-3xl font-bold text-white">{stats.currentStreak}</div>
                 <div className="text-xs text-gray-500 mt-1">Longest: {stats.longestStreak} days</div>
                 {stats.canCheckInToday && (
                   <button
                     onClick={handleCheckIn}
                     disabled={checkInMutation.isPending}
-                    className="mt-3 w-full px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="mt-3 w-full px-3 py-2 bg-brand-blue text-white text-sm font-medium rounded-lg hover:bg-brand-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {checkInMutation.isPending ? 'Checking in...' : 'Check In Today (+10 TP)'}
                   </button>
                 )}
                 {!stats.canCheckInToday && (
-                  <div className="mt-3 text-center text-xs text-green-600 font-medium">
+                  <div className="mt-3 text-center text-xs text-emerald-400 font-medium">
                     ✓ Checked in today
                   </div>
                 )}
               </div>
 
               {/* Achievements Card */}
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-600">Achievements</span>
-                  <Award className="w-5 h-5 text-purple-600" />
+                  <span className="text-sm font-medium text-gray-400">Achievements</span>
+                  <Award className="w-5 h-5 text-purple-400" />
                 </div>
-                <div className="text-3xl font-bold text-gray-900">{stats.achievementsUnlocked}</div>
+                <div className="text-3xl font-bold text-white">{stats.achievementsUnlocked}</div>
                 <div className="text-xs text-gray-500 mt-1">Unlocked</div>
               </div>
             </div>
           )}
 
           {/* Tabs */}
-          <div className="bg-white rounded-lg shadow-md mb-6">
-            <div className="border-b border-gray-200">
+          <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm mb-6">
+            <div className="border-b border-white/[0.08]">
               <nav className="flex -mb-px">
                 <button
                   onClick={() => setActiveTab('overview')}
                   className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'overview'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
+                      ? 'border-brand-blue text-brand-blue'
+                      : 'border-transparent text-gray-400 hover:text-white hover:border-white/30'
                   }`}
                 >
                   <TrendingUp className="w-4 h-4 inline-block mr-2" />
@@ -302,8 +309,8 @@ export default function ProducerTourMilesPage() {
                   onClick={() => setActiveTab('achievements')}
                   className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'achievements'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
+                      ? 'border-brand-blue text-brand-blue'
+                      : 'border-transparent text-gray-400 hover:text-white hover:border-white/30'
                   }`}
                 >
                   <Award className="w-4 h-4 inline-block mr-2" />
@@ -313,8 +320,8 @@ export default function ProducerTourMilesPage() {
                   onClick={() => setActiveTab('rewards')}
                   className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'rewards'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
+                      ? 'border-brand-blue text-brand-blue'
+                      : 'border-transparent text-gray-400 hover:text-white hover:border-white/30'
                   }`}
                 >
                   <Gift className="w-4 h-4 inline-block mr-2" />
@@ -324,8 +331,8 @@ export default function ProducerTourMilesPage() {
                   onClick={() => setActiveTab('leaderboard')}
                   className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'leaderboard'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
+                      ? 'border-brand-blue text-brand-blue'
+                      : 'border-transparent text-gray-400 hover:text-white hover:border-white/30'
                   }`}
                 >
                   <Users className="w-4 h-4 inline-block mr-2" />
@@ -339,37 +346,37 @@ export default function ProducerTourMilesPage() {
               {activeTab === 'overview' && !statsLoading && stats && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">How to Earn Points</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">How to Earn Points</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex items-start p-4 bg-gray-50 rounded-lg">
-                        <Calendar className="w-5 h-5 text-blue-600 mt-1 mr-3 flex-shrink-0" />
+                      <div className="flex items-start p-4 bg-white/[0.04] border border-white/[0.06] rounded-xl">
+                        <Calendar className="w-5 h-5 text-brand-blue mt-1 mr-3 flex-shrink-0" />
                         <div>
-                          <div className="font-medium text-gray-900">Daily Check-in</div>
-                          <div className="text-sm text-gray-600">+10 TP per day</div>
+                          <div className="font-medium text-white">Daily Check-in</div>
+                          <div className="text-sm text-gray-400">+10 TP per day</div>
                           <div className="text-xs text-gray-500 mt-1">Bonus: +50 TP at 7 days, +200 TP at 30 days</div>
                         </div>
                       </div>
-                      <div className="flex items-start p-4 bg-gray-50 rounded-lg">
-                        <Users className="w-5 h-5 text-green-600 mt-1 mr-3 flex-shrink-0" />
+                      <div className="flex items-start p-4 bg-white/[0.04] border border-white/[0.06] rounded-xl">
+                        <Users className="w-5 h-5 text-emerald-400 mt-1 mr-3 flex-shrink-0" />
                         <div>
-                          <div className="font-medium text-gray-900">Referrals</div>
-                          <div className="text-sm text-gray-600">+100 TP per signup, +250 TP per conversion</div>
-                          <div className="text-xs text-gray-500 mt-1">Your code: <span className="font-mono font-bold">{stats.referralCode}</span></div>
+                          <div className="font-medium text-white">Referrals</div>
+                          <div className="text-sm text-gray-400">+100 TP per signup, +250 TP per conversion</div>
+                          <div className="text-xs text-gray-500 mt-1">Your code: <span className="font-mono font-bold text-brand-blue">{stats.referralCode}</span></div>
                         </div>
                       </div>
-                      <div className="flex items-start p-4 bg-gray-50 rounded-lg">
-                        <Star className="w-5 h-5 text-purple-600 mt-1 mr-3 flex-shrink-0" />
+                      <div className="flex items-start p-4 bg-white/[0.04] border border-white/[0.06] rounded-xl">
+                        <Star className="w-5 h-5 text-purple-400 mt-1 mr-3 flex-shrink-0" />
                         <div>
-                          <div className="font-medium text-gray-900">Platform Activity</div>
-                          <div className="text-sm text-gray-600">Earn points for engagement</div>
+                          <div className="font-medium text-white">Platform Activity</div>
+                          <div className="text-sm text-gray-400">Earn points for engagement</div>
                           <div className="text-xs text-gray-500 mt-1">Work submissions, payouts, feedback</div>
                         </div>
                       </div>
-                      <div className="flex items-start p-4 bg-gray-50 rounded-lg">
-                        <Trophy className="w-5 h-5 text-yellow-600 mt-1 mr-3 flex-shrink-0" />
+                      <div className="flex items-start p-4 bg-white/[0.04] border border-white/[0.06] rounded-xl">
+                        <Trophy className="w-5 h-5 text-amber-400 mt-1 mr-3 flex-shrink-0" />
                         <div>
-                          <div className="font-medium text-gray-900">Achievements</div>
-                          <div className="text-sm text-gray-600">Unlock achievements for milestones</div>
+                          <div className="font-medium text-white">Achievements</div>
+                          <div className="text-sm text-gray-400">Unlock achievements for milestones</div>
                           <div className="text-xs text-gray-500 mt-1">50-2500 TP per achievement</div>
                         </div>
                       </div>
@@ -382,16 +389,16 @@ export default function ProducerTourMilesPage() {
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                    <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
                     {stats.recentEvents && stats.recentEvents.length > 0 ? (
                       <div className="space-y-2">
                         {stats.recentEvents.map((event: any) => (
-                          <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div key={event.id} className="flex items-center justify-between p-3 bg-white/[0.04] border border-white/[0.06] rounded-xl">
                             <div>
-                              <div className="text-sm font-medium text-gray-900">{event.description || event.eventType}</div>
+                              <div className="text-sm font-medium text-white">{event.description || event.eventType}</div>
                               <div className="text-xs text-gray-500">{new Date(event.createdAt).toLocaleDateString()}</div>
                             </div>
-                            <div className={`text-sm font-bold ${event.points >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <div className={`text-sm font-bold ${event.points >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                               {event.points >= 0 ? '+' : ''}{event.points} TP
                             </div>
                           </div>
@@ -415,29 +422,29 @@ export default function ProducerTourMilesPage() {
               {activeTab === 'rewards' && !rewardsLoading && rewards && (
                 <div>
                   <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Redeem Your Points</h3>
-                    <p className="text-sm text-gray-600">Browse available rewards and redeem with your Tour Points</p>
+                    <h3 className="text-lg font-semibold text-white mb-2">Redeem Your Points</h3>
+                    <p className="text-sm text-gray-400">Browse available rewards and redeem with your Tour Points</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {rewards.map((reward: any) => (
-                      <div key={reward.id} className={`border rounded-lg p-4 ${reward.canRedeem ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50 opacity-60'}`}>
+                      <div key={reward.id} className={`rounded-xl p-4 border ${reward.canRedeem ? 'bg-white/[0.04] border-white/[0.08]' : 'bg-white/[0.02] border-white/[0.04] opacity-60'}`}>
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <h4 className="font-semibold text-gray-900">{reward.name}</h4>
-                            <p className="text-xs text-gray-600 mt-1">{reward.description}</p>
+                            <h4 className="font-semibold text-white">{reward.name}</h4>
+                            <p className="text-xs text-gray-400 mt-1">{reward.description}</p>
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between mt-4">
-                          <div className="text-lg font-bold text-blue-600">{reward.cost.toLocaleString()} TP</div>
+                          <div className="text-lg font-bold text-brand-blue">{reward.cost.toLocaleString()} TP</div>
                           <button
                             onClick={() => handleRedeemReward(reward)}
                             disabled={!reward.canRedeem || redeemMutation.isPending}
                             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                               reward.canRedeem
-                                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                ? 'bg-brand-blue text-white hover:bg-brand-blue/90'
+                                : 'bg-white/10 text-gray-500 cursor-not-allowed'
                             }`}
                           >
                             {!reward.canAfford ? 'Insufficient Points' : !reward.tierAllowed ? 'Tier Locked' : !reward.inStock ? 'Out of Stock' : 'Redeem'}
@@ -466,12 +473,12 @@ export default function ProducerTourMilesPage() {
 
       {/* Redemption Confirmation Modal */}
       {showRedemptionModal && selectedReward && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Confirm Redemption</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to redeem <span className="font-semibold">{selectedReward.name}</span> for{' '}
-              <span className="font-bold text-blue-600">{selectedReward.cost.toLocaleString()} TP</span>?
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 className="text-xl font-bold text-white mb-4">Confirm Redemption</h3>
+            <p className="text-gray-400 mb-6">
+              Are you sure you want to redeem <span className="font-semibold text-white">{selectedReward.name}</span> for{' '}
+              <span className="font-bold text-brand-blue">{selectedReward.cost.toLocaleString()} TP</span>?
             </p>
             <div className="flex space-x-3">
               <button
@@ -479,14 +486,14 @@ export default function ProducerTourMilesPage() {
                   setShowRedemptionModal(false);
                   setSelectedReward(null);
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border border-white/[0.15] text-gray-300 font-medium rounded-lg hover:bg-white/[0.05] transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmRedemption}
                 disabled={redeemMutation.isPending}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 px-4 py-2 bg-brand-blue text-white font-medium rounded-lg hover:bg-brand-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {redeemMutation.isPending ? 'Redeeming...' : 'Confirm'}
               </button>

@@ -1,12 +1,16 @@
 /**
  * Centralized Navigation Configuration
  * Single source of truth for all sidebar navigation across roles
+ *
+ * Icon names map to SaasIcon component (see components/ui/SaasIcon.tsx)
  */
+
+import { IconName } from '@/components/ui/SaasIcon';
 
 export interface NavItem {
   id: string;
   label: string;
-  icon: string;
+  icon: IconName;
   path?: string;
   children?: NavItem[];
   badge?: number | (() => Promise<number>);
@@ -29,21 +33,21 @@ export const writerNavigation: NavSection[] = [
     id: 'main',
     label: 'Main',
     items: [
-      { id: 'overview', label: 'Dashboard', icon: '🏠' },
-      { id: 'songs', label: 'My Songs', icon: '🎵' },
-      { id: 'statements', label: 'My Statements', icon: '📊' },
-      { id: 'documents', label: 'Documents', icon: '📄' },
-      { id: 'payments', label: 'Payments', icon: '💳' },
-      { id: 'claims', label: 'Claims', icon: '✅' },
-      { id: 'tour-miles', label: 'Tour Miles', icon: '🎯', path: '/tour-miles' },
-      { id: 'profile', label: 'Profile', icon: '👤' },
+      { id: 'overview', label: 'Dashboard', icon: 'dashboard' },
+      { id: 'songs', label: 'My Songs', icon: 'music' },
+      { id: 'statements', label: 'My Statements', icon: 'chart' },
+      { id: 'documents', label: 'Documents', icon: 'file' },
+      { id: 'payments', label: 'Payments', icon: 'credit-card' },
+      { id: 'claims', label: 'Claims', icon: 'check-circle' },
+      { id: 'tour-miles', label: 'Tour Miles', icon: 'target', path: '/tour-miles' },
+      { id: 'profile', label: 'Profile', icon: 'user' },
     ],
   },
   {
     id: 'tools',
     label: 'Tools & Apps',
     items: [
-      { id: 'tools', label: 'Tools Hub', icon: '🛠️' },
+      { id: 'tools', label: 'Tools Hub', icon: 'tools' },
     ],
   },
 ];
@@ -58,35 +62,35 @@ export const adminNavigation: NavSection[] = [
     id: 'main',
     label: 'Main',
     items: [
-      { id: 'overview', label: 'Dashboard', icon: '🏠' },
-      { id: 'statements', label: 'Statements', icon: '📊' },
-      { id: 'users', label: 'Users', icon: '👥' },
-      { id: 'analytics', label: 'Analytics', icon: '📈' },
-      { id: 'payouts', label: 'Payouts', icon: '💰' },
+      { id: 'overview', label: 'Dashboard', icon: 'dashboard' },
+      { id: 'statements', label: 'Statements', icon: 'chart' },
+      { id: 'users', label: 'Users', icon: 'users' },
+      { id: 'analytics', label: 'Analytics', icon: 'trending-up' },
+      { id: 'payouts', label: 'Payouts', icon: 'money' },
       {
         id: 'placement-deals',
         label: 'Placement Tracker',
-        icon: '🎵',
+        icon: 'music',
         children: [
-          { id: 'pending-placements', label: 'Pending Placements', icon: '⏳' },
-          { id: 'active-placements', label: 'Producer Clearances', icon: '✅' },
+          { id: 'pending-placements', label: 'Pending Placements', icon: 'hourglass' },
+          { id: 'active-placements', label: 'Producer Clearances', icon: 'check-circle' },
         ],
       },
-      { id: 'documents', label: 'Documents', icon: '📄' },
+      { id: 'documents', label: 'Documents', icon: 'file' },
       {
         id: 'tour-miles-management',
         label: 'Tour Miles Management',
-        icon: '🎯',
+        icon: 'target',
         children: [
-          { id: 'tour-miles-config', label: 'Tour Miles Config', icon: '⚙️' },
-          { id: 'tour-miles', label: 'Tour Miles', icon: '🎯', path: '/tour-miles' },
-          { id: 'gamification-analytics', label: 'Gamification KPIs', icon: '📊' },
-          { id: 'reward-redemptions', label: 'Reward Redemptions', icon: '🎁' },
+          { id: 'tour-miles-config', label: 'Tour Miles Config', icon: 'settings' },
+          { id: 'tour-miles', label: 'Tour Miles', icon: 'target', path: '/tour-miles' },
+          { id: 'gamification-analytics', label: 'Gamification KPIs', icon: 'chart' },
+          { id: 'reward-redemptions', label: 'Reward Redemptions', icon: 'gift' },
         ],
       },
-      { id: 'tools', label: 'Tools Hub', icon: '🛠️' },
-      { id: 'tool-permissions', label: 'Tool Permissions', icon: '🔐' },
-      { id: 'commission', label: 'Commission Settings', icon: '💼' },
+      { id: 'tools', label: 'Tools Hub', icon: 'tools' },
+      { id: 'tool-permissions', label: 'Tool Permissions', icon: 'lock' },
+      { id: 'commission', label: 'Commission Settings', icon: 'briefcase' },
     ],
   },
 ];

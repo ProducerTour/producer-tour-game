@@ -62,14 +62,14 @@ function AnimatedCounter({ end, prefix = '', suffix = '', decimals = 0, duration
       transition={{ duration: 0.6 }}
     >
       <div className={`absolute inset-0 ${color} opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-500`} />
-      <div className="relative rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-8 text-center hover:border-white/20 transition-colors">
-        <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl ${color} mb-4`}>
+      <div className="relative rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-6 lg:p-5 xl:p-8 text-center hover:border-white/20 transition-colors overflow-hidden">
+        <div className={`inline-flex items-center justify-center w-12 h-12 lg:w-11 lg:h-11 xl:w-14 xl:h-14 rounded-2xl ${color} mb-4`}>
           {icon}
         </div>
-        <div className="text-4xl md:text-5xl font-bold text-white mb-2">
+        <div className="text-xl sm:text-2xl lg:text-xl xl:text-3xl font-bold text-white mb-2">
           {prefix}{formatNumber(count)}{suffix}
         </div>
-        <div className="text-lg font-medium text-white mb-1">{label}</div>
+        <div className="text-base lg:text-sm xl:text-base font-medium text-white mb-1">{label}</div>
         <div className="text-sm text-text-muted">{sublabel}</div>
       </div>
     </motion.div>
@@ -80,9 +80,9 @@ export function LiveCounter() {
   // These would come from your API/database in production
   const stats = [
     {
-      end: 2847293,
+      end: 5000000,
       prefix: '$',
-      suffix: '',
+      suffix: '+',
       icon: <DollarSign className="w-7 h-7 text-green-400" />,
       label: 'Royalties Collected',
       sublabel: 'and counting...',

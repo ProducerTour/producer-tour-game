@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
+import { Search, Laptop, Lightbulb, Handshake, XCircle, CheckCircle2, Lock, ClipboardList, Rocket, BarChart3, Clock, Users, Trophy, Settings, Target, TrendingUp } from 'lucide-react';
 import './pages.css';
 
 interface AuthModal {
@@ -315,21 +316,21 @@ export default function CaseStudyPage() {
                   className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center justify-center"
                   title="Google"
                 >
-                  🔍
+                  <Search className="w-5 h-5 text-gray-600" />
                 </button>
                 <button
                   type="button"
                   className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center justify-center"
                   title="Apple"
                 >
-                  🍎
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
                 </button>
                 <button
                   type="button"
                   className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center justify-center"
                   title="GitHub"
                 >
-                  💻
+                  <Laptop className="w-5 h-5 text-gray-600" />
                 </button>
               </div>
             </div>
@@ -535,7 +536,7 @@ export default function CaseStudyPage() {
             <div className="grid md:grid-cols-2 gap-8">
               {/* Service 1 */}
               <div className="bg-gray-50 p-6 rounded-xl shadow-lg transition duration-300 hover:shadow-blue-500/30">
-                <div className="text-3xl mb-3">💡</div>
+                <div className="text-3xl mb-3"><Lightbulb className="w-8 h-8 text-blue-600" /></div>
                 <h3 className="text-xl font-semibold mb-2 text-gray-900">Consulting Services</h3>
                 <p className="text-gray-600">
                   Custom, full-cycle campaigns—from foundational setup to market saturation. Includes focused, high-value sessions to tackle specific roadblocks like DSP optimization or revenue leakage, plus complete career blueprints.
@@ -544,7 +545,7 @@ export default function CaseStudyPage() {
 
               {/* Service 2 */}
               <div className="bg-gray-50 p-6 rounded-xl shadow-lg transition duration-300 hover:shadow-blue-500/30">
-                <div className="text-3xl mb-3">🤝</div>
+                <div className="text-3xl mb-3"><Handshake className="w-8 h-8 text-blue-600" /></div>
                 <h3 className="text-xl font-semibold mb-2 text-gray-900">Management Services</h3>
                 <p className="text-gray-600">
                   Dedicated, ongoing oversight of strategic execution, team coordination, and monetization efforts, ensuring your long-term vision is realized with discipline and measurable results.
@@ -590,7 +591,7 @@ export default function CaseStudyPage() {
                     {/* Before (Left) */}
                     <div className="absolute inset-0 bg-gradient-to-br from-red-100 to-red-50 flex flex-col items-center justify-center">
                       <div className="text-red-700 text-center">
-                        <div className="text-3xl font-bold mb-2">❌</div>
+                        <div className="text-3xl font-bold mb-2"><XCircle className="w-10 h-10 mx-auto" /></div>
                         <p className="text-lg font-bold">BEFORE</p>
                         <p className="text-sm mt-2">Scattered profiles</p>
                         <p className="text-sm">Lost revenue</p>
@@ -604,7 +605,7 @@ export default function CaseStudyPage() {
                       style={{ width: `${100 - sliderPosition}%`, right: 0 }}
                     >
                       <div className="text-green-700 text-center">
-                        <div className="text-3xl font-bold mb-2">✅</div>
+                        <div className="text-3xl font-bold mb-2"><CheckCircle2 className="w-10 h-10 mx-auto" /></div>
                         <p className="text-lg font-bold">AFTER</p>
                         <p className="text-sm mt-2">Unified presence</p>
                         <p className="text-sm">Revenue growth</p>
@@ -726,28 +727,28 @@ export default function CaseStudyPage() {
                         title: 'CLAIMS & OPTIMIZATION',
                         desc: 'Secure all unclaimed profiles and standardize existing ones.',
                         duration: 'Weeks 1-4',
-                        icon: '🔐',
+                        Icon: Lock,
                       },
                       {
                         phase: 'PHASE 2',
                         title: 'STRATEGIC PLANNING',
                         desc: 'Develop release schedule for new music and legacy content.',
                         duration: 'Weeks 5-8',
-                        icon: '📋',
+                        Icon: ClipboardList,
                       },
                       {
                         phase: 'PHASE 3',
                         title: 'IMPLEMENTATION & LAUNCH',
                         desc: 'Oversee content rollout, digital ads, and brand initiatives.',
                         duration: 'Weeks 9-16',
-                        icon: '🚀',
+                        Icon: Rocket,
                       },
                       {
                         phase: 'PHASE 4',
                         title: 'OBSERVATION & TRACKING',
                         desc: 'Continuous monitoring and iterative refinement.',
                         duration: 'Ongoing',
-                        icon: '📊',
+                        Icon: BarChart3,
                       },
                     ].map((item, idx) => (
                       <div
@@ -758,14 +759,14 @@ export default function CaseStudyPage() {
                         <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 -top-2 w-8 h-8 bg-white border-4 border-blue-500 rounded-full items-center justify-center text-blue-700 font-bold text-xs z-10">
                           {idx + 1}
                         </div>
-                        
+
                         {/* Phase Card */}
                         <div className="bg-white border-2 border-blue-200 rounded-xl p-5 h-full hover:border-blue-500 hover:shadow-lg transition">
-                          <div className="text-3xl mb-2 text-center">{item.icon}</div>
+                          <div className="text-3xl mb-2 text-center"><item.Icon className="w-8 h-8 mx-auto text-blue-600" /></div>
                           <h6 className="text-xs font-bold text-blue-600 mb-1">{item.phase}</h6>
                           <h5 className="text-sm font-bold text-gray-900 mb-2">{item.title}</h5>
                           <p className="text-xs text-gray-600 mb-3">{item.desc}</p>
-                          <p className="text-xs text-blue-700 font-semibold">⏱️ {item.duration}</p>
+                          <p className="text-xs text-blue-700 font-semibold flex items-center justify-center gap-1"><Clock className="w-3 h-3" /> {item.duration}</p>
                         </div>
                       </div>
                     ))}
@@ -783,32 +784,32 @@ export default function CaseStudyPage() {
                   {[
                     {
                       title: 'Authentic Fan Base',
-                      icon: '👥',
+                      Icon: Users,
                       details: 'Genuine, engaged community that trusts your vision and actively supports releases.',
                     },
                     {
                       title: 'Proven Track Record',
-                      icon: '🏆',
+                      Icon: Trophy,
                       details: 'Demonstrated success with consistent releases and growing platform presence.',
                     },
                     {
                       title: 'Strategic Partners',
-                      icon: '🤝',
+                      Icon: Handshake,
                       details: 'Established relationships with industry leaders amplifying reach and credibility.',
                     },
                     {
                       title: 'Technical Infrastructure',
-                      icon: '⚙️',
+                      Icon: Settings,
                       details: 'Robust systems and tools ready for high-volume distribution and analytics.',
                     },
                     {
                       title: 'Market Positioning',
-                      icon: '🎯',
+                      Icon: Target,
                       details: 'Unique positioning in the market with clear differentiation from competitors.',
                     },
                     {
                       title: 'Growth Potential',
-                      icon: '📈',
+                      Icon: TrendingUp,
                       details: 'Significant untapped opportunities for revenue growth and audience expansion.',
                     },
                   ].map((advantage, idx) => (
@@ -822,7 +823,7 @@ export default function CaseStudyPage() {
                       }`}
                     >
                       <div className="flex items-start space-x-2">
-                        <span className="text-2xl">{advantage.icon}</span>
+                        <advantage.Icon className="w-6 h-6 text-blue-600 flex-shrink-0" />
                         <div className="flex-1">
                           <p className="font-bold text-blue-700">{advantage.title}</p>
                           {expandedAdvantage === idx && (

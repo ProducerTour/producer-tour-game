@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { LucideIcon, BarChart3, Music, FileText, Link, TrendingUp, Shield } from 'lucide-react';
 
 interface Producer {
   id: number;
@@ -11,7 +12,7 @@ interface Producer {
 }
 
 interface Feature {
-  icon: string;
+  icon: LucideIcon;
   title: string;
   description: string;
 }
@@ -56,33 +57,33 @@ export default function PublishingTrackerPage() {
 
   const features: Feature[] = [
     {
-      icon: '📊',
+      icon: BarChart3,
       title: 'Real-Time Publishing Dashboard',
       description: 'Monitor your placements, credits, and publishing data all in one centralized location.',
     },
     {
-      icon: '🎵',
+      icon: Music,
       title: 'Placement Management',
       description:
         'Organize and track all your music placements across streaming platforms and sync opportunities.',
     },
     {
-      icon: '📝',
+      icon: FileText,
       title: 'Credit Organization',
       description: 'Maintain accurate credits and metadata for all your published works.',
     },
     {
-      icon: '🔗',
+      icon: Link,
       title: 'Publishing Submissions',
       description: 'Submit your publishing data directly to PROs and collection societies.',
     },
     {
-      icon: '📈',
+      icon: TrendingUp,
       title: 'Analytics & Insights',
       description: 'Deep dive into your performance metrics and earnings potential.',
     },
     {
-      icon: '🛡️',
+      icon: Shield,
       title: 'Rights Management',
       description: 'Protect your intellectual property with comprehensive rights tracking.',
     },
@@ -202,7 +203,7 @@ export default function PublishingTrackerPage() {
                     boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
                   }}
                 >
-                  🎵
+                  <Music className="w-24 h-24 text-white" />
                 </div>
               </div>
 
@@ -306,7 +307,7 @@ export default function PublishingTrackerPage() {
                   WebkitBackdropFilter: 'blur(20px)',
                 }}
               >
-                <div className="text-5xl mb-4">{feature.icon}</div>
+                <div className="text-5xl mb-4"><feature.icon className="w-12 h-12 text-blue-400" /></div>
                 <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
                 <p className="text-slate-300">{feature.description}</p>
               </div>

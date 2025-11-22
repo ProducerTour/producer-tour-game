@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Music, Sparkles, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Search, Music, Sparkles, CheckCircle2, ArrowRight, Plus, CircleDollarSign, BarChart3 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { SpotifyTrackLookup } from '@/components/SpotifyTrackLookup';
 import { CollaboratorForm, Collaborator } from '@/components/CollaboratorForm';
@@ -130,7 +130,7 @@ export default function WorkRegistrationTool() {
       toast.success(
         <div>
           <div className="font-semibold">Submission Successful!</div>
-          <div className="text-sm text-slate-400">Your work has been submitted for review</div>
+          <div className="text-sm text-gray-400">Your work has been submitted for review</div>
         </div>,
         {
           duration: 4000,
@@ -179,7 +179,7 @@ export default function WorkRegistrationTool() {
       toast.success(
         <div>
           <div className="font-semibold">Track Submitted!</div>
-          <div className="text-sm text-slate-400">Ready to add another placement</div>
+          <div className="text-sm text-gray-400">Ready to add another placement</div>
         </div>,
         {
           duration: 3000,
@@ -200,53 +200,31 @@ export default function WorkRegistrationTool() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 relative overflow-hidden">
+    <div className="min-h-screen bg-surface relative overflow-hidden">
       <Toaster position="top-right" />
 
-      {/* Animated background gradients */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-blue-600/20 to-transparent rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-purple-600/20 to-transparent rounded-full blur-3xl"
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 4,
-          }}
-        />
+      {/* Background Effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-white/[0.02] rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-white/[0.015] rounded-full blur-[100px]" />
+        <div className="absolute top-1/2 left-0 w-[300px] h-[300px] bg-white/[0.01] rounded-full blur-[80px]" />
       </div>
 
       {/* Content */}
       <div className="relative z-10">
         {/* Header */}
-        <div className="border-b border-slate-700/50 backdrop-blur-sm bg-slate-900/50">
+        <div className="border-b border-white/[0.08] backdrop-blur-sm bg-surface/80">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <button
               onClick={() => navigate('/admin')}
-              className="text-slate-400 hover:text-white transition-colors mb-4 flex items-center gap-2"
+              className="text-gray-400 hover:text-white transition-colors mb-4 flex items-center gap-2"
             >
               ← Back to Dashboard
             </button>
             <div className="flex items-center gap-4">
               <motion.div
-                className="p-3 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600"
-                whileHover={{ scale: 1.05, rotate: 5 }}
+                className="p-3 rounded-xl bg-gradient-to-b from-white/[0.12] to-white/[0.04] border border-white/[0.08]"
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
                 <Music className="w-8 h-8 text-white" />
@@ -254,9 +232,8 @@ export default function WorkRegistrationTool() {
               <div>
                 <h1 className="text-4xl font-bold text-white flex items-center gap-3">
                   Work Registration Tool
-                  <Sparkles className="w-6 h-6 text-yellow-400" />
                 </h1>
-                <p className="text-slate-400 mt-2">
+                <p className="text-gray-400 mt-2">
                   Submit your music for placement tracking and royalty management
                 </p>
               </div>
@@ -277,28 +254,27 @@ export default function WorkRegistrationTool() {
               >
                 {/* Search Card */}
                 <motion.div
-                  className="relative rounded-2xl border border-slate-700/50 bg-slate-800/50 backdrop-blur-xl p-8 overflow-hidden"
-                  whileHover={{ borderColor: 'rgba(59, 130, 246, 0.5)' }}
+                  className="relative rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.08] to-white/[0.02] backdrop-blur-xl p-8 overflow-hidden"
+                  whileHover={{ borderColor: 'rgba(255, 255, 255, 0.15)' }}
                   transition={{ duration: 0.3 }}
                 >
-                  {/* Glassmorphism effect */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-
                   <div className="relative z-10">
                     <div className="text-center mb-8">
-                      <Search className="w-16 h-16 mx-auto mb-4 text-blue-400" />
+                      <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-b from-white/[0.12] to-white/[0.04] border border-white/[0.08] flex items-center justify-center">
+                        <Search className="w-10 h-10 text-white" />
+                      </div>
                       <h2 className="text-2xl font-bold text-white mb-2">
                         Find Your Track
                       </h2>
-                      <p className="text-slate-400">
+                      <p className="text-gray-400">
                         Search Spotify to automatically populate track information
                       </p>
                     </div>
 
                     <motion.button
                       onClick={() => setShowSpotifyModal(true)}
-                      className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl font-semibold text-lg shadow-lg shadow-blue-600/30 flex items-center justify-center gap-3"
-                      whileHover={{ scale: 1.02, boxShadow: '0 20px 40px rgba(59, 130, 246, 0.4)' }}
+                      className="w-full py-4 px-6 bg-white text-surface hover:bg-white/90 rounded-xl font-semibold text-lg shadow-lg flex items-center justify-center gap-3 transition-all"
+                      whileHover={{ scale: 1.02, y: -2 }}
                       whileTap={{ scale: 0.98 }}
                     >
                       <Search className="w-5 h-5" />
@@ -309,21 +285,23 @@ export default function WorkRegistrationTool() {
                     {/* Info Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
                       {[
-                        { icon: '🎵', title: 'Track Placements', desc: 'Monitor your music across platforms' },
-                        { icon: '💰', title: 'Royalty Tracking', desc: 'See earnings per track' },
-                        { icon: '📊', title: 'Professional Management', desc: 'Industry-standard tools' },
+                        { icon: Music, title: 'Track Placements', desc: 'Monitor your music across platforms' },
+                        { icon: CircleDollarSign, title: 'Royalty Tracking', desc: 'See earnings per track' },
+                        { icon: BarChart3, title: 'Professional Management', desc: 'Industry-standard tools' },
                       ].map((item, idx) => (
                         <motion.div
                           key={idx}
-                          className="p-4 rounded-xl bg-slate-700/30 border border-slate-600/30 backdrop-blur-sm"
+                          className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm"
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: idx * 0.1 + 0.2 }}
-                          whileHover={{ y: -4, borderColor: 'rgba(148, 163, 184, 0.5)' }}
+                          whileHover={{ y: -4, borderColor: 'rgba(255, 255, 255, 0.15)' }}
                         >
-                          <div className="text-3xl mb-2">{item.icon}</div>
+                          <div className="w-10 h-10 rounded-lg bg-white/[0.08] border border-white/[0.08] flex items-center justify-center mb-3">
+                            <item.icon className="w-5 h-5 text-white" />
+                          </div>
                           <div className="font-semibold text-white text-sm">{item.title}</div>
-                          <div className="text-xs text-slate-400 mt-1">{item.desc}</div>
+                          <div className="text-xs text-gray-400 mt-1">{item.desc}</div>
                         </motion.div>
                       ))}
                     </div>
@@ -340,12 +318,9 @@ export default function WorkRegistrationTool() {
               >
                 {/* Track Preview Card */}
                 <motion.div
-                  className="relative rounded-2xl border border-slate-700/50 bg-slate-800/50 backdrop-blur-xl overflow-hidden"
+                  className="relative rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.08] to-white/[0.02] backdrop-blur-xl overflow-hidden"
                   layoutId="track-card"
                 >
-                  {/* Glassmorphism effect */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-
                   <div className="relative z-10 p-8">
                     <div className="flex items-start gap-6">
                       {/* Album Art */}
@@ -358,15 +333,15 @@ export default function WorkRegistrationTool() {
                           <img
                             src={selectedTrack.enriched?.album?.thumbnailHQ || selectedTrack.enriched?.album?.thumbnail || selectedTrack.image}
                             alt={selectedTrack.title}
-                            className="w-48 h-48 rounded-xl shadow-2xl object-cover"
+                            className="w-48 h-48 rounded-xl shadow-2xl object-cover border border-white/[0.08]"
                           />
                         ) : (
-                          <div className="w-48 h-48 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-2xl">
-                            <Music className="w-24 h-24 text-white/50" />
+                          <div className="w-48 h-48 rounded-xl bg-gradient-to-b from-white/[0.12] to-white/[0.04] border border-white/[0.08] flex items-center justify-center shadow-2xl">
+                            <Music className="w-24 h-24 text-white/30" />
                           </div>
                         )}
                         <motion.div
-                          className="absolute -top-2 -right-2 bg-green-500 rounded-full p-2"
+                          className="absolute -top-2 -right-2 bg-emerald-500 rounded-full p-2"
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ delay: 0.3, type: "spring" }}
@@ -380,12 +355,12 @@ export default function WorkRegistrationTool() {
                         <h2 className="text-3xl font-bold text-white mb-2">
                           {selectedTrack.title}
                         </h2>
-                        <p className="text-xl text-slate-300 mb-4">
+                        <p className="text-xl text-gray-300 mb-4">
                           {selectedTrack.artist}
                         </p>
 
                         {selectedTrack.enriched?.album?.name && (
-                          <p className="text-slate-400 mb-4">
+                          <p className="text-gray-400 mb-4">
                             Album: {selectedTrack.enriched.album.name}
                           </p>
                         )}
@@ -393,22 +368,22 @@ export default function WorkRegistrationTool() {
                         {/* Metadata Tags */}
                         <div className="flex flex-wrap gap-2 mb-6">
                           {selectedTrack.enriched?.artist?.genre && (
-                            <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm border border-blue-500/30">
+                            <span className="px-3 py-1 bg-white/[0.08] text-gray-300 rounded-full text-sm border border-white/[0.08]">
                               {selectedTrack.enriched.artist.genre}
                             </span>
                           )}
                           {selectedTrack.enriched?.album?.year && (
-                            <span className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm border border-purple-500/30">
+                            <span className="px-3 py-1 bg-white/[0.08] text-gray-300 rounded-full text-sm border border-white/[0.08]">
                               {selectedTrack.enriched.album.year}
                             </span>
                           )}
                           {selectedTrack.enriched?.album?.label && (
-                            <span className="px-3 py-1 bg-pink-500/20 text-pink-300 rounded-full text-sm border border-pink-500/30">
+                            <span className="px-3 py-1 bg-white/[0.08] text-gray-300 rounded-full text-sm border border-white/[0.08]">
                               {selectedTrack.enriched.album.label}
                             </span>
                           )}
                           {selectedTrack.isrc && (
-                            <span className="px-3 py-1 bg-slate-600/50 text-slate-300 rounded-full text-xs font-mono border border-slate-500/30">
+                            <span className="px-3 py-1 bg-white/[0.04] text-gray-400 rounded-full text-xs font-mono border border-white/[0.08]">
                               ISRC: {selectedTrack.isrc}
                             </span>
                           )}
@@ -420,14 +395,14 @@ export default function WorkRegistrationTool() {
                             <motion.button
                               onClick={handleSubmit}
                               disabled={isSubmitting}
-                              className="flex-1 py-3 px-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-xl font-semibold shadow-lg shadow-green-600/30 flex items-center justify-center gap-2"
-                              whileHover={!isSubmitting ? { scale: 1.02, boxShadow: '0 20px 40px rgba(16, 185, 129, 0.4)' } : {}}
+                              className="flex-1 py-3 px-6 bg-white text-surface hover:bg-white/90 disabled:bg-gray-600 disabled:text-gray-400 rounded-xl font-semibold shadow-lg flex items-center justify-center gap-2 transition-all"
+                              whileHover={!isSubmitting ? { scale: 1.02, y: -2 } : {}}
                               whileTap={!isSubmitting ? { scale: 0.98 } : {}}
                             >
                               {isSubmitting ? (
                                 <>
                                   <motion.div
-                                    className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                                    className="w-5 h-5 border-2 border-surface border-t-transparent rounded-full"
                                     animate={{ rotate: 360 }}
                                     transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                                   />
@@ -444,8 +419,8 @@ export default function WorkRegistrationTool() {
                             <motion.button
                               onClick={handleSubmitAndAddAnother}
                               disabled={isSubmitting}
-                              className="flex-1 py-3 px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-slate-600 disabled:to-slate-600 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2"
-                              whileHover={!isSubmitting ? { scale: 1.02, boxShadow: '0 20px 40px rgba(59, 130, 246, 0.4)' } : {}}
+                              className="flex-1 py-3 px-6 bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.08] disabled:bg-white/[0.04] disabled:text-gray-500 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-all"
+                              whileHover={!isSubmitting ? { scale: 1.02, y: -2 } : {}}
                               whileTap={!isSubmitting ? { scale: 0.98 } : {}}
                             >
                               {isSubmitting ? (
@@ -459,8 +434,8 @@ export default function WorkRegistrationTool() {
                                 </>
                               ) : (
                                 <>
-                                  <Music className="w-5 h-5" />
-                                  Have another placement?
+                                  <Plus className="w-5 h-5" />
+                                  Submit & Add Another
                                 </>
                               )}
                             </motion.button>
@@ -473,9 +448,9 @@ export default function WorkRegistrationTool() {
                               setDocuments([]);
                             }}
                             disabled={isSubmitting}
-                            className="w-full px-6 py-3 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 text-white rounded-xl font-semibold"
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
+                            className="w-full px-6 py-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] disabled:opacity-50 text-gray-300 rounded-xl font-medium transition-all"
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
                           >
                             Change Track
                           </motion.button>
@@ -484,7 +459,7 @@ export default function WorkRegistrationTool() {
                     </div>
 
                     {/* Collaborators & Credits Section */}
-                    <div className="mt-8 pt-8 border-t border-slate-700/50">
+                    <div className="mt-8 pt-8 border-t border-white/[0.08]">
                       <CollaboratorForm
                         collaborators={collaborators}
                         onChange={setCollaborators}
@@ -497,7 +472,7 @@ export default function WorkRegistrationTool() {
                     </div>
 
                     {/* Document Upload Section */}
-                    <div className="mt-8 pt-8 border-t border-slate-700/50">
+                    <div className="mt-8 pt-8 border-t border-white/[0.08]">
                       <DocumentUpload
                         documents={documents}
                         onChange={setDocuments}
@@ -514,9 +489,9 @@ export default function WorkRegistrationTool() {
 
       {/* Spotify Lookup Modal */}
       {showSpotifyModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <motion.div
-            className="bg-slate-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-700"
+            className="bg-surface-elevated rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-white/[0.08]"
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}

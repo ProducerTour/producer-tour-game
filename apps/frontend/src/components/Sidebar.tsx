@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
 import { useQuery } from '@tanstack/react-query';
 import { getNavigationForRole, type NavSection, type NavItem } from '../config/navigation.config';
+import { SaasIcon, IconName } from './ui/SaasIcon';
+import { LogOut, Settings, ChevronDown } from 'lucide-react';
 
 // Re-export types for backward compatibility
 export type { NavSection, NavItem };
@@ -88,6 +90,11 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
     }));
   }, [user?.role, tabs, approvedClaimsCount, isAdmin]);
 
+  // Render icon helper
+  const renderIcon = (icon: IconName, size: 'sm' | 'md' = 'md') => {
+    return <SaasIcon name={icon} size={size} color="default" className="flex-shrink-0" />;
+  };
+
   return (
     <div className="fixed left-0 top-0 flex flex-col h-screen w-64 bg-gradient-to-b from-surface to-surface-100 border-r border-white/[0.08] shadow-2xl z-[60]">
       {/* Logo Section */}
@@ -124,12 +131,10 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
           </div>
           <button
             onClick={logout}
-            className="text-text-muted hover:text-white transition-colors"
+            className="text-text-muted hover:text-white transition-colors p-2 hover:bg-white/[0.05] rounded-lg"
             title="Logout"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
+            <LogOut className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -145,16 +150,11 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
               <span className="text-xs font-semibold uppercase tracking-wider">
                 {section.label}
               </span>
-              <svg
+              <ChevronDown
                 className={`w-4 h-4 transition-transform ${
                   expandedSections.includes(section.id) ? 'rotate-180' : ''
                 }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              />
             </button>
 
             {expandedSections.includes(section.id) && (
@@ -172,21 +172,21 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                           to={item.path}
                           className={`w-full px-6 py-3 flex items-center gap-3 transition-all ${
                             isActive
-                              ? 'bg-gradient-to-r from-brand-blue/20 to-brand-blue/10 border-l-4 border-brand-blue text-white'
+                              ? 'bg-gradient-to-r from-white/[0.12] to-white/[0.06] border-l-4 border-white text-white'
                               : 'text-text-secondary hover:text-white hover:bg-white/[0.05] border-l-4 border-transparent'
                           }`}
                         >
-                          <span className="text-xl">{item.icon}</span>
+                          {renderIcon(item.icon)}
                           <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
                           {item.badge !== undefined && item.badge > 0 && (
                             <span className={`
                               px-2 py-0.5 rounded-full text-xs font-semibold
-                              ${item.badgeColor === 'green' ? 'bg-green-500/20 text-green-400 border border-green-500/40' : ''}
+                              ${item.badgeColor === 'green' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : ''}
                               ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
                               ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
                               ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
                               ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
-                              ${!item.badgeColor ? 'bg-slate-500/20 text-slate-400 border border-slate-500/40' : ''}
+                              ${!item.badgeColor ? 'bg-white/10 text-gray-400 border border-white/20' : ''}
                             `}>
                               {item.badge}
                             </span>
@@ -207,36 +207,31 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                           }}
                           className={`w-full px-6 py-3 flex items-center gap-3 transition-all ${
                             isActive
-                              ? 'bg-gradient-to-r from-brand-blue/20 to-brand-blue/10 border-l-4 border-brand-blue text-white'
+                              ? 'bg-gradient-to-r from-white/[0.12] to-white/[0.06] border-l-4 border-white text-white'
                               : 'text-text-secondary hover:text-white hover:bg-white/[0.05] border-l-4 border-transparent'
                           }`}
                         >
-                          <span className="text-xl">{item.icon}</span>
+                          {renderIcon(item.icon)}
                           <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
                           {item.badge !== undefined && item.badge > 0 && (
                             <span className={`
                               px-2 py-0.5 rounded-full text-xs font-semibold
-                              ${item.badgeColor === 'green' ? 'bg-green-500/20 text-green-400 border border-green-500/40' : ''}
+                              ${item.badgeColor === 'green' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : ''}
                               ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
                               ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
                               ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
                               ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
-                              ${!item.badgeColor ? 'bg-slate-500/20 text-slate-400 border border-slate-500/40' : ''}
+                              ${!item.badgeColor ? 'bg-white/10 text-gray-400 border border-white/20' : ''}
                             `}>
                               {item.badge}
                             </span>
                           )}
                           {hasChildren && (
-                            <svg
+                            <ChevronDown
                               className={`w-4 h-4 transition-transform ${
                                 isExpanded ? 'rotate-180' : ''
                               }`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
+                            />
                           )}
                         </button>
                       )}
@@ -260,11 +255,11 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                                 }}
                                 className={`w-full px-6 py-2 flex items-center gap-3 transition-all ${
                                   isChildActive
-                                    ? 'bg-gradient-to-r from-purple-500/20 to-purple-500/10 border-l-4 border-purple-500 text-white'
+                                    ? 'bg-gradient-to-r from-white/[0.10] to-white/[0.05] border-l-4 border-white/60 text-white'
                                     : 'text-text-muted hover:text-white hover:bg-white/[0.03] border-l-4 border-transparent'
                                 }`}
                               >
-                                <span className="text-lg">{child.icon}</span>
+                                {renderIcon(child.icon, 'sm')}
                                 <span className="text-sm font-medium">{child.label}</span>
                               </button>
                             );
@@ -286,10 +281,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
           to="/settings"
           className="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
+          <Settings className="w-5 h-5" />
           <span className="text-sm font-medium">Settings</span>
         </Link>
       </div>

@@ -234,42 +234,42 @@ export default function PubDealSimulatorPage() {
     const netPct = (result.netWriter / total) * 100;
 
     return [
-      { label: 'Recouped', value: result.recouped, percent: recoupPct, color: 'bg-cyan-400' },
+      { label: 'Recouped', value: result.recouped, percent: recoupPct, color: 'bg-slate-500' },
       {
         label: 'Advance Remaining',
         value: result.advRemaining,
         percent: advRemainPct,
-        color: 'bg-purple-400',
+        color: 'bg-slate-600',
       },
-      { label: 'Net to Writer', value: result.netWriter, percent: netPct, color: 'bg-pink-400' },
+      { label: 'Net to Writer', value: result.netWriter, percent: netPct, color: 'bg-slate-400' },
     ];
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      {/* Gradient Header */}
-      <div className="h-32 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 opacity-30"></div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+      {/* Subtle Header Gradient */}
+      <div className="h-32 bg-gradient-to-b from-slate-800/50 to-transparent"></div>
 
       {/* Back Button */}
       <div className="max-w-7xl mx-auto px-6 -mt-20 relative z-10">
         <button
           onClick={() => navigate('/admin')}
-          className="text-slate-300 hover:text-white transition flex items-center gap-2 text-sm font-medium mb-6"
+          className="text-slate-400 hover:text-slate-200 transition flex items-center gap-2 text-sm font-medium mb-6"
         >
           ← Back to Dashboard
         </button>
 
         {/* Header */}
         <header className="text-center mb-12">
-          <h1 className="text-5xl font-bold mb-3 text-white">Publishing Deal Simulator</h1>
-          <p className="text-slate-400 text-base max-w-2xl mx-auto">
+          <h1 className="text-4xl font-bold mb-3 text-slate-100">Publishing Deal Simulator</h1>
+          <p className="text-slate-500 text-base max-w-2xl mx-auto">
             Model catalog income under different publishing structures
           </p>
         </header>
 
         {/* Deal Type Selection */}
         <div className="mb-12">
-          <h2 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">
+          <h2 className="text-slate-300 font-semibold mb-4 text-sm uppercase tracking-wider">
             Select a deal type:
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -291,12 +291,12 @@ export default function PubDealSimulatorPage() {
                 onClick={() => setActiveModel(tab.id as DealModel)}
                 className={`p-6 rounded-xl border transition-all text-left ${
                   activeModel === tab.id
-                    ? 'bg-slate-700 border-slate-600'
-                    : 'bg-slate-800 border-slate-700 hover:bg-slate-750'
+                    ? 'bg-slate-800 border-slate-600 ring-1 ring-slate-500'
+                    : 'bg-slate-900/50 border-slate-800 hover:bg-slate-800/50 hover:border-slate-700'
                 }`}
               >
-                <div className="text-white font-bold text-lg mb-2">{tab.label}</div>
-                <div className="text-slate-400 text-sm leading-relaxed">{tab.desc}</div>
+                <div className="text-slate-100 font-bold text-lg mb-2">{tab.label}</div>
+                <div className="text-slate-500 text-sm leading-relaxed">{tab.desc}</div>
               </button>
             ))}
           </div>
@@ -307,18 +307,18 @@ export default function PubDealSimulatorPage() {
           {/* Left Column - Inputs */}
           <div className="space-y-6">
             {/* Publishing Income Slider */}
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
               <div className="flex items-center justify-between mb-3">
-                <label className="text-white font-semibold text-sm uppercase tracking-wider flex items-center gap-2">
+                <label className="text-slate-300 font-semibold text-sm uppercase tracking-wider flex items-center gap-2">
                   Publishing Income
-                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-700 text-slate-400 text-xs">
+                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-800 text-slate-500 text-xs">
                     i
                   </span>
                 </label>
               </div>
               <div className="text-center mb-4">
-                <div className="text-4xl font-bold text-white">{fmtShort(global.gross)}</div>
-                <div className="text-slate-400 text-xs mt-1">Total gross publishing revenue</div>
+                <div className="text-4xl font-bold text-slate-100">{fmtShort(global.gross)}</div>
+                <div className="text-slate-500 text-xs mt-1">Total gross publishing revenue</div>
               </div>
               <input
                 type="range"
@@ -327,22 +327,22 @@ export default function PubDealSimulatorPage() {
                 step="1000"
                 value={global.gross}
                 onChange={(e) => setGlobal({ ...global, gross: parseInt(e.target.value) })}
-                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
+                  background: `linear-gradient(to right, #64748b 0%, #64748b ${
                     (global.gross / 500000) * 100
-                  }%, #334155 ${(global.gross / 500000) * 100}%, #334155 100%)`,
+                  }%, #1e293b ${(global.gross / 500000) * 100}%, #1e293b 100%)`,
                 }}
               />
-              <div className="flex justify-between text-xs text-slate-500 mt-2">
+              <div className="flex justify-between text-xs text-slate-600 mt-2">
                 <span>$0</span>
                 <span>$500K</span>
               </div>
             </div>
 
             {/* Advance & Recoupment */}
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-              <h3 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
+              <h3 className="text-slate-300 font-semibold text-sm uppercase tracking-wider mb-4">
                 Advance & Recoupment
               </h3>
 
@@ -350,8 +350,8 @@ export default function PubDealSimulatorPage() {
                 {/* Outstanding Advance */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-slate-300 text-sm">Outstanding Advance</label>
-                    <span className="text-white font-semibold">{fmt(global.advance)}</span>
+                    <label className="text-slate-400 text-sm">Outstanding Advance</label>
+                    <span className="text-slate-200 font-semibold">{fmt(global.advance)}</span>
                   </div>
                   <input
                     type="range"
@@ -360,11 +360,11 @@ export default function PubDealSimulatorPage() {
                     step="1000"
                     value={global.advance}
                     onChange={(e) => setGlobal({ ...global, advance: parseInt(e.target.value) })}
-                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                     style={{
-                      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
+                      background: `linear-gradient(to right, #64748b 0%, #64748b ${
                         (global.advance / 200000) * 100
-                      }%, #334155 ${(global.advance / 200000) * 100}%, #334155 100%)`,
+                      }%, #1e293b ${(global.advance / 200000) * 100}%, #1e293b 100%)`,
                     }}
                   />
                 </div>
@@ -372,8 +372,8 @@ export default function PubDealSimulatorPage() {
                 {/* Prior Recouped */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-slate-300 text-sm">Prior Recouped</label>
-                    <span className="text-white font-semibold">{fmt(global.priorRecouped)}</span>
+                    <label className="text-slate-400 text-sm">Prior Recouped</label>
+                    <span className="text-slate-200 font-semibold">{fmt(global.priorRecouped)}</span>
                   </div>
                   <input
                     type="range"
@@ -384,13 +384,13 @@ export default function PubDealSimulatorPage() {
                     onChange={(e) =>
                       setGlobal({ ...global, priorRecouped: parseInt(e.target.value) })
                     }
-                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                     style={{
-                      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
+                      background: `linear-gradient(to right, #64748b 0%, #64748b ${
                         global.advance > 0 ? (global.priorRecouped / global.advance) * 100 : 0
-                      }%, #334155 ${
+                      }%, #1e293b ${
                         global.advance > 0 ? (global.priorRecouped / global.advance) * 100 : 0
-                      }%, #334155 100%)`,
+                      }%, #1e293b 100%)`,
                     }}
                   />
                 </div>
@@ -398,12 +398,12 @@ export default function PubDealSimulatorPage() {
             </div>
 
             {/* Writer Ownership */}
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-white font-semibold text-sm uppercase tracking-wider">
+                <label className="text-slate-300 font-semibold text-sm uppercase tracking-wider">
                   Writer Ownership
                 </label>
-                <span className="text-white font-bold text-xl">{global.writerOwnership}%</span>
+                <span className="text-slate-100 font-bold text-xl">{global.writerOwnership}%</span>
               </div>
               <input
                 type="range"
@@ -414,23 +414,23 @@ export default function PubDealSimulatorPage() {
                 onChange={(e) =>
                   setGlobal({ ...global, writerOwnership: parseInt(e.target.value) })
                 }
-                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                 style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${global.writerOwnership}%, #334155 ${global.writerOwnership}%, #334155 100%)`,
+                  background: `linear-gradient(to right, #64748b 0%, #64748b ${global.writerOwnership}%, #1e293b ${global.writerOwnership}%, #1e293b 100%)`,
                 }}
               />
-              <div className="text-slate-400 text-xs mt-2">Your share of the composition</div>
+              <div className="text-slate-500 text-xs mt-2">Your share of the composition</div>
             </div>
 
             {/* Model-Specific Settings */}
             {activeModel === 'unpub' && (
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <h3 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">
+              <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
+                <h3 className="text-slate-300 font-semibold text-sm uppercase tracking-wider mb-4">
                   Unpublished Settings
                 </h3>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-slate-300 text-sm">Admin Fee</label>
-                  <span className="text-white font-semibold">{unpub.adminPct}%</span>
+                  <label className="text-slate-400 text-sm">Admin Fee</label>
+                  <span className="text-slate-200 font-semibold">{unpub.adminPct}%</span>
                 </div>
                 <input
                   type="range"
@@ -439,30 +439,30 @@ export default function PubDealSimulatorPage() {
                   step="0.5"
                   value={unpub.adminPct}
                   onChange={(e) => setUnpub({ ...unpub, adminPct: parseFloat(e.target.value) })}
-                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                   style={{
-                    background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
+                    background: `linear-gradient(to right, #64748b 0%, #64748b ${
                       (unpub.adminPct / 30) * 100
-                    }%, #334155 ${(unpub.adminPct / 30) * 100}%, #334155 100%)`,
+                    }%, #1e293b ${(unpub.adminPct / 30) * 100}%, #1e293b 100%)`,
                   }}
                 />
-                <div className="text-slate-400 text-xs mt-2">
+                <div className="text-slate-500 text-xs mt-2">
                   Third-party admin fee (10-20% typical)
                 </div>
               </div>
             )}
 
             {activeModel === 'copub' && (
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <h3 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">
+              <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
+                <h3 className="text-slate-300 font-semibold text-sm uppercase tracking-wider mb-4">
                   Co-Publishing Settings
                 </h3>
 
                 <div className="space-y-5">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-slate-300 text-sm">Writer's Share</label>
-                      <span className="text-white font-semibold">{copub.writerShare}%</span>
+                      <label className="text-slate-400 text-sm">Writer's Share</label>
+                      <span className="text-slate-200 font-semibold">{copub.writerShare}%</span>
                     </div>
                     <input
                       type="range"
@@ -473,17 +473,17 @@ export default function PubDealSimulatorPage() {
                       onChange={(e) =>
                         setCopub({ ...copub, writerShare: parseFloat(e.target.value) })
                       }
-                      className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                      className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                       style={{
-                        background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${copub.writerShare}%, #334155 ${copub.writerShare}%, #334155 100%)`,
+                        background: `linear-gradient(to right, #64748b 0%, #64748b ${copub.writerShare}%, #1e293b ${copub.writerShare}%, #1e293b 100%)`,
                       }}
                     />
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-slate-300 text-sm">Publisher's Share</label>
-                      <span className="text-white font-semibold">{copub.publisherShare}%</span>
+                      <label className="text-slate-400 text-sm">Publisher's Share</label>
+                      <span className="text-slate-200 font-semibold">{copub.publisherShare}%</span>
                     </div>
                     <input
                       type="range"
@@ -494,17 +494,17 @@ export default function PubDealSimulatorPage() {
                       onChange={(e) =>
                         setCopub({ ...copub, publisherShare: parseFloat(e.target.value) })
                       }
-                      className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                      className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                       style={{
-                        background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${copub.publisherShare}%, #334155 ${copub.publisherShare}%, #334155 100%)`,
+                        background: `linear-gradient(to right, #64748b 0%, #64748b ${copub.publisherShare}%, #1e293b ${copub.publisherShare}%, #1e293b 100%)`,
                       }}
                     />
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-slate-300 text-sm">Writer's Share of Publisher</label>
-                      <span className="text-white font-semibold">
+                      <label className="text-slate-400 text-sm">Writer's Share of Publisher</label>
+                      <span className="text-slate-200 font-semibold">
                         {copub.writerShareOfPublisher}%
                       </span>
                     </div>
@@ -520,9 +520,9 @@ export default function PubDealSimulatorPage() {
                           writerShareOfPublisher: parseFloat(e.target.value),
                         })
                       }
-                      className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                      className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                       style={{
-                        background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${copub.writerShareOfPublisher}%, #334155 ${copub.writerShareOfPublisher}%, #334155 100%)`,
+                        background: `linear-gradient(to right, #64748b 0%, #64748b ${copub.writerShareOfPublisher}%, #1e293b ${copub.writerShareOfPublisher}%, #1e293b 100%)`,
                       }}
                     />
                   </div>
@@ -535,11 +535,11 @@ export default function PubDealSimulatorPage() {
                       onChange={(e) =>
                         setCopub({ ...copub, recoupWriterShare: e.target.checked })
                       }
-                      className="w-5 h-5 cursor-pointer accent-blue-500"
+                      className="w-5 h-5 cursor-pointer accent-slate-500 bg-slate-800 border-slate-600 rounded"
                     />
                     <label
                       htmlFor="recoupWriterShare"
-                      className="text-sm text-slate-300 cursor-pointer"
+                      className="text-sm text-slate-400 cursor-pointer"
                     >
                       Recoup from Writer's Share too
                     </label>
@@ -549,13 +549,13 @@ export default function PubDealSimulatorPage() {
             )}
 
             {activeModel === 'admin' && (
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <h3 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">
+              <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
+                <h3 className="text-slate-300 font-semibold text-sm uppercase tracking-wider mb-4">
                   Admin Deal Settings
                 </h3>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-slate-300 text-sm">Admin Fee</label>
-                  <span className="text-white font-semibold">{admin.adminPct}%</span>
+                  <label className="text-slate-400 text-sm">Admin Fee</label>
+                  <span className="text-slate-200 font-semibold">{admin.adminPct}%</span>
                 </div>
                 <input
                   type="range"
@@ -564,14 +564,14 @@ export default function PubDealSimulatorPage() {
                   step="0.5"
                   value={admin.adminPct}
                   onChange={(e) => setAdmin({ ...admin, adminPct: parseFloat(e.target.value) })}
-                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                   style={{
-                    background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
+                    background: `linear-gradient(to right, #64748b 0%, #64748b ${
                       (admin.adminPct / 30) * 100
-                    }%, #334155 ${(admin.adminPct / 30) * 100}%, #334155 100%)`,
+                    }%, #1e293b ${(admin.adminPct / 30) * 100}%, #1e293b 100%)`,
                   }}
                 />
-                <div className="text-slate-400 text-xs mt-2">
+                <div className="text-slate-500 text-xs mt-2">
                   Typical 10-20% of gross, non-recoupable
                 </div>
               </div>
@@ -582,38 +582,38 @@ export default function PubDealSimulatorPage() {
           <div className="space-y-6">
             {/* Summary Cards */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
-                <div className="text-slate-400 text-xs uppercase tracking-wider mb-2">
+              <div className="bg-slate-900/50 rounded-xl p-5 border border-slate-800">
+                <div className="text-slate-500 text-xs uppercase tracking-wider mb-2">
                   Adjusted Gross
                 </div>
-                <div className="text-white text-2xl font-bold">{fmt(result.adjGross)}</div>
+                <div className="text-slate-100 text-2xl font-bold">{fmt(result.adjGross)}</div>
               </div>
 
-              <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
-                <div className="text-slate-400 text-xs uppercase tracking-wider mb-2">
+              <div className="bg-slate-900/50 rounded-xl p-5 border border-slate-800">
+                <div className="text-slate-500 text-xs uppercase tracking-wider mb-2">
                   Recouped
                 </div>
-                <div className="text-white text-2xl font-bold">{fmt(result.recouped)}</div>
+                <div className="text-slate-100 text-2xl font-bold">{fmt(result.recouped)}</div>
               </div>
 
-              <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
-                <div className="text-slate-400 text-xs uppercase tracking-wider mb-2">
+              <div className="bg-slate-900/50 rounded-xl p-5 border border-slate-800">
+                <div className="text-slate-500 text-xs uppercase tracking-wider mb-2">
                   Advance Left
                 </div>
-                <div className="text-orange-400 text-2xl font-bold">{fmt(result.advRemaining)}</div>
+                <div className="text-slate-400 text-2xl font-bold">{fmt(result.advRemaining)}</div>
               </div>
 
-              <div className="bg-slate-800 rounded-xl p-5 border border-slate-700">
-                <div className="text-slate-400 text-xs uppercase tracking-wider mb-2">
+              <div className="bg-slate-900/50 rounded-xl p-5 border border-slate-800">
+                <div className="text-slate-500 text-xs uppercase tracking-wider mb-2">
                   Net to Writer
                 </div>
-                <div className="text-green-400 text-2xl font-bold">{fmt(result.netWriter)}</div>
+                <div className="text-slate-200 text-2xl font-bold">{fmt(result.netWriter)}</div>
               </div>
             </div>
 
             {/* Visual Breakdown */}
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-              <h3 className="text-white font-semibold text-sm uppercase tracking-wider mb-6">
+            <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
+              <h3 className="text-slate-300 font-semibold text-sm uppercase tracking-wider mb-6">
                 Payment Breakdown
               </h3>
 
@@ -621,17 +621,17 @@ export default function PubDealSimulatorPage() {
                 {getBarBreakdown().map((item, idx) => (
                   <div key={idx}>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-slate-300 text-sm font-medium">{item.label}</span>
-                      <span className="text-white font-bold">{fmt(item.value)}</span>
+                      <span className="text-slate-400 text-sm font-medium">{item.label}</span>
+                      <span className="text-slate-200 font-bold">{fmt(item.value)}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-slate-700 rounded-full h-3 overflow-hidden">
+                      <div className="flex-1 bg-slate-800 rounded-full h-3 overflow-hidden">
                         <div
                           className={`h-full ${item.color} transition-all duration-500`}
                           style={{ width: `${item.percent}%` }}
                         />
                       </div>
-                      <span className="text-slate-400 text-xs font-medium w-12 text-right">
+                      <span className="text-slate-500 text-xs font-medium w-12 text-right">
                         {item.percent.toFixed(1)}%
                       </span>
                     </div>
@@ -644,7 +644,7 @@ export default function PubDealSimulatorPage() {
             <div className="flex gap-3">
               <button
                 onClick={handleReset}
-                className="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition"
+                className="flex-1 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-lg transition border border-slate-700"
               >
                 Reset
               </button>
@@ -657,15 +657,15 @@ export default function PubDealSimulatorPage() {
                   )}\nNet to Writer: ${fmt(result.netWriter)}`;
                   navigator.clipboard.writeText(txt);
                 }}
-                className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
+                className="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold rounded-lg transition border border-slate-600"
               >
                 Copy Results
               </button>
             </div>
 
             {/* Info */}
-            <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
-              <p className="text-slate-400 text-xs leading-relaxed">
+            <div className="bg-slate-900/30 rounded-xl p-5 border border-slate-800">
+              <p className="text-slate-500 text-xs leading-relaxed">
                 These outputs are estimates for educational purposes only and not legal or
                 accounting advice. Actual deal terms vary based on negotiation and market
                 conditions.

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, BarChart3, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 
 interface Tool {
   id: string;
   name: string;
   description: string;
-  icon: string;
+  icon: LucideIcon;
   color: string;
   url: string;
   category: string;
@@ -18,7 +19,7 @@ const TOOLS: Tool[] = [
     id: 'pub-deal-simulator',
     name: 'Pub Deal Simulator',
     description: 'Simulate and analyze publishing deal scenarios. Calculate royalties and earnings projections.',
-    icon: '💰',
+    icon: CircleDollarSign,
     color: 'from-blue-500 to-blue-600',
     url: '/tools/pub-deal-simulator',
     category: 'Financial',
@@ -28,7 +29,7 @@ const TOOLS: Tool[] = [
     id: 'consultation-form',
     name: 'Consultation Form',
     description: 'Schedule and manage consultation appointments. Collect producer information and preferences.',
-    icon: '📋',
+    icon: ClipboardList,
     color: 'from-purple-500 to-purple-600',
     url: '/tools/consultation',
     category: 'Management',
@@ -38,7 +39,7 @@ const TOOLS: Tool[] = [
     id: 'case-study',
     name: 'Case Study',
     description: 'Explore real-world producer success stories. Learn from case studies and best practices.',
-    icon: '📚',
+    icon: BookOpen,
     color: 'from-green-500 to-green-600',
     url: '/tools/case-study',
     category: 'Learning',
@@ -48,7 +49,7 @@ const TOOLS: Tool[] = [
     id: 'royalty-tracker',
     name: 'Royalty Portal',
     description: 'Track and manage royalty payments. Real-time analytics and earning reports.',
-    icon: '📊',
+    icon: BarChart3,
     color: 'from-orange-500 to-orange-600',
     url: '/tools/royalty-portal',
     category: 'Financial',
@@ -58,7 +59,7 @@ const TOOLS: Tool[] = [
     id: 'opportunities',
     name: 'Opportunities',
     description: 'Browse and apply for publishing opportunities. Discover collaboration and distribution deals.',
-    icon: '🎯',
+    icon: Target,
     color: 'from-pink-500 to-pink-600',
     url: '/tools/opportunities',
     category: 'Opportunities',
@@ -68,7 +69,7 @@ const TOOLS: Tool[] = [
     id: 'advance-estimator',
     name: 'Advance Estimator',
     description: 'Calculate potential catalog funding and advances. Model different deal scenarios based on your earnings.',
-    icon: '💰',
+    icon: CircleDollarSign,
     color: 'from-emerald-500 to-emerald-600',
     url: '/tools/advance-estimator',
     category: 'Financial',
@@ -78,7 +79,7 @@ const TOOLS: Tool[] = [
     id: 'placement-tracker',
     name: 'Placement Tracker',
     description: 'Track music placements, manage contracts, and generate invoices with AI-powered tools. Complete deal tracking with billing automation.',
-    icon: '🎵',
+    icon: Music,
     color: 'from-cyan-500 to-cyan-600',
     url: '/admin?tab=active-placements',
     category: 'Management',
@@ -88,7 +89,7 @@ const TOOLS: Tool[] = [
     id: 'work-registration',
     name: 'Work Registration Tool',
     description: 'Submit your music for placement tracking. Search Spotify, enrich with AudioDB metadata, and submit for admin review with beautiful visual previews.',
-    icon: '✨',
+    icon: Sparkles,
     color: 'from-blue-600 to-purple-600',
     url: '/work-registration',
     category: 'Management',
@@ -133,12 +134,18 @@ export default function ToolsHub() {
     <div className="space-y-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-white mb-2">🛠️ Tools Hub</h1>
+        <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-white/[0.08] border border-white/[0.08] flex items-center justify-center">
+            <Wrench className="w-6 h-6 text-white" />
+          </div>
+          Tools Hub
+        </h1>
         <p className="text-text-muted text-lg">Access all your productivity tools and resources in one place</p>
         {userRole !== 'ADMIN' && (
-          <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+          <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-center gap-3">
+            <Info className="w-5 h-5 text-blue-400 flex-shrink-0" />
             <p className="text-sm text-blue-300">
-              ℹ️ You're viewing tools available to <span className="font-semibold">{userRole}</span> role.
+              You're viewing tools available to <span className="font-semibold">{userRole}</span> role.
               Contact your administrator for access to additional tools.
             </p>
           </div>
@@ -148,7 +155,9 @@ export default function ToolsHub() {
       {/* Empty State */}
       {filteredTools.length === 0 ? (
         <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-12 text-center">
-          <div className="text-6xl mb-4">🔒</div>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-white/[0.08] border border-white/[0.08] flex items-center justify-center">
+            <Lock className="w-8 h-8 text-gray-400" />
+          </div>
           <h3 className="text-2xl font-bold text-white mb-2">No Tools Available</h3>
           <p className="text-text-muted mb-6">
             {selectedCategory === 'All'
@@ -195,7 +204,9 @@ export default function ToolsHub() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 md:p-12 min-h-96">
             {/* Left Side - Visual */}
             <div className={`bg-gradient-to-br ${currentTool.color} rounded-xl p-8 flex flex-col justify-center items-center text-center shadow-lg`}>
-              <div className="text-8xl mb-4 animate-pulse">{currentTool.icon}</div>
+              <div className="w-24 h-24 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4 animate-pulse">
+                <currentTool.icon className="w-12 h-12 text-white" />
+              </div>
               <h2 className="text-white text-2xl font-bold">{currentTool.name}</h2>
               <p className="text-white/80 text-sm mt-2 font-medium">{currentTool.category}</p>
             </div>
@@ -297,15 +308,15 @@ export default function ToolsHub() {
                   {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration'].includes(currentTool.id) && (
                     <>
                       <div className="flex items-start gap-3">
-                        <span className="text-green-400 text-xl">✓</span>
+                        <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
                         <span className="text-text-secondary">Real-time data and analytics</span>
                       </div>
                       <div className="flex items-start gap-3">
-                        <span className="text-green-400 text-xl">✓</span>
+                        <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
                         <span className="text-text-secondary">Comprehensive reporting</span>
                       </div>
                       <div className="flex items-start gap-3">
-                        <span className="text-green-400 text-xl">✓</span>
+                        <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
                         <span className="text-text-secondary">Easy integration</span>
                       </div>
                     </>
@@ -314,10 +325,11 @@ export default function ToolsHub() {
               </div>
 
               {/* Action Button */}
-              <button 
+              <button
                 onClick={() => openTool(currentTool)}
-                className="w-full px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-                🚀 Enter {currentTool.name.split(' ')[0]}
+                className="w-full px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                <Rocket className="w-5 h-5" />
+                Enter {currentTool.name.split(' ')[0]}
               </button>
             </div>
           </div>
@@ -328,13 +340,13 @@ export default function ToolsHub() {
           onClick={goToPrevious}
           className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 transition-all hover:scale-110"
         >
-          ‹
+          <ChevronLeft className="w-5 h-5" />
         </button>
         <button
           onClick={goToNext}
           className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 transition-all hover:scale-110"
         >
-          ›
+          <ChevronRight className="w-5 h-5" />
         </button>
       </div>
 
@@ -367,7 +379,9 @@ export default function ToolsHub() {
               }`}
               onClick={() => openTool(tool)}
             >
-              <div className="text-5xl mb-3">{tool.icon}</div>
+              <div className="w-14 h-14 rounded-xl bg-white/[0.08] border border-white/[0.08] flex items-center justify-center mb-3">
+                <tool.icon className="w-7 h-7 text-white" />
+              </div>
               <h4 className="text-white font-bold text-lg mb-2">{tool.name}</h4>
               <p className="text-text-muted text-sm mb-3 line-clamp-2">{tool.description}</p>
               <div className="flex items-center justify-between">

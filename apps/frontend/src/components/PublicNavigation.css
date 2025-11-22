@@ -14,14 +14,14 @@
 }
 
 .public-nav.opaque {
-  background: var(--panel) / 55%;
-  backdrop-filter: blur(2xl);
-  -webkit-backdrop-filter: blur(2xl);
-  border-bottom: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .public-nav-content {
-  max-width: 7xl;
+  max-width: 80rem;
   margin: 0 auto;
   padding: 0 1.5rem;
 }
@@ -189,10 +189,10 @@
 /* Mobile menu */
 .public-nav-mobile {
   display: none;
-  border-top: 1px solid var(--border);
-  background: var(--panel-strong) / 95%;
-  backdrop-filter: blur(3xl);
-  -webkit-backdrop-filter: blur(3xl);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
 }
 
 .public-nav-mobile.open {

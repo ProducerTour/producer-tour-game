@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { Upload, X, FileText } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
@@ -133,11 +134,11 @@ export function DocumentUpload({ documents, onChange, placementId, disabled = fa
 
       {/* Drag and drop area */}
       <div
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+        className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
           dragActive
-            ? 'border-purple-500 bg-purple-900/20'
-            : 'border-slate-600 bg-slate-800/50'
-        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            ? 'border-white/30 bg-white/[0.08]'
+            : 'border-white/[0.08] bg-white/[0.02]'
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-white/20 hover:bg-white/[0.04]'}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
@@ -153,8 +154,10 @@ export function DocumentUpload({ documents, onChange, placementId, disabled = fa
           className="hidden"
           disabled={disabled}
         />
-        <div className="space-y-2">
-          <div className="text-4xl">📄</div>
+        <div className="space-y-3">
+          <div className="w-14 h-14 mx-auto rounded-xl bg-white/[0.08] border border-white/[0.08] flex items-center justify-center">
+            <Upload className="w-7 h-7 text-gray-400" />
+          </div>
           <div className="text-white font-medium">
             {dragActive ? 'Drop files here' : 'Drag and drop files here'}
           </div>
@@ -169,18 +172,20 @@ export function DocumentUpload({ documents, onChange, placementId, disabled = fa
           {documents.map((doc, index) => (
             <div
               key={index}
-              className="bg-slate-800 rounded-lg p-4 border border-slate-700 flex items-center justify-between"
+              className="bg-white/[0.04] rounded-xl p-4 border border-white/[0.08] flex items-center justify-between"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3">
-                  <div className="text-2xl">📄</div>
+                  <div className="w-10 h-10 rounded-lg bg-white/[0.08] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5 text-gray-400" />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-white truncate">{doc.originalName}</div>
                     <div className="text-sm text-gray-400">
                       {formatFileSize(doc.fileSize)}
-                      {doc.uploading && ' • Uploading...'}
-                      {doc.id && ' • Uploaded'}
-                      {doc.error && <span className="text-red-400"> • {doc.error}</span>}
+                      {doc.uploading && <span className="text-yellow-400"> Uploading...</span>}
+                      {doc.id && <span className="text-emerald-400"> Uploaded</span>}
+                      {doc.error && <span className="text-red-400"> {doc.error}</span>}
                     </div>
                   </div>
                 </div>
@@ -191,7 +196,7 @@ export function DocumentUpload({ documents, onChange, placementId, disabled = fa
                     <select
                       value={doc.category}
                       onChange={(e) => updateDocument(index, 'category', e.target.value)}
-                      className="w-full px-2 py-1 text-sm bg-slate-900 border border-slate-600 rounded text-white"
+                      className="w-full px-3 py-2 text-sm bg-white/[0.04] border border-white/[0.08] rounded-lg text-white focus:ring-2 focus:ring-white/20 transition-all"
                       disabled={doc.uploading || doc.id !== undefined}
                     >
                       {DOCUMENT_CATEGORIES.map(cat => (
@@ -206,7 +211,7 @@ export function DocumentUpload({ documents, onChange, placementId, disabled = fa
                       type="text"
                       value={doc.description || ''}
                       onChange={(e) => updateDocument(index, 'description', e.target.value)}
-                      className="w-full px-2 py-1 text-sm bg-slate-900 border border-slate-600 rounded text-white"
+                      className="w-full px-3 py-2 text-sm bg-white/[0.04] border border-white/[0.08] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-white/20 transition-all"
                       placeholder="Brief description"
                       disabled={doc.uploading || doc.id !== undefined}
                     />
@@ -217,7 +222,7 @@ export function DocumentUpload({ documents, onChange, placementId, disabled = fa
                   <button
                     type="button"
                     onClick={() => uploadDocument(index)}
-                    className="mt-2 px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                    className="mt-3 px-4 py-2 text-sm bg-white text-surface hover:bg-white/90 rounded-lg font-medium transition-colors"
                   >
                     Upload Now
                   </button>
@@ -227,12 +232,10 @@ export function DocumentUpload({ documents, onChange, placementId, disabled = fa
               <button
                 type="button"
                 onClick={() => removeDocument(index)}
-                className="ml-4 p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                className="ml-4 p-2 text-gray-400 hover:text-white hover:bg-white/[0.08] rounded-lg transition-colors"
                 disabled={doc.uploading}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="w-5 h-5" />
               </button>
             </div>
           ))}

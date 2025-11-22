@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { Circle, Target, Calendar, Briefcase } from 'lucide-react';
 
 interface Opportunity {
   id: string;
@@ -117,13 +118,13 @@ export default function OpportunitiesToolPage() {
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
       case 'High':
-        return '🔴';
+        return <Circle className="w-3 h-3 fill-red-500 text-red-500" />;
       case 'Medium':
-        return '🟡';
+        return <Circle className="w-3 h-3 fill-yellow-500 text-yellow-500" />;
       case 'Low':
-        return '🟢';
+        return <Circle className="w-3 h-3 fill-green-500 text-green-500" />;
       default:
-        return '⚪';
+        return <Circle className="w-3 h-3 fill-gray-500 text-gray-500" />;
     }
   };
 
@@ -333,17 +334,17 @@ export default function OpportunitiesToolPage() {
         <div className="mt-16 grid md:grid-cols-3 gap-6">
           {[
             {
-              icon: '🎯',
+              icon: Target,
               title: 'Curated Opportunities',
               desc: 'Hand-selected production and publishing gigs tailored to your skills',
             },
             {
-              icon: '📅',
+              icon: Calendar,
               title: 'Real-Time Updates',
               desc: 'New opportunities added daily. Never miss out on the next big project.',
             },
             {
-              icon: '💼',
+              icon: Briefcase,
               title: 'Direct Contact',
               desc: 'Connect directly with labels, studios, and artists looking for talent.',
             },
@@ -357,7 +358,7 @@ export default function OpportunitiesToolPage() {
                 WebkitBackdropFilter: 'blur(18px)',
               }}
             >
-              <div className="text-4xl mb-4">{item.icon}</div>
+              <div className="text-4xl mb-4 flex justify-center"><item.icon className="w-10 h-10 text-blue-400" /></div>
               <h3 className="font-bold text-slate-100 mb-2">{item.title}</h3>
               <p className="text-slate-400">{item.desc}</p>
             </div>

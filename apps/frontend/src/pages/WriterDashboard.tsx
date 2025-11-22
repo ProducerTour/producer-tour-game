@@ -1,79 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dashboardApi, statementApi, documentApi, userApi, payoutApi } from '../lib/api';
 import { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import Sidebar from '../components/Sidebar';
 import ImpersonationBanner from '../components/ImpersonationBanner';
-import { ChartCard } from '../components/ChartCard';
-import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { PaymentSettings } from '../components/PaymentSettings';
-import { WalletCard } from '../components/WalletCard';
 import { WithdrawalHistory } from '../components/WithdrawalHistory';
 import ToolsHub from '../components/ToolsHub';
+import WriterOverviewTremor from '../components/writer/WriterOverviewTremor';
 import { useAuthStore } from '../store/auth.store';
 import { formatIpiDisplay } from '../utils/ipi-helper';
-import { X } from 'lucide-react';
-
-const COLORS = [
-  '#3b82f6', // Blue
-  '#10b981', // Green
-  '#8b5cf6', // Purple
-  '#f59e0b', // Amber
-  '#ef4444', // Red
-  '#ec4899', // Pink
-  '#f97316', // Orange
-  '#06b6d4', // Cyan
-  '#84cc16', // Lime
-  '#a855f7', // Violet
-  '#f43f5e', // Rose
-  '#14b8a6', // Teal
-];
-
-// Smart pie chart label configuration based on item count
-const getSmartPieLabel = (itemCount: number) => {
-  if (itemCount <= 3) {
-    // 1-3 items: Full labels with name, amount, and percentage
-    return (props: any) => {
-      const { name, percent, value, revenue } = props;
-      const amount = Number(revenue || value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-      return `${name} - $${amount} (${(percent * 100).toFixed(0)}%)`;
-    };
-  } else if (itemCount <= 6) {
-    // 4-6 items: Compact labels (percentage only)
-    return (props: any) => {
-      const { name, percent } = props;
-      return `${name} ${(percent * 100).toFixed(0)}%`;
-    };
-  } else {
-    // 7+ items: No labels (legend only to avoid overlap)
-    return false;
-  }
-};
-
-// Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
-const formatChartCurrency = (value: any): string => {
-  const num = Number(value);
-  const rounded2 = Math.round(num * 100) / 100;
-  if (rounded2 === 0 && num > 0) {
-    return `$${(Math.round(num * 10000) / 10000).toFixed(4)}`;
-  }
-  return `$${rounded2.toFixed(2)}`;
-};
+import { X, Bell, ClipboardList, Users, Paperclip } from 'lucide-react';
 
 export default function WriterDashboard() {
   const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile' | 'tools' | 'claims'>('overview');
-  const [expandedCharts, setExpandedCharts] = useState<Record<string, boolean>>({});
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawError, setWithdrawError] = useState('');
   const queryClient = useQueryClient();
-
-  const toggleChartExpansion = (chartId: string) => {
-    setExpandedCharts(prev => ({
-      ...prev,
-      [chartId]: !prev[chartId]
-    }));
-  };
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['dashboard-summary'],
@@ -83,31 +26,13 @@ export default function WriterDashboard() {
     },
   });
 
-  const { data: timelineData } = useQuery({
-    queryKey: ['dashboard-timeline'],
-    queryFn: async () => {
-      const response = await dashboardApi.getTimeline();
-      return response.data;
-    },
-    enabled: activeTab === 'overview',
-  });
-
-  const { data: territoryData } = useQuery({
-    queryKey: ['territory-breakdown'],
-    queryFn: async () => {
-      const response = await dashboardApi.getTerritoryBreakdown();
-      return response.data;
-    },
-    enabled: activeTab === 'overview',
-  });
-
   const { data: statementsData, isLoading: statementsLoading } = useQuery({
     queryKey: ['user-statements'],
     queryFn: async () => {
       const response = await statementApi.getStatements();
       return response.data;
     },
-    enabled: activeTab === 'statements' || activeTab === 'overview',
+    enabled: activeTab === 'statements',
   });
 
   const { data: songsData } = useQuery({
@@ -119,8 +44,8 @@ export default function WriterDashboard() {
     enabled: activeTab === 'songs',
   });
 
-  // Wallet balance query
-  const { data: walletBalance, isLoading: balanceLoading } = useQuery({
+  // Wallet balance query (for withdrawal modal)
+  const { data: walletBalance } = useQuery({
     queryKey: ['wallet-balance'],
     queryFn: async () => {
       const response = await payoutApi.getBalance();
@@ -178,17 +103,6 @@ export default function WriterDashboard() {
     retry: 3,
     staleTime: 30000, // 30 seconds
   });
-
-  // Calculate PRO breakdown for pie chart
-  const getProBreakdown = () => {
-    if (!statementsData?.statements) return [];
-    const proTotals: Record<string, number> = {};
-    statementsData.statements.forEach((statement: any) => {
-      const revenue = Number(statement.totalRevenue);
-      proTotals[statement.proType] = (proTotals[statement.proType] || 0) + revenue;
-    });
-    return Object.entries(proTotals).map(([name, value]) => ({ name, value }));
-  };
 
   return (
     <div className="flex flex-col h-screen bg-surface overflow-hidden">
@@ -265,150 +179,7 @@ export default function WriterDashboard() {
         {/* Content */}
         <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-xl p-6">
             {activeTab === 'overview' && (
-              <div className="space-y-8">
-                {/* Wallet Card */}
-                <div className="max-w-md">
-                  <WalletCard
-                    balance={walletBalance || { availableBalance: 0, pendingBalance: 0, lifetimeEarnings: 0 }}
-                    isLoading={balanceLoading}
-                    onWithdraw={handleWithdrawClick}
-                  />
-                </div>
-
-                {/* Charts Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Earnings Timeline Chart */}
-                  {timelineData?.timeline?.length > 0 ? (
-                    <ChartCard
-                      title="Earnings Timeline"
-                      chartId="earnings-timeline"
-                      isExpanded={expandedCharts['earnings-timeline'] || false}
-                      onToggleExpand={toggleChartExpansion}
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={timelineData.timeline}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                          <XAxis
-                            dataKey="month"
-                            stroke="#9ca3af"
-                            style={{ fontSize: '12px' }}
-                          />
-                          <YAxis
-                            stroke="#9ca3af"
-                            style={{ fontSize: '12px' }}
-                            tickFormatter={(value) => `$${value}`}
-                          />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: '#1e293b',
-                              border: '1px solid #334155',
-                              borderRadius: '8px',
-                              color: '#fff'
-                            }}
-                            formatter={(value: any) => [formatChartCurrency(value), 'Revenue']}
-                          />
-                          <Bar dataKey="revenue" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </ChartCard>
-                  ) : (
-                    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-6">
-                      <h3 className="text-lg font-medium text-white mb-4">Earnings Timeline</h3>
-                      <div className="h-[300px] flex items-center justify-center text-text-muted">
-                        No earnings data available yet
-                      </div>
-                    </div>
-                  )}
-
-                  {/* PRO Breakdown Chart */}
-                  {getProBreakdown().length > 0 ? (
-                    <ChartCard
-                      title="Revenue by Statement"
-                      chartId="revenue-by-pro"
-                      isExpanded={expandedCharts['revenue-by-pro'] || false}
-                      onToggleExpand={toggleChartExpansion}
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={getProBreakdown()}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={getSmartPieLabel(getProBreakdown().length)}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="value"
-                            nameKey="name"
-                          >
-                            {getProBreakdown().map((item, index) => (
-                              <Cell
-                                key={`cell-${item?.name ?? index}`}
-                                fill={COLORS[index % COLORS.length]}
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: '#1e293b',
-                              border: '1px solid #334155',
-                              borderRadius: '8px',
-                              color: '#fff'
-                            }}
-                            formatter={(value: any) => formatChartCurrency(value)}
-                          />
-                          {getProBreakdown().length > 3 && (
-                            <Legend
-                              verticalAlign="bottom"
-                              height={36}
-                              wrapperStyle={{ color: '#9ca3af', fontSize: '12px' }}
-                            />
-                          )}
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </ChartCard>
-                  ) : (
-                    <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-6">
-                      <h3 className="text-lg font-medium text-white mb-4">Revenue by Statement</h3>
-                      <div className="h-[300px] flex items-center justify-center text-text-muted">
-                        No statement data available yet
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Territory Revenue Heatmap */}
-                <ChartCard
-                  title="Global Revenue Heatmap"
-                  chartId="territory-heatmap"
-                  isExpanded={expandedCharts['territory-heatmap'] || false}
-                  onToggleExpand={toggleChartExpansion}
-                >
-                  {territoryData?.territories && territoryData.territories.length > 0 ? (
-                    <TerritoryHeatmap territories={territoryData.territories} />
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-gray-400">
-                      No territory data available yet. Territory information will appear once statements with location data are processed.
-                    </div>
-                  )}
-                </ChartCard>
-
-                {/* Recent Statements */}
-                <div>
-                  <h3 className="text-lg font-medium text-white mb-4">Recent Statements</h3>
-                  {statementsLoading ? (
-                    <div className="text-center text-gray-400 py-8">Loading...</div>
-                  ) : statementsData?.statements?.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {statementsData.statements.slice(0, 6).map((statement: any) => (
-                        <StatementCard key={statement.id} statement={statement} />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-400 text-center py-8">No statements available yet</p>
-                  )}
-                </div>
-              </div>
+              <WriterOverviewTremor onWithdrawClick={handleWithdrawClick} />
             )}
 
             {activeTab === 'songs' && (
@@ -674,7 +445,7 @@ function ClaimsSection() {
           {recentNotifications.length > 0 && (
             <div className="mb-6 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6">
               <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <span>🔔</span> Recent Updates
+                <Bell className="w-5 h-5" /> Recent Updates
               </h4>
               <div className="space-y-3">
                 {recentNotifications.map((notification: any) => (
@@ -774,7 +545,7 @@ function ClaimsSection() {
           {filteredSubmissions.length === 0 ? (
             <div className="text-center py-12">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/[0.05] border border-white/[0.08] mb-4">
-                <span className="text-3xl">📋</span>
+                <ClipboardList className="w-8 h-8 text-text-muted" />
               </div>
               <h4 className="text-xl font-semibold text-white mb-2">No Submissions</h4>
               <p className="text-text-secondary mb-6">
@@ -877,7 +648,7 @@ function ClaimsSection() {
                   {claim?.credits && Array.isArray(claim.credits) && claim.credits.length > 0 && (
                     <div className="mb-6">
                       <h5 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                        <span>👥</span> Collaborators & Credits ({claim.credits.length})
+                        <Users className="w-4 h-4" /> Collaborators & Credits ({claim.credits.length})
                       </h5>
                       <div className="space-y-2">
                         {claim.credits.map((credit: any, idx: number) => (
@@ -919,7 +690,7 @@ function ClaimsSection() {
                   {claim?.documents && Array.isArray(claim.documents) && claim.documents.length > 0 && (
                     <div>
                       <h5 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                        <span>📎</span> Uploaded Documents ({claim.documents.length})
+                        <Paperclip className="w-4 h-4" /> Uploaded Documents ({claim.documents.length})
                       </h5>
                       <div className="space-y-2">
                         {claim.documents.map((doc: any, idx: number) => (

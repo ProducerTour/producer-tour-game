@@ -19,10 +19,19 @@
     "db:generate": "npm run db:generate --workspace=apps/backend",
     "typecheck": "npm run typecheck --workspaces"
   },
-  "keywords": ["music", "publishing", "royalties", "PRO"],
+  "keywords": [
+    "music",
+    "publishing",
+    "royalties",
+    "PRO"
+  ],
   "author": "Producer Tour",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "prettier-plugin-tailwindcss": "^0.7.1"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
   }
 }
