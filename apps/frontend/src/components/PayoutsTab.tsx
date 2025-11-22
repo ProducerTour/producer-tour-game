@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { statementApi, payoutApi } from '../lib/api';
-import { DollarSign, Download, Send, CheckCircle, Clock, XCircle, Filter, Wallet, User } from 'lucide-react';
+import { DollarSign, Download, Send, CheckCircle, Clock, XCircle, Filter, Wallet, User, RefreshCw, AlertTriangle } from 'lucide-react';
 
 interface Statement {
   id: string;
@@ -29,12 +29,13 @@ export const PayoutsTab: React.FC = () => {
   const queryClient = useQueryClient();
 
   // Fetch all statements for payment processing
-  const { data: statements, isLoading } = useQuery({
+  const { data: statements, isLoading, error: statementsError, refetch } = useQuery({
     queryKey: ['admin-statements'],
     queryFn: async () => {
       const response = await statementApi.getStatements();
-      return response.data.statements as Statement[];
+      return (response.data.statements || []) as Statement[];
     },
+    retry: 2,
   });
 
   // Process payment mutation
@@ -232,6 +233,25 @@ export const PayoutsTab: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-gray-400">Loading payment data...</div>
+      </div>
+    );
+  }
+
+  if (statementsError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <AlertTriangle className="h-12 w-12 text-red-400" />
+        <div className="text-red-400 text-lg font-semibold">Failed to load payment data</div>
+        <p className="text-gray-400 text-sm">
+          {(statementsError as any)?.response?.data?.error || 'An error occurred while fetching statements'}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Try Again
+        </button>
       </div>
     );
   }
