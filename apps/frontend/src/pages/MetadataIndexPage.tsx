@@ -132,7 +132,6 @@ export default function MetadataIndexPage() {
   const [sortOption, setSortOption] = useState<SortOption>('added');
 
   // Results state
-  const [isSearching, setIsSearching] = useState(false);
   const [spotifyResult, setSpotifyResult] = useState<SearchResult | null>(null);
   const [musicbrainzResult, setMusicbrainzResult] = useState<SearchResult | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -396,78 +395,6 @@ export default function MetadataIndexPage() {
     } catch (error) {
       console.error('MusicBrainz keyword search error:', error);
       return null;
-    }
-  };
-
-  // Main search function
-  const handleSearch = async () => {
-    setIsSearching(true);
-    setSearchError(null);
-    setSpotifyResult(null);
-    setMusicbrainzResult(null);
-
-    try {
-      let spotifyRes: SearchResult | null = null;
-      let mbRes: SearchResult | null = null;
-
-      if (searchMode === 'code') {
-        if (isrcInput.trim()) {
-          [spotifyRes, mbRes] = await Promise.all([
-            searchSpotifyByIsrc(isrcInput.trim()),
-            searchMusicBrainzByIsrc(isrcInput.trim()),
-          ]);
-        } else if (upcInput.trim()) {
-          // UPC search - primarily for albums
-          toast.error('UPC search coming soon - try ISRC for tracks');
-          return;
-        } else {
-          setSearchError('Please enter an ISRC or UPC code');
-          return;
-        }
-      } else if (searchMode === 'keyword') {
-        if (!artistInput.trim()) {
-          setSearchError('Artist name is required');
-          return;
-        }
-        if (!trackInput.trim() && !albumInput.trim()) {
-          setSearchError('Track title or album name is required');
-          return;
-        }
-
-        [spotifyRes, mbRes] = await Promise.all([
-          searchSpotifyByKeywords(artistInput.trim(), trackInput.trim(), albumInput.trim()),
-          searchMusicBrainzByKeywords(artistInput.trim(), trackInput.trim()),
-        ]);
-      } else if (searchMode === 'url') {
-        if (!urlInput.trim()) {
-          setSearchError('Please enter a Spotify URL');
-          return;
-        }
-
-        spotifyRes = await searchSpotifyByUrl(urlInput.trim());
-
-        // Try to find MusicBrainz match using the Spotify result
-        if (spotifyRes?.isrc) {
-          mbRes = await searchMusicBrainzByIsrc(spotifyRes.isrc);
-        } else if (spotifyRes) {
-          mbRes = await searchMusicBrainzByKeywords(spotifyRes.artist, spotifyRes.title);
-        }
-      }
-
-      if (!spotifyRes && !mbRes) {
-        setSearchError('No results found. Try a different search.');
-        return;
-      }
-
-      setSpotifyResult(spotifyRes);
-      setMusicbrainzResult(mbRes);
-      setShowResults(true);
-      toast.success('Search complete!');
-    } catch (error) {
-      console.error('Search error:', error);
-      setSearchError('An error occurred during search');
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -839,40 +766,63 @@ export default function MetadataIndexPage() {
     setPreviewResult(null);
   }, [searchMode]);
 
-  // Real-time search preview with debounce
+  // Real-time search with debounce - searches BOTH sources automatically
   useEffect(() => {
     // Clear any existing timeout
     if (previewTimeoutRef.current) {
       clearTimeout(previewTimeoutRef.current);
     }
 
-    // Determine if we have enough input to trigger a preview
-    let shouldPreview = false;
+    // Determine if we have enough input to trigger a search
+    let shouldSearch = false;
     if (searchMode === 'code' && (isrcInput.trim().length >= 8 || upcInput.trim().length >= 10)) {
-      shouldPreview = true;
+      shouldSearch = true;
     } else if (searchMode === 'keyword' && artistInput.trim() && (trackInput.trim() || albumInput.trim())) {
-      shouldPreview = true;
+      shouldSearch = true;
     } else if (searchMode === 'url' && urlInput.trim().includes('spotify.com')) {
-      shouldPreview = true;
+      shouldSearch = true;
     }
 
-    if (shouldPreview) {
+    if (shouldSearch) {
       setIsPreviewLoading(true);
       previewTimeoutRef.current = setTimeout(async () => {
         try {
-          let result: SearchResult | null = null;
+          let spotifyRes: SearchResult | null = null;
+          let mbRes: SearchResult | null = null;
 
-          if (searchMode === 'code' && isrcInput.trim()) {
-            result = await searchSpotifyByIsrc(isrcInput.trim());
+          // Search both sources automatically
+          if (searchMode === 'code') {
+            if (isrcInput.trim()) {
+              [spotifyRes, mbRes] = await Promise.all([
+                searchSpotifyByIsrc(isrcInput.trim()),
+                searchMusicBrainzByIsrc(isrcInput.trim())
+              ]);
+            } else if (upcInput.trim()) {
+              // UPC search - only Spotify for now
+              spotifyRes = await searchSpotifyByIsrc(upcInput.trim());
+            }
           } else if (searchMode === 'keyword' && artistInput.trim()) {
-            result = await searchSpotifyByKeywords(artistInput.trim(), trackInput.trim(), albumInput.trim());
+            [spotifyRes, mbRes] = await Promise.all([
+              searchSpotifyByKeywords(artistInput.trim(), trackInput.trim(), albumInput.trim()),
+              searchMusicBrainzByKeywords(artistInput.trim(), trackInput.trim())
+            ]);
           } else if (searchMode === 'url' && urlInput.trim()) {
-            result = await searchSpotifyByUrl(urlInput.trim());
+            spotifyRes = await searchSpotifyByUrl(urlInput.trim());
+            // Try to get MusicBrainz result using ISRC from Spotify
+            if (spotifyRes?.isrc) {
+              mbRes = await searchMusicBrainzByIsrc(spotifyRes.isrc);
+            }
           }
 
-          setPreviewResult(result);
+          // Update preview (show Spotify result as preview)
+          setPreviewResult(spotifyRes);
+
+          // Also update full results for when user clicks
+          setSpotifyResult(spotifyRes);
+          setMusicbrainzResult(mbRes);
+
         } catch (error) {
-          console.error('Preview search error:', error);
+          console.error('Search error:', error);
         } finally {
           setIsPreviewLoading(false);
         }
@@ -1311,48 +1261,7 @@ export default function MetadataIndexPage() {
                     </div>
                   )}
 
-                  {/* Search Button with Gradient Glow Effect */}
-                  <div
-                    className="relative group"
-                    style={{ padding: '3px' }}
-                  >
-                    {/* Glow effect behind */}
-                    <div
-                      className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-400"
-                      style={{
-                        background: 'linear-gradient(90deg, #03a9f4, #f441a5)',
-                        filter: 'blur(1.2em)',
-                        zIndex: -1
-                      }}
-                    />
-                    {/* Gradient border container */}
-                    <div
-                      className="rounded-xl transition-all duration-400"
-                      style={{
-                        background: 'linear-gradient(90deg, #03a9f4, #f441a5)',
-                        padding: '2px'
-                      }}
-                    >
-                      <button
-                        onClick={handleSearch}
-                        disabled={isSearching}
-                        className="w-full py-3 px-6 bg-surface text-white rounded-[10px] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-surface/80"
-                        style={{ boxShadow: '2px 2px 3px rgba(0, 0, 0, 0.4)' }}
-                      >
-                        {isSearching ? (
-                          <>
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            Searching...
-                          </>
-                        ) : (
-                          <>
-                            <Search className="w-5 h-5" />
-                            Search Metadata
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
+                  {/* Search happens automatically as you type */}
 
                   {/* Demo Examples */}
                   <div className="pt-4 border-t border-white/[0.08]">
@@ -1378,33 +1287,48 @@ export default function MetadataIndexPage() {
                     </div>
                   </div>
 
-                  {/* Real-time Preview Panel */}
+                  {/* Real-time Search Preview - Click to view details */}
                   {(isPreviewLoading || previewResult) && (
                     <div className="mt-4 pt-4 border-t border-white/[0.08]">
                       <p className="text-xs text-text-muted mb-2 flex items-center gap-2">
                         <Search className="w-3 h-3" />
-                        Live Preview
-                        {isPreviewLoading && <span className="text-blue-400">(searching...)</span>}
+                        Search Result
+                        {isPreviewLoading && <span className="text-blue-400 animate-pulse">(searching...)</span>}
                       </p>
                       {isPreviewLoading ? (
                         <div className="flex items-center gap-3 p-3 bg-white/[0.04] rounded-lg">
-                          <div className="w-10 h-10 bg-white/[0.08] rounded animate-pulse" />
+                          <div className="w-12 h-12 bg-white/[0.08] rounded animate-pulse" />
                           <div className="flex-1">
                             <div className="h-4 bg-white/[0.08] rounded w-3/4 animate-pulse" />
                             <div className="h-3 bg-white/[0.08] rounded w-1/2 mt-1 animate-pulse" />
                           </div>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-blue-400 rounded-full animate-spin" />
                         </div>
                       ) : previewResult ? (
-                        <div className="flex items-center gap-3 p-3 bg-white/[0.04] rounded-lg border border-blue-500/20">
+                        <button
+                          onClick={() => setShowResults(true)}
+                          className="w-full text-left flex items-center gap-3 p-3 bg-white/[0.04] rounded-lg border border-blue-500/30 hover:border-blue-500/50 hover:bg-white/[0.06] transition-all cursor-pointer group"
+                        >
                           {previewResult.imageUrl && (
-                            <img src={previewResult.imageUrl} alt="" className="w-10 h-10 rounded object-cover" />
+                            <img src={previewResult.imageUrl} alt="" className="w-12 h-12 rounded object-cover shadow-lg" />
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-white truncate">{previewResult.title}</p>
                             <p className="text-xs text-text-secondary truncate">{previewResult.artist}</p>
+                            {previewResult.isrc && (
+                              <p className="text-xs text-text-muted font-mono mt-0.5">ISRC: {previewResult.isrc}</p>
+                            )}
                           </div>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">Match found</span>
-                        </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">Match found</span>
+                            <span className="text-xs text-blue-400 group-hover:text-blue-300 flex items-center gap-1">
+                              View details
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                              </svg>
+                            </span>
+                          </div>
+                        </button>
                       ) : null}
                     </div>
                   )}
