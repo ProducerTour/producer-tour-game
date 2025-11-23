@@ -108,6 +108,7 @@ export const adminNavigation: NavSection[] = [
 /**
  * Customer Navigation Configuration
  * Simplified sidebar for customers - no earnings/statements/placements
+ * Focus on discovery, community, learning, and tools
  */
 export const customerNavigation: NavSection[] = [
   {
@@ -116,8 +117,31 @@ export const customerNavigation: NavSection[] = [
     items: [
       { id: 'overview', label: 'Dashboard', icon: 'dashboard' },
       { id: 'tour-profile', label: 'My Tour Profile', icon: 'plane', path: '/settings?section=tourhub' },
+    ],
+  },
+  {
+    id: 'explore',
+    label: 'Explore',
+    items: [
+      { id: 'discover', label: 'Discover Playlists', icon: 'headphones' },
+      { id: 'events', label: 'Community Events', icon: 'calendar' },
+      { id: 'learning', label: 'Learning Center', icon: 'book' },
+      { id: 'wishlist', label: 'Wishlist', icon: 'heart' },
+    ],
+  },
+  {
+    id: 'rewards',
+    label: 'Rewards & Tools',
+    items: [
       { id: 'tour-miles', label: 'Tour Miles', icon: 'target', path: '/customer/tour-miles' },
       { id: 'tools', label: 'Tools Hub', icon: 'tools' },
+    ],
+  },
+  {
+    id: 'support',
+    label: 'Support',
+    items: [
+      { id: 'chat-support', label: 'Chat Support', icon: 'chat', path: '/customer/support' },
     ],
   },
 ];

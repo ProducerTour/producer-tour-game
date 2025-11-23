@@ -33,6 +33,7 @@ import PricingPage from './pages/PricingPage';
 import TypeBeatVideoMakerPage from './pages/TypeBeatVideoMakerPage';
 import AffiliatesDashboard from './pages/AffiliatesDashboard';
 import AffiliateManagement from './pages/AffiliateManagement';
+import CustomerSupportPage from './pages/CustomerSupportPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -165,6 +166,14 @@ function App() {
           element={
             <PrivateRoute roles={['CUSTOMER']}>
               <CustomerTourMilesPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/customer/support"
+          element={
+            <PrivateRoute roles={['CUSTOMER']}>
+              <CustomerSupportPage />
             </PrivateRoute>
           }
         />

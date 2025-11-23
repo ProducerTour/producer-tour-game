@@ -18,6 +18,11 @@ import {
   Headphones,
   Volume2,
 
+  // Customer Dashboard
+  Heart,
+  BookOpen,
+  MessageCircle,
+
   // Financial
   DollarSign,
   Banknote,
@@ -269,7 +274,11 @@ export type IconName =
   | 'dashboard'
   | 'home'
   | 'globe'
-  | 'plane';
+  | 'plane'
+  // Customer
+  | 'heart'
+  | 'book'
+  | 'chat';
 
 // Map icon names to Lucide components
 const iconMap: Record<IconName, LucideIcon> = {
@@ -397,6 +406,10 @@ const iconMap: Record<IconName, LucideIcon> = {
   'home': Home,
   'globe': Globe,
   'plane': Plane,
+  // Customer
+  'heart': Heart,
+  'book': BookOpen,
+  'chat': MessageCircle,
 };
 
 // Emoji to icon name mapping for easy migration

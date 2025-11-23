@@ -754,7 +754,16 @@ export const checkAchievements = async (userId: string) => {
 };
 
 // Get all achievements for a user (locked and unlocked)
+// Filters achievements based on user's role - hides WRITER-only achievements from CUSTOMER users
 export const getUserAchievements = async (userId: string) => {
+  // Get user's role to filter role-restricted achievements
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true }
+  });
+
+  const userRole = user?.role || 'WRITER';
+
   const allAchievements = await prisma.achievement.findMany({
     where: { isActive: true },
     orderBy: [
@@ -763,13 +772,24 @@ export const getUserAchievements = async (userId: string) => {
     ]
   });
 
+  // Filter achievements based on roleRestriction in criteria
+  const roleFilteredAchievements = allAchievements.filter(achievement => {
+    const criteria = achievement.criteria as any;
+    if (!criteria || !criteria.roleRestriction) {
+      // No restriction, show to everyone
+      return true;
+    }
+    // Only show if user's role matches the restriction
+    return criteria.roleRestriction === userRole;
+  });
+
   const userAchievements = await prisma.userAchievement.findMany({
     where: { userId }
   });
 
   const unlockedIds = userAchievements.map(ua => ua.achievementId);
 
-  return allAchievements.map(achievement => ({
+  return roleFilteredAchievements.map(achievement => ({
     ...achievement,
     unlocked: unlockedIds.includes(achievement.id),
     unlockedAt: userAchievements.find(ua => ua.achievementId === achievement.id)?.unlockedAt
