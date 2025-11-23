@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Lock, Sparkles, Check, Loader2, ArrowLeft } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { gamificationApi } from '../../lib/api';
@@ -21,6 +21,7 @@ export function ToolLockedScreen({
   features = [],
   icon,
 }: ToolLockedScreenProps) {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [redeemError, setRedeemError] = useState<string | null>(null);
 
@@ -80,14 +81,14 @@ export function ToolLockedScreen({
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center p-4">
       <div className="max-w-lg w-full">
-        {/* Back link */}
-        <Link
-          to="/tools"
+        {/* Back button */}
+        <button
+          onClick={() => navigate(-1)}
           className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
         >
           <ArrowLeft size={16} />
-          Back to Tools
-        </Link>
+          Go Back
+        </button>
 
         <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
           {/* Lock icon */}
