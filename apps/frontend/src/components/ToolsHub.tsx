@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, BarChart3, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, BarChart3, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 
 interface Tool {
@@ -104,6 +104,16 @@ const TOOLS: Tool[] = [
     url: '/tools/metadata-index',
     category: 'Research',
     roles: ['ADMIN'] // Admin only by default
+  },
+  {
+    id: 'type-beat-video-maker',
+    name: 'Type Beat Video Maker',
+    description: 'Create professional type beat videos by combining audio tracks with images. Batch process multiple beats and auto-upload directly to YouTube.',
+    icon: Video,
+    color: 'from-red-500 to-red-600',
+    url: '/tools/type-beat-video-maker',
+    category: 'Content',
+    roles: ['ADMIN', 'WRITER'] // Available to Writers and Admins
   }
 ];
 
@@ -335,7 +345,27 @@ export default function ToolsHub() {
                       </div>
                     </>
                   )}
-                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration', 'metadata-index'].includes(currentTool.id) && (
+                  {currentTool.id === 'type-beat-video-maker' && (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-text-secondary">Combine beats with images into videos</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-text-secondary">Batch process multiple beats at once</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-text-secondary">Auto-upload directly to YouTube</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-text-secondary">Support for 16:9 and 9:16 formats</span>
+                      </div>
+                    </>
+                  )}
+                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration', 'metadata-index', 'type-beat-video-maker'].includes(currentTool.id) && (
                     <>
                       <div className="flex items-start gap-3">
                         <Check className="w-5 h-5 text-green-400 flex-shrink-0" />

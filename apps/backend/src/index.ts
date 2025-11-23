@@ -38,6 +38,7 @@ import spotifyRoutes from './routes/spotify.routes';
 import chatRoutes from './routes/chat.routes';
 import contactsRoutes from './routes/contacts.routes';
 import profileRoutes from './routes/profile.routes';
+import youtubeRoutes from './routes/youtube.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -169,6 +170,7 @@ app.use('/api/spotify', spotifyRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/contacts', contactsRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/youtube', youtubeRoutes);
 
 // Error handling
 app.use(notFoundHandler);

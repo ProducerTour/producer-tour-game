@@ -32,6 +32,8 @@
     "prettier-plugin-tailwindcss": "^0.7.1"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0"
+    "@prisma/client": "^5.22.0",
+    "@types/jszip": "^3.4.0",
+    "jszip": "^3.10.1"
   }
 }

@@ -28,6 +28,7 @@ import ProducerTourMilesPage from './pages/ProducerTourMilesPage';
 import WriterTourHubPage from './pages/WriterTourHubPage';
 import MetadataIndexPage from './pages/MetadataIndexPage';
 import PricingPage from './pages/PricingPage';
+import TypeBeatVideoMakerPage from './pages/TypeBeatVideoMakerPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -104,6 +105,14 @@ function App() {
         <Route path="/tools/opportunities" element={<OpportunitiesToolPage />} />
         <Route path="/tools/advance-estimator" element={<AdvanceEstimatorToolPage />} />
         <Route path="/tools/metadata-index" element={<MetadataIndexPage />} />
+        <Route
+          path="/tools/type-beat-video-maker"
+          element={
+            <PrivateRoute roles={['WRITER', 'ADMIN']}>
+              <TypeBeatVideoMakerPage />
+            </PrivateRoute>
+          }
+        />
 
         {/* Work Registration Routes */}
         <Route

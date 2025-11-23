@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     // Bundle visualizer - generates stats.html after build
@@ -51,5 +51,14 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+    // Required headers for FFmpeg WASM (SharedArrayBuffer support)
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'credentialless',
+    },
   },
-});
+  // Optimize WASM loading
+  optimizeDeps: {
+    exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
+  },
+}));
