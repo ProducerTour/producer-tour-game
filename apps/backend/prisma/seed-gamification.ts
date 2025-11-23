@@ -378,7 +378,7 @@ async function main() {
       points: 100,
       tier: 'BRONZE',
       category: 'PLATFORM',
-      criteria: { type: 'stripe_connected' },
+      criteria: { type: 'stripe_connected', roleRestriction: 'WRITER' },
     },
     {
       id: 'first-submission',
@@ -388,10 +388,10 @@ async function main() {
       points: 75,
       tier: 'BRONZE',
       category: 'PLATFORM',
-      criteria: { type: 'first_work_submission' },
+      criteria: { type: 'first_work_submission', roleRestriction: 'WRITER' },
     },
 
-    // Revenue Achievements
+    // Revenue Achievements (WRITER only - customers don't earn revenue)
     {
       id: 'first-dollar',
       name: 'First Dollar',
@@ -400,7 +400,7 @@ async function main() {
       points: 100,
       tier: 'BRONZE',
       category: 'REVENUE',
-      criteria: { type: 'revenue_milestone', requiredRevenue: 1 },
+      criteria: { type: 'revenue_milestone', requiredRevenue: 1, roleRestriction: 'WRITER' },
     },
     {
       id: 'hundred-club',
@@ -410,7 +410,7 @@ async function main() {
       points: 250,
       tier: 'SILVER',
       category: 'REVENUE',
-      criteria: { type: 'revenue_milestone', requiredRevenue: 100 },
+      criteria: { type: 'revenue_milestone', requiredRevenue: 100, roleRestriction: 'WRITER' },
     },
     {
       id: 'thousand-earner',
@@ -420,7 +420,7 @@ async function main() {
       points: 750,
       tier: 'GOLD',
       category: 'REVENUE',
-      criteria: { type: 'revenue_milestone', requiredRevenue: 1000 },
+      criteria: { type: 'revenue_milestone', requiredRevenue: 1000, roleRestriction: 'WRITER' },
     },
     {
       id: 'five-figure-producer',
@@ -430,7 +430,7 @@ async function main() {
       points: 2500,
       tier: 'PLATINUM',
       category: 'REVENUE',
-      criteria: { type: 'revenue_milestone', requiredRevenue: 10000 },
+      criteria: { type: 'revenue_milestone', requiredRevenue: 10000, roleRestriction: 'WRITER' },
     },
     {
       id: 'platinum-producer',
@@ -440,7 +440,7 @@ async function main() {
       points: 10000,
       tier: 'DIAMOND',
       category: 'REVENUE',
-      criteria: { type: 'revenue_milestone', requiredRevenue: 50000 },
+      criteria: { type: 'revenue_milestone', requiredRevenue: 50000, roleRestriction: 'WRITER' },
     },
 
     // Milestone/Tier Achievements
