@@ -63,15 +63,25 @@ export function Header() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-1">
-              {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className="px-4 py-2 text-sm text-text-secondary hover:text-white transition-colors rounded-lg hover:bg-white/5"
-                >
-                  {link.name}
-                </a>
-              ))}
+              {navLinks.map((link) =>
+                link.href.startsWith('/') ? (
+                  <Link
+                    key={link.name}
+                    to={link.href}
+                    className="px-4 py-2 text-sm text-text-secondary hover:text-white transition-colors rounded-lg hover:bg-white/5"
+                  >
+                    {link.name}
+                  </Link>
+                ) : (
+                  <a
+                    key={link.name}
+                    href={link.href}
+                    className="px-4 py-2 text-sm text-text-secondary hover:text-white transition-colors rounded-lg hover:bg-white/5"
+                  >
+                    {link.name}
+                  </a>
+                )
+              )}
             </div>
 
             {/* Desktop CTAs */}
@@ -126,19 +136,36 @@ export function Header() {
             >
               {/* Navigation Links */}
               <div className="flex-1 space-y-1">
-                {navLinks.map((link, index) => (
-                  <motion.a
-                    key={link.name}
-                    href={link.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 + index * 0.05 }}
-                    className="block px-4 py-4 text-xl font-medium text-white hover:text-brand-blue transition-colors border-b border-white/5"
-                  >
-                    {link.name}
-                  </motion.a>
-                ))}
+                {navLinks.map((link, index) =>
+                  link.href.startsWith('/') ? (
+                    <motion.div
+                      key={link.name}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + index * 0.05 }}
+                    >
+                      <Link
+                        to={link.href}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="block px-4 py-4 text-xl font-medium text-white hover:text-brand-blue transition-colors border-b border-white/5"
+                      >
+                        {link.name}
+                      </Link>
+                    </motion.div>
+                  ) : (
+                    <motion.a
+                      key={link.name}
+                      href={link.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + index * 0.05 }}
+                      className="block px-4 py-4 text-xl font-medium text-white hover:text-brand-blue transition-colors border-b border-white/5"
+                    >
+                      {link.name}
+                    </motion.a>
+                  )
+                )}
               </div>
 
               {/* Mobile CTAs */}

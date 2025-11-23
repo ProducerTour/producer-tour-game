@@ -227,6 +227,7 @@ export const processSteps: ProcessStep[] = [
 export const navLinks = [
   { name: 'Features', href: '#features' },
   { name: 'How It Works', href: '#process' },
+  { name: 'Pricing', href: '/pricing' },
   { name: 'FAQ', href: '#faq' },
 ];
 
@@ -239,7 +240,7 @@ export const footerLinks = {
     { name: 'Features', href: '#features' },
     { name: 'How It Works', href: '#process' },
     { name: 'FAQ', href: '#faq' },
-    { name: 'Pricing', href: '#pricing' },
+    { name: 'Pricing', href: '/pricing' },
   ],
   company: [
     { name: 'About', href: '#about' },

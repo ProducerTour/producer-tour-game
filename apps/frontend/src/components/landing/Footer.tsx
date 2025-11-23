@@ -66,12 +66,21 @@ export function Footer() {
               <ul className="space-y-3">
                 {footerLinks.product.map((link) => (
                   <li key={link.name}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-text-muted hover:text-white transition-colors"
-                    >
-                      {link.name}
-                    </a>
+                    {link.href.startsWith('/') ? (
+                      <Link
+                        to={link.href}
+                        className="text-sm text-text-muted hover:text-white transition-colors"
+                      >
+                        {link.name}
+                      </Link>
+                    ) : (
+                      <a
+                        href={link.href}
+                        className="text-sm text-text-muted hover:text-white transition-colors"
+                      >
+                        {link.name}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
