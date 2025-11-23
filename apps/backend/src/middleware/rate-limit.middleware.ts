@@ -23,8 +23,8 @@ export const authLimiter = rateLimit({
 // General API rate limiter
 // Prevents API abuse for general endpoints
 export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  windowMs: 1 * 60 * 1000, // 1 minute in dev, 15 in prod
+  max: process.env.NODE_ENV === 'development' ? 10000 : 100, // Effectively disabled in dev
   message: 'Too many requests from this IP, please try again after 15 minutes',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers

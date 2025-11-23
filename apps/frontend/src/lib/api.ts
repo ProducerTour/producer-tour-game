@@ -37,8 +37,16 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Prevent redirect loop - only redirect if not already on login page
+      const isLoginPage = window.location.pathname === '/login';
+      const isPublicPage = ['/login', '/forgot-password', '/reset-password', '/apply', '/pricing', '/'].includes(window.location.pathname);
+
+      if (!isLoginPage && !isPublicPage) {
+        localStorage.removeItem('token');
+        // Clear auth storage to prevent stale state
+        localStorage.removeItem('auth-storage');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

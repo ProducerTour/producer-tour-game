@@ -115,6 +115,15 @@ type TabType = 'chats' | 'contacts';
 export function ChatWidget() {
   const { user } = useAuthStore();
   const location = useLocation();
+
+  // Hide chat on landing page and public pages
+  const hiddenPaths = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
+  const isHiddenPage = hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/writer/');
+
+  // Early return check - before hooks that make API calls
+  // CUSTOMER role doesn't have access to chat
+  const shouldRender = user && !isHiddenPage && user.role !== 'CUSTOMER';
+
   const {
     isConnected,
     onlineUsers,
@@ -126,10 +135,6 @@ export function ChatWidget() {
     markAsRead,
     onNewMessage,
   } = useSocket();
-
-  // Hide chat on landing page and public pages
-  const hiddenPaths = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
-  const isHiddenPage = hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/writer/');
 
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('chats');
@@ -164,7 +169,7 @@ export function ChatWidget() {
 
   // Fetch conversations
   useEffect(() => {
-    if (!isOpen || !user) return;
+    if (!isOpen || !user || !shouldRender) return;
 
     const fetchConversations = async () => {
       try {
@@ -177,11 +182,11 @@ export function ChatWidget() {
     };
 
     fetchConversations();
-  }, [isOpen, user]);
+  }, [isOpen, user, shouldRender]);
 
   // Fetch contacts and requests
   useEffect(() => {
-    if (!isOpen || !user) return;
+    if (!isOpen || !user || !shouldRender) return;
 
     const fetchContacts = async () => {
       try {
@@ -197,11 +202,11 @@ export function ChatWidget() {
     };
 
     fetchContacts();
-  }, [isOpen, user]);
+  }, [isOpen, user, shouldRender]);
 
-  // Fetch chat settings
+  // Fetch chat settings - only for users who can use chat
   useEffect(() => {
-    if (!user) return;
+    if (!user || !shouldRender) return;
 
     const fetchChatSettings = async () => {
       try {
@@ -216,7 +221,7 @@ export function ChatWidget() {
     };
 
     fetchChatSettings();
-  }, [user]);
+  }, [user, shouldRender]);
 
   // Subscribe to new messages
   useEffect(() => {
@@ -578,7 +583,7 @@ export function ChatWidget() {
   };
 
   // Don't render on landing/public pages, if not logged in, or for CUSTOMER role
-  if (!user || isHiddenPage || user.role === 'CUSTOMER') return null;
+  if (!shouldRender) return null;
 
   return (
     <>
