@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import { Container, Button } from './ui';
 import { navLinks } from './data';
+import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -54,11 +55,13 @@ export function Header() {
             {/* Logo */}
             <Link
               to="/"
-              className="relative z-10 flex items-center gap-2 group"
+              className="relative z-10 flex items-center hover:opacity-80 transition-opacity"
             >
-              <span className="text-xl font-bold text-white group-hover:text-brand-blue transition-colors">
-                Producer<span className="text-brand-blue group-hover:text-white transition-colors">Tour</span>
-              </span>
+              <img
+                src={whiteLogo}
+                alt="Producer Tour"
+                className="h-14 w-auto"
+              />
             </Link>
 
             {/* Desktop Navigation */}

@@ -1646,6 +1646,7 @@ function UsersTab() {
                   className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                 >
                   <option value="WRITER">Writer</option>
+                  <option value="CUSTOMER">Customer</option>
                   <option value="ADMIN">Admin</option>
                   <option value="LEGAL">Legal</option>
                   <option value="MANAGER">Manager</option>
@@ -1867,6 +1868,7 @@ function UsersTab() {
                   className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                 >
                   <option value="WRITER">Writer</option>
+                  <option value="CUSTOMER">Customer</option>
                   <option value="ADMIN">Admin</option>
                   <option value="LEGAL">Legal</option>
                   <option value="MANAGER">Manager</option>

@@ -450,16 +450,25 @@ export const redeemReward = async (userId: string, rewardId: string) => {
       });
     }
 
-    // Auto-approve digital rewards (commission reduction, payout speed)
+    // Auto-approve digital rewards
     // Physical items require admin approval
-    const isAutoApproved = reward.type === 'COMMISSION_REDUCTION' || reward.type === 'PAYOUT_SPEED';
+    const autoApproveTypes = [
+      'COMMISSION_REDUCTION',
+      'PAYOUT_SPEED',
+      'TOOL_ACCESS',
+      'MONTHLY_PAYOUT',
+      'ZERO_FEE_PAYOUT',
+      'PRIORITY_PAYOUT',
+      'EARLY_STATEMENT_ACCESS'
+    ];
+    const isAutoApproved = autoApproveTypes.includes(reward.type);
     let expiresAt: Date | undefined;
 
-    if (isAutoApproved && reward.metadata) {
-      const metadata = reward.metadata as any;
-      const durationDays = metadata.durationDays || 30;
+    // Set expiration based on reward details
+    const details = reward.details as any;
+    if (isAutoApproved && details?.durationDays) {
       expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + durationDays);
+      expiresAt.setDate(expiresAt.getDate() + details.durationDays);
     }
 
     const redemptionRecord = await tx.rewardRedemption.create({
@@ -765,4 +774,111 @@ export const getUserAchievements = async (userId: string) => {
     unlocked: unlockedIds.includes(achievement.id),
     unlockedAt: userAchievements.find(ua => ua.achievementId === achievement.id)?.unlockedAt
   }));
+};
+
+// Check if user has access to a specific tool via Tour Miles
+export const checkToolAccess = async (userId: string, toolId: string) => {
+  const activeRedemption = await prisma.rewardRedemption.findFirst({
+    where: {
+      userId,
+      isActive: true,
+      status: 'APPROVED',
+      reward: {
+        type: 'TOOL_ACCESS',
+      },
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gte: new Date() } }
+      ]
+    },
+    include: { reward: true }
+  });
+
+  // Check if this redemption is for the requested tool
+  if (activeRedemption) {
+    const details = activeRedemption.reward.details as any;
+    if (details?.toolId === toolId) {
+      return {
+        hasAccess: true,
+        redemption: activeRedemption,
+        expiresAt: activeRedemption.expiresAt
+      };
+    }
+  }
+
+  // Check for any tool access matching the toolId
+  const toolRedemption = await prisma.rewardRedemption.findFirst({
+    where: {
+      userId,
+      isActive: true,
+      status: 'APPROVED',
+      reward: {
+        type: 'TOOL_ACCESS',
+        details: {
+          path: ['toolId'],
+          equals: toolId
+        }
+      },
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gte: new Date() } }
+      ]
+    },
+    include: { reward: true }
+  });
+
+  return {
+    hasAccess: !!toolRedemption,
+    redemption: toolRedemption ?? undefined,
+    expiresAt: toolRedemption?.expiresAt ?? undefined
+  };
+};
+
+// Get all tools a user has access to via Tour Miles
+export const getUserToolAccess = async (userId: string) => {
+  const redemptions = await prisma.rewardRedemption.findMany({
+    where: {
+      userId,
+      isActive: true,
+      status: 'APPROVED',
+      reward: { type: 'TOOL_ACCESS' },
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gte: new Date() } }
+      ]
+    },
+    include: { reward: true }
+  });
+
+  return redemptions.map(r => {
+    const details = r.reward.details as any;
+    return {
+      toolId: details?.toolId,
+      name: r.reward.name,
+      expiresAt: r.expiresAt,
+      redemptionId: r.id
+    };
+  }).filter(t => t.toolId);
+};
+
+// Check if user has active monthly payout reward
+export const hasMonthlyPayoutAccess = async (userId: string) => {
+  const redemption = await prisma.rewardRedemption.findFirst({
+    where: {
+      userId,
+      isActive: true,
+      status: 'APPROVED',
+      reward: { type: 'MONTHLY_PAYOUT' },
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gte: new Date() } }
+      ]
+    },
+    include: { reward: true }
+  });
+
+  return {
+    hasAccess: !!redemption,
+    expiresAt: redemption?.expiresAt ?? undefined
+  };
 };

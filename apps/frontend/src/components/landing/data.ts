@@ -244,6 +244,7 @@ export const footerLinks = {
   ],
   company: [
     { name: 'About', href: '#about' },
+    { name: 'Blog', href: 'https://blog.producertour.com' },
     { name: 'Careers', href: '#careers' },
     { name: 'Contact', href: '#contact' },
   ],

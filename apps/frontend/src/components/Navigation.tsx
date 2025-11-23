@@ -21,19 +21,15 @@ export default function Navigation({ activeTab, onTabChange, tabs }: NavigationP
         <div className="flex justify-between h-16">
           {/* Logo and Brand */}
           <div className="flex items-center">
-            <div className="flex-shrink-0 flex items-center">
+            <Link to="/" className="flex-shrink-0 flex items-center hover:opacity-80 transition-opacity">
               <div className="flex items-center gap-3">
                 <img
                   src={whiteLogo}
                   alt="Producer Tour"
-                  className="h-10 w-auto"
+                  className="h-14 w-auto"
                 />
-                <div className="hidden sm:block">
-                  <p className="text-sm font-semibold text-white">Producer Tour</p>
-                  <p className="text-xs text-slate-400">Publishing Portal</p>
-                </div>
               </div>
-            </div>
+            </Link>
 
             {/* Desktop Navigation Tabs */}
             {tabs && tabs.length > 0 && (

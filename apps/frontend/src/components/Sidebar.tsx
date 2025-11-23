@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getNavigationForRole, type NavSection, type NavItem } from '../config/navigation.config';
 import { SaasIcon, IconName } from './ui/SaasIcon';
 import { LogOut, Settings, ChevronDown } from 'lucide-react';
+import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 
 // Re-export types for backward compatibility
 export type { NavSection, NavItem };
@@ -99,20 +100,13 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
     <div className="fixed left-0 top-0 flex flex-col h-screen w-64 bg-gradient-to-b from-surface to-surface-100 border-r border-white/[0.08] shadow-2xl z-[60]">
       {/* Logo Section */}
       <div className="p-6 border-b border-white/[0.08]">
-        <div className="flex items-center gap-3">
+        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <img
-            src="/451293708_472378049044476_4990757197796537602_n.jpg"
+            src={whiteLogo}
             alt="Producer Tour"
-            className="h-10 w-10 rounded-lg"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
+            className="h-14 w-auto"
           />
-          <div>
-            <h1 className="text-xl font-bold text-white">Producer Tour</h1>
-            <p className="text-xs text-gray-400">Publishing Platform</p>
-          </div>
-        </div>
+        </Link>
       </div>
 
       {/* User Profile Section */}

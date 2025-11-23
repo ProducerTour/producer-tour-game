@@ -159,6 +159,37 @@ async function main() {
       details: { event_type: 'in_person', includes: ['drinks', 'networking', 'panel'] },
       inventory: 20,
     },
+
+    // Tool Access Rewards (for CUSTOMER role - WRITERs get free access)
+    {
+      name: 'Video Maker Tool Access',
+      description: 'Unlock the Type Beat Video Maker tool for 30 days. Create professional videos by combining beats with images and upload directly to YouTube.',
+      cost: 750,
+      category: 'PLATFORM',
+      type: 'TOOL_ACCESS',
+      roleRestriction: 'CUSTOMER', // Only CUSTOMER role needs to purchase - WRITERs have free access
+      tierRestriction: null,
+      details: {
+        toolId: 'type-beat-video-maker',
+        durationDays: 30,
+        features: ['Batch processing', 'YouTube upload', '16:9 and 9:16 formats', 'Custom artwork']
+      },
+    },
+
+    // Payout Frequency Rewards
+    {
+      name: 'Monthly Payout Access',
+      description: 'Get monthly payouts instead of quarterly for 60 days. Faster access to your royalties!',
+      cost: 1000,
+      category: 'PAYOUT',
+      type: 'MONTHLY_PAYOUT',
+      roleRestriction: 'WRITER',
+      tierRestriction: 'SILVER',
+      details: {
+        durationDays: 60,
+        payoutFrequency: 'monthly'
+      },
+    },
   ];
 
   for (const reward of rewards) {

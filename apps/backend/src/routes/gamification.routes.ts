@@ -126,6 +126,62 @@ router.post('/achievements/check', authenticate, async (req: AuthRequest, res: R
   }
 });
 
+// ===== TOOL ACCESS ENDPOINTS =====
+
+// Check if user has access to a specific tool
+router.get('/tools/:toolId/access', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { toolId } = req.params;
+
+    // Check user role - Admins and Writers have access to all tools
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (user?.role === 'ADMIN') {
+      return res.json({ hasAccess: true, isAdmin: true });
+    }
+
+    // Writers have free access to all tools
+    if (user?.role === 'WRITER') {
+      return res.json({ hasAccess: true, isWriter: true });
+    }
+
+    // For other roles (like CUSTOMER), check gamification-based access
+    const access = await gamificationService.checkToolAccess(userId, toolId);
+    res.json(access);
+  } catch (error) {
+    console.error('Check tool access error:', error);
+    res.status(500).json({ error: 'Failed to check tool access' });
+  }
+});
+
+// Get all tools user has access to via Tour Miles
+router.get('/tools/access', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const toolAccess = await gamificationService.getUserToolAccess(userId);
+    res.json({ tools: toolAccess });
+  } catch (error) {
+    console.error('Get user tool access error:', error);
+    res.status(500).json({ error: 'Failed to get tool access' });
+  }
+});
+
+// Check if user has monthly payout access
+router.get('/payout/monthly-access', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const access = await gamificationService.hasMonthlyPayoutAccess(userId);
+    res.json(access);
+  } catch (error) {
+    console.error('Check monthly payout access error:', error);
+    res.status(500).json({ error: 'Failed to check monthly payout access' });
+  }
+});
+
 // ===== ADMIN ENDPOINTS =====
 
 // Get all pending reward redemptions (Admin only)

@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, BarChart3, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, BarChart3, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, Coins } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
+import { gamificationApi } from '../lib/api';
 
 interface Tool {
   id: string;
@@ -12,6 +14,9 @@ interface Tool {
   url: string;
   category: string;
   roles: string[]; // Which roles can access this tool
+  requiresPurchase?: boolean; // Whether tool requires Tour Miles purchase
+  purchaseToolId?: string; // Tool ID for gamification check
+  tourMilesCost?: number; // Cost in Tour Miles
 }
 
 const TOOLS: Tool[] = [
@@ -113,7 +118,10 @@ const TOOLS: Tool[] = [
     color: 'from-red-500 to-red-600',
     url: '/tools/type-beat-video-maker',
     category: 'Content',
-    roles: ['ADMIN', 'WRITER'] // Available to Writers and Admins
+    roles: ['ADMIN', 'WRITER', 'CUSTOMER'], // Available to Writers, Admins, and Customers
+    requiresPurchase: true, // Only applies to CUSTOMER role
+    purchaseToolId: 'type-beat-video-maker',
+    tourMilesCost: 750
   }
 ];
 
@@ -123,9 +131,35 @@ export default function ToolsHub() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('All');
 
+  // Fetch user's tool access for premium tools (only for CUSTOMER role)
+  const { data: toolAccessData } = useQuery({
+    queryKey: ['user-tool-access'],
+    queryFn: async () => {
+      const response = await gamificationApi.getUserToolAccess();
+      return response.data;
+    },
+    // Only fetch for roles that need to purchase access (not ADMIN or WRITER)
+    enabled: !!user && user.role !== 'ADMIN' && user.role !== 'WRITER',
+  });
+
   // Filter tools based on user role
   const userRole = user?.role || 'WRITER';
   const roleBasedTools = TOOLS.filter(tool => tool.roles.includes(userRole));
+
+  // Check if user has access to a premium tool
+  const hasToolAccess = (tool: Tool): boolean => {
+    // Admins always have access
+    if (userRole === 'ADMIN') return true;
+    // Writers have free access to all tools
+    if (userRole === 'WRITER') return true;
+    // Non-premium tools are always accessible
+    if (!tool.requiresPurchase) return true;
+    // For CUSTOMER and other roles, check if user has purchased access
+    if (!toolAccessData?.toolAccess) return false;
+    return toolAccessData.toolAccess.some(
+      (access: { details?: { toolId?: string } }) => access.details?.toolId === tool.purchaseToolId
+    );
+  };
 
   const categories = ['All', ...new Set(roleBasedTools.map(tool => tool.category))];
   const filteredTools = selectedCategory === 'All'
@@ -223,9 +257,26 @@ export default function ToolsHub() {
           {/* Tool Display */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 md:p-12 min-h-96">
             {/* Left Side - Visual */}
-            <div className={`bg-gradient-to-br ${currentTool.color} rounded-xl p-8 flex flex-col justify-center items-center text-center shadow-lg`}>
-              <div className="w-24 h-24 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4 animate-pulse">
-                <currentTool.icon className="w-12 h-12 text-white" />
+            <div className={`bg-gradient-to-br ${currentTool.color} rounded-xl p-8 flex flex-col justify-center items-center text-center shadow-lg relative`}>
+              {/* Premium Badge */}
+              {currentTool.requiresPurchase && !hasToolAccess(currentTool) && (
+                <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-black/40 backdrop-blur-sm rounded-full">
+                  <Coins className="w-4 h-4 text-yellow-400" />
+                  <span className="text-yellow-400 text-sm font-semibold">{currentTool.tourMilesCost} TP</span>
+                </div>
+              )}
+              {currentTool.requiresPurchase && hasToolAccess(currentTool) && (
+                <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-green-500/20 backdrop-blur-sm rounded-full">
+                  <Check className="w-4 h-4 text-green-400" />
+                  <span className="text-green-400 text-sm font-semibold">Unlocked</span>
+                </div>
+              )}
+              <div className={`w-24 h-24 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4 ${hasToolAccess(currentTool) ? 'animate-pulse' : ''}`}>
+                {!hasToolAccess(currentTool) && currentTool.requiresPurchase ? (
+                  <Lock className="w-12 h-12 text-white/60" />
+                ) : (
+                  <currentTool.icon className="w-12 h-12 text-white" />
+                )}
               </div>
               <h2 className="text-white text-2xl font-bold">{currentTool.name}</h2>
               <p className="text-white/80 text-sm mt-2 font-medium">{currentTool.category}</p>
@@ -387,9 +438,22 @@ export default function ToolsHub() {
               {/* Action Button */}
               <button
                 onClick={() => openTool(currentTool)}
-                className="w-full px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2">
-                <Rocket className="w-5 h-5" />
-                Enter {currentTool.name.split(' ')[0]}
+                className={`w-full px-8 py-4 font-bold rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2 ${
+                  hasToolAccess(currentTool)
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700'
+                    : 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600'
+                }`}>
+                {hasToolAccess(currentTool) ? (
+                  <>
+                    <Rocket className="w-5 h-5" />
+                    Enter {currentTool.name.split(' ')[0]}
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-5 h-5" />
+                    Unlock with Tour Miles
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -429,27 +493,54 @@ export default function ToolsHub() {
       <div className="mt-12">
         <h3 className="text-2xl font-bold text-white mb-6">All Tools</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTools.map((tool, index) => (
-            <div
-              key={tool.id}
-              className={`group cursor-pointer p-6 rounded-xl border-2 transition-all hover:scale-105 ${
-                index === currentIndex
-                  ? 'border-blue-500 bg-gradient-to-br from-white/[0.08] to-white/[0.04] shadow-xl'
-                  : 'border-white/[0.08] bg-white/[0.04] hover:border-white/20'
-              }`}
-              onClick={() => openTool(tool)}
-            >
-              <div className="w-14 h-14 rounded-xl bg-white/[0.08] border border-white/[0.08] flex items-center justify-center mb-3">
-                <tool.icon className="w-7 h-7 text-white" />
+          {filteredTools.map((tool, index) => {
+            const isLocked = !hasToolAccess(tool);
+            return (
+              <div
+                key={tool.id}
+                className={`group cursor-pointer p-6 rounded-xl border-2 transition-all hover:scale-105 relative ${
+                  index === currentIndex
+                    ? 'border-blue-500 bg-gradient-to-br from-white/[0.08] to-white/[0.04] shadow-xl'
+                    : isLocked && tool.requiresPurchase
+                      ? 'border-yellow-500/30 bg-gradient-to-br from-yellow-500/5 to-white/[0.02] hover:border-yellow-500/50'
+                      : 'border-white/[0.08] bg-white/[0.04] hover:border-white/20'
+                }`}
+                onClick={() => openTool(tool)}
+              >
+                {/* Premium Badge for Grid */}
+                {tool.requiresPurchase && isLocked && (
+                  <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 bg-yellow-500/20 rounded-full">
+                    <Coins className="w-3 h-3 text-yellow-400" />
+                    <span className="text-yellow-400 text-xs font-semibold">{tool.tourMilesCost}</span>
+                  </div>
+                )}
+                {tool.requiresPurchase && !isLocked && (
+                  <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full">
+                    <Check className="w-3 h-3 text-green-400" />
+                  </div>
+                )}
+                <div className={`w-14 h-14 rounded-xl bg-white/[0.08] border border-white/[0.08] flex items-center justify-center mb-3 relative ${
+                  isLocked && tool.requiresPurchase ? 'opacity-60' : ''
+                }`}>
+                  {isLocked && tool.requiresPurchase ? (
+                    <Lock className="w-7 h-7 text-white/60" />
+                  ) : (
+                    <tool.icon className="w-7 h-7 text-white" />
+                  )}
+                </div>
+                <h4 className="text-white font-bold text-lg mb-2">{tool.name}</h4>
+                <p className="text-text-muted text-sm mb-3 line-clamp-2">{tool.description}</p>
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs font-semibold ${isLocked && tool.requiresPurchase ? 'text-yellow-400' : 'text-blue-400'}`}>
+                    {isLocked && tool.requiresPurchase ? 'Premium Tool' : tool.category}
+                  </span>
+                  <span className="text-lg group-hover:translate-x-1 transition-transform">
+                    {isLocked && tool.requiresPurchase ? <Lock className="w-4 h-4 text-yellow-400" /> : '→'}
+                  </span>
+                </div>
               </div>
-              <h4 className="text-white font-bold text-lg mb-2">{tool.name}</h4>
-              <p className="text-text-muted text-sm mb-3 line-clamp-2">{tool.description}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-blue-400">{tool.category}</span>
-                <span className="text-lg group-hover:translate-x-1 transition-transform">→</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

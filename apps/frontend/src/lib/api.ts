@@ -472,4 +472,11 @@ export const gamificationApi = {
 
   // Track social share
   trackSocialShare: (platform: string) => api.post('/gamification/social-share', { platform }),
+
+  // Tool Access
+  checkToolAccess: (toolId: string) => api.get(`/gamification/tools/${toolId}/access`),
+  getUserToolAccess: () => api.get('/gamification/tools/access'),
+
+  // Monthly Payout Access
+  checkMonthlyPayoutAccess: () => api.get('/gamification/payout/monthly-access'),
 };

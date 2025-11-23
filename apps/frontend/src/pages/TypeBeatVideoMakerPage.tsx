@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { AlertCircle, Loader2, Video, Upload, Settings, Youtube, HelpCircle, Menu, X } from 'lucide-react';
 import { useFFmpeg } from '../hooks/useFFmpeg';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useToolAccess } from '../hooks/useToolAccess';
 import './TypeBeatVideoMaker.css';
 import { FileUploader } from '../components/video-maker/FileUploader';
 import { VideoSettings } from '../components/video-maker/VideoSettings';
@@ -10,6 +11,7 @@ import { YouTubeMetadataEditor } from '../components/video-maker/YouTubeMetadata
 import { ProcessingQueue } from '../components/video-maker/ProcessingQueue';
 import { ParticleBackground } from '../components/video-maker/ParticleBackground';
 import { Button } from '../components/ui/Button';
+import { ToolLockedScreen } from '../components/gamification/ToolLockedScreen';
 import { pairFiles } from '../lib/file-pairing';
 import { VideoProcessor } from '../lib/video-processor';
 import {
@@ -28,10 +30,15 @@ import type {
 } from '../types/video-maker';
 import type { VideoWithMetadata, YouTubeMetadata } from '../types/youtube';
 
+const TOOL_ID = 'type-beat-video-maker';
+
 export default function VideoMaker() {
+  // Tool access check - must be called before any early returns
+  const { data: accessData, isLoading: accessLoading } = useToolAccess(TOOL_ID);
+
   const { loaded, loading, error: ffmpegError, load, ffmpeg } = useFFmpeg();
 
-  // File state
+  // File state - all hooks must be called unconditionally
   const [beats, setBeats] = useState<File[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [outputFormat, setOutputFormat] = useLocalStorage<VideoFormat>('videomaker-output-format', 'both');
@@ -471,6 +478,36 @@ export default function VideoMaker() {
       }
     }
   }, [youtubeAuth.authenticated]);
+
+  // Tool access check - show loading or locked screen
+  if (accessLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 size={48} className="animate-spin text-brand-blue" />
+          <p className="text-zinc-400">Checking tool access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!accessData?.hasAccess) {
+    return (
+      <ToolLockedScreen
+        toolId={TOOL_ID}
+        toolName="Type Beat Video Maker"
+        toolDescription="Transform your beats into professional YouTube-ready videos with custom artwork, batch processing, and direct YouTube upload."
+        cost={accessData?.reward?.cost || 750}
+        features={[
+          'Batch video processing',
+          'Direct YouTube upload',
+          '16:9 and 9:16 formats',
+          'Custom artwork support',
+          'Local browser processing'
+        ]}
+      />
+    );
+  }
 
   return (
     <div className="video-maker-wrapper">
