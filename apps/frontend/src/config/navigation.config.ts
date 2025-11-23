@@ -74,7 +74,15 @@ export const adminNavigation: NavSection[] = [
       { id: 'overview', label: 'Dashboard', icon: 'dashboard' },
       { id: 'statements', label: 'Statements', icon: 'chart' },
       { id: 'users', label: 'Users', icon: 'users' },
-      { id: 'analytics', label: 'Analytics', icon: 'trending-up' },
+      {
+        id: 'analytics',
+        label: 'Analytics',
+        icon: 'trending-up',
+        children: [
+          { id: 'all-analytics', label: 'All Analytics', icon: 'chart' },
+          { id: 'mlc-analytics', label: 'MLC Analytics', icon: 'music' },
+        ],
+      },
       { id: 'payouts', label: 'Payouts', icon: 'money' },
       {
         id: 'placement-deals',

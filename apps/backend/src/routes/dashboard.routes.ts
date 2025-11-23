@@ -650,20 +650,30 @@ router.get('/platform-breakdown', authenticate, requireAdmin, async (req: AuthRe
       commissionAmount: number;
       count: number;
       offerings: Set<string>;
+      offeringRevenue: Map<string, { revenue: number; count: number }>;
+    }>();
+
+    // Also aggregate by service type (offering) globally
+    const serviceTypeMap = new Map<string, {
+      revenue: number;
+      netRevenue: number;
+      count: number;
     }>();
 
     items.forEach((item) => {
       const metadata = item.metadata as any;
       const dspName = metadata?.dspName || 'Unknown';
-      const consumerOffering = metadata?.consumerOffering;
+      const consumerOffering = metadata?.consumerOffering || 'Unknown';
 
+      // Platform aggregation
       if (!platformMap.has(dspName)) {
         platformMap.set(dspName, {
           revenue: 0,
           netRevenue: 0,
           commissionAmount: 0,
           count: 0,
-          offerings: new Set()
+          offerings: new Set(),
+          offeringRevenue: new Map()
         });
       }
 
@@ -675,10 +685,27 @@ router.get('/platform-breakdown', authenticate, requireAdmin, async (req: AuthRe
 
       if (consumerOffering) {
         platform.offerings.add(consumerOffering);
+
+        // Track revenue per offering for this platform
+        if (!platform.offeringRevenue.has(consumerOffering)) {
+          platform.offeringRevenue.set(consumerOffering, { revenue: 0, count: 0 });
+        }
+        const offeringData = platform.offeringRevenue.get(consumerOffering)!;
+        offeringData.revenue += Number(item.revenue);
+        offeringData.count += 1;
       }
+
+      // Service type (offering) global aggregation
+      if (!serviceTypeMap.has(consumerOffering)) {
+        serviceTypeMap.set(consumerOffering, { revenue: 0, netRevenue: 0, count: 0 });
+      }
+      const serviceType = serviceTypeMap.get(consumerOffering)!;
+      serviceType.revenue += Number(item.revenue);
+      serviceType.netRevenue += Number(item.netRevenue);
+      serviceType.count += 1;
     });
 
-    // Convert to array and sort by revenue
+    // Convert platforms to array and sort by revenue
     const breakdown = Array.from(platformMap.entries())
       .map(([platform, data]) => ({
         platform,
@@ -686,13 +713,35 @@ router.get('/platform-breakdown', authenticate, requireAdmin, async (req: AuthRe
         netRevenue: smartRound(data.netRevenue),
         commissionAmount: smartRound(data.commissionAmount),
         count: data.count,
-        offerings: Array.from(data.offerings).sort()
+        offerings: Array.from(data.offerings).sort(),
+        offeringBreakdown: Array.from(data.offeringRevenue.entries())
+          .map(([offering, stats]) => ({
+            offering,
+            revenue: smartRound(stats.revenue),
+            count: stats.count
+          }))
+          .sort((a, b) => b.revenue - a.revenue)
       }))
       .sort((a, b) => b.revenue - a.revenue);
 
+    // Convert service types to array and sort by revenue
+    const serviceTypeBreakdown = Array.from(serviceTypeMap.entries())
+      .map(([serviceType, data]) => ({
+        serviceType,
+        revenue: smartRound(data.revenue),
+        netRevenue: smartRound(data.netRevenue),
+        count: data.count
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    const totalRevenue = smartRound(breakdown.reduce((sum, p) => sum + p.revenue, 0));
+    const totalNetRevenue = smartRound(breakdown.reduce((sum, p) => sum + p.netRevenue, 0));
+
     res.json({
       platforms: breakdown,
-      totalRevenue: smartRound(breakdown.reduce((sum, p) => sum + p.revenue, 0)),
+      serviceTypes: serviceTypeBreakdown,
+      totalRevenue,
+      totalNetRevenue,
       totalCount: items.length
     });
   } catch (error) {
@@ -806,6 +855,336 @@ router.get('/territory-breakdown', authenticate, async (req: AuthRequest, res: R
   } catch (error) {
     console.error('Territory breakdown error:', error);
     res.status(500).json({ error: 'Failed to fetch territory breakdown' });
+  }
+});
+
+/**
+ * GET /api/dashboard/mlc-analytics
+ * Comprehensive MLC-specific analytics with detailed breakdowns
+ * Returns data optimized for advanced chart visualizations
+ */
+router.get('/mlc-analytics', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    // Get all MLC statement items with full metadata
+    const items = await prisma.statementItem.findMany({
+      where: {
+        statement: {
+          proType: 'MLC',
+          paymentStatus: 'PAID'
+        }
+      },
+      select: {
+        id: true,
+        workTitle: true,
+        revenue: true,
+        netRevenue: true,
+        commissionAmount: true,
+        performances: true,
+        periodStart: true,
+        periodEnd: true,
+        createdAt: true,
+        metadata: true,
+        statement: {
+          select: {
+            id: true,
+            statementPeriod: true,
+            uploadDate: true,
+            periodStart: true,
+            periodEnd: true
+          }
+        }
+      }
+    });
+
+    // Get MLC statement totals
+    const mlcStatements = await prisma.statement.findMany({
+      where: {
+        proType: 'MLC',
+        paymentStatus: 'PAID'
+      },
+      select: {
+        id: true,
+        filename: true,
+        totalRevenue: true,
+        totalNet: true,
+        totalCommission: true,
+        statementPeriod: true,
+        periodStart: true,
+        periodEnd: true,
+        uploadDate: true,
+        _count: {
+          select: { items: true }
+        }
+      },
+      orderBy: { uploadDate: 'desc' }
+    });
+
+    // Platform breakdown with detailed service type analysis
+    const platformMap = new Map<string, {
+      revenue: number;
+      netRevenue: number;
+      count: number;
+      avgPerItem: number;
+      serviceTypes: Map<string, { revenue: number; count: number }>;
+    }>();
+
+    // Service type breakdown
+    const serviceTypeMap = new Map<string, {
+      revenue: number;
+      netRevenue: number;
+      count: number;
+      platforms: Set<string>;
+    }>();
+
+    // Monthly revenue timeline
+    const monthlyMap = new Map<string, {
+      revenue: number;
+      netRevenue: number;
+      count: number;
+      platforms: number;
+    }>();
+
+    // Top songs analysis
+    const songMap = new Map<string, {
+      revenue: number;
+      netRevenue: number;
+      performances: number;
+      platforms: Set<string>;
+      serviceTypes: Set<string>;
+    }>();
+
+    // Territory breakdown for MLC
+    const territoryMap = new Map<string, {
+      revenue: number;
+      netRevenue: number;
+      count: number;
+    }>();
+
+    // Use type analysis (streaming vs download vs other)
+    const useTypeMap = new Map<string, {
+      revenue: number;
+      count: number;
+    }>();
+
+    items.forEach((item) => {
+      const metadata = item.metadata as any;
+      const dspName = metadata?.dspName || 'Unknown';
+      const consumerOffering = metadata?.consumerOffering || 'Unknown';
+      const territory = metadata?.usageTerritory || metadata?.territoryOfDistribution || 'Unknown';
+      const useType = metadata?.useType || metadata?.consumerType || 'Unknown';
+      const revenue = Number(item.revenue) || 0;
+      const netRevenue = Number(item.netRevenue) || 0;
+      const performances = Number(item.performances) || 0;
+
+      // Platform aggregation
+      if (!platformMap.has(dspName)) {
+        platformMap.set(dspName, {
+          revenue: 0,
+          netRevenue: 0,
+          count: 0,
+          avgPerItem: 0,
+          serviceTypes: new Map()
+        });
+      }
+      const platform = platformMap.get(dspName)!;
+      platform.revenue += revenue;
+      platform.netRevenue += netRevenue;
+      platform.count += 1;
+
+      if (!platform.serviceTypes.has(consumerOffering)) {
+        platform.serviceTypes.set(consumerOffering, { revenue: 0, count: 0 });
+      }
+      const st = platform.serviceTypes.get(consumerOffering)!;
+      st.revenue += revenue;
+      st.count += 1;
+
+      // Service type aggregation
+      if (!serviceTypeMap.has(consumerOffering)) {
+        serviceTypeMap.set(consumerOffering, {
+          revenue: 0,
+          netRevenue: 0,
+          count: 0,
+          platforms: new Set()
+        });
+      }
+      const serviceType = serviceTypeMap.get(consumerOffering)!;
+      serviceType.revenue += revenue;
+      serviceType.netRevenue += netRevenue;
+      serviceType.count += 1;
+      serviceType.platforms.add(dspName);
+
+      // Monthly timeline
+      const date = item.periodStart || item.createdAt;
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthlyMap.has(monthKey)) {
+        monthlyMap.set(monthKey, { revenue: 0, netRevenue: 0, count: 0, platforms: 0 });
+      }
+      const month = monthlyMap.get(monthKey)!;
+      month.revenue += revenue;
+      month.netRevenue += netRevenue;
+      month.count += 1;
+
+      // Song aggregation
+      if (item.workTitle) {
+        if (!songMap.has(item.workTitle)) {
+          songMap.set(item.workTitle, {
+            revenue: 0,
+            netRevenue: 0,
+            performances: 0,
+            platforms: new Set(),
+            serviceTypes: new Set()
+          });
+        }
+        const song = songMap.get(item.workTitle)!;
+        song.revenue += revenue;
+        song.netRevenue += netRevenue;
+        song.performances += performances;
+        song.platforms.add(dspName);
+        song.serviceTypes.add(consumerOffering);
+      }
+
+      // Territory aggregation
+      if (territory && territory !== 'Unknown') {
+        if (!territoryMap.has(territory)) {
+          territoryMap.set(territory, { revenue: 0, netRevenue: 0, count: 0 });
+        }
+        const terr = territoryMap.get(territory)!;
+        terr.revenue += revenue;
+        terr.netRevenue += netRevenue;
+        terr.count += 1;
+      }
+
+      // Use type aggregation
+      if (!useTypeMap.has(useType)) {
+        useTypeMap.set(useType, { revenue: 0, count: 0 });
+      }
+      const ut = useTypeMap.get(useType)!;
+      ut.revenue += revenue;
+      ut.count += 1;
+    });
+
+    // Format platform data with nested service types
+    const platforms = Array.from(platformMap.entries())
+      .map(([name, data]) => ({
+        name,
+        revenue: smartRound(data.revenue),
+        netRevenue: smartRound(data.netRevenue),
+        count: data.count,
+        avgPerItem: smartRound(data.revenue / data.count),
+        margin: smartRound(((data.revenue - data.netRevenue) / data.revenue) * 100),
+        serviceTypes: Array.from(data.serviceTypes.entries())
+          .map(([type, stats]) => ({
+            type,
+            revenue: smartRound(stats.revenue),
+            count: stats.count,
+            percentage: smartRound((stats.revenue / data.revenue) * 100)
+          }))
+          .sort((a, b) => b.revenue - a.revenue)
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    // Format service type data
+    const serviceTypes = Array.from(serviceTypeMap.entries())
+      .map(([name, data]) => ({
+        name,
+        revenue: smartRound(data.revenue),
+        netRevenue: smartRound(data.netRevenue),
+        count: data.count,
+        platformCount: data.platforms.size,
+        avgPerItem: smartRound(data.revenue / data.count)
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    // Format monthly timeline
+    const timeline = Array.from(monthlyMap.entries())
+      .map(([month, data]) => ({
+        month,
+        revenue: smartRound(data.revenue),
+        netRevenue: smartRound(data.netRevenue),
+        count: data.count
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+
+    // Format top songs (top 20)
+    const topSongs = Array.from(songMap.entries())
+      .map(([title, data]) => ({
+        title,
+        revenue: smartRound(data.revenue),
+        netRevenue: smartRound(data.netRevenue),
+        performances: data.performances,
+        platformCount: data.platforms.size,
+        serviceTypeCount: data.serviceTypes.size
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 20);
+
+    // Format territories (top 15)
+    const territories = Array.from(territoryMap.entries())
+      .map(([territory, data]) => ({
+        territory,
+        revenue: smartRound(data.revenue),
+        netRevenue: smartRound(data.netRevenue),
+        count: data.count
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 15);
+
+    // Format use types
+    const useTypes = Array.from(useTypeMap.entries())
+      .map(([type, data]) => ({
+        type,
+        revenue: smartRound(data.revenue),
+        count: data.count
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    // Calculate totals and KPIs
+    const totalRevenue = smartRound(items.reduce((sum, i) => sum + Number(i.revenue), 0));
+    const totalNetRevenue = smartRound(items.reduce((sum, i) => sum + Number(i.netRevenue), 0));
+    const totalCommission = smartRound(items.reduce((sum, i) => sum + Number(i.commissionAmount), 0));
+    const avgRevenuePerItem = smartRound(totalRevenue / items.length);
+    const marginPercentage = smartRound(((totalRevenue - totalNetRevenue) / totalRevenue) * 100);
+
+    // Statement summary
+    const statementSummary = mlcStatements.map(s => ({
+      id: s.id,
+      filename: s.filename,
+      period: s.statementPeriod,
+      periodStart: s.periodStart,
+      periodEnd: s.periodEnd,
+      uploadDate: s.uploadDate,
+      revenue: Number(s.totalRevenue),
+      netRevenue: Number(s.totalNet),
+      commission: Number(s.totalCommission),
+      itemCount: s._count.items
+    }));
+
+    res.json({
+      // KPIs
+      kpis: {
+        totalRevenue,
+        totalNetRevenue,
+        totalCommission,
+        totalItems: items.length,
+        totalStatements: mlcStatements.length,
+        uniqueSongs: songMap.size,
+        uniquePlatforms: platformMap.size,
+        avgRevenuePerItem,
+        marginPercentage
+      },
+      // Chart data
+      platforms,
+      serviceTypes,
+      timeline,
+      topSongs,
+      territories,
+      useTypes,
+      // Statement details
+      statements: statementSummary
+    });
+  } catch (error) {
+    console.error('MLC Analytics error:', error);
+    res.status(500).json({ error: 'Failed to fetch MLC analytics' });
   }
 });
 

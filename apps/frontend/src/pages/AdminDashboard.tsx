@@ -20,6 +20,7 @@ import GamificationAnalytics from '../components/gamification/GamificationAnalyt
 import TourMilesConfig from '../components/admin/TourMilesConfig';
 import DashboardOverviewTremor from '../components/admin/DashboardOverviewTremor';
 import AnalyticsTabTremor from '../components/admin/AnalyticsTabTremor';
+import MLCAnalyticsTab from '../components/admin/MLCAnalyticsTab';
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { formatIpiDisplay } from '../utils/ipi-helper';
@@ -36,7 +37,7 @@ import {
   AlertDialogTrigger,
 } from '../components/ui';
 
-type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'active-placements' | 'pending-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config';
+type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'active-placements' | 'pending-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config';
 
 // Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
 const formatChartCurrency = (value: any): string => {
@@ -88,7 +89,8 @@ export default function AdminDashboard() {
             {activeTab === 'overview' && <DashboardOverviewTremor />}
             {activeTab === 'statements' && <StatementsTab />}
             {activeTab === 'users' && <UsersTab />}
-            {activeTab === 'analytics' && <AnalyticsTabTremor />}
+            {(activeTab === 'analytics' || activeTab === 'all-analytics') && <AnalyticsTabTremor />}
+            {activeTab === 'mlc-analytics' && <MLCAnalyticsTab />}
             {activeTab === 'payouts' && <PayoutsTab />}
             {activeTab === 'pending-placements' && <PendingPlacementsQueue />}
             {activeTab === 'active-placements' && <PlacementTracker />}

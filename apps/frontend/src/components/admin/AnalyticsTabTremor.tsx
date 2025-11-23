@@ -22,14 +22,104 @@ import {
   TableCell,
   TableFoot,
   TableFooterCell,
+  Badge,
 } from '@tremor/react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { dashboardApi } from '../../lib/api';
 import { TerritoryHeatmap } from '../TerritoryHeatmap';
 import { ChartCard } from '../ChartCard';
 import { NivoLineChart, NivoBarChart, NivoPieChart } from '../charts';
 
+// Check if we're in development mode
+const isDev = import.meta.env.DEV;
+
+// Mock data for development/testing - only used when no real data exists
+const MOCK_PLATFORM_DATA = {
+  platforms: [
+    { platform: 'Spotify', revenue: 45230.50, netRevenue: 38445.93, count: 1250, offerings: ['Premium', 'Ad-Supported', 'Family Plan'] },
+    { platform: 'Apple Music', revenue: 32150.75, netRevenue: 27328.14, count: 890, offerings: ['Individual', 'Family', 'Student'] },
+    { platform: 'Amazon Music', revenue: 18420.30, netRevenue: 15657.26, count: 520, offerings: ['Unlimited', 'Prime', 'HD'] },
+    { platform: 'YouTube Music', revenue: 15890.20, netRevenue: 13506.67, count: 680, offerings: ['Premium', 'Ad-Supported'] },
+    { platform: 'Tidal', revenue: 8750.40, netRevenue: 7437.84, count: 210, offerings: ['HiFi', 'HiFi Plus'] },
+    { platform: 'Deezer', revenue: 6230.15, netRevenue: 5295.63, count: 180, offerings: ['Premium', 'Family', 'HiFi'] },
+    { platform: 'Pandora', revenue: 4120.80, netRevenue: 3502.68, count: 320, offerings: ['Plus', 'Premium'] },
+    { platform: 'SoundCloud', revenue: 2890.25, netRevenue: 2456.71, count: 150, offerings: ['Go', 'Go+'] },
+    { platform: 'iHeartRadio', revenue: 1850.60, netRevenue: 1573.01, count: 95, offerings: ['All Access'] },
+    { platform: 'Audiomack', revenue: 980.45, netRevenue: 833.38, count: 75, offerings: ['Premium'] },
+  ],
+  serviceTypes: [
+    { serviceType: 'Premium Streaming', revenue: 89500.25, netRevenue: 76075.21, count: 2850 },
+    { serviceType: 'Ad-Supported', revenue: 28750.40, netRevenue: 24437.84, count: 1420 },
+    { serviceType: 'Family Plans', revenue: 12890.15, netRevenue: 10956.63, count: 580 },
+    { serviceType: 'Student Plans', revenue: 4230.80, netRevenue: 3596.18, count: 320 },
+    { serviceType: 'HiFi/Lossless', revenue: 3150.60, netRevenue: 2678.01, count: 180 },
+  ],
+  totalRevenue: 136513.40,
+  totalNetRevenue: 116037.25,
+  totalCount: 4370,
+};
+
+const MOCK_STATS_DATA = {
+  revenueTimeline: [
+    { month: 'Jan 2024', revenue: 12500 },
+    { month: 'Feb 2024', revenue: 14200 },
+    { month: 'Mar 2024', revenue: 13800 },
+    { month: 'Apr 2024', revenue: 15600 },
+    { month: 'May 2024', revenue: 18200 },
+    { month: 'Jun 2024', revenue: 21500 },
+    { month: 'Jul 2024', revenue: 19800 },
+    { month: 'Aug 2024', revenue: 22100 },
+    { month: 'Sep 2024', revenue: 24500 },
+    { month: 'Oct 2024', revenue: 26800 },
+    { month: 'Nov 2024', revenue: 28200 },
+  ],
+  proBreakdown: [
+    { proType: 'MLC', revenue: 85000, count: 12 },
+    { proType: 'ASCAP', revenue: 32000, count: 8 },
+    { proType: 'BMI', revenue: 28500, count: 6 },
+    { proType: 'SESAC', revenue: 8200, count: 3 },
+  ],
+  totalRevenue: 153700,
+  totalNet: 130645,
+  totalCommission: 23055,
+  writerCount: 45,
+  songCount: 320,
+  statementCount: 29,
+};
+
+const MOCK_ORGANIZATION_DATA = {
+  organizations: [
+    { organization: 'Universal Music', revenue: 42500.30, count: 850 },
+    { organization: 'Sony Music', revenue: 38200.15, count: 720 },
+    { organization: 'Warner Music', revenue: 28750.40, count: 580 },
+    { organization: 'Independent', revenue: 18500.25, count: 420 },
+    { organization: 'BMG Rights', revenue: 8200.80, count: 180 },
+  ],
+  totalRevenue: 136151.90,
+  totalCount: 2750,
+};
+
+const MOCK_TERRITORY_DATA = {
+  territories: [
+    { territory: 'US', territoryName: 'United States', revenue: 68500.25, count: 1850 },
+    { territory: 'GB', territoryName: 'United Kingdom', revenue: 18200.40, count: 420 },
+    { territory: 'DE', territoryName: 'Germany', revenue: 12500.15, count: 380 },
+    { territory: 'FR', territoryName: 'France', revenue: 9800.30, count: 290 },
+    { territory: 'CA', territoryName: 'Canada', revenue: 8500.20, count: 250 },
+    { territory: 'AU', territoryName: 'Australia', revenue: 6200.45, count: 180 },
+    { territory: 'JP', territoryName: 'Japan', revenue: 5100.80, count: 150 },
+    { territory: 'BR', territoryName: 'Brazil', revenue: 3800.25, count: 120 },
+    { territory: 'MX', territoryName: 'Mexico', revenue: 2400.60, count: 95 },
+    { territory: 'ES', territoryName: 'Spain', revenue: 1500.00, count: 65 },
+  ],
+  totalRevenue: 136501.40,
+  totalCount: 3800,
+};
+
 export default function AnalyticsTabTremor() {
   const [expandedCharts, setExpandedCharts] = useState<Record<string, boolean>>({});
+  const [platformTableExpanded, setPlatformTableExpanded] = useState(false);
+  const [useMockData, setUseMockData] = useState(false);
 
   const toggleChartExpansion = (chartId: string) => {
     setExpandedCharts(prev => ({
@@ -39,7 +129,7 @@ export default function AnalyticsTabTremor() {
   };
 
   // Data queries
-  const { data: stats, isLoading } = useQuery({
+  const { data: apiStats, isLoading } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
       const response = await dashboardApi.getStats();
@@ -47,7 +137,7 @@ export default function AnalyticsTabTremor() {
     },
   });
 
-  const { data: platformData, isLoading: platformLoading } = useQuery({
+  const { data: apiPlatformData, isLoading: platformLoading } = useQuery({
     queryKey: ['platform-breakdown'],
     queryFn: async () => {
       const response = await dashboardApi.getPlatformBreakdown();
@@ -55,7 +145,7 @@ export default function AnalyticsTabTremor() {
     },
   });
 
-  const { data: organizationData, isLoading: organizationLoading } = useQuery({
+  const { data: apiOrganizationData, isLoading: organizationLoading } = useQuery({
     queryKey: ['organization-breakdown'],
     queryFn: async () => {
       const response = await dashboardApi.getOrganizationBreakdown();
@@ -63,13 +153,19 @@ export default function AnalyticsTabTremor() {
     },
   });
 
-  const { data: territoryData, isLoading: territoryLoading } = useQuery({
+  const { data: apiTerritoryData, isLoading: territoryLoading } = useQuery({
     queryKey: ['territory-breakdown'],
     queryFn: async () => {
       const response = await dashboardApi.getTerritoryBreakdown();
       return response.data;
     },
   });
+
+  // Use mock data in dev mode when toggled or when no real data exists
+  const stats = useMockData ? MOCK_STATS_DATA : apiStats;
+  const platformData = useMockData ? MOCK_PLATFORM_DATA : apiPlatformData;
+  const organizationData = useMockData ? MOCK_ORGANIZATION_DATA : apiOrganizationData;
+  const territoryData = useMockData ? MOCK_TERRITORY_DATA : apiTerritoryData;
 
   // Currency formatter for tooltips
   const currencyFormatter = (value: number) =>
@@ -117,13 +213,31 @@ export default function AnalyticsTabTremor() {
     }));
   };
 
-  const getPlatformBarData = () => {
-    if (!platformData?.platforms) return [];
-    return platformData.platforms.map((item: any) => ({
-      platform: item.platform,
-      Revenue: Number(item.revenue) || 0,
-      Items: item.count || 0,
+
+  // Service type pie chart data
+  const getServiceTypePieData = () => {
+    if (!platformData?.serviceTypes) return [];
+    return platformData.serviceTypes.map((item: any) => ({
+      id: item.serviceType,
+      label: item.serviceType,
+      value: Number(item.revenue) || 0,
     }));
+  };
+
+  // Platform comparison bar chart data (gross vs net)
+  const getPlatformComparisonData = () => {
+    if (!platformData?.platforms) return [];
+    return platformData.platforms.slice(0, 8).map((item: any) => ({
+      platform: item.platform.length > 12 ? item.platform.slice(0, 12) + '...' : item.platform,
+      'Gross Revenue': Number(item.revenue) || 0,
+      'Net Revenue': Number(item.netRevenue) || 0,
+    }));
+  };
+
+  // Calculate margin percentage
+  const getMarginPercent = (gross: number, net: number) => {
+    if (gross === 0) return 0;
+    return ((gross - net) / gross * 100).toFixed(1);
   };
 
   const getOrganizationPieData = () => {
@@ -150,10 +264,32 @@ export default function AnalyticsTabTremor() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <Title className="text-white text-2xl">Platform Analytics</Title>
-        <Text className="text-gray-400">Comprehensive overview of platform performance</Text>
-      </div>
+      <Flex justifyContent="between" alignItems="start">
+        <div>
+          <Title className="text-white text-2xl">Platform Analytics</Title>
+          <Text className="text-gray-400">Comprehensive overview of platform performance</Text>
+        </div>
+        {/* Dev Mode Mock Data Toggle - only visible in development */}
+        {isDev && (
+          <button
+            onClick={() => setUseMockData(!useMockData)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              useMockData
+                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+            }`}
+          >
+            {useMockData ? '🧪 Mock Data ON' : '🔌 Live Data'}
+          </button>
+        )}
+      </Flex>
+      {useMockData && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-2">
+          <Text className="text-amber-400 text-sm">
+            Dev Mode: Displaying mock data for testing. Toggle off to see real data.
+          </Text>
+        </div>
+      )}
 
       {/* KPI Cards Grid */}
       <Grid numItemsSm={2} numItemsMd={3} numItemsLg={5} className="gap-4">
@@ -293,103 +429,218 @@ export default function AnalyticsTabTremor() {
         </Card>
       )}
 
-      {/* Platform Breakdown Section */}
+      {/* Platform Breakdown Section - Redesigned */}
       {!platformLoading && platformData?.platforms?.length > 0 && (
         <div className="space-y-6">
           <div>
-            <Title className="text-white">Revenue by Platform (DSP)</Title>
-            <Text className="text-gray-400">Breakdown by streaming service</Text>
+            <Title className="text-white text-xl">Platform & Service Analytics</Title>
+            <Text className="text-gray-400">Revenue breakdown by streaming platform and service type</Text>
           </div>
 
+          {/* Distribution Charts Row */}
           <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
-            {/* Platform Pie */}
+            {/* Platform Distribution Pie */}
             <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
               <Title className="text-white mb-4">Platform Distribution</Title>
+              <Text className="text-gray-400 text-sm mb-4">Revenue share by streaming service</Text>
               <NivoPieChart
                 data={getPlatformPieData()}
-                height={208}
+                height={220}
                 innerRadius={0.5}
                 enableArcLinkLabels={getPlatformPieData().length <= 6}
                 valueFormat={currencyFormatter}
               />
             </Card>
 
-            {/* Platform Bar Chart */}
+            {/* Service Type Distribution Pie */}
             <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
-              <Title className="text-white mb-4">Platform Revenue</Title>
-              <NivoBarChart
-                data={getPlatformBarData()}
-                keys={['Revenue']}
-                indexBy="platform"
-                height={208}
-                layout="horizontal"
-                colors={['#10b981']}
-                valueFormat={currencyFormatter}
-              />
+              <Title className="text-white mb-4">Service Type Mix</Title>
+              <Text className="text-gray-400 text-sm mb-4">Premium vs Ad-Supported vs other tiers</Text>
+              {getServiceTypePieData().length > 0 ? (
+                <NivoPieChart
+                  data={getServiceTypePieData()}
+                  height={220}
+                  innerRadius={0.5}
+                  enableArcLinkLabels={getServiceTypePieData().length <= 6}
+                  valueFormat={currencyFormatter}
+                />
+              ) : (
+                <div className="h-52 flex items-center justify-center text-gray-400">
+                  No service type data available
+                </div>
+              )}
             </Card>
           </Grid>
 
-          {/* Platform Details Table */}
+          {/* Platform Comparison Bar Chart - Gross vs Net */}
           <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
-            <Flex justifyContent="between" className="mb-4">
-              <Title className="text-white">Platform Details</Title>
-              <Text className="text-gray-400">
-                {platformData.platforms.length} platform{platformData.platforms.length !== 1 ? 's' : ''}
-              </Text>
-            </Flex>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableHeaderCell className="text-gray-400">Platform</TableHeaderCell>
-                  <TableHeaderCell className="text-gray-400">Service Type</TableHeaderCell>
-                  <TableHeaderCell className="text-right text-gray-400">Items</TableHeaderCell>
-                  <TableHeaderCell className="text-right text-gray-400">Gross Revenue</TableHeaderCell>
-                  <TableHeaderCell className="text-right text-gray-400">Net Revenue</TableHeaderCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {platformData.platforms.map((platform: any) => (
-                  <TableRow key={platform.platform}>
-                    <TableCell className="text-white font-semibold">{platform.platform}</TableCell>
-                    <TableCell>
-                      <Flex justifyContent="start" className="gap-1 flex-wrap">
-                        {platform.offerings?.length > 0 ? (
-                          platform.offerings.map((offering: string, i: number) => (
-                            <span key={i} className="px-2 py-0.5 bg-white/[0.08] rounded-lg text-xs text-gray-300">
-                              {offering}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-gray-500">-</span>
+            <Title className="text-white mb-2">Platform Revenue Comparison</Title>
+            <Text className="text-gray-400 text-sm mb-4">Gross vs Net revenue by platform (top 8)</Text>
+            <NivoBarChart
+              data={getPlatformComparisonData()}
+              keys={['Gross Revenue', 'Net Revenue']}
+              indexBy="platform"
+              height={280}
+              layout="vertical"
+              groupMode="grouped"
+              colors={['#10b981', '#6ee7b7']}
+              valueFormat={currencyFormatter}
+            />
+          </Card>
+
+          {/* Top Platforms Metric Cards */}
+          <div>
+            <Title className="text-white mb-4">Top Platforms</Title>
+            <Grid numItemsSm={2} numItemsMd={3} numItemsLg={4} className="gap-4">
+              {platformData.platforms.slice(0, 8).map((platform: any, index: number) => {
+                const marginPct = getMarginPercent(platform.revenue, platform.netRevenue);
+                const isTopPlatform = index < 3;
+                return (
+                  <Card
+                    key={platform.platform}
+                    className={`bg-gradient-to-b ${isTopPlatform ? 'from-emerald-500/10 to-emerald-500/5 border-emerald-500/20' : 'from-white/[0.08] to-white/[0.02] border-white/[0.08]'} ring-0`}
+                  >
+                    <Flex justifyContent="between" alignItems="start">
+                      <div className="min-w-0 flex-1">
+                        <Text className="text-gray-400 text-xs uppercase tracking-wide truncate">
+                          {platform.platform}
+                        </Text>
+                        <Metric className="text-white mt-1 text-lg">
+                          ${Number(platform.revenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        </Metric>
+                      </div>
+                      {isTopPlatform && (
+                        <Badge color="emerald" size="xs">#{index + 1}</Badge>
+                      )}
+                    </Flex>
+                    <Flex justifyContent="between" className="mt-3">
+                      <Text className="text-gray-500 text-xs">
+                        {platform.count.toLocaleString()} items
+                      </Text>
+                      <Flex justifyContent="end" className="gap-1">
+                        <Text className="text-gray-500 text-xs">
+                          {marginPct}% margin
+                        </Text>
+                      </Flex>
+                    </Flex>
+                    {/* Service Type Tags */}
+                    {platform.offerings?.length > 0 && (
+                      <Flex justifyContent="start" className="gap-1 mt-2 flex-wrap">
+                        {platform.offerings.slice(0, 2).map((offering: string, i: number) => (
+                          <span key={i} className="px-1.5 py-0.5 bg-white/[0.08] rounded text-[10px] text-gray-400">
+                            {offering.length > 15 ? offering.slice(0, 15) + '...' : offering}
+                          </span>
+                        ))}
+                        {platform.offerings.length > 2 && (
+                          <span className="px-1.5 py-0.5 bg-white/[0.06] rounded text-[10px] text-gray-500">
+                            +{platform.offerings.length - 2}
+                          </span>
                         )}
                       </Flex>
-                    </TableCell>
-                    <TableCell className="text-right text-gray-300">{platform.count.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-emerald-400 font-semibold">
-                      ${Number(platform.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell className="text-right text-emerald-300">
-                      ${Number(platform.netRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFoot>
-                <TableRow>
-                  <TableFooterCell className="text-white font-bold">TOTAL</TableFooterCell>
-                  <TableFooterCell></TableFooterCell>
-                  <TableFooterCell className="text-right text-white font-bold">
-                    {platformData.totalCount.toLocaleString()}
-                  </TableFooterCell>
-                  <TableFooterCell className="text-right text-emerald-400 font-bold">
-                    ${Number(platformData.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </TableFooterCell>
-                  <TableFooterCell className="text-right text-emerald-300 font-bold">
-                    ${Number(platformData.totalNetRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </TableFooterCell>
-                </TableRow>
-              </TableFoot>
-            </Table>
+                    )}
+                  </Card>
+                );
+              })}
+            </Grid>
+          </div>
+
+          {/* Collapsible Platform Details Table */}
+          <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+            <button
+              onClick={() => setPlatformTableExpanded(!platformTableExpanded)}
+              className="w-full"
+            >
+              <Flex justifyContent="between" alignItems="center">
+                <div>
+                  <Title className="text-white text-left">Detailed Breakdown</Title>
+                  <Text className="text-gray-400 text-left">
+                    {platformData.platforms.length} platform{platformData.platforms.length !== 1 ? 's' : ''} • Click to {platformTableExpanded ? 'collapse' : 'expand'}
+                  </Text>
+                </div>
+                <div className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                  {platformTableExpanded ? (
+                    <ChevronUp className="w-5 h-5 text-gray-400" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                  )}
+                </div>
+              </Flex>
+            </button>
+
+            {platformTableExpanded && (
+              <div className="mt-4">
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableHeaderCell className="text-gray-400">Platform</TableHeaderCell>
+                      <TableHeaderCell className="text-gray-400">Service Types</TableHeaderCell>
+                      <TableHeaderCell className="text-right text-gray-400">Items</TableHeaderCell>
+                      <TableHeaderCell className="text-right text-gray-400">Gross</TableHeaderCell>
+                      <TableHeaderCell className="text-right text-gray-400">Net</TableHeaderCell>
+                      <TableHeaderCell className="text-right text-gray-400">Margin</TableHeaderCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {platformData.platforms.map((platform: any) => {
+                      const marginPct = getMarginPercent(platform.revenue, platform.netRevenue);
+                      return (
+                        <TableRow key={platform.platform}>
+                          <TableCell className="text-white font-semibold">{platform.platform}</TableCell>
+                          <TableCell>
+                            <Flex justifyContent="start" className="gap-1 flex-wrap">
+                              {platform.offerings?.length > 0 ? (
+                                platform.offerings.slice(0, 3).map((offering: string, i: number) => (
+                                  <span key={i} className="px-2 py-0.5 bg-white/[0.08] rounded-lg text-xs text-gray-300">
+                                    {offering}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-gray-500">-</span>
+                              )}
+                              {platform.offerings?.length > 3 && (
+                                <span className="px-2 py-0.5 bg-white/[0.06] rounded-lg text-xs text-gray-500">
+                                  +{platform.offerings.length - 3}
+                                </span>
+                              )}
+                            </Flex>
+                          </TableCell>
+                          <TableCell className="text-right text-gray-300">{platform.count.toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-emerald-400 font-semibold">
+                            ${Number(platform.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </TableCell>
+                          <TableCell className="text-right text-emerald-300">
+                            ${Number(platform.netRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className={`text-xs ${Number(marginPct) > 15 ? 'text-amber-400' : 'text-gray-400'}`}>
+                              {marginPct}%
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                  <TableFoot>
+                    <TableRow>
+                      <TableFooterCell className="text-white font-bold">TOTAL</TableFooterCell>
+                      <TableFooterCell></TableFooterCell>
+                      <TableFooterCell className="text-right text-white font-bold">
+                        {platformData.totalCount.toLocaleString()}
+                      </TableFooterCell>
+                      <TableFooterCell className="text-right text-emerald-400 font-bold">
+                        ${Number(platformData.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </TableFooterCell>
+                      <TableFooterCell className="text-right text-emerald-300 font-bold">
+                        ${Number(platformData.totalNetRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </TableFooterCell>
+                      <TableFooterCell className="text-right text-gray-400 font-bold">
+                        {getMarginPercent(platformData.totalRevenue, platformData.totalNetRevenue || 0)}%
+                      </TableFooterCell>
+                    </TableRow>
+                  </TableFoot>
+                </Table>
+              </div>
+            )}
           </Card>
         </div>
       )}

@@ -98,6 +98,9 @@ export const dashboardApi = {
 
   getTerritoryBreakdown: () =>
     api.get('/dashboard/territory-breakdown'),
+
+  getMlcAnalytics: () =>
+    api.get('/dashboard/mlc-analytics'),
 };
 
 export type WriterAssignment = {
