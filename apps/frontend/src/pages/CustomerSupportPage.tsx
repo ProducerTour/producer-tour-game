@@ -23,8 +23,6 @@ interface SupportTicket {
 }
 
 export default function CustomerSupportPage() {
-  const { user } = useAuthStore();
-  const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState('');
   const [newSubject, setNewSubject] = useState('');
   const [showNewTicketForm, setShowNewTicketForm] = useState(false);
@@ -56,8 +54,6 @@ export default function CustomerSupportPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [tickets]);
-
-  const activeTicket = tickets?.find(t => t.status !== 'CLOSED');
 
   const statusColors = {
     OPEN: 'bg-blue-500/20 text-blue-400',
