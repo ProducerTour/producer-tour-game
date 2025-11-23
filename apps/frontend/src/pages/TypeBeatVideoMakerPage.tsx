@@ -497,7 +497,7 @@ export default function VideoMaker() {
         toolId={TOOL_ID}
         toolName="Type Beat Video Maker"
         toolDescription="Transform your beats into professional YouTube-ready videos with custom artwork, batch processing, and direct YouTube upload."
-        cost={accessData?.reward?.cost || 750}
+        cost={750}
         features={[
           'Batch video processing',
           'Direct YouTube upload',
