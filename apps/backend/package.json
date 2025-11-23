@@ -15,6 +15,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:gamification": "tsx prisma/seed-gamification.ts",
     "db:push": "prisma db push",
     "test": "vitest run",
     "test:watch": "vitest",

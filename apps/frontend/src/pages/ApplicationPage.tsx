@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import PublicNavigation from '../components/PublicNavigation';
+import { Header } from '../components/landing/Header';
 
 interface FormData {
   // Personal Information
@@ -157,7 +157,7 @@ export default function ApplicationPage() {
 
   return (
     <div className="min-h-screen bg-surface text-white">
-      <PublicNavigation transparent={false} />
+      <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
         {/* Header */}
@@ -196,8 +196,8 @@ export default function ApplicationPage() {
                   ✓
                 </span>
                 <div>
-                  <strong className="block text-white text-sm font-semibold mb-1">Global Distribution</strong>
-                  <p className="text-sm text-gray-400">Reach 150+ platforms in 24-48 hours</p>
+                  <strong className="block text-white text-sm font-semibold mb-1">Publishing Administration</strong>
+                  <p className="text-sm text-gray-400">Collect royalties you're missing out on</p>
                 </div>
               </li>
               <li className="flex gap-4">
@@ -214,8 +214,8 @@ export default function ApplicationPage() {
                   ✓
                 </span>
                 <div>
-                  <strong className="block text-white text-sm font-semibold mb-1">Monthly Payouts</strong>
-                  <p className="text-sm text-gray-400">Direct deposits with $1 minimum</p>
+                  <strong className="block text-white text-sm font-semibold mb-1">Quarterly Payouts</strong>
+                  <p className="text-sm text-gray-400">Direct deposits with $50 minimum</p>
                 </div>
               </li>
             </ul>
