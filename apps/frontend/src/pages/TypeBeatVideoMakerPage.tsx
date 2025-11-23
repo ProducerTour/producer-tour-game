@@ -539,15 +539,15 @@ export default function VideoMaker() {
         </div>
       )}
 
-      {/* Mobile Hamburger Menu Button */}
+      {/* Mobile Hamburger Menu Button for Tool Sidebar */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-3 bg-zinc-900/95 backdrop-blur-xl border border-zinc-800/50 rounded-lg hover:bg-zinc-800 transition-colors"
+        className="md:hidden fixed top-20 left-4 z-50 p-3 bg-zinc-900/95 backdrop-blur-xl border border-zinc-800/50 rounded-lg hover:bg-zinc-800 transition-colors"
       >
         {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay for Tool Sidebar */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
@@ -555,9 +555,9 @@ export default function VideoMaker() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Tool Sidebar - hidden on mobile by default */}
       <aside className={`fixed left-0 top-0 h-full bg-zinc-900/95 backdrop-blur-xl border-r border-zinc-800/50 transition-all duration-300 z-20 ${
-        sidebarOpen ? 'w-64 sidebar-open' : 'w-16'
+        sidebarOpen ? 'w-64 sidebar-open translate-x-0' : '-translate-x-full md:translate-x-0 md:w-16'
       }`}>
         {/* Sidebar Header */}
         <div className="p-4 border-b border-zinc-800/50 flex items-center justify-between">
@@ -663,7 +663,7 @@ export default function VideoMaker() {
       </aside>
 
       {/* Main Content */}
-      <main className={`transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'} px-6 py-8`}>
+      <main className={`transition-all duration-300 ml-0 ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'} px-4 md:px-6 py-8 pt-20 md:pt-8`}>
         {/* Error Message */}
         {ffmpegError && (
           <div className="max-w-6xl mx-auto mb-6 bg-zinc-900 border border-red-500/30 rounded-lg p-4">

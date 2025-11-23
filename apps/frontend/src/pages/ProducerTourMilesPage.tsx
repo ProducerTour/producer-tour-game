@@ -212,9 +212,9 @@ export default function ProducerTourMilesPage() {
       </div>
 
       <Sidebar />
-      <div className={`flex-1 ${sidebarCollapsed ? 'ml-20' : 'ml-64'} flex flex-col min-h-0 relative z-10 transition-all duration-300`}>
+      <div className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} flex flex-col min-h-0 relative z-10 transition-all duration-300`}>
         <ImpersonationBanner />
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-20 md:pt-8">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Producer Tour Miles</h1>

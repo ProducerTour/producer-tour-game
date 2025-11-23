@@ -76,10 +76,10 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
     }
 
     // Validate role
-    const validRoles = ['ADMIN', 'WRITER', 'LEGAL', 'MANAGER', 'PUBLISHER', 'STAFF', 'VIEWER'];
+    const validRoles = ['ADMIN', 'WRITER', 'LEGAL', 'MANAGER', 'PUBLISHER', 'STAFF', 'VIEWER', 'CUSTOMER'];
     const userRole = role || 'WRITER';
     if (!validRoles.includes(userRole)) {
-      return res.status(400).json({ error: 'Invalid role. Must be one of: ADMIN, WRITER, LEGAL, MANAGER, PUBLISHER, STAFF, VIEWER' });
+      return res.status(400).json({ error: 'Invalid role. Must be one of: ADMIN, WRITER, LEGAL, MANAGER, PUBLISHER, STAFF, VIEWER, CUSTOMER' });
     }
 
     // Validate commission rate if provided
@@ -200,9 +200,9 @@ router.put('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
 
     // Validate role if provided
     if (role !== undefined) {
-      const validRoles = ['ADMIN', 'WRITER', 'LEGAL', 'MANAGER', 'PUBLISHER', 'STAFF', 'VIEWER'];
+      const validRoles = ['ADMIN', 'WRITER', 'LEGAL', 'MANAGER', 'PUBLISHER', 'STAFF', 'VIEWER', 'CUSTOMER'];
       if (!validRoles.includes(role)) {
-        return res.status(400).json({ error: 'Invalid role. Must be one of: ADMIN, WRITER, LEGAL, MANAGER, PUBLISHER, STAFF, VIEWER' });
+        return res.status(400).json({ error: 'Invalid role. Must be one of: ADMIN, WRITER, LEGAL, MANAGER, PUBLISHER, STAFF, VIEWER, CUSTOMER' });
       }
     }
 

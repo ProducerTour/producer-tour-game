@@ -4,9 +4,8 @@ import { useAuthStore } from '../store/auth.store';
 import { useQuery } from '@tanstack/react-query';
 import { getNavigationForRole, type NavSection, type NavItem } from '../config/navigation.config';
 import { SaasIcon, IconName } from './ui/SaasIcon';
-import { LogOut, Settings, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LogOut, Settings, ChevronDown, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
-import whiteLogoIcon from '@/assets/images/logos/whitetransparentpt.png';
 
 // Re-export types for backward compatibility
 export type { NavSection, NavItem };
@@ -23,18 +22,44 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   const [expandedSections, setExpandedSections] = useState<string[]>(['main']);
   const [expandedTabs, setExpandedTabs] = useState<string[]>(['placement-deals']); // Auto-expand placement tracker
 
-  // Sidebar collapse state - persisted to localStorage
+  // Sidebar collapse state - persisted to localStorage (desktop only)
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebar-collapsed');
     return saved === 'true';
   });
 
+  // Mobile menu state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   // Persist collapse state
   useEffect(() => {
     localStorage.setItem('sidebar-collapsed', String(isCollapsed));
     // Dispatch event so other components can react to sidebar changes
-    window.dispatchEvent(new CustomEvent('sidebar-toggle', { detail: { isCollapsed } }));
-  }, [isCollapsed]);
+    window.dispatchEvent(new CustomEvent('sidebar-toggle', { detail: { isCollapsed, isMobileMenuOpen } }));
+  }, [isCollapsed, isMobileMenuOpen]);
+
+  // Close mobile menu on resize to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
 
   const isAdmin = user?.role === 'ADMIN';
 
@@ -111,25 +136,58 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   };
 
   return (
-    <div className={`fixed left-0 top-0 flex flex-col h-screen ${isCollapsed ? 'w-20' : 'w-64'} bg-gradient-to-b from-surface to-surface-100 border-r border-white/[0.08] shadow-2xl z-[60] transition-all duration-300`}>
-      {/* Logo Section */}
-      <div className={`${isCollapsed ? 'p-4' : 'p-6'} border-b border-white/[0.08] relative`}>
-        <Link to="/" className="flex items-center justify-center hover:opacity-80 transition-opacity">
+    <>
+      {/* Mobile Header Bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-surface/95 backdrop-blur-xl border-b border-white/[0.08] z-[70] flex items-center justify-between px-4">
+        <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
           <img
             src={whiteLogo}
             alt="Producer Tour"
-            className={`${isCollapsed ? 'h-10' : 'h-14'} w-auto transition-all duration-300`}
+            className="h-10 w-auto"
           />
         </Link>
-        {/* Collapse Toggle Button */}
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-surface border border-white/[0.15] rounded-full flex items-center justify-center text-text-muted hover:text-white hover:bg-white/10 transition-all shadow-lg"
-          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-white hover:bg-white/10 transition-colors"
+          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
         >
-          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[55]"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed left-0 top-0 flex flex-col h-screen bg-gradient-to-b from-surface to-surface-100 border-r border-white/[0.08] shadow-2xl z-[60] transition-all duration-300
+        ${isCollapsed ? 'w-20' : 'w-64'}
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0
+      `}>
+        {/* Logo Section */}
+        <div className={`${isCollapsed ? 'p-4' : 'p-6'} border-b border-white/[0.08] relative`}>
+          <Link to="/" className="flex items-center justify-center hover:opacity-80 transition-opacity">
+            <img
+              src={whiteLogo}
+              alt="Producer Tour"
+              className={`${isCollapsed ? 'h-10' : 'h-14'} w-auto transition-all duration-300`}
+            />
+          </Link>
+          {/* Collapse Toggle Button - hidden on mobile */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-surface border border-white/[0.15] rounded-full items-center justify-center text-text-muted hover:text-white hover:bg-white/10 transition-all shadow-lg"
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        </div>
 
       {/* User Profile Section */}
       <div className={`${isCollapsed ? 'px-3 py-4' : 'px-6 py-4'} border-b border-white/[0.08]`}>
@@ -204,6 +262,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                       {item.path && !hasChildren ? (
                         <Link
                           to={item.path}
+                          onClick={() => setIsMobileMenuOpen(false)}
                           title={isCollapsed ? item.label : undefined}
                           className={`w-full ${isCollapsed ? 'px-0 py-3 justify-center' : 'px-6 py-3'} flex items-center gap-3 transition-all ${
                             isActive
@@ -238,10 +297,12 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                               toggleTab(item.id);
                             } else if (onTabChange) {
                               onTabChange(item.id);
+                              setIsMobileMenuOpen(false);
                             } else {
                               // If no onTabChange (e.g., from /tour-miles), navigate to dashboard
                               const dashboardPath = user?.role === 'ADMIN' ? '/admin' : '/dashboard';
                               navigate(dashboardPath);
+                              setIsMobileMenuOpen(false);
                             }
                           }}
                           title={isCollapsed ? item.label : undefined}
@@ -291,10 +352,12 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                                 onClick={() => {
                                   if (onTabChange) {
                                     onTabChange(child.id);
+                                    setIsMobileMenuOpen(false);
                                   } else {
                                     // If no onTabChange (e.g., from /tour-miles), navigate to dashboard
                                     const dashboardPath = user?.role === 'ADMIN' ? '/admin' : '/dashboard';
                                     navigate(dashboardPath);
+                                    setIsMobileMenuOpen(false);
                                   }
                                 }}
                                 className={`w-full px-6 py-2 flex items-center gap-3 transition-all ${
@@ -319,26 +382,28 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
         ))}
       </div>
 
-      {/* Bottom Actions */}
-      <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t border-white/[0.08] space-y-2`}>
-        <Link
-          to="/settings"
-          title={isCollapsed ? 'Settings' : undefined}
-          className={`flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 text-text-secondary hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors`}
-        >
-          <Settings className="w-5 h-5" />
-          {!isCollapsed && <span className="text-sm font-medium">Settings</span>}
-        </Link>
-        {isCollapsed && (
-          <button
-            onClick={logout}
-            title="Logout"
-            className="w-full flex items-center justify-center px-2 py-3 text-text-secondary hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors"
+        {/* Bottom Actions */}
+        <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t border-white/[0.08] space-y-2`}>
+          <Link
+            to="/settings"
+            onClick={() => setIsMobileMenuOpen(false)}
+            title={isCollapsed ? 'Settings' : undefined}
+            className={`flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 text-text-secondary hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors`}
           >
-            <LogOut className="w-5 h-5" />
-          </button>
-        )}
+            <Settings className="w-5 h-5" />
+            {!isCollapsed && <span className="text-sm font-medium">Settings</span>}
+          </Link>
+          {isCollapsed && (
+            <button
+              onClick={logout}
+              title="Logout"
+              className="w-full flex items-center justify-center px-2 py-3 text-text-secondary hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
