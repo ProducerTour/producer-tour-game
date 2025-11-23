@@ -116,7 +116,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-surface text-white">
       <Header />
 
-      <main className="pt-40 pb-20">
+      <main className="pt-28 pb-20">
         {/* Hero Section */}
         <section className="relative overflow-hidden">
           {/* Background Effects */}
