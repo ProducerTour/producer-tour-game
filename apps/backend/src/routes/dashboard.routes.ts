@@ -1013,9 +1013,25 @@ router.get('/mlc-analytics', authenticate, requireAdmin, async (req: AuthRequest
       serviceType.count += 1;
       serviceType.platforms.add(dspName);
 
-      // Monthly timeline
-      const date = item.periodStart || item.createdAt;
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      // Monthly timeline - use usage period from metadata for accurate timeline
+      // MLC statements have usagePeriodStart which is the actual usage month
+      let timelineDate: Date;
+      if (metadata?.usagePeriodStart) {
+        // Parse the usage period start date from metadata
+        timelineDate = new Date(metadata.usagePeriodStart);
+      } else if (metadata?.usagePeriodEnd) {
+        timelineDate = new Date(metadata.usagePeriodEnd);
+      } else {
+        // Fallback to item period or created date
+        timelineDate = item.periodStart || item.createdAt;
+      }
+
+      // Validate the date is reasonable (not NaN and within expected range)
+      if (isNaN(timelineDate.getTime()) || timelineDate.getFullYear() < 2000) {
+        timelineDate = item.periodStart || item.createdAt;
+      }
+
+      const monthKey = `${timelineDate.getFullYear()}-${String(timelineDate.getMonth() + 1).padStart(2, '0')}`;
       if (!monthlyMap.has(monthKey)) {
         monthlyMap.set(monthKey, { revenue: 0, netRevenue: 0, count: 0, platforms: 0 });
       }
