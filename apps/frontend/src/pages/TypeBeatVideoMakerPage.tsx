@@ -3,6 +3,7 @@ import { AlertCircle, Loader2, Video, Upload, Settings, Youtube, HelpCircle, Men
 import { useFFmpeg } from '../hooks/useFFmpeg';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useToolAccess } from '../hooks/useToolAccess';
+import { useAuthStore } from '../store/auth.store';
 import './TypeBeatVideoMaker.css';
 import { FileUploader } from '../components/video-maker/FileUploader';
 import { VideoSettings } from '../components/video-maker/VideoSettings';
@@ -33,6 +34,13 @@ import type { VideoWithMetadata, YouTubeMetadata } from '../types/youtube';
 const TOOL_ID = 'type-beat-video-maker';
 
 export default function VideoMaker() {
+  // Get user role for direct access check
+  const { user } = useAuthStore();
+  const userRole = user?.role;
+
+  // Writers and Admins always have access - skip API check
+  const hasRoleBasedAccess = userRole === 'WRITER' || userRole === 'ADMIN';
+
   // Tool access check - must be called before any early returns
   const { data: accessData, isLoading: accessLoading } = useToolAccess(TOOL_ID);
 
@@ -480,7 +488,8 @@ export default function VideoMaker() {
   }, [youtubeAuth.authenticated]);
 
   // Tool access check - show loading or locked screen
-  if (accessLoading) {
+  // Writers and Admins skip this check entirely
+  if (!hasRoleBasedAccess && accessLoading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -491,7 +500,8 @@ export default function VideoMaker() {
     );
   }
 
-  if (!accessData?.hasAccess) {
+  // Only show locked screen for non-writers/admins without access
+  if (!hasRoleBasedAccess && !accessData?.hasAccess) {
     return (
       <ToolLockedScreen
         toolId={TOOL_ID}
