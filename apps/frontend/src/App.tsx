@@ -27,6 +27,7 @@ import MySubmissions from './pages/MySubmissions';
 import ProducerTourMilesPage from './pages/ProducerTourMilesPage';
 import WriterTourHubPage from './pages/WriterTourHubPage';
 import MetadataIndexPage from './pages/MetadataIndexPage';
+import PricingPage from './pages/PricingPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -92,6 +93,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/apply" element={<ApplicationPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route path="/opportunities" element={<OpportunitiesPage />} />
 
         {/* Tool Routes */}
