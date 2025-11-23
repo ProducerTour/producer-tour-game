@@ -577,8 +577,8 @@ export function ChatWidget() {
     return contacts.some((c) => c.contactId === userId && c.status === 'PENDING');
   };
 
-  // Don't render on landing/public pages or if not logged in
-  if (!user || isHiddenPage) return null;
+  // Don't render on landing/public pages, if not logged in, or for CUSTOMER role
+  if (!user || isHiddenPage || user.role === 'CUSTOMER') return null;
 
   return (
     <>

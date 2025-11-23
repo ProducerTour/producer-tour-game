@@ -300,7 +300,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                               setIsMobileMenuOpen(false);
                             } else {
                               // If no onTabChange (e.g., from /tour-miles), navigate to dashboard
-                              const dashboardPath = user?.role === 'ADMIN' ? '/admin' : '/dashboard';
+                              const dashboardPath = user?.role === 'ADMIN' ? '/admin' : user?.role === 'CUSTOMER' ? '/customer' : '/dashboard';
                               navigate(dashboardPath);
                               setIsMobileMenuOpen(false);
                             }

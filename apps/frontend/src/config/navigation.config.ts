@@ -52,6 +52,13 @@ export const writerNavigation: NavSection[] = [
       { id: 'tools', label: 'Tools Hub', icon: 'tools' },
     ],
   },
+  {
+    id: 'earn',
+    label: 'Earn',
+    items: [
+      { id: 'affiliates', label: 'Affiliates', icon: 'users', path: '/affiliates' },
+    ],
+  },
 ];
 
 /**
@@ -93,6 +100,24 @@ export const adminNavigation: NavSection[] = [
       { id: 'tools', label: 'Tools Hub', icon: 'tools' },
       { id: 'tool-permissions', label: 'Tool Permissions', icon: 'lock' },
       { id: 'commission', label: 'Commission Settings', icon: 'briefcase' },
+      { id: 'affiliate-management', label: 'Affiliate Management', icon: 'users', path: '/admin/affiliates' },
+    ],
+  },
+];
+
+/**
+ * Customer Navigation Configuration
+ * Simplified sidebar for customers - no earnings/statements/placements
+ */
+export const customerNavigation: NavSection[] = [
+  {
+    id: 'main',
+    label: 'Main',
+    items: [
+      { id: 'overview', label: 'Dashboard', icon: 'dashboard' },
+      { id: 'tour-profile', label: 'My Tour Profile', icon: 'plane', path: '/settings?section=tourhub' },
+      { id: 'tour-miles', label: 'Tour Miles', icon: 'target', path: '/customer/tour-miles' },
+      { id: 'tools', label: 'Tools Hub', icon: 'tools' },
     ],
   },
 ];
@@ -106,6 +131,8 @@ export const getNavigationForRole = (role: string): NavSection[] => {
       return adminNavigation;
     case 'WRITER':
       return writerNavigation;
+    case 'CUSTOMER':
+      return customerNavigation;
     default:
       return writerNavigation;
   }

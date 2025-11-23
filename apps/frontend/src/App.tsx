@@ -13,6 +13,8 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import WriterDashboard from './pages/WriterDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import CustomerDashboard from './pages/CustomerDashboard';
+import CustomerTourMilesPage from './pages/CustomerTourMilesPage';
 import OpportunitiesPage from './pages/OpportunitiesPage';
 import ApplicationPage from './pages/ApplicationPage';
 import PubDealSimulatorPage from './pages/PubDealSimulatorPage';
@@ -29,6 +31,8 @@ import WriterTourHubPage from './pages/WriterTourHubPage';
 import MetadataIndexPage from './pages/MetadataIndexPage';
 import PricingPage from './pages/PricingPage';
 import TypeBeatVideoMakerPage from './pages/TypeBeatVideoMakerPage';
+import AffiliatesDashboard from './pages/AffiliatesDashboard';
+import AffiliateManagement from './pages/AffiliateManagement';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -108,7 +112,7 @@ function App() {
         <Route
           path="/tools/type-beat-video-maker"
           element={
-            <PrivateRoute roles={['WRITER', 'ADMIN']}>
+            <PrivateRoute roles={['WRITER', 'ADMIN', 'CUSTOMER']}>
               <TypeBeatVideoMakerPage />
             </PrivateRoute>
           }
@@ -136,7 +140,31 @@ function App() {
           path="/dashboard"
           element={
             <PrivateRoute>
-              {user?.role === 'ADMIN' ? <AdminDashboard /> : <WriterDashboard />}
+              {user?.role === 'ADMIN' ? (
+                <AdminDashboard />
+              ) : user?.role === 'CUSTOMER' ? (
+                <CustomerDashboard />
+              ) : (
+                <WriterDashboard />
+              )}
+            </PrivateRoute>
+          }
+        />
+
+        {/* Customer Routes */}
+        <Route
+          path="/customer"
+          element={
+            <PrivateRoute roles={['CUSTOMER']}>
+              <CustomerDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/customer/tour-miles"
+          element={
+            <PrivateRoute roles={['CUSTOMER']}>
+              <CustomerTourMilesPage />
             </PrivateRoute>
           }
         />
@@ -146,6 +174,24 @@ function App() {
           element={
             <PrivateRoute roles={['ADMIN']}>
               <AdminDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Affiliate Routes */}
+        <Route
+          path="/affiliates"
+          element={
+            <PrivateRoute roles={['WRITER']}>
+              <AffiliatesDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/affiliates"
+          element={
+            <PrivateRoute roles={['ADMIN']}>
+              <AffiliateManagement />
             </PrivateRoute>
           }
         />

@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 interface User {
   id: string;
   email: string;
-  role: 'ADMIN' | 'WRITER' | 'LEGAL' | 'MANAGER' | 'PUBLISHER' | 'STAFF' | 'VIEWER';
+  role: 'ADMIN' | 'WRITER' | 'LEGAL' | 'MANAGER' | 'PUBLISHER' | 'STAFF' | 'VIEWER' | 'CUSTOMER';
   firstName?: string;
   lastName?: string;
   writerIpiNumber?: string;

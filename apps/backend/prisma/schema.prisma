@@ -214,6 +214,9 @@ model User {
   conversationParticipants ConversationParticipant[]
   messages                 Message[]
 
+  // Tool subscription relations
+  toolSubscriptions        ToolSubscription[]
+
   @@map("users")
 }
 
@@ -1166,6 +1169,60 @@ model Message {
   @@index([createdAt])
   @@index([replyToId])
   @@map("messages")
+}
+
+// ========================================
+// TOOL SUBSCRIPTIONS - Customer tool access
+// ========================================
+
+enum ToolSubscriptionType {
+  FREE_TRIAL        // Limited trial access
+  TOUR_MILES        // Redeemed with Tour Miles
+  PAID              // Paid subscription via Stripe
+}
+
+enum ToolSubscriptionStatus {
+  ACTIVE            // Currently usable
+  EXPIRED           // Ran out of uses or time
+  CANCELLED         // User cancelled
+}
+
+// Tool access for customers
+model ToolSubscription {
+  id              String                  @id @default(cuid())
+  userId          String
+  user            User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  toolId          String                  // e.g., "type-beat-video-maker", "pub-deal-simulator"
+  toolName        String                  // Human-readable tool name
+
+  type            ToolSubscriptionType
+  status          ToolSubscriptionStatus  @default(ACTIVE)
+
+  // Usage tracking
+  usesRemaining   Int                     @default(0)      // Number of uses left (0 = unlimited for paid)
+  usesTotal       Int                     @default(0)      // Total uses purchased/granted
+  usesUsed        Int                     @default(0)      // Number of uses consumed
+
+  // Tour Miles redemption details
+  tourMilesCost   Int?                    // Points spent for this subscription
+  redemptionId    String?                 // Link to RewardRedemption if applicable
+
+  // Paid subscription details
+  stripeSubscriptionId String?            // Stripe subscription ID for paid plans
+  stripePriceId   String?                 // Stripe price ID
+
+  // Time-based access
+  expiresAt       DateTime?               // When access expires (null = no expiration)
+
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@unique([userId, toolId, type])
+  @@index([userId])
+  @@index([toolId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("tool_subscriptions")
 }
 
 // ========================================
