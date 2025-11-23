@@ -118,7 +118,7 @@ export default function PricingPage() {
 
       <main className="pt-0 pb-20">
         {/* Hero Section */}
-        <section className="relative overflow-hidden">
+        <section className="relative overflow-hidden pt-28">
           {/* Background Effects */}
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-brand-blue/10 rounded-full blur-[120px]" />
