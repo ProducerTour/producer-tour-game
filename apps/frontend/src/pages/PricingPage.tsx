@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, Zap, Music2, FileText, Calculator, Users, Video, Target, Award, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -112,6 +113,50 @@ const freeTools = [
 ];
 
 export default function PricingPage() {
+  useEffect(() => {
+    // Set page title
+    document.title = 'Pricing - Producer Tour';
+
+    // Helper to set or create meta tags
+    const setMetaTag = (property: string, content: string) => {
+      let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('property', property);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    };
+
+    // Set Open Graph meta tags
+    setMetaTag('og:title', 'Pricing - Producer Tour');
+    setMetaTag('og:description', 'Simple, transparent pricing for music producers. Choose the plan that fits your needs - from free tools to full publishing admin solutions.');
+    setMetaTag('og:image', '/og-pricing.png');
+    setMetaTag('og:type', 'website');
+    setMetaTag('og:url', window.location.href);
+
+    // Set Twitter card meta tags
+    const setTwitterMeta = (name: string, content: string) => {
+      let meta = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement;
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', name);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    };
+
+    setTwitterMeta('twitter:card', 'summary_large_image');
+    setTwitterMeta('twitter:title', 'Pricing - Producer Tour');
+    setTwitterMeta('twitter:description', 'Simple, transparent pricing for music producers. Choose the plan that fits your needs.');
+    setTwitterMeta('twitter:image', '/og-pricing.png');
+
+    // Cleanup function to reset title
+    return () => {
+      document.title = 'Producer Tour';
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-surface text-white">
       <Header />
