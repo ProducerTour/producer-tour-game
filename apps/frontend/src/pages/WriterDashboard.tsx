@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { dashboardApi, statementApi, documentApi, userApi, payoutApi } from '../lib/api';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import { PaymentSettings } from '../components/PaymentSettings';
@@ -18,6 +18,19 @@ export default function WriterDashboard() {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawError, setWithdrawError] = useState('');
   const queryClient = useQueryClient();
+
+  // Track sidebar collapse state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  });
+
+  useEffect(() => {
+    const handleSidebarToggle = (e: CustomEvent<{ isCollapsed: boolean }>) => {
+      setSidebarCollapsed(e.detail.isCollapsed);
+    };
+    window.addEventListener('sidebar-toggle', handleSidebarToggle as EventListener);
+    return () => window.removeEventListener('sidebar-toggle', handleSidebarToggle as EventListener);
+  }, []);
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['dashboard-summary'],
@@ -124,7 +137,7 @@ export default function WriterDashboard() {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 ml-64 overflow-y-auto">
+        <main className={`flex-1 ${sidebarCollapsed ? 'ml-20' : 'ml-64'} overflow-y-auto transition-all duration-300`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Payment Status Indicator */}

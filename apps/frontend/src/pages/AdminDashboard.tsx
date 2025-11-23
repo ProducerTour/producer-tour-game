@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useNavigate } from 'react-router-dom';
@@ -51,6 +51,19 @@ const formatChartCurrency = (value: any): string => {
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
+  // Track sidebar collapse state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  });
+
+  useEffect(() => {
+    const handleSidebarToggle = (e: CustomEvent<{ isCollapsed: boolean }>) => {
+      setSidebarCollapsed(e.detail.isCollapsed);
+    };
+    window.addEventListener('sidebar-toggle', handleSidebarToggle as EventListener);
+    return () => window.removeEventListener('sidebar-toggle', handleSidebarToggle as EventListener);
+  }, []);
+
   return (
     <div className="flex flex-col h-screen bg-surface overflow-hidden">
       {/* Background Effects */}
@@ -70,7 +83,7 @@ export default function AdminDashboard() {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 ml-64 overflow-y-auto">
+        <main className={`flex-1 ${sidebarCollapsed ? 'ml-20' : 'ml-64'} overflow-y-auto transition-all duration-300`}>
           <div className="p-8">
             {activeTab === 'overview' && <DashboardOverviewTremor />}
             {activeTab === 'statements' && <StatementsTab />}

@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
 import { useQuery } from '@tanstack/react-query';
 import { getNavigationForRole, type NavSection, type NavItem } from '../config/navigation.config';
 import { SaasIcon, IconName } from './ui/SaasIcon';
-import { LogOut, Settings, ChevronDown } from 'lucide-react';
+import { LogOut, Settings, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
+import whiteLogoIcon from '@/assets/images/logos/whitetransparentpt.png';
 
 // Re-export types for backward compatibility
 export type { NavSection, NavItem };
@@ -21,6 +22,19 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   const navigate = useNavigate();
   const [expandedSections, setExpandedSections] = useState<string[]>(['main']);
   const [expandedTabs, setExpandedTabs] = useState<string[]>(['placement-deals']); // Auto-expand placement tracker
+
+  // Sidebar collapse state - persisted to localStorage
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    return saved === 'true';
+  });
+
+  // Persist collapse state
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', String(isCollapsed));
+    // Dispatch event so other components can react to sidebar changes
+    window.dispatchEvent(new CustomEvent('sidebar-toggle', { detail: { isCollapsed } }));
+  }, [isCollapsed]);
 
   const isAdmin = user?.role === 'ADMIN';
 
@@ -97,47 +111,63 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   };
 
   return (
-    <div className="fixed left-0 top-0 flex flex-col h-screen w-64 bg-gradient-to-b from-surface to-surface-100 border-r border-white/[0.08] shadow-2xl z-[60]">
+    <div className={`fixed left-0 top-0 flex flex-col h-screen ${isCollapsed ? 'w-20' : 'w-64'} bg-gradient-to-b from-surface to-surface-100 border-r border-white/[0.08] shadow-2xl z-[60] transition-all duration-300`}>
       {/* Logo Section */}
-      <div className="p-6 border-b border-white/[0.08]">
-        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+      <div className={`${isCollapsed ? 'p-4' : 'p-6'} border-b border-white/[0.08] relative`}>
+        <Link to="/" className="flex items-center justify-center hover:opacity-80 transition-opacity">
           <img
             src={whiteLogo}
             alt="Producer Tour"
-            className="h-14 w-auto"
+            className={`${isCollapsed ? 'h-10' : 'h-14'} w-auto transition-all duration-300`}
           />
         </Link>
+        {/* Collapse Toggle Button */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-surface border border-white/[0.15] rounded-full flex items-center justify-center text-text-muted hover:text-white hover:bg-white/10 transition-all shadow-lg"
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
       </div>
 
       {/* User Profile Section */}
-      <div className="px-6 py-4 border-b border-white/[0.08]">
-        <div className="flex items-center gap-3">
+      <div className={`${isCollapsed ? 'px-3 py-4' : 'px-6 py-4'} border-b border-white/[0.08]`}>
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
           {(user as any)?.profilePhotoUrl ? (
             <img
               src={(user as any).profilePhotoUrl}
               alt={`${user?.firstName} ${user?.lastName}`}
               className="w-10 h-10 rounded-xl object-cover shadow-lg"
+              title={isCollapsed ? `${user?.firstName} ${user?.lastName}` : undefined}
             />
           ) : (
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-blue to-green-500 flex items-center justify-center text-white font-semibold shadow-lg">
+            <div
+              className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-blue to-green-500 flex items-center justify-center text-white font-semibold shadow-lg"
+              title={isCollapsed ? `${user?.firstName} ${user?.lastName}` : undefined}
+            >
               {user?.firstName?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">
-              {user?.firstName && user?.lastName
-                ? `${user.firstName} ${user.lastName}`
-                : user?.email}
-            </p>
-            <p className="text-xs text-text-muted capitalize">{user?.role.toLowerCase()}</p>
-          </div>
-          <button
-            onClick={logout}
-            className="text-text-muted hover:text-white transition-colors p-2 hover:bg-white/[0.05] rounded-lg"
-            title="Logout"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+          {!isCollapsed && (
+            <>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">
+                  {user?.firstName && user?.lastName
+                    ? `${user.firstName} ${user.lastName}`
+                    : user?.email}
+                </p>
+                <p className="text-xs text-text-muted capitalize">{user?.role.toLowerCase()}</p>
+              </div>
+              <button
+                onClick={logout}
+                className="text-text-muted hover:text-white transition-colors p-2 hover:bg-white/[0.05] rounded-lg"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -145,22 +175,24 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       <div className="flex-1 overflow-y-auto py-4">
         {sections.map((section) => (
           <div key={section.id} className="mb-4">
-            <button
-              onClick={() => toggleSection(section.id)}
-              className="w-full px-6 py-2 flex items-center justify-between text-text-muted hover:text-white transition-colors"
-            >
-              <span className="text-xs font-semibold uppercase tracking-wider">
-                {section.label}
-              </span>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${
-                  expandedSections.includes(section.id) ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
+            {!isCollapsed && (
+              <button
+                onClick={() => toggleSection(section.id)}
+                className="w-full px-6 py-2 flex items-center justify-between text-text-muted hover:text-white transition-colors"
+              >
+                <span className="text-xs font-semibold uppercase tracking-wider">
+                  {section.label}
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${
+                    expandedSections.includes(section.id) ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+            )}
 
-            {expandedSections.includes(section.id) && (
-              <div className="mt-2 space-y-1">
+            {(isCollapsed || expandedSections.includes(section.id)) && (
+              <div className={`${isCollapsed ? '' : 'mt-2'} space-y-1`}>
                 {section.items.map((item) => {
                   const isActive = activeTab === item.id;
                   const hasChildren = item.children && item.children.length > 0;
@@ -172,32 +204,37 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                       {item.path && !hasChildren ? (
                         <Link
                           to={item.path}
-                          className={`w-full px-6 py-3 flex items-center gap-3 transition-all ${
+                          title={isCollapsed ? item.label : undefined}
+                          className={`w-full ${isCollapsed ? 'px-0 py-3 justify-center' : 'px-6 py-3'} flex items-center gap-3 transition-all ${
                             isActive
-                              ? 'bg-gradient-to-r from-white/[0.12] to-white/[0.06] border-l-4 border-white text-white'
-                              : 'text-text-secondary hover:text-white hover:bg-white/[0.05] border-l-4 border-transparent'
+                              ? `bg-gradient-to-r from-white/[0.12] to-white/[0.06] ${isCollapsed ? 'border-l-2' : 'border-l-4'} border-white text-white`
+                              : `text-text-secondary hover:text-white hover:bg-white/[0.05] ${isCollapsed ? 'border-l-2' : 'border-l-4'} border-transparent`
                           }`}
                         >
                           {renderIcon(item.icon)}
-                          <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
-                          {item.badge !== undefined && item.badge > 0 && (
-                            <span className={`
-                              px-2 py-0.5 rounded-full text-xs font-semibold
-                              ${item.badgeColor === 'green' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : ''}
-                              ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
-                              ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
-                              ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
-                              ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
-                              ${!item.badgeColor ? 'bg-white/10 text-gray-400 border border-white/20' : ''}
-                            `}>
-                              {item.badge}
-                            </span>
+                          {!isCollapsed && (
+                            <>
+                              <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
+                              {item.badge !== undefined && item.badge > 0 && (
+                                <span className={`
+                                  px-2 py-0.5 rounded-full text-xs font-semibold
+                                  ${item.badgeColor === 'green' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : ''}
+                                  ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
+                                  ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
+                                  ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
+                                  ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
+                                  ${!item.badgeColor ? 'bg-white/10 text-gray-400 border border-white/20' : ''}
+                                `}>
+                                  {item.badge}
+                                </span>
+                              )}
+                            </>
                           )}
                         </Link>
                       ) : (
                         <button
                           onClick={() => {
-                            if (hasChildren) {
+                            if (hasChildren && !isCollapsed) {
                               toggleTab(item.id);
                             } else if (onTabChange) {
                               onTabChange(item.id);
@@ -207,39 +244,44 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                               navigate(dashboardPath);
                             }
                           }}
-                          className={`w-full px-6 py-3 flex items-center gap-3 transition-all ${
+                          title={isCollapsed ? item.label : undefined}
+                          className={`w-full ${isCollapsed ? 'px-0 py-3 justify-center' : 'px-6 py-3'} flex items-center gap-3 transition-all ${
                             isActive
-                              ? 'bg-gradient-to-r from-white/[0.12] to-white/[0.06] border-l-4 border-white text-white'
-                              : 'text-text-secondary hover:text-white hover:bg-white/[0.05] border-l-4 border-transparent'
+                              ? `bg-gradient-to-r from-white/[0.12] to-white/[0.06] ${isCollapsed ? 'border-l-2' : 'border-l-4'} border-white text-white`
+                              : `text-text-secondary hover:text-white hover:bg-white/[0.05] ${isCollapsed ? 'border-l-2' : 'border-l-4'} border-transparent`
                           }`}
                         >
                           {renderIcon(item.icon)}
-                          <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
-                          {item.badge !== undefined && item.badge > 0 && (
-                            <span className={`
-                              px-2 py-0.5 rounded-full text-xs font-semibold
-                              ${item.badgeColor === 'green' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : ''}
-                              ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
-                              ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
-                              ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
-                              ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
-                              ${!item.badgeColor ? 'bg-white/10 text-gray-400 border border-white/20' : ''}
-                            `}>
-                              {item.badge}
-                            </span>
-                          )}
-                          {hasChildren && (
-                            <ChevronDown
-                              className={`w-4 h-4 transition-transform ${
-                                isExpanded ? 'rotate-180' : ''
-                              }`}
-                            />
+                          {!isCollapsed && (
+                            <>
+                              <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
+                              {item.badge !== undefined && item.badge > 0 && (
+                                <span className={`
+                                  px-2 py-0.5 rounded-full text-xs font-semibold
+                                  ${item.badgeColor === 'green' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : ''}
+                                  ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
+                                  ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
+                                  ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
+                                  ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
+                                  ${!item.badgeColor ? 'bg-white/10 text-gray-400 border border-white/20' : ''}
+                                `}>
+                                  {item.badge}
+                                </span>
+                              )}
+                              {hasChildren && (
+                                <ChevronDown
+                                  className={`w-4 h-4 transition-transform ${
+                                    isExpanded ? 'rotate-180' : ''
+                                  }`}
+                                />
+                              )}
+                            </>
                           )}
                         </button>
                       )}
 
-                      {/* Sub-items */}
-                      {hasChildren && isExpanded && (
+                      {/* Sub-items - hide when collapsed */}
+                      {hasChildren && isExpanded && !isCollapsed && (
                         <div className="ml-6 mt-1 space-y-1">
                           {item.children?.map((child) => {
                             const isChildActive = activeTab === child.id;
@@ -278,14 +320,24 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       </div>
 
       {/* Bottom Actions */}
-      <div className="p-4 border-t border-white/[0.08] space-y-2">
+      <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t border-white/[0.08] space-y-2`}>
         <Link
           to="/settings"
-          className="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors"
+          title={isCollapsed ? 'Settings' : undefined}
+          className={`flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 text-text-secondary hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors`}
         >
           <Settings className="w-5 h-5" />
-          <span className="text-sm font-medium">Settings</span>
+          {!isCollapsed && <span className="text-sm font-medium">Settings</span>}
         </Link>
+        {isCollapsed && (
+          <button
+            onClick={logout}
+            title="Logout"
+            className="w-full flex items-center justify-center px-2 py-3 text-text-secondary hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        )}
       </div>
     </div>
   );

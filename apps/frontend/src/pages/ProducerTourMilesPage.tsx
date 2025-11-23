@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { gamificationApi } from '../lib/api';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import AchievementGallery from '../components/gamification/AchievementGallery';
@@ -63,6 +63,19 @@ export default function ProducerTourMilesPage() {
   const [unlockedAchievement, setUnlockedAchievement] = useState<any>(null);
   const [showPointsToast, setShowPointsToast] = useState(false);
   const [toastData, setToastData] = useState<{ points: number; message: string }>({ points: 0, message: '' });
+
+  // Track sidebar collapse state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  });
+
+  useEffect(() => {
+    const handleSidebarToggle = (e: CustomEvent<{ isCollapsed: boolean }>) => {
+      setSidebarCollapsed(e.detail.isCollapsed);
+    };
+    window.addEventListener('sidebar-toggle', handleSidebarToggle as EventListener);
+    return () => window.removeEventListener('sidebar-toggle', handleSidebarToggle as EventListener);
+  }, []);
 
   const queryClient = useQueryClient();
 
@@ -199,7 +212,7 @@ export default function ProducerTourMilesPage() {
       </div>
 
       <Sidebar />
-      <div className="flex-1 ml-64 flex flex-col min-h-0 relative z-10">
+      <div className={`flex-1 ${sidebarCollapsed ? 'ml-20' : 'ml-64'} flex flex-col min-h-0 relative z-10 transition-all duration-300`}>
         <ImpersonationBanner />
         <div className="flex-1 overflow-y-auto p-8">
           {/* Header */}
