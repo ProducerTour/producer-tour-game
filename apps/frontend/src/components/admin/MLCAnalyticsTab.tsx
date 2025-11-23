@@ -300,11 +300,50 @@ export default function MLCAnalyticsTab() {
     margin: p.margin,
   })) || [];
 
-  const serviceTypePieData = serviceTypes?.map((s: any, i: number) => ({
-    name: s.name,
-    value: s.revenue,
-    fill: COLORS[i % COLORS.length],
-  })) || [];
+  // Group service types into meaningful categories
+  const categorizeServiceType = (name: string): string => {
+    const lower = name.toLowerCase();
+
+    // Student plans
+    if (lower.includes('student')) return 'Student Plans';
+
+    // Family plans
+    if (lower.includes('family') || lower.includes('duo')) return 'Family Plans';
+
+    // Ad-supported / Free tier
+    if (lower.includes('free') || lower.includes('ad') || lower.includes('adfunded') ||
+        lower.includes('adsupport') || lower.includes('adsupported')) return 'Ad-Supported';
+
+    // Bundled services (Hulu, Tesla, audiobooks, etc.)
+    if (lower.includes('bundle') || lower.includes('bundled')) return 'Bundled Services';
+
+    // Premium / Individual tiers
+    if (lower.includes('premium') || lower.includes('hifi') || lower.includes('individual') ||
+        lower.includes('basic') || lower === 'individual') return 'Premium Streaming';
+
+    // Downloads
+    if (lower.includes('download')) return 'Downloads';
+
+    // Mid-tier
+    if (lower.includes('midtier') || lower.includes('plus')) return 'Mid-Tier';
+
+    return 'Other';
+  };
+
+  // Group and aggregate service types
+  const groupedServiceTypes = serviceTypes?.reduce((acc: Record<string, number>, s: any) => {
+    const category = categorizeServiceType(s.name);
+    acc[category] = (acc[category] || 0) + s.revenue;
+    return acc;
+  }, {}) || {};
+
+  const serviceTypePieData = Object.entries(groupedServiceTypes)
+    .map(([name, value], i) => ({
+      name,
+      value: value as number,
+      fill: COLORS[i % COLORS.length],
+    }))
+    .sort((a, b) => b.value - a.value);
 
   const timelineAreaData = timeline?.map((t: any) => ({
     month: t.month.replace(/^\d{4}-/, ''),
