@@ -42,7 +42,7 @@ export default function AffiliatesDashboard() {
   });
 
   // Fetch referral stats
-  const { data: referralStats, isLoading: referralLoading } = useQuery({
+  const { data: referralStats } = useQuery({
     queryKey: ['referral-stats'],
     queryFn: async () => {
       const response = await gamificationApi.getReferralStats();
@@ -209,8 +209,8 @@ export default function AffiliatesDashboard() {
                     <DollarSign className="w-6 h-6 text-amber-400" />
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">${affiliateStats.totalEarnings.toFixed(2)}</p>
-                <p className="text-sm text-text-secondary">Total Earnings</p>
+                <p className="text-3xl font-bold text-white mb-1">{affiliateStats.totalPointsEarned.toLocaleString()}</p>
+                <p className="text-sm text-text-secondary">Tour Miles Earned</p>
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
