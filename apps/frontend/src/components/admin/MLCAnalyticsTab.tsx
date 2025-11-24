@@ -34,7 +34,7 @@ import {
   ZAxis,
 } from 'recharts';
 import { dashboardApi } from '../../lib/api';
-import { TrendingUp, Music, DollarSign, BarChart3, Globe, Disc } from 'lucide-react';
+import { TrendingUp, Music, DollarSign, BarChart3, Globe, Disc, Maximize2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Color palettes
 const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16'];
@@ -238,8 +238,68 @@ const CustomTreemapContent = ({ depth, x, y, width, height, index, name, revenue
   return null;
 };
 
+// Theater Mode Overlay Component
+const TheaterMode = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      onClick={onClose}
+    >
+      {/* Dark backdrop */}
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
+
+      {/* Content container */}
+      <div
+        className="relative z-10 w-[95vw] max-w-7xl h-[85vh] bg-gray-900/95 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.02]">
+          <h2 className="text-white text-xl font-semibold">{title}</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Chart content - takes remaining space */}
+        <div className="p-6 h-[calc(100%-72px)]">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Chart expand button component
+const ExpandButton = ({ onClick }: { onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+    title="Open in theater mode"
+  >
+    <Maximize2 className="w-4 h-4" />
+  </button>
+);
+
 export default function MLCAnalyticsTab() {
   const [useMockData, setUseMockData] = useState(false);
+  const [theaterChart, setTheaterChart] = useState<string | null>(null);
+  const [timelineMonthOffset, setTimelineMonthOffset] = useState(0); // 0 = most recent, negative = older months
 
   const { data: apiData, isLoading, error } = useQuery({
     queryKey: ['mlc-analytics'],
@@ -345,13 +405,40 @@ export default function MLCAnalyticsTab() {
     }))
     .sort((a, b) => b.value - a.value);
 
-  const timelineAreaData = timeline?.map((t: any) => ({
+  // Full timeline data for theater mode
+  const fullTimelineData = timeline?.map((t: any) => ({
     month: t.month.replace(/^\d{4}-/, ''),
     fullMonth: t.month,
     revenue: Number(t.revenue) || 0,
     netRevenue: Number(t.netRevenue) || 0,
     count: Number(t.count) || 0,
   })) || [];
+
+  // Windowed timeline data (3 months at a time) with navigation
+  const MONTHS_TO_SHOW = 3;
+  const startIndex = Math.max(0, fullTimelineData.length - MONTHS_TO_SHOW + timelineMonthOffset);
+  const endIndex = Math.min(fullTimelineData.length, startIndex + MONTHS_TO_SHOW);
+  const timelineAreaData = fullTimelineData.slice(startIndex, endIndex);
+
+  // Navigation helpers
+  const canGoBack = startIndex > 0;
+  const canGoForward = timelineMonthOffset < 0;
+
+  const goToPreviousMonths = () => {
+    if (canGoBack) setTimelineMonthOffset(prev => prev - 1);
+  };
+
+  const goToNextMonths = () => {
+    if (canGoForward) setTimelineMonthOffset(prev => prev + 1);
+  };
+
+  // Get month range label for display
+  const getMonthRangeLabel = () => {
+    if (timelineAreaData.length === 0) return 'No data';
+    const first = timelineAreaData[0]?.fullMonth || '';
+    const last = timelineAreaData[timelineAreaData.length - 1]?.fullMonth || '';
+    return first === last ? first : `${first} to ${last}`;
+  };
 
   const topSongsBarData = topSongs?.slice(0, 10).map((s: any) => ({
     title: s.title.length > 20 ? s.title.slice(0, 20) + '...' : s.title,
@@ -495,17 +582,52 @@ export default function MLCAnalyticsTab() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <Title className="text-white mb-1">Revenue Timeline</Title>
-            <Text className="text-gray-500 text-sm">Monthly gross and net revenue trend</Text>
+            <Text className="text-gray-500 text-sm">{getMonthRangeLabel()}</Text>
           </div>
-          <div className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/30" />
-              <span className="text-gray-400 text-xs">Gross</span>
+          <div className="flex items-center gap-4">
+            {/* Month Navigation */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={goToPreviousMonths}
+                disabled={!canGoBack}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  canGoBack
+                    ? 'hover:bg-white/10 text-gray-400 hover:text-white'
+                    : 'text-gray-600 cursor-not-allowed'
+                }`}
+                title="Previous months"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-gray-500 text-xs px-2">
+                {startIndex + 1}-{endIndex} of {fullTimelineData.length}
+              </span>
+              <button
+                onClick={goToNextMonths}
+                disabled={!canGoForward}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  canGoForward
+                    ? 'hover:bg-white/10 text-gray-400 hover:text-white'
+                    : 'text-gray-600 cursor-not-allowed'
+                }`}
+                title="Next months"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/30" />
-              <span className="text-gray-400 text-xs">Net</span>
+            {/* Legend */}
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/30" />
+                <span className="text-gray-400 text-xs">Gross</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/30" />
+                <span className="text-gray-400 text-xs">Net</span>
+              </div>
             </div>
+            {/* Theater mode button */}
+            <ExpandButton onClick={() => setTheaterChart('timeline')} />
           </div>
         </div>
         <div className="h-80">
@@ -585,15 +707,18 @@ export default function MLCAnalyticsTab() {
               <Title className="text-white mb-1">Top Platforms by Revenue</Title>
               <Text className="text-gray-500 text-sm">Gross vs Net comparison (top 10)</Text>
             </div>
-            <div className="flex gap-3">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-sm bg-emerald-500" />
-                <span className="text-gray-400 text-xs">Gross</span>
+            <div className="flex items-center gap-3">
+              <div className="flex gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-sm bg-emerald-500" />
+                  <span className="text-gray-400 text-xs">Gross</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-sm bg-emerald-300" />
+                  <span className="text-gray-400 text-xs">Net</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-sm bg-emerald-300" />
-                <span className="text-gray-400 text-xs">Net</span>
-              </div>
+              <ExpandButton onClick={() => setTheaterChart('platforms')} />
             </div>
           </div>
           <div className="h-80">
@@ -649,9 +774,12 @@ export default function MLCAnalyticsTab() {
 
         {/* Service Type Pie Chart */}
         <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
-          <div className="mb-4">
-            <Title className="text-white mb-1">Service Type Distribution</Title>
-            <Text className="text-gray-500 text-sm">Revenue by streaming tier/offering</Text>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <Title className="text-white mb-1">Service Type Distribution</Title>
+              <Text className="text-gray-500 text-sm">Revenue by streaming tier/offering</Text>
+            </div>
+            <ExpandButton onClick={() => setTheaterChart('serviceTypes')} />
           </div>
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="h-56 flex-1">
@@ -710,15 +838,18 @@ export default function MLCAnalyticsTab() {
             <Title className="text-white mb-1">Top Performing Songs</Title>
             <Text className="text-gray-500 text-sm">Revenue and platform distribution (top 10)</Text>
           </div>
-          <div className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-violet-500" />
-              <span className="text-gray-400 text-xs">Revenue</span>
+          <div className="flex items-center gap-4">
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-sm bg-violet-500" />
+                <span className="text-gray-400 text-xs">Revenue</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-0.5 bg-amber-500" />
+                <span className="text-gray-400 text-xs">Platforms</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-0.5 bg-amber-500" />
-              <span className="text-gray-400 text-xs">Platforms</span>
-            </div>
+            <ExpandButton onClick={() => setTheaterChart('topSongs')} />
           </div>
         </div>
         <div className="h-96">
@@ -779,9 +910,12 @@ export default function MLCAnalyticsTab() {
       <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
         {/* Territory Treemap */}
         <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0 overflow-hidden">
-          <div className="mb-4">
-            <Title className="text-white mb-1">Revenue by Territory</Title>
-            <Text className="text-gray-500 text-sm">Geographic distribution of earnings</Text>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <Title className="text-white mb-1">Revenue by Territory</Title>
+              <Text className="text-gray-500 text-sm">Geographic distribution of earnings</Text>
+            </div>
+            <ExpandButton onClick={() => setTheaterChart('territory')} />
           </div>
           <div className="h-72 rounded-xl overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
@@ -807,9 +941,12 @@ export default function MLCAnalyticsTab() {
 
         {/* Use Type Horizontal Bar Chart */}
         <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
-          <div className="mb-4">
-            <Title className="text-white mb-1">Use Type Breakdown</Title>
-            <Text className="text-gray-500 text-sm">Revenue by consumption type</Text>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <Title className="text-white mb-1">Use Type Breakdown</Title>
+              <Text className="text-gray-500 text-sm">Revenue by consumption type</Text>
+            </div>
+            <ExpandButton onClick={() => setTheaterChart('useType')} />
           </div>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -1050,6 +1187,158 @@ export default function MLCAnalyticsTab() {
           </div>
         </Flex>
       </Card>
+
+      {/* Theater Mode Overlays */}
+      {/* Revenue Timeline Theater */}
+      <TheaterMode
+        isOpen={theaterChart === 'timeline'}
+        onClose={() => setTheaterChart(null)}
+        title="Revenue Timeline - All Months"
+      >
+        <div className="h-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={fullTimelineData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+              <defs>
+                <linearGradient id="colorRevenueTheater" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.5}/>
+                  <stop offset="50%" stopColor="#10b981" stopOpacity={0.15}/>
+                  <stop offset="100%" stopColor="#10b981" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorNetTheater" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.5}/>
+                  <stop offset="50%" stopColor="#3b82f6" stopOpacity={0.15}/>
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} vertical={false} />
+              <XAxis dataKey="fullMonth" stroke="#9ca3af" fontSize={12} tickLine={false} />
+              <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="revenue" name="Gross Revenue" stroke="#10b981" strokeWidth={3} fill="url(#colorRevenueTheater)" />
+              <Area type="monotone" dataKey="netRevenue" name="Net Revenue" stroke="#3b82f6" strokeWidth={3} fill="url(#colorNetTheater)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </TheaterMode>
+
+      {/* Platforms Theater */}
+      <TheaterMode
+        isOpen={theaterChart === 'platforms'}
+        onClose={() => setTheaterChart(null)}
+        title="Platform Revenue Breakdown"
+      >
+        <div className="h-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={platformBarData} layout="vertical" margin={{ left: 20, right: 40, top: 20, bottom: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} horizontal={false} />
+              <XAxis type="number" stroke="#9ca3af" fontSize={12} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} tickLine={false} />
+              <YAxis dataKey="fullName" type="category" stroke="#9ca3af" fontSize={12} width={120} tickLine={false} axisLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="revenue" name="Gross" fill="#10b981" radius={[0, 8, 8, 0]} barSize={20} />
+              <Bar dataKey="netRevenue" name="Net" fill="#6ee7b7" radius={[0, 8, 8, 0]} barSize={20} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </TheaterMode>
+
+      {/* Service Types Theater */}
+      <TheaterMode
+        isOpen={theaterChart === 'serviceTypes'}
+        onClose={() => setTheaterChart(null)}
+        title="Service Type Distribution"
+      >
+        <div className="h-full flex items-center justify-center">
+          <div className="w-full max-w-4xl flex gap-8">
+            <div className="flex-1 h-[500px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={serviceTypePieData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={180}
+                    innerRadius={100}
+                    dataKey="value"
+                    paddingAngle={2}
+                    stroke="rgba(0,0,0,0.3)"
+                    strokeWidth={1}
+                  >
+                    {serviceTypePieData.map((_entry: any, index: number) => (
+                      <Cell key={`cell-theater-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => currencyFormat(value)} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex-1 flex items-center">
+              <CustomPieLegend data={serviceTypePieData} />
+            </div>
+          </div>
+        </div>
+      </TheaterMode>
+
+      {/* Top Songs Theater */}
+      <TheaterMode
+        isOpen={theaterChart === 'topSongs'}
+        onClose={() => setTheaterChart(null)}
+        title="Top Performing Songs"
+      >
+        <div className="h-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={topSongsBarData} layout="vertical" margin={{ left: 40, right: 50, top: 20, bottom: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} horizontal={false} />
+              <XAxis type="number" stroke="#9ca3af" fontSize={12} tickFormatter={(v) => `$${(v/1000).toFixed(1)}k`} tickLine={false} />
+              <YAxis dataKey="fullTitle" type="category" stroke="#9ca3af" fontSize={11} width={180} tickLine={false} axisLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="revenue" name="Revenue" fill="#8b5cf6" radius={[0, 8, 8, 0]} barSize={24} />
+              <Line type="monotone" dataKey="platforms" name="Platforms" stroke="#f59e0b" strokeWidth={3} dot={{ fill: '#f59e0b', r: 6 }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </TheaterMode>
+
+      {/* Territory Theater */}
+      <TheaterMode
+        isOpen={theaterChart === 'territory'}
+        onClose={() => setTheaterChart(null)}
+        title="Revenue by Territory"
+      >
+        <div className="h-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <Treemap
+              data={territoryData}
+              dataKey="revenue"
+              aspectRatio={16 / 9}
+              stroke="transparent"
+              content={<CustomTreemapContent />}
+            />
+          </ResponsiveContainer>
+        </div>
+      </TheaterMode>
+
+      {/* Use Type Theater */}
+      <TheaterMode
+        isOpen={theaterChart === 'useType'}
+        onClose={() => setTheaterChart(null)}
+        title="Use Type Breakdown"
+      >
+        <div className="h-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={useTypeRadialData} layout="vertical" margin={{ left: 40, right: 50, top: 20, bottom: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} horizontal={false} />
+              <XAxis type="number" stroke="#9ca3af" fontSize={12} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} tickLine={false} />
+              <YAxis dataKey="name" type="category" stroke="#9ca3af" fontSize={12} width={160} tickLine={false} axisLine={false} />
+              <Tooltip formatter={(value: number) => currencyFormat(value)} contentStyle={{ backgroundColor: 'rgba(17, 24, 39, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
+              <Bar dataKey="value" name="Revenue" radius={[0, 8, 8, 0]} barSize={36}>
+                {useTypeRadialData.map((_: any, index: number) => (
+                  <Cell key={`cell-use-theater-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </TheaterMode>
     </div>
   );
 }

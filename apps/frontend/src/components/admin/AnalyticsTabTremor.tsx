@@ -173,15 +173,29 @@ export default function AnalyticsTabTremor() {
 
   // Transform data for Nivo charts
   // Line chart format: { id, data: [{ x, y }] }
+  // Filter to show only previous quarter (last 3 months of data)
   const getRevenueTimelineData = () => {
     if (!stats?.revenueTimeline) return [];
+    // Get only the last 3 months (previous quarter)
+    const lastThreeMonths = stats.revenueTimeline.slice(-3);
     return [{
       id: 'Revenue',
-      data: stats.revenueTimeline.map((item: any) => ({
+      data: lastThreeMonths.map((item: any) => ({
         x: item.month,
         y: Number(item.revenue) || 0,
       })),
     }];
+  };
+
+  // Get the date range for the quarter label
+  const getQuarterLabel = () => {
+    if (!stats?.revenueTimeline || stats.revenueTimeline.length < 1) return 'Previous Quarter';
+    const lastThreeMonths = stats.revenueTimeline.slice(-3);
+    if (lastThreeMonths.length === 0) return 'Previous Quarter';
+    const firstMonth = lastThreeMonths[0]?.month || '';
+    const lastMonth = lastThreeMonths[lastThreeMonths.length - 1]?.month || '';
+    if (firstMonth === lastMonth) return firstMonth;
+    return `${firstMonth} - ${lastMonth}`;
   };
 
   // Pie chart format: { id, label, value }
@@ -417,11 +431,11 @@ export default function AnalyticsTabTremor() {
 
       {/* Revenue & PRO Charts Row */}
       <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
-        {/* Revenue Timeline */}
+        {/* Revenue Timeline - Previous Quarter */}
         <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
           <div className="mb-4">
             <Title className="text-white">Revenue Over Time</Title>
-            <Text className="text-gray-400">12-month revenue trend</Text>
+            <Text className="text-gray-400">{getQuarterLabel()}</Text>
           </div>
           {getRevenueTimelineData().length > 0 && getRevenueTimelineData()[0]?.data?.length > 0 ? (
             <NivoLineChart
