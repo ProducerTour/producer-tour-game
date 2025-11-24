@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { dashboardApi, statementApi, userApi, authApi } from '../lib/api';
 import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Users, BarChart3, CheckCircle2, Music, DollarSign, FileText, TrendingUp, Sparkles, Loader2, AlertTriangle, X, Brain } from 'lucide-react';
+import { Users, BarChart3, CheckCircle2, Music, DollarSign, FileText, TrendingUp, Sparkles, Loader2, AlertTriangle, X, Brain, Maximize2, Minimize2 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import ToolsHub from '../components/ToolsHub';
 import ToolPermissionsSettings from '../components/ToolPermissionsSettings';
@@ -689,6 +689,9 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'revenue-desc' | 'revenue-asc' | 'title-asc' | 'title-desc'>('revenue-desc');
 
+  // Fullscreen mode
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   // Virtual scrolling ref
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -736,26 +739,40 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
     return row.workTitle;
   };
 
-  // Get confidence badge info from Smart Assign results
+  // Memoized badge lookup map for performance - prevents repeated array searches
+  const badgeLookupMap = useMemo(() => {
+    if (!smartAssignResults) return new Map();
+
+    const map = new Map<string, { badge: string; class: string; level: string }>();
+
+    // Index auto-assigned
+    smartAssignResults.autoAssigned?.forEach((m: any) => {
+      const key = getRowKey(m);
+      map.set(key, { badge: '✓ Auto-assigned', class: 'bg-green-500/20 text-green-400 border-green-500/30', level: 'high' });
+    });
+
+    // Index suggested
+    smartAssignResults.suggested?.forEach((s: any) => {
+      const key = getRowKey(s);
+      if (!map.has(key)) {
+        map.set(key, { badge: '⚠ Review Suggested', class: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', level: 'medium' });
+      }
+    });
+
+    // Index unmatched
+    smartAssignResults.unmatched?.forEach((u: any) => {
+      const key = getRowKey(u);
+      if (!map.has(key)) {
+        map.set(key, { badge: '✗ Manual Required', class: 'bg-red-500/20 text-red-400 border-red-500/30', level: 'low' });
+      }
+    });
+
+    return map;
+  }, [smartAssignResults, isMLC]);
+
+  // Get confidence badge info from memoized map - O(1) lookup instead of O(n)
   const getConfidenceBadge = (rowKey: string) => {
-    if (!smartAssignResults) return null;
-
-    const autoMatch = smartAssignResults.autoAssigned?.find((m: any) => getRowKey(m) === rowKey);
-    if (autoMatch) {
-      return { badge: '✓ Auto-assigned', class: 'bg-green-500/20 text-green-400 border-green-500/30', level: 'high' };
-    }
-
-    const suggested = smartAssignResults.suggested?.find((s: any) => getRowKey(s) === rowKey);
-    if (suggested) {
-      return { badge: '⚠ Review Suggested', class: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', level: 'medium' };
-    }
-
-    const unmatched = smartAssignResults.unmatched?.find((u: any) => getRowKey(u) === rowKey);
-    if (unmatched) {
-      return { badge: '✗ Manual Required', class: 'bg-red-500/20 text-red-400 border-red-500/30', level: 'low' };
-    }
-
-    return null;
+    return badgeLookupMap.get(rowKey) || null;
   };
 
   // Filter, search, and sort displayRows
@@ -989,12 +1006,23 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-md w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-white/[0.08]">
-          <h3 className="text-xl font-bold text-white">Review & Assign Writers</h3>
-          <p className="text-sm text-text-secondary mt-1">
-            {statement.filename} • {displayRows.length} {isMLC ? 'publisher rows' : 'songs'}
-          </p>
+      <div className={`rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-md w-full overflow-hidden flex flex-col transition-all duration-300 ${
+        isFullscreen ? 'max-w-none max-h-none h-full m-0' : 'max-w-4xl max-h-[90vh]'
+      }`}>
+        <div className="p-6 border-b border-white/[0.08] flex items-start justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-white">Review & Assign Writers</h3>
+            <p className="text-sm text-text-secondary mt-1">
+              {statement.filename} • {displayRows.length} {isMLC ? 'publisher rows' : 'songs'}
+            </p>
+          </div>
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors"
+            title={isFullscreen ? 'Exit fullscreen' : 'Expand to fullscreen'}
+          >
+            {isFullscreen ? <Minimize2 className="w-5 h-5 text-white" /> : <Maximize2 className="w-5 h-5 text-white" />}
+          </button>
         </div>
 
         {/* Summary Stats Bar */}
@@ -1142,7 +1170,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
             <div
               ref={scrollContainerRef}
               className="overflow-auto"
-              style={{ maxHeight: '500px' }}
+              style={{ maxHeight: isFullscreen ? 'calc(100vh - 420px)' : '500px' }}
             >
               <div
                 style={{
