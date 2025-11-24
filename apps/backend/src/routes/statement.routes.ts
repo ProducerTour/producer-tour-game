@@ -1138,43 +1138,54 @@ router.post(
         return res.status(400).json({ error: 'Statement already paid' });
       }
 
+      // Check if statement has items to process
+      if (!statement.items || statement.items.length === 0) {
+        return res.status(400).json({
+          error: 'Statement has no items to process. Please ensure the statement has been published with writer assignments.'
+        });
+      }
+
       // NOTE: Stripe transfers are NO LONGER created here
       // Instead, transfers are created when writers request withdrawals and admins approve them
       // This allows writers to accumulate earnings and withdraw when they choose
-      console.log('📝 Marking statement as PAID and updating writer balances (Stripe transfers will happen on withdrawal approval)');
+      console.log(`📝 Processing payment for statement ${id} with ${statement.items.length} items`);
 
       // Process payment in transaction
       const result = await prisma.$transaction(async (tx) => {
-        // Check for active commission reduction redemptions for each writer
+        // Get unique user IDs from items
         const userIds = [...new Set(statement.items.map(item => item.userId))];
+        console.log(`📝 Processing for ${userIds.length} unique writers`);
+
+        // Batch fetch all active commission reduction redemptions (instead of individual queries)
+        const activeRedemptions = await tx.rewardRedemption.findMany({
+          where: {
+            userId: { in: userIds },
+            isActive: true,
+            status: 'APPROVED',
+            expiresAt: { gte: new Date() },
+            reward: {
+              type: 'COMMISSION_REDUCTION'
+            }
+          },
+          include: {
+            reward: true
+          },
+          orderBy: { redeemedAt: 'desc' }
+        });
+
+        // Build commission reductions map from batch result
         const commissionReductions = new Map<string, { reductionPercent: number; redemptionId: string }>();
+        for (const redemption of activeRedemptions) {
+          // Only use first (most recent) redemption per user
+          if (commissionReductions.has(redemption.userId)) continue;
 
-        for (const userId of userIds) {
-          // Find active commission reduction redemptions
-          const activeRedemption = await tx.rewardRedemption.findFirst({
-            where: {
-              userId,
-              isActive: true,
-              status: 'APPROVED',
-              expiresAt: { gte: new Date() },
-              reward: {
-                type: 'COMMISSION_REDUCTION'
-              }
-            },
-            include: {
-              reward: true
-            },
-            orderBy: { redeemedAt: 'desc' } // Get most recent if multiple
-          });
-
-          if (activeRedemption && activeRedemption.reward.details) {
-            // Try both `details` (from seed) and `metadata` (for future compatibility)
-            const data = activeRedemption.reward.details as any;
+          if (redemption.reward.details) {
+            const data = redemption.reward.details as any;
             const reductionPercent = data.commissionReduction || data.reductionPercent || 0;
             if (reductionPercent > 0) {
-              commissionReductions.set(userId, {
+              commissionReductions.set(redemption.userId, {
                 reductionPercent,
-                redemptionId: activeRedemption.id
+                redemptionId: redemption.id
               });
             }
           }
@@ -1395,9 +1406,21 @@ router.post(
         },
         message: 'Statement marked as PAID. Writer balances updated. Stripe transfers will occur when writers request withdrawals.'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Process payment error:', error);
-      res.status(500).json({ error: 'Failed to process payment' });
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        meta: error?.meta,
+        stack: error?.stack?.slice(0, 500)
+      });
+
+      // Return more detailed error for debugging
+      res.status(500).json({
+        error: 'Failed to process payment',
+        details: error?.message || 'Unknown error',
+        code: error?.code
+      });
     }
   }
 );
