@@ -432,12 +432,23 @@ export default function MLCAnalyticsTab() {
     if (canGoForward) setTimelineMonthOffset(prev => prev + 1);
   };
 
+  // Format month for display (e.g., "2024-01" -> "Jan 2024")
+  const formatMonthLabel = (monthStr: string) => {
+    if (!monthStr) return '';
+    const [year, month] = monthStr.split('-');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthIndex = parseInt(month, 10) - 1;
+    return `${monthNames[monthIndex] || month} ${year}`;
+  };
+
   // Get month range label for display
   const getMonthRangeLabel = () => {
     if (timelineAreaData.length === 0) return 'No data';
     const first = timelineAreaData[0]?.fullMonth || '';
     const last = timelineAreaData[timelineAreaData.length - 1]?.fullMonth || '';
-    return first === last ? first : `${first} to ${last}`;
+    const formattedFirst = formatMonthLabel(first);
+    const formattedLast = formatMonthLabel(last);
+    return formattedFirst === formattedLast ? formattedFirst : `${formattedFirst} - ${formattedLast}`;
   };
 
   const topSongsBarData = topSongs?.slice(0, 10).map((s: any) => ({
@@ -582,7 +593,7 @@ export default function MLCAnalyticsTab() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <Title className="text-white mb-1">Revenue Timeline</Title>
-            <Text className="text-gray-500 text-sm">{getMonthRangeLabel()}</Text>
+            <Text className="text-gray-500 text-sm">Monthly gross and net revenue</Text>
           </div>
           <div className="flex items-center gap-4">
             {/* Month Navigation */}
@@ -599,8 +610,8 @@ export default function MLCAnalyticsTab() {
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-gray-500 text-xs px-2">
-                {startIndex + 1}-{endIndex} of {fullTimelineData.length}
+              <span className="text-gray-400 text-xs px-2 min-w-[100px] text-center">
+                {getMonthRangeLabel()}
               </span>
               <button
                 onClick={goToNextMonths}

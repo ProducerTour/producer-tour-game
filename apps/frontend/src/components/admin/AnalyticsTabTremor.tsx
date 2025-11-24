@@ -24,7 +24,7 @@ import {
   TableFooterCell,
   Badge,
 } from '@tremor/react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Maximize2, X } from 'lucide-react';
 import { dashboardApi } from '../../lib/api';
 import { TerritoryHeatmap } from '../TerritoryHeatmap';
 import { ChartCard } from '../ChartCard';
@@ -116,10 +116,63 @@ const MOCK_TERRITORY_DATA = {
   totalCount: 3800,
 };
 
+// Theater Mode Overlay Component
+const TheaterMode = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
+      <div
+        className="relative z-10 w-[95vw] max-w-7xl h-[85vh] bg-gray-900/95 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.02]">
+          <h2 className="text-white text-xl font-semibold">{title}</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-6 h-[calc(100%-72px)]">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Chart expand button component
+const ExpandButton = ({ onClick }: { onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+    title="Open in theater mode"
+  >
+    <Maximize2 className="w-4 h-4" />
+  </button>
+);
+
 export default function AnalyticsTabTremor() {
   const [expandedCharts, setExpandedCharts] = useState<Record<string, boolean>>({});
   const [platformTableExpanded, setPlatformTableExpanded] = useState(false);
   const [useMockData, setUseMockData] = useState(false);
+  const [theaterChart, setTheaterChart] = useState<string | null>(null);
 
   const toggleChartExpansion = (chartId: string) => {
     setExpandedCharts(prev => ({
@@ -433,9 +486,12 @@ export default function AnalyticsTabTremor() {
       <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
         {/* Revenue Timeline - Previous Quarter */}
         <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
-          <div className="mb-4">
-            <Title className="text-white">Revenue Over Time</Title>
-            <Text className="text-gray-400">{getQuarterLabel()}</Text>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <Title className="text-white">Revenue Over Time</Title>
+              <Text className="text-gray-400">{getQuarterLabel()}</Text>
+            </div>
+            <ExpandButton onClick={() => setTheaterChart('revenue')} />
           </div>
           {getRevenueTimelineData().length > 0 && getRevenueTimelineData()[0]?.data?.length > 0 ? (
             <NivoLineChart
@@ -454,9 +510,12 @@ export default function AnalyticsTabTremor() {
 
         {/* PRO Breakdown Pie */}
         <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
-          <div className="mb-4">
-            <Title className="text-white">Revenue by PRO</Title>
-            <Text className="text-gray-400">Distribution across PROs</Text>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <Title className="text-white">Revenue by PRO</Title>
+              <Text className="text-gray-400">Distribution across PROs</Text>
+            </div>
+            <ExpandButton onClick={() => setTheaterChart('pro')} />
           </div>
           {getProBreakdownData().length > 0 ? (
             <NivoPieChart
@@ -504,8 +563,13 @@ export default function AnalyticsTabTremor() {
           <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
             {/* Platform Distribution Pie */}
             <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
-              <Title className="text-white mb-4">Platform Distribution</Title>
-              <Text className="text-gray-400 text-sm mb-4">Revenue share by streaming service</Text>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <Title className="text-white">Platform Distribution</Title>
+                  <Text className="text-gray-400 text-sm">Revenue share by streaming service</Text>
+                </div>
+                <ExpandButton onClick={() => setTheaterChart('platform')} />
+              </div>
               <NivoPieChart
                 data={getPlatformPieData()}
                 height={220}
@@ -517,8 +581,13 @@ export default function AnalyticsTabTremor() {
 
             {/* Service Type Distribution Pie */}
             <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
-              <Title className="text-white mb-4">Service Type Mix</Title>
-              <Text className="text-gray-400 text-sm mb-4">Premium vs Ad-Supported vs other tiers</Text>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <Title className="text-white">Service Type Mix</Title>
+                  <Text className="text-gray-400 text-sm">Premium vs Ad-Supported vs other tiers</Text>
+                </div>
+                <ExpandButton onClick={() => setTheaterChart('serviceType')} />
+              </div>
               {getServiceTypePieData().length > 0 ? (
                 <NivoPieChart
                   data={getServiceTypePieData()}
@@ -850,6 +919,105 @@ export default function AnalyticsTabTremor() {
           </List>
         </Card>
       )}
+
+      {/* Theater Mode Overlays */}
+      {/* Revenue Timeline Theater */}
+      <TheaterMode
+        isOpen={theaterChart === 'revenue'}
+        onClose={() => setTheaterChart(null)}
+        title="Revenue Over Time - All Data"
+      >
+        <div className="h-full">
+          {stats?.revenueTimeline?.length > 0 ? (
+            <NivoLineChart
+              data={[{
+                id: 'Revenue',
+                data: stats.revenueTimeline.map((item: any) => ({
+                  x: item.month,
+                  y: Number(item.revenue) || 0,
+                })),
+              }]}
+              height={600}
+              enableArea={true}
+              colors={['#10b981']}
+              valueFormat={currencyFormatter}
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center text-gray-400">
+              No revenue data available
+            </div>
+          )}
+        </div>
+      </TheaterMode>
+
+      {/* PRO Breakdown Theater */}
+      <TheaterMode
+        isOpen={theaterChart === 'pro'}
+        onClose={() => setTheaterChart(null)}
+        title="Revenue by PRO"
+      >
+        <div className="h-full flex items-center justify-center">
+          {getProBreakdownData().length > 0 ? (
+            <div className="w-full max-w-4xl">
+              <NivoPieChart
+                data={getProBreakdownData()}
+                height={500}
+                innerRadius={0.5}
+                enableArcLinkLabels={true}
+                valueFormat={currencyFormatter}
+              />
+            </div>
+          ) : (
+            <div className="text-gray-400">No PRO data available</div>
+          )}
+        </div>
+      </TheaterMode>
+
+      {/* Platform Distribution Theater */}
+      <TheaterMode
+        isOpen={theaterChart === 'platform'}
+        onClose={() => setTheaterChart(null)}
+        title="Platform Revenue Distribution"
+      >
+        <div className="h-full flex items-center justify-center">
+          {getPlatformPieData().length > 0 ? (
+            <div className="w-full max-w-4xl">
+              <NivoPieChart
+                data={getPlatformPieData()}
+                height={500}
+                innerRadius={0.5}
+                enableArcLinkLabels={true}
+                valueFormat={currencyFormatter}
+              />
+            </div>
+          ) : (
+            <div className="text-gray-400">No platform data available</div>
+          )}
+        </div>
+      </TheaterMode>
+
+      {/* Service Type Theater */}
+      <TheaterMode
+        isOpen={theaterChart === 'serviceType'}
+        onClose={() => setTheaterChart(null)}
+        title="Service Type Distribution"
+      >
+        <div className="h-full flex items-center justify-center">
+          {getServiceTypePieData().length > 0 ? (
+            <div className="w-full max-w-4xl">
+              <NivoPieChart
+                data={getServiceTypePieData()}
+                height={500}
+                innerRadius={0.5}
+                enableArcLinkLabels={true}
+                valueFormat={currencyFormatter}
+              />
+            </div>
+          ) : (
+            <div className="text-gray-400">No service type data available</div>
+          )}
+        </div>
+      </TheaterMode>
     </div>
   );
 }
