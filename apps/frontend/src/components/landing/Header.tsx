@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ShoppingCart } from 'lucide-react';
 import { Container, Button } from './ui';
 import { navLinks } from './data';
+import { useCartStore } from '../../store/cart.store';
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const cartItemCount = useCartStore((state) => state.getItemCount());
 
   useEffect(() => {
     const handleScroll = () => {
@@ -89,6 +91,18 @@ export function Header() {
 
             {/* Desktop CTAs */}
             <div className="hidden md:flex items-center gap-3">
+              {/* Cart Icon */}
+              <Link
+                to="/cart"
+                className="relative p-2 text-text-secondary hover:text-white transition-colors rounded-lg hover:bg-white/5"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-brand-blue text-white text-xs font-bold flex items-center justify-center">
+                    {cartItemCount > 9 ? '9+' : cartItemCount}
+                  </span>
+                )}
+              </Link>
               <Button to="/login" variant="ghost" size="sm">
                 Log In
               </Button>
@@ -178,6 +192,19 @@ export function Header() {
                 transition={{ delay: 0.3 }}
                 className="space-y-3 pt-6"
               >
+                <Link
+                  to="/cart"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-white/5 text-white font-medium border border-white/10"
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  Cart
+                  {cartItemCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-brand-blue text-white text-xs font-bold">
+                      {cartItemCount}
+                    </span>
+                  )}
+                </Link>
                 <Button
                   to="/login"
                   variant="secondary"

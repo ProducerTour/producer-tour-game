@@ -228,6 +228,7 @@ export const navLinks = [
   { name: 'Features', href: '#features' },
   { name: 'How It Works', href: '#process' },
   { name: 'Pricing', href: '/pricing' },
+  { name: 'Shop', href: '/shop' },
   { name: 'FAQ', href: '#faq' },
 ];
 
@@ -241,6 +242,7 @@ export const footerLinks = {
     { name: 'How It Works', href: '#process' },
     { name: 'FAQ', href: '#faq' },
     { name: 'Pricing', href: '/pricing' },
+    { name: 'Shop', href: '/shop' },
   ],
   company: [
     { name: 'About', href: '#about' },

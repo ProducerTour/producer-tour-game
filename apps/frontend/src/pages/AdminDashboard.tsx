@@ -21,6 +21,7 @@ import TourMilesConfig from '../components/admin/TourMilesConfig';
 import DashboardOverviewTremor from '../components/admin/DashboardOverviewTremor';
 import AnalyticsTabTremor from '../components/admin/AnalyticsTabTremor';
 import MLCAnalyticsTab from '../components/admin/MLCAnalyticsTab';
+import ShopTab from '../components/admin/ShopTab';
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { formatIpiDisplay } from '../utils/ipi-helper';
@@ -37,7 +38,7 @@ import {
   AlertDialogTrigger,
 } from '../components/ui';
 
-type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'active-placements' | 'pending-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config';
+type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'active-placements' | 'pending-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config' | 'shop';
 
 // Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
 const formatChartCurrency = (value: any): string => {
@@ -111,6 +112,7 @@ export default function AdminDashboard() {
             {activeTab === 'reward-redemptions' && <RewardRedemptionsTab />}
             {activeTab === 'gamification-analytics' && <GamificationAnalytics />}
             {activeTab === 'tour-miles-config' && <TourMilesConfig />}
+            {activeTab === 'shop' && <ShopTab />}
           </div>
         </main>
       </div>

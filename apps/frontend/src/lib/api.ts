@@ -494,3 +494,75 @@ export const gamificationApi = {
   // Monthly Payout Access
   checkMonthlyPayoutAccess: () => api.get('/gamification/payout/monthly-access'),
 };
+
+// Shop API - E-commerce products and orders
+export const shopApi = {
+  // Products
+  getProducts: (params?: {
+    status?: string;
+    type?: string;
+    category?: string;
+    featured?: boolean;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }) => api.get('/shop/products', { params }),
+
+  getProduct: (idOrSlug: string) => api.get(`/shop/products/${idOrSlug}`),
+
+  createProduct: (data: any) => api.post('/shop/products', data),
+
+  updateProduct: (id: string, data: any) => api.put(`/shop/products/${id}`, data),
+
+  deleteProduct: (id: string) => api.delete(`/shop/products/${id}`),
+
+  // Product Variations
+  createVariation: (productId: string, data: any) =>
+    api.post(`/shop/products/${productId}/variations`, data),
+
+  // Product Files
+  addProductFile: (productId: string, data: any) =>
+    api.post(`/shop/products/${productId}/files`, data),
+
+  // Categories
+  getCategories: () => api.get('/shop/categories'),
+
+  createCategory: (data: any) => api.post('/shop/categories', data),
+
+  // Checkout
+  createCheckoutSession: (data: {
+    items: Array<{ productId: string; variationId?: string; quantity: number }>;
+    email?: string;
+    successUrl: string;
+    cancelUrl: string;
+    couponCode?: string;
+  }) => api.post('/shop/checkout', data),
+
+  // Orders
+  getOrders: (params?: {
+    status?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }) => api.get('/shop/orders', { params }),
+
+  updateOrderStatus: (orderId: string, status: string) =>
+    api.put(`/shop/orders/${orderId}/status`, { status }),
+
+  // Subscriptions
+  getSubscriptions: () => api.get('/shop/subscriptions'),
+
+  cancelSubscription: (subscriptionId: string, immediately?: boolean) =>
+    api.post(`/shop/subscriptions/${subscriptionId}/cancel`, { immediately }),
+
+  // Coupons
+  getCoupons: () => api.get('/shop/coupons'),
+
+  createCoupon: (data: any) => api.post('/shop/coupons', data),
+
+  validateCoupon: (code: string, cartTotal: number) =>
+    api.post('/shop/coupons/validate', { code, cartTotal }),
+
+  // Stats
+  getShopStats: () => api.get('/shop/stats'),
+};

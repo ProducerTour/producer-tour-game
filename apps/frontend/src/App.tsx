@@ -33,6 +33,10 @@ import TypeBeatVideoMakerPage from './pages/TypeBeatVideoMakerPage';
 import AffiliatesDashboard from './pages/AffiliatesDashboard';
 import AffiliateManagement from './pages/AffiliateManagement';
 import CustomerSupportPage from './pages/CustomerSupportPage';
+import ShopPage from './pages/ShopPage';
+import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
+import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -99,6 +103,10 @@ function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/apply" element={<ApplicationPage />} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/shop" element={<ShopPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
         <Route path="/opportunities" element={<OpportunitiesPage />} />
 
         {/* Tool Routes */}

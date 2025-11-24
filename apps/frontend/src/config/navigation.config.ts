@@ -108,6 +108,7 @@ export const adminNavigation: NavSection[] = [
       { id: 'tools', label: 'Tools Hub', icon: 'tools' },
       { id: 'tool-permissions', label: 'Tool Permissions', icon: 'lock' },
       { id: 'commission', label: 'Commission Settings', icon: 'briefcase' },
+      { id: 'shop', label: 'Shop', icon: 'shopping-cart' },
       { id: 'affiliate-management', label: 'Affiliate Management', icon: 'users', path: '/admin/affiliates' },
     ],
   },

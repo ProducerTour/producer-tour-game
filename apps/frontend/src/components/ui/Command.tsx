@@ -17,9 +17,9 @@ const Command = React.forwardRef<
     ref={ref}
     className={cn(
       'flex h-full w-full flex-col overflow-hidden rounded-xl',
-      'bg-gradient-to-b from-white/[0.08] to-white/[0.02]',
       className
     )}
+    style={{ backgroundColor: '#0f172a' }}
     {...props}
   />
 ));

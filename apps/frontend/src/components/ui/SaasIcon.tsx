@@ -120,6 +120,7 @@ import {
   Briefcase,
   Building2,
   Landmark,
+  ShoppingCart,
 
   // Misc
   Lightbulb,
@@ -251,6 +252,7 @@ export type IconName =
   | 'briefcase'
   | 'building'
   | 'bank'
+  | 'shopping-cart'
   // Misc
   | 'lightbulb'
   | 'idea'
@@ -382,6 +384,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   'briefcase': Briefcase,
   'building': Building2,
   'bank': Landmark,
+  'shopping-cart': ShoppingCart,
   // Misc
   'lightbulb': Lightbulb,
   'idea': Lightbulb,

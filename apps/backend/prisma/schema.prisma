@@ -1258,3 +1258,471 @@ model Contact {
   @@index([status])
   @@map("contacts")
 }
+
+// ========================================
+// SHOP SYSTEM - E-commerce products and orders
+// ========================================
+
+enum ProductType {
+  SIMPLE          // Basic product with no variations
+  VARIABLE        // Product with multiple variations (size, color, etc.)
+  DIGITAL         // Digital product (access to content)
+  DOWNLOADABLE    // Downloadable files
+  PHYSICAL        // Physical product requiring shipping
+  SUBSCRIPTION    // Recurring subscription product
+}
+
+enum ProductStatus {
+  DRAFT           // Not yet published
+  ACTIVE          // Available for purchase
+  ARCHIVED        // Hidden but retained for history
+  OUT_OF_STOCK    // Temporarily unavailable
+}
+
+enum OrderStatus {
+  PENDING         // Order created, awaiting payment
+  PROCESSING      // Payment received, processing order
+  COMPLETED       // Order fulfilled
+  CANCELLED       // Order cancelled
+  REFUNDED        // Order refunded
+  FAILED          // Payment failed
+}
+
+enum ShopSubscriptionStatus {
+  ACTIVE          // Currently active subscription
+  PAUSED          // Temporarily paused
+  CANCELLED       // User cancelled
+  EXPIRED         // Subscription period ended
+  PAST_DUE        // Payment failed, grace period
+}
+
+enum ShopSubscriptionInterval {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+// Product categories for organization
+model ProductCategory {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?   @db.Text
+  imageUrl    String?
+  parentId    String?
+  parent      ProductCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    ProductCategory[] @relation("CategoryHierarchy")
+  displayOrder Int      @default(0)
+  isActive    Boolean   @default(true)
+
+  // Relations
+  products    ProductToCategory[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([parentId])
+  @@index([isActive])
+  @@map("product_categories")
+}
+
+// Main product model
+model Product {
+  id              String        @id @default(cuid())
+  name            String
+  slug            String        @unique
+  description     String?       @db.Text
+  shortDescription String?      @db.Text
+  type            ProductType   @default(SIMPLE)
+  status          ProductStatus @default(DRAFT)
+
+  // Pricing (for simple products and base price for variable)
+  price           Decimal       @db.Decimal(12, 2)
+  salePrice       Decimal?      @db.Decimal(12, 2)
+  saleStart       DateTime?
+  saleEnd         DateTime?
+
+  // Inventory (for physical products)
+  sku             String?       @unique
+  stockQuantity   Int?
+  manageStock     Boolean       @default(false)
+  lowStockThreshold Int?        @default(5)
+
+  // Subscription settings (for subscription products)
+  subscriptionInterval ShopSubscriptionInterval?
+  subscriptionIntervalCount Int? @default(1) // e.g., 1 month, 3 months
+  trialDays       Int?          @default(0)
+
+  // Stripe integration
+  stripeProductId String?       @unique
+  stripePriceId   String?       // Default price ID
+
+  // Media
+  featuredImageUrl String?
+  galleryUrls     Json?         // Array of image URLs
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?       @db.Text
+
+  // Settings
+  isFeatured      Boolean       @default(false)
+  isVirtual       Boolean       @default(false) // No shipping required
+  isTaxable       Boolean       @default(true)
+  taxClass        String?       @default("standard")
+  weight          Decimal?      @db.Decimal(8, 2) // For shipping
+  dimensions      Json?         // {length, width, height}
+
+  // Access/Limits (for digital/downloadable)
+  downloadLimit   Int?          // Max downloads per purchase
+  downloadExpiry  Int?          // Days until download expires
+
+  // Tool integration (links product to ToolSubscription)
+  toolId          String?       // e.g., "type-beat-video-maker"
+
+  // Relations
+  categories      ProductToCategory[]
+  variations      ProductVariation[]
+  files           ProductFile[]
+  attributes      ProductAttribute[]
+  orderItems      OrderItem[]
+  shopSubscriptions ShopSubscription[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([slug])
+  @@index([type])
+  @@index([status])
+  @@index([stripeProductId])
+  @@index([isFeatured])
+  @@map("products")
+}
+
+// Many-to-many relation for products and categories
+model ProductToCategory {
+  id          String          @id @default(cuid())
+  productId   String
+  categoryId  String
+  product     Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category    ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, categoryId])
+  @@index([productId])
+  @@index([categoryId])
+  @@map("product_to_categories")
+}
+
+// Product attributes for variable products (e.g., Size, Color)
+model ProductAttribute {
+  id          String    @id @default(cuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name        String    // e.g., "Size", "Color", "License Type"
+  options     Json      // Array of options: ["Small", "Medium", "Large"]
+  isVisible   Boolean   @default(true)
+  isVariation Boolean   @default(true) // Used for creating variations
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([productId])
+  @@map("product_attributes")
+}
+
+// Product variations for variable products
+model ProductVariation {
+  id              String    @id @default(cuid())
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Variation attributes (e.g., {"Size": "Large", "Color": "Blue"})
+  attributes      Json
+
+  // Pricing
+  price           Decimal   @db.Decimal(12, 2)
+  salePrice       Decimal?  @db.Decimal(12, 2)
+
+  // Inventory
+  sku             String?   @unique
+  stockQuantity   Int?
+  manageStock     Boolean   @default(false)
+
+  // Stripe
+  stripePriceId   String?   @unique
+
+  // Media
+  imageUrl        String?
+
+  // Status
+  isActive        Boolean   @default(true)
+
+  // Relations
+  files           ProductFile[]
+  orderItems      OrderItem[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([productId])
+  @@index([stripePriceId])
+  @@map("product_variations")
+}
+
+// Downloadable files for digital products
+model ProductFile {
+  id            String            @id @default(cuid())
+  productId     String
+  product       Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variationId   String?
+  variation     ProductVariation? @relation(fields: [variationId], references: [id], onDelete: Cascade)
+
+  name          String
+  filename      String
+  fileUrl       String            // S3 or storage path
+  fileSize      Int               // Size in bytes
+  mimeType      String
+  downloadCount Int               @default(0)
+
+  // Access control
+  isActive      Boolean           @default(true)
+  displayOrder  Int               @default(0)
+
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // Relations
+  downloads     OrderDownload[]
+
+  @@index([productId])
+  @@index([variationId])
+  @@map("product_files")
+}
+
+// Customer orders
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique // Human-readable order number (e.g., PT-2024-001)
+  userId          String?     // Can be null for guest checkout
+  email           String      // Customer email (for guest checkout)
+  status          OrderStatus @default(PENDING)
+
+  // Billing info
+  billingFirstName  String?
+  billingLastName   String?
+  billingCompany    String?
+  billingAddress1   String?
+  billingAddress2   String?
+  billingCity       String?
+  billingState      String?
+  billingPostcode   String?
+  billingCountry    String?
+  billingPhone      String?
+
+  // Shipping info (for physical products)
+  shippingFirstName String?
+  shippingLastName  String?
+  shippingCompany   String?
+  shippingAddress1  String?
+  shippingAddress2  String?
+  shippingCity      String?
+  shippingState     String?
+  shippingPostcode  String?
+  shippingCountry   String?
+  shippingPhone     String?
+  shippingMethod    String?
+  shippingCost      Decimal?    @db.Decimal(12, 2)
+
+  // Totals
+  subtotal          Decimal     @db.Decimal(12, 2)
+  taxAmount         Decimal     @default(0) @db.Decimal(12, 2)
+  discountAmount    Decimal     @default(0) @db.Decimal(12, 2)
+  totalAmount       Decimal     @db.Decimal(12, 2)
+
+  // Payment
+  paymentMethod     String?     // e.g., "stripe", "paypal"
+  stripePaymentIntentId String? @unique
+  stripeSessionId   String?
+  paidAt            DateTime?
+
+  // Coupon/discount
+  couponCode        String?
+  discountDetails   Json?       // Details about applied discounts
+
+  // Notes
+  customerNote      String?     @db.Text
+  adminNote         String?     @db.Text
+
+  // Metadata
+  ipAddress         String?
+  userAgent         String?
+  metadata          Json?
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  completedAt       DateTime?
+
+  // Relations
+  items             OrderItem[]
+  downloads         OrderDownload[]
+
+  @@index([userId])
+  @@index([email])
+  @@index([status])
+  @@index([stripePaymentIntentId])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+// Individual items in an order
+model OrderItem {
+  id              String            @id @default(cuid())
+  orderId         String
+  order           Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product           @relation(fields: [productId], references: [id])
+  variationId     String?
+  variation       ProductVariation? @relation(fields: [variationId], references: [id])
+
+  // Snapshot of product at time of purchase
+  productName     String
+  productType     ProductType
+  variationName   String?           // e.g., "Large / Blue"
+  sku             String?
+
+  quantity        Int               @default(1)
+  price           Decimal           @db.Decimal(12, 2) // Price per unit
+  subtotal        Decimal           @db.Decimal(12, 2) // quantity * price
+  taxAmount       Decimal           @default(0) @db.Decimal(12, 2)
+  total           Decimal           @db.Decimal(12, 2)
+
+  // For subscriptions
+  subscriptionId  String?
+
+  // Metadata
+  metadata        Json?             // Additional item data
+
+  createdAt       DateTime          @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variationId])
+  @@map("order_items")
+}
+
+// Track file downloads per order
+model OrderDownload {
+  id            String      @id @default(cuid())
+  orderId       String
+  order         Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fileId        String
+  file          ProductFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  // Download tracking
+  downloadsUsed Int         @default(0)
+  downloadLimit Int?        // Snapshot of limit at purchase time
+  expiresAt     DateTime?   // When download access expires
+
+  // Access token for secure downloads
+  accessToken   String      @unique @default(cuid())
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  lastDownloadAt DateTime?
+
+  @@unique([orderId, fileId])
+  @@index([orderId])
+  @@index([fileId])
+  @@index([accessToken])
+  @@map("order_downloads")
+}
+
+// Shop subscriptions (different from ToolSubscription - this is for paid recurring products)
+model ShopSubscription {
+  id              String                    @id @default(cuid())
+  userId          String
+  productId       String
+  product         Product                   @relation(fields: [productId], references: [id])
+
+  status          ShopSubscriptionStatus    @default(ACTIVE)
+  interval        ShopSubscriptionInterval
+  intervalCount   Int                       @default(1)
+
+  // Pricing
+  price           Decimal                   @db.Decimal(12, 2)
+  currency        String                    @default("usd")
+
+  // Stripe subscription
+  stripeSubscriptionId String?              @unique
+  stripeCustomerId     String?
+  stripePriceId        String?
+
+  // Dates
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  trialStart         DateTime?
+  trialEnd           DateTime?
+  cancelledAt        DateTime?
+  cancelAtPeriodEnd  Boolean                @default(false)
+
+  // Billing history
+  lastPaymentAt      DateTime?
+  lastPaymentAmount  Decimal?               @db.Decimal(12, 2)
+  failedPaymentCount Int                    @default(0)
+
+  // Metadata
+  metadata           Json?
+
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+  @@index([stripeSubscriptionId])
+  @@map("shop_subscriptions")
+}
+
+// Coupons and discounts
+model Coupon {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  description     String?   @db.Text
+  discountType    String    // "percentage", "fixed_cart", "fixed_product"
+  discountAmount  Decimal   @db.Decimal(12, 2)
+
+  // Usage limits
+  usageLimit      Int?      // Total usage limit
+  usageLimitPerUser Int?    @default(1)
+  usageCount      Int       @default(0)
+
+  // Restrictions
+  minimumAmount   Decimal?  @db.Decimal(12, 2)
+  maximumAmount   Decimal?  @db.Decimal(12, 2)
+  productIds      Json?     // Array of product IDs (null = all)
+  categoryIds     Json?     // Array of category IDs (null = all)
+  excludedProductIds Json?
+  excludedCategoryIds Json?
+
+  // Validity
+  startDate       DateTime?
+  endDate         DateTime?
+  isActive        Boolean   @default(true)
+
+  // For first-time customers only
+  firstPurchaseOnly Boolean @default(false)
+
+  // Stripe
+  stripeCouponId  String?   @unique
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([stripeCouponId])
+  @@map("coupons")
+}
