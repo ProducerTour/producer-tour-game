@@ -250,22 +250,29 @@ export default function GamificationAnalytics() {
         {/* DAU Trend Chart (simple bar representation) */}
         <div className="mt-6">
           <h4 className="text-sm font-medium text-text-muted mb-3">DAU Trend (Last 7 Days)</h4>
-          <div className="flex items-end gap-1 h-24">
-            {engagement.dauTrend.trend.map((day, i) => {
-              const maxCount = Math.max(...engagement.dauTrend.trend.map(d => d.count), 1);
-              const height = (day.count / maxCount) * 100;
-              return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div
-                    className="w-full bg-blue-500/50 rounded-t hover:bg-blue-500/70 transition-colors"
-                    style={{ height: `${Math.max(height, 4)}%` }}
-                    title={`${day.date}: ${day.count} users`}
-                  />
-                  <span className="text-xs text-text-muted">{day.date.split('-')[2]}</span>
-                </div>
-              );
-            })}
-          </div>
+          {engagement.dauTrend.trend.length === 0 || engagement.dauTrend.trend.every(d => d.count === 0) ? (
+            <div className="h-24 flex items-center justify-center bg-white/[0.03] rounded-lg border border-white/[0.05]">
+              <p className="text-text-muted text-sm">No activity data available yet</p>
+            </div>
+          ) : (
+            <div className="flex items-end gap-1 h-24">
+              {engagement.dauTrend.trend.map((day, i) => {
+                const maxCount = Math.max(...engagement.dauTrend.trend.map(d => d.count), 1);
+                const height = (day.count / maxCount) * 100;
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-xs text-blue-400 font-medium">{day.count}</span>
+                    <div
+                      className="w-full bg-blue-500/50 rounded-t hover:bg-blue-500/70 transition-colors"
+                      style={{ height: `${Math.max(height, 8)}%` }}
+                      title={`${day.date}: ${day.count} users`}
+                    />
+                    <span className="text-xs text-text-muted">{day.date.split('-')[2]}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           <p className="text-sm text-text-muted mt-2">Average: {engagement.dauTrend.averageDAU} users/day</p>
         </div>
 

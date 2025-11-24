@@ -299,9 +299,9 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                               onTabChange(item.id);
                               setIsMobileMenuOpen(false);
                             } else {
-                              // If no onTabChange (e.g., from /tour-miles), navigate to dashboard
+                              // If no onTabChange (e.g., from /tour-miles), navigate to dashboard with target tab
                               const dashboardPath = user?.role === 'ADMIN' ? '/admin' : user?.role === 'CUSTOMER' ? '/customer' : '/dashboard';
-                              navigate(dashboardPath);
+                              navigate(dashboardPath, { state: { activeTab: item.id } });
                               setIsMobileMenuOpen(false);
                             }
                           }}

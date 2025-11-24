@@ -29,6 +29,18 @@ router.post('/check-in', authenticate, async (req: AuthRequest, res: Response) =
   }
 });
 
+// Get user's referral stats
+router.get('/referral/stats', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const stats = await gamificationService.getUserReferralStats(userId);
+    res.json(stats);
+  } catch (error) {
+    console.error('Get referral stats error:', error);
+    res.status(500).json({ error: 'Failed to get referral stats' });
+  }
+});
+
 router.get('/leaderboard', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;

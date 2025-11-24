@@ -188,12 +188,12 @@ export default function WriterTourHubPage() {
                 )}
               </div>
 
-              <div className="text-center sm:text-left flex-1">
-                <h1 className="text-3xl font-bold text-white">{fullName}</h1>
+              <div className="text-center sm:text-left flex-1 min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold text-white break-words">{fullName}</h1>
                 {writer.location && (
                   <div className="flex items-center gap-1 text-slate-400 mt-1 justify-center sm:justify-start">
-                    <MapPin className="w-4 h-4" />
-                    <span>{writer.location}</span>
+                    <MapPin className="w-4 h-4 flex-shrink-0" />
+                    <span className="break-words">{writer.location}</span>
                   </div>
                 )}
               </div>
@@ -219,7 +219,7 @@ export default function WriterTourHubPage() {
 
             {/* Bio */}
             {writer.bio && (
-              <p className="text-slate-300 leading-relaxed mb-6 max-w-3xl">
+              <p className="text-slate-300 leading-relaxed mb-6 max-w-3xl break-words">
                 {writer.bio}
               </p>
             )}
@@ -255,10 +255,10 @@ export default function WriterTourHubPage() {
                   href={`https://instagram.com/${writer.instagramHandle}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-pink-600/20 hover:bg-pink-600/30 rounded-lg text-pink-400 hover:text-pink-300 transition-colors border border-pink-600/20"
+                  className="flex items-center gap-2 px-4 py-2 bg-pink-600/20 hover:bg-pink-600/30 rounded-lg text-pink-400 hover:text-pink-300 transition-colors border border-pink-600/20 max-w-[200px] sm:max-w-none"
                 >
-                  <Instagram className="w-4 h-4" />
-                  <span>@{writer.instagramHandle}</span>
+                  <Instagram className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">@{writer.instagramHandle}</span>
                 </a>
               )}
               {writer.twitterHandle && (
@@ -266,10 +266,10 @@ export default function WriterTourHubPage() {
                   href={`https://twitter.com/${writer.twitterHandle}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-sky-600/20 hover:bg-sky-600/30 rounded-lg text-sky-400 hover:text-sky-300 transition-colors border border-sky-600/20"
+                  className="flex items-center gap-2 px-4 py-2 bg-sky-600/20 hover:bg-sky-600/30 rounded-lg text-sky-400 hover:text-sky-300 transition-colors border border-sky-600/20 max-w-[200px] sm:max-w-none"
                 >
-                  <Twitter className="w-4 h-4" />
-                  <span>@{writer.twitterHandle}</span>
+                  <Twitter className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">@{writer.twitterHandle}</span>
                 </a>
               )}
               {writer.linkedinUrl && (
@@ -289,10 +289,10 @@ export default function WriterTourHubPage() {
                   href={`https://tiktok.com/@${writer.tiktokHandle}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-600/20 hover:bg-slate-600/30 rounded-lg text-slate-300 hover:text-white transition-colors border border-slate-600/20"
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-600/20 hover:bg-slate-600/30 rounded-lg text-slate-300 hover:text-white transition-colors border border-slate-600/20 max-w-[200px] sm:max-w-none"
                 >
-                  <Smartphone className="w-4 h-4" />
-                  <span>@{writer.tiktokHandle}</span>
+                  <Smartphone className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">@{writer.tiktokHandle}</span>
                 </a>
               )}
               {writer.youtubeChannelUrl && (

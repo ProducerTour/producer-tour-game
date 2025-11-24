@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { dashboardApi, statementApi, userApi, authApi } from '../lib/api';
 import type { WriterAssignmentsPayload } from '../lib/api';
@@ -50,7 +50,17 @@ const formatChartCurrency = (value: any): string => {
 };
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const location = useLocation();
+  const initialTab = (location.state as { activeTab?: TabType })?.activeTab || 'overview';
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  // Handle navigation state changes when navigating back to dashboard
+  useEffect(() => {
+    const stateTab = (location.state as { activeTab?: TabType })?.activeTab;
+    if (stateTab) {
+      setActiveTab(stateTab);
+    }
+  }, [location.state]);
 
   // Track sidebar collapse state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -1561,15 +1571,17 @@ function UsersTab() {
                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                       user.role === 'ADMIN'
                         ? 'bg-purple-500/20 text-purple-400'
+                        : user.role === 'CUSTOMER'
+                        ? 'bg-green-500/20 text-green-400'
                         : 'bg-blue-500/20 text-blue-400'
                     }`}>
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{formatIpiDisplay(user.writerIpiNumber)}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{formatIpiDisplay(user.publisherIpiNumber)}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{user.producer?.proAffiliation || '-'}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{user.commissionOverrideRate != null ? `${Number(user.commissionOverrideRate).toFixed(2)}%` : 'Default'}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{user.role === 'CUSTOMER' ? '-' : formatIpiDisplay(user.writerIpiNumber)}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{user.role === 'CUSTOMER' ? '-' : formatIpiDisplay(user.publisherIpiNumber)}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{user.role === 'CUSTOMER' ? '-' : (user.producer?.proAffiliation || '-')}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{user.role === 'CUSTOMER' ? '-' : (user.commissionOverrideRate != null ? `${Number(user.commissionOverrideRate).toFixed(2)}%` : 'Default')}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex gap-2 justify-end">
                       <button

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen, Camera, Trash2, Loader2, Plane, Globe, Music, Instagram, Twitter, Linkedin, ExternalLink, Copy, Check, ArrowLeft, Youtube, CloudRain, Smartphone, MessageCircle, Volume2, VolumeX, Eye, EyeOff, BellRing } from 'lucide-react';
+import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen, Camera, Trash2, Loader2, Plane, Globe, Music, Instagram, Twitter, Linkedin, ExternalLink, Copy, Check, ArrowLeft, Youtube, CloudRain, Smartphone, MessageCircle, Volume2, VolumeX, Eye, EyeOff, BellRing, ChevronDown, ChevronUp } from 'lucide-react';
 import { userApi, settingsApi, preferencesApi, systemSettingsApi, chatSettingsApi, api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import AdminGuide from '../components/AdminGuide';
@@ -108,6 +108,11 @@ export default function SettingsPage() {
     profileSlug: ''
   });
   const [slugCopied, setSlugCopied] = useState(false);
+
+  // Collapsible section state for Tour Profile
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    socialLinks: false,  // Hidden by default
+  });
 
   // Fetch system settings (admin only)
   const { data: systemSettingsData } = useQuery({
@@ -1333,10 +1338,23 @@ export default function SettingsPage() {
                       />
                     </div>
 
-                    {/* Social Links */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-white">Social & Web Links</h3>
+                    {/* Social Links - Collapsible */}
+                    <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSections(prev => ({ ...prev, socialLinks: !prev.socialLinks }))}
+                        className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
+                      >
+                        <h3 className="text-lg font-semibold text-white">Social & Web Links</h3>
+                        {expandedSections.socialLinks ? (
+                          <ChevronUp className="w-5 h-5 text-text-muted" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-text-muted" />
+                        )}
+                      </button>
 
+                      {expandedSections.socialLinks && (
+                        <div className="space-y-4 p-4 pt-0 border-t border-white/[0.08]">
                       <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-text-secondary mb-2">
                           <Globe className="w-4 h-4" />
@@ -1477,6 +1495,8 @@ export default function SettingsPage() {
                           />
                         </div>
                       </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Info Box */}

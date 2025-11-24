@@ -41,8 +41,17 @@ export default function AffiliatesDashboard() {
     },
   });
 
+  // Fetch referral stats
+  const { data: referralStats, isLoading: referralLoading } = useQuery({
+    queryKey: ['referral-stats'],
+    queryFn: async () => {
+      const response = await gamificationApi.getReferralStats();
+      return response.data;
+    },
+  });
+
   // Generate referral link
-  const referralCode = stats?.referralCode || '';
+  const referralCode = stats?.referralCode || referralStats?.referralCode || '';
   const referralLink = referralCode ? `${window.location.origin}/apply?ref=${referralCode}` : '';
 
   // Copy link to clipboard
@@ -75,17 +84,18 @@ export default function AffiliatesDashboard() {
     window.open(`mailto:?subject=${subject}&body=${body}`);
   };
 
-  // Mock data for now - will be replaced with real API data
+  // Use real referral stats from API
   const affiliateStats = {
-    totalReferrals: 0,
-    activeReferrals: 0,
-    pendingReferrals: 0,
-    totalEarnings: 0,
-    pendingPayout: 0,
-    conversionRate: 0,
+    totalReferrals: referralStats?.totalReferrals || 0,
+    activeReferrals: referralStats?.activeReferrals || 0,
+    pendingReferrals: referralStats?.pendingReferrals || 0,
+    totalPointsEarned: referralStats?.totalPointsEarned || 0,
+    conversionRate: referralStats?.totalReferrals > 0
+      ? Math.round((referralStats.activeReferrals / referralStats.totalReferrals) * 100)
+      : 0,
   };
 
-  const recentReferrals: any[] = [];
+  const recentReferrals = referralStats?.recentReferrals || [];
 
   return (
     <div className="flex flex-col h-screen bg-surface overflow-hidden">

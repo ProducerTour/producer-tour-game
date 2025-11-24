@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { dashboardApi, statementApi, documentApi, userApi, payoutApi } from '../lib/api';
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import { PaymentSettings } from '../components/PaymentSettings';
@@ -10,10 +11,23 @@ import ToolsHub from '../components/ToolsHub';
 import WriterOverviewTremor from '../components/writer/WriterOverviewTremor';
 import { useAuthStore } from '../store/auth.store';
 import { formatIpiDisplay } from '../utils/ipi-helper';
-import { X, Bell, ClipboardList, Users, Paperclip } from 'lucide-react';
+import { X, Bell, ClipboardList, Users, Paperclip, Upload, FileText, Loader2 } from 'lucide-react';
+
+type TabType = 'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile' | 'tools' | 'claims';
 
 export default function WriterDashboard() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile' | 'tools' | 'claims'>('overview');
+  const location = useLocation();
+  const initialTab = (location.state as { activeTab?: TabType })?.activeTab || 'overview';
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  // Handle navigation state changes when navigating back to dashboard
+  useEffect(() => {
+    const stateTab = (location.state as { activeTab?: TabType })?.activeTab;
+    if (stateTab) {
+      setActiveTab(stateTab);
+    }
+  }, [location.state]);
+
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawError, setWithdrawError] = useState('');
@@ -140,54 +154,58 @@ export default function WriterDashboard() {
         <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} overflow-y-auto transition-all duration-300`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 md:pt-8">
 
-        {/* Payment Status Indicator */}
-        {paymentStatusLoading ? (
-          <div className="mb-6 rounded-xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-4">
-            <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-blue"></div>
-              <p className="text-sm text-text-secondary">Loading payment status...</p>
-            </div>
-          </div>
-        ) : paymentStatusError ? (
-          <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-            <p className="text-sm text-red-400">Failed to load payment status</p>
-          </div>
-        ) : paymentStatus ? (
-          <div className="mb-6">
-            <PaymentStatusIndicator status={paymentStatus} />
-          </div>
-        ) : null}
+        {/* Payment Status Indicator - only show on overview tab */}
+        {activeTab === 'overview' && (
+          <>
+            {paymentStatusLoading ? (
+              <div className="mb-6 rounded-xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-4">
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-blue"></div>
+                  <p className="text-sm text-text-secondary">Loading payment status...</p>
+                </div>
+              </div>
+            ) : paymentStatusError ? (
+              <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                <p className="text-sm text-red-400">Failed to load payment status</p>
+              </div>
+            ) : paymentStatus ? (
+              <div className="mb-6">
+                <PaymentStatusIndicator status={paymentStatus} />
+              </div>
+            ) : null}
 
-        {/* Stats Cards */}
-        {summaryLoading ? (
-          <div className="text-center text-text-secondary py-12">Loading...</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatCard
-              title="Total Earnings"
-              value={`$${Number(summary?.totalEarnings || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              subtitle="All time"
-              color="blue"
-            />
-            <StatCard
-              title="Year to Date"
-              value={`$${Number(summary?.yearToDate || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              subtitle={new Date().getFullYear().toString()}
-              color="green"
-            />
-            <StatCard
-              title="Last Month"
-              value={`$${Number(summary?.lastMonth || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-              subtitle={new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleDateString('en-US', { month: 'long' })}
-              color="purple"
-            />
-            <StatCard
-              title="Total Performances"
-              value={Number(summary?.totalPerformances || 0).toLocaleString()}
-              subtitle={`${summary?.totalSongs || 0} songs`}
-              color="orange"
-            />
-          </div>
+            {/* Stats Cards - only show on overview tab */}
+            {summaryLoading ? (
+              <div className="text-center text-text-secondary py-12">Loading...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <StatCard
+                  title="Total Earnings"
+                  value={`$${Number(summary?.totalEarnings || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  subtitle="All time"
+                  color="blue"
+                />
+                <StatCard
+                  title="Year to Date"
+                  value={`$${Number(summary?.yearToDate || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  subtitle={new Date().getFullYear().toString()}
+                  color="green"
+                />
+                <StatCard
+                  title="Last Month"
+                  value={`$${Number(summary?.lastMonth || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  subtitle={new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleDateString('en-US', { month: 'long' })}
+                  color="purple"
+                />
+                <StatCard
+                  title="Total Performances"
+                  value={Number(summary?.totalPerformances || 0).toLocaleString()}
+                  subtitle={`${summary?.totalSongs || 0} songs`}
+                  color="orange"
+                />
+              </div>
+            )}
+          </>
         )}
 
         {/* Content */}
@@ -358,6 +376,7 @@ export default function WriterDashboard() {
 }
 
 function ClaimsSection() {
+  const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'approved' | 'pending' | 'denied' | 'documents_requested'>('all');
   const [dismissedNotifications, setDismissedNotifications] = useState<string[]>(() => {
@@ -365,6 +384,12 @@ function ClaimsSection() {
     const saved = localStorage.getItem('dismissedNotifications');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Document upload state
+  const [uploadModalClaim, setUploadModalClaim] = useState<any>(null);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadDescription, setUploadDescription] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   const { data: submissionsData, isLoading } = useQuery({
     queryKey: ['my-work-submissions'],
@@ -396,6 +421,30 @@ function ClaimsSection() {
     const updated = [...dismissedNotifications, id];
     setDismissedNotifications(updated);
     localStorage.setItem('dismissedNotifications', JSON.stringify(updated));
+  };
+
+  // Document upload handler
+  const handleDocumentUpload = async () => {
+    if (!uploadFile || !uploadModalClaim) return;
+
+    setIsUploading(true);
+    try {
+      await documentApi.upload(uploadFile, {
+        category: 'OTHER',
+        description: uploadDescription || `Document for claim: ${uploadModalClaim.songTitle || 'Work submission'}`,
+        visibility: 'USER_SPECIFIC',
+        placementId: uploadModalClaim.id,
+      });
+      toast.success('Document uploaded successfully!');
+      queryClient.invalidateQueries({ queryKey: ['my-work-submissions'] });
+      setUploadModalClaim(null);
+      setUploadFile(null);
+      setUploadDescription('');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to upload document');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const filteredSubmissions = activeFilter === 'all' ? allSubmissions :
@@ -613,8 +662,20 @@ function ClaimsSection() {
                             </div>
                           )}
                           {claim?.status === 'DOCUMENTS_REQUESTED' && claim?.documentsRequested && (
-                            <div className="mt-2 text-yellow-400 text-xs">
-                              <span className="font-semibold">Requested:</span> {claim.documentsRequested}
+                            <div className="mt-2">
+                              <div className="text-yellow-400 text-xs mb-2">
+                                <span className="font-semibold">Requested:</span> {claim.documentsRequested}
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setUploadModalClaim(claim);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 text-xs rounded-lg border border-yellow-500/30 transition-colors"
+                              >
+                                <Upload className="w-3.5 h-3.5" />
+                                Upload Documents
+                              </button>
                             </div>
                           )}
                         </div>
@@ -742,6 +803,105 @@ function ClaimsSection() {
             </div>
           )}
         </>
+      )}
+
+      {/* Document Upload Modal */}
+      {uploadModalClaim && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-yellow-400" />
+                Upload Documents
+              </h3>
+              <button
+                onClick={() => {
+                  setUploadModalClaim(null);
+                  setUploadFile(null);
+                  setUploadDescription('');
+                }}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <p className="text-sm text-yellow-400 font-medium mb-2">Requested Documents:</p>
+              <div className="space-y-1.5">
+                {uploadModalClaim.documentsRequested?.split('\n').filter((line: string) => line.trim()).map((item: string, idx: number) => (
+                  <div key={idx} className="flex items-start gap-2 text-xs text-slate-300">
+                    <div className="w-4 h-4 rounded border border-yellow-500/50 flex-shrink-0 mt-0.5" />
+                    <span>{item.trim()}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-slate-500 mt-2 italic">Upload one file at a time for each requested document</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Select File
+                </label>
+                <input
+                  type="file"
+                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                  className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-slate-700 file:text-white hover:file:bg-slate-600 file:cursor-pointer cursor-pointer"
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip"
+                />
+                {uploadFile && (
+                  <p className="mt-2 text-xs text-slate-400">
+                    Selected: {uploadFile.name} ({(uploadFile.size / 1024).toFixed(1)} KB)
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Description (optional)
+                </label>
+                <textarea
+                  value={uploadDescription}
+                  onChange={(e) => setUploadDescription(e.target.value)}
+                  placeholder="Add a note about this document..."
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-slate-600 resize-none"
+                  rows={2}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    setUploadModalClaim(null);
+                    setUploadFile(null);
+                    setUploadDescription('');
+                  }}
+                  className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDocumentUpload}
+                  disabled={!uploadFile || isUploading}
+                  className="flex-1 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      Upload
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

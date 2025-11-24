@@ -918,9 +918,51 @@ interface RequestDocumentsModalProps {
   onSubmit: (documentsRequested: string) => void;
 }
 
+// Common document types for quick selection
+const COMMON_DOCUMENTS = [
+  { id: 'split_sheet', label: 'Split Sheet', description: 'Ownership splits between all writers/producers' },
+  { id: 'master_agreement', label: 'Master Recording Agreement', description: 'Agreement for master recording ownership' },
+  { id: 'work_for_hire', label: 'Work for Hire Agreement', description: 'Work for hire documentation' },
+  { id: 'publishing_agreement', label: 'Publishing Agreement', description: 'Publishing deal documentation' },
+  { id: 'sync_license', label: 'Sync License', description: 'Synchronization license for visual media' },
+  { id: 'mechanical_license', label: 'Mechanical License', description: 'Mechanical rights license' },
+  { id: 'collaboration_agreement', label: 'Collaboration Agreement', description: 'Agreement between collaborators' },
+  { id: 'release_form', label: 'Artist Release Form', description: 'Permission from featured artists' },
+  { id: 'sample_clearance', label: 'Sample Clearance', description: 'Clearance for any samples used' },
+  { id: 'pro_registration', label: 'PRO Registration Proof', description: 'BMI/ASCAP/SESAC registration confirmation' },
+];
+
 function RequestDocumentsModal({ submission, onClose, onSubmit }: RequestDocumentsModalProps) {
   const [documentsRequested, setDocumentsRequested] = useState('');
+  const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Toggle a document in the checklist
+  const toggleDocument = (docId: string) => {
+    setSelectedDocs(prev => {
+      const newSelection = prev.includes(docId)
+        ? prev.filter(id => id !== docId)
+        : [...prev, docId];
+
+      // Update the textarea with selected documents
+      const selectedLabels = newSelection.map(id =>
+        COMMON_DOCUMENTS.find(d => d.id === id)?.label
+      ).filter(Boolean);
+
+      if (selectedLabels.length > 0) {
+        const existingCustomText = documentsRequested
+          .split('\n')
+          .filter(line => !COMMON_DOCUMENTS.some(d => line.includes(d.label)))
+          .join('\n')
+          .trim();
+
+        const newText = selectedLabels.join('\n') + (existingCustomText ? '\n\n' + existingCustomText : '');
+        setDocumentsRequested(newText);
+      }
+
+      return newSelection;
+    });
+  };
 
   const handleSubmit = async () => {
     if (!documentsRequested.trim()) {
@@ -956,19 +998,59 @@ function RequestDocumentsModal({ submission, onClose, onSubmit }: RequestDocumen
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Documents field */}
+        <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+          {/* Quick Select Checklist */}
+          <div>
+            <label className="block text-text-secondary font-semibold mb-3">
+              Quick Select Common Documents
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {COMMON_DOCUMENTS.map((doc) => (
+                <button
+                  key={doc.id}
+                  type="button"
+                  onClick={() => toggleDocument(doc.id)}
+                  className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all ${
+                    selectedDocs.includes(doc.id)
+                      ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300'
+                      : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                    selectedDocs.includes(doc.id)
+                      ? 'border-yellow-500 bg-yellow-500'
+                      : 'border-white/30'
+                  }`}>
+                    {selectedDocs.includes(doc.id) && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{doc.label}</p>
+                    <p className="text-xs text-text-muted mt-0.5">{doc.description}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Documents field */}
           <div>
             <label className="block text-text-secondary font-semibold mb-2">
-              Required Documents <span className="text-red-400">*</span>
+              Document Request Details <span className="text-red-400">*</span>
             </label>
             <textarea
               value={documentsRequested}
               onChange={(e) => setDocumentsRequested(e.target.value)}
-              placeholder="Specify what documents are needed (e.g., split sheet, master recording agreement, etc.)..."
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-yellow-500/50 min-h-[120px]"
-              rows={5}
+              placeholder="Selected documents appear here. Add any custom requirements or specific instructions..."
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-yellow-500/50 min-h-[100px]"
+              rows={4}
             />
+            <p className="text-xs text-text-muted mt-1">
+              {selectedDocs.length} document type{selectedDocs.length !== 1 ? 's' : ''} selected
+            </p>
           </div>
 
           {/* Info */}

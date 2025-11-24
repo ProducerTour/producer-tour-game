@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { AlertCircle, Loader2, Video, Upload, Settings, Youtube, HelpCircle, Menu, X } from 'lucide-react';
+import { AlertCircle, Loader2, Video, Upload, Settings, Youtube, HelpCircle, Menu, X, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useFFmpeg } from '../hooks/useFFmpeg';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useToolAccess } from '../hooks/useToolAccess';
@@ -34,6 +35,8 @@ import type { VideoWithMetadata, YouTubeMetadata } from '../types/youtube';
 const TOOL_ID = 'type-beat-video-maker';
 
 export default function VideoMaker() {
+  const navigate = useNavigate();
+
   // Get user role for direct access check
   const { user } = useAuthStore();
   const userRole = user?.role;
@@ -539,13 +542,26 @@ export default function VideoMaker() {
         </div>
       )}
 
-      {/* Mobile Hamburger Menu Button for Tool Sidebar */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="md:hidden fixed top-20 left-4 z-50 p-3 bg-zinc-900/95 backdrop-blur-xl border border-zinc-800/50 rounded-lg hover:bg-zinc-800 transition-colors"
-      >
-        {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
+      {/* Mobile Header Bar with Back Button */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-zinc-900/95 backdrop-blur-xl border-b border-zinc-800/50 z-[60] flex items-center px-4 gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 bg-zinc-800/80 rounded-lg hover:bg-zinc-700 transition-colors flex items-center gap-2"
+        >
+          <ArrowLeft size={20} />
+          <span className="text-sm font-medium">Back</span>
+        </button>
+        <div className="flex-1 flex items-center justify-center gap-2">
+          <Video size={20} className="text-brand-blue" />
+          <span className="font-semibold text-sm truncate">Type Beat Video Maker</span>
+        </div>
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="p-2 bg-zinc-800/80 rounded-lg hover:bg-zinc-700 transition-colors"
+        >
+          {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
 
       {/* Mobile Overlay for Tool Sidebar */}
       {sidebarOpen && (
@@ -556,33 +572,45 @@ export default function VideoMaker() {
       )}
 
       {/* Tool Sidebar - hidden on mobile by default */}
-      <aside className={`fixed left-0 top-0 h-full bg-zinc-900/95 backdrop-blur-xl border-r border-zinc-800/50 transition-all duration-300 z-20 ${
-        sidebarOpen ? 'w-64 sidebar-open translate-x-0' : '-translate-x-full md:translate-x-0 md:w-16'
-      }`}>
-        {/* Sidebar Header */}
-        <div className="p-4 border-b border-zinc-800/50 flex items-center justify-between">
+      <aside className={`fixed left-0 top-0 md:top-0 h-full bg-zinc-900/95 backdrop-blur-xl border-r border-zinc-800/50 transition-all duration-300 z-20 ${
+        sidebarOpen ? 'w-64 sidebar-open translate-x-0 top-14' : '-translate-x-full md:translate-x-0 md:w-16'
+      } md:top-0`}>
+        {/* Sidebar Header with Back Button */}
+        <div className="p-4 border-b border-zinc-800/50">
           {sidebarOpen && (
-            <>
-              <div className="flex items-center gap-2">
-                <Video size={24} className="text-brand-blue" />
-                <span className="font-bold text-white">Type Beat Video Maker</span>
-              </div>
-              {/* Mobile close button */}
+            <div className="space-y-3">
+              {/* Back Button - Desktop only */}
               <button
-                onClick={() => setSidebarOpen(false)}
-                className="md:hidden p-2 hover:bg-zinc-800 rounded-lg transition-colors"
+                onClick={() => navigate(-1)}
+                className="hidden md:flex items-center gap-2 text-text-secondary hover:text-white transition-colors w-full p-2 rounded-lg hover:bg-zinc-800"
               >
-                <X size={20} />
+                <ArrowLeft size={18} />
+                <span className="text-sm">Back to Tools</span>
               </button>
-            </>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Video size={24} className="text-brand-blue" />
+                  <span className="font-bold text-white">Type Beat Video Maker</span>
+                </div>
+                {/* Mobile close button */}
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="md:hidden p-2 hover:bg-zinc-800 rounded-lg transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
           )}
-          {/* Desktop toggle button */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hidden md:block p-2 hover:bg-zinc-800 rounded-lg transition-colors ml-auto"
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          {/* Desktop toggle button when collapsed */}
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="hidden md:block p-2 hover:bg-zinc-800 rounded-lg transition-colors mx-auto"
+            >
+              <Menu size={20} />
+            </button>
+          )}
         </div>
 
         {/* Navigation */}
@@ -663,7 +691,7 @@ export default function VideoMaker() {
       </aside>
 
       {/* Main Content */}
-      <main className={`transition-all duration-300 ml-0 ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'} px-4 md:px-6 py-8 pt-20 md:pt-8`}>
+      <main className={`transition-all duration-300 ml-0 ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'} px-4 md:px-6 pb-8 pt-20 md:pt-8`}>
         {/* Error Message */}
         {ffmpegError && (
           <div className="max-w-6xl mx-auto mb-6 bg-zinc-900 border border-red-500/30 rounded-lg p-4">

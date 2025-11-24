@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import ToolsHub from '../components/ToolsHub';
 import { useAuthStore } from '../store/auth.store';
 import { gamificationApi } from '../lib/api';
-import { Link } from 'react-router-dom';
 import {
   Sparkles,
   Target,
@@ -23,8 +23,18 @@ import {
 type TabType = 'overview' | 'discover' | 'events' | 'learning' | 'wishlist' | 'tools';
 
 export default function CustomerDashboard() {
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const location = useLocation();
+  const initialTab = (location.state as { activeTab?: TabType })?.activeTab || 'overview';
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const { user } = useAuthStore();
+
+  // Handle navigation state changes when navigating back to dashboard
+  useEffect(() => {
+    const stateTab = (location.state as { activeTab?: TabType })?.activeTab;
+    if (stateTab) {
+      setActiveTab(stateTab);
+    }
+  }, [location.state]);
 
   // Track sidebar collapse state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -100,18 +110,18 @@ export default function CustomerDashboard() {
         <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} overflow-y-auto transition-all duration-300`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 md:pt-8">
 
-            {/* Welcome Header */}
-            <div className="mb-8">
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                Welcome back, {user?.firstName || 'Guest'}!
-              </h1>
-              <p className="text-text-secondary">
-                Explore tools, earn Tour Miles, and connect with the Producer Tour community.
-              </p>
-            </div>
-
             {/* Tab Content */}
             {activeTab === 'overview' && (
+              <>
+                {/* Welcome Header - only on overview tab */}
+                <div className="mb-8">
+                  <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                    Welcome back, {user?.firstName || 'Guest'}!
+                  </h1>
+                  <p className="text-text-secondary">
+                    Explore tools, earn Tour Miles, and connect with the Producer Tour community.
+                  </p>
+                </div>
               <div className="space-y-6">
                 {/* Stats Cards Row */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -261,6 +271,7 @@ export default function CustomerDashboard() {
                   )}
                 </div>
               </div>
+              </>
             )}
 
             {activeTab === 'discover' && (

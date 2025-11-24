@@ -528,7 +528,7 @@ export default function ToolsHub() {
                     <tool.icon className="w-7 h-7 text-white" />
                   )}
                 </div>
-                <h4 className="text-white font-bold text-lg mb-2">{tool.name}</h4>
+                <h4 className="text-white font-bold text-base sm:text-lg mb-2 break-words">{tool.name}</h4>
                 <p className="text-text-muted text-sm mb-3 line-clamp-2">{tool.description}</p>
                 <div className="flex items-center justify-between">
                   <span className={`text-xs font-semibold ${isLocked && tool.requiresPurchase ? 'text-yellow-400' : 'text-blue-400'}`}>

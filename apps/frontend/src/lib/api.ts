@@ -468,6 +468,9 @@ export const gamificationApi = {
   // Get user gamification stats
   getStats: () => api.get('/gamification/stats'),
 
+  // Get user referral stats
+  getReferralStats: () => api.get('/gamification/referral/stats'),
+
   // Perform daily check-in
   checkIn: () => api.post('/gamification/check-in'),
 

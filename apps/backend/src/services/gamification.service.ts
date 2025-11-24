@@ -363,6 +363,69 @@ export const getUserStats = async (userId: string) => {
   };
 };
 
+// Get user's referral statistics
+export const getUserReferralStats = async (userId: string) => {
+  // Get user's gamification points to get their referral code
+  const gamificationPoints = await prisma.gamificationPoints.findUnique({
+    where: { userId }
+  });
+
+  if (!gamificationPoints || !gamificationPoints.referralCode) {
+    return {
+      referralCode: null,
+      totalReferrals: 0,
+      activeReferrals: 0,
+      pendingReferrals: 0,
+      totalPointsEarned: 0,
+      recentReferrals: []
+    };
+  }
+
+  // Count referral events for this user
+  const referralSignups = await prisma.gamificationEvent.count({
+    where: {
+      userId,
+      eventType: 'REFERRAL_SIGNUP'
+    }
+  });
+
+  const referralConversions = await prisma.gamificationEvent.count({
+    where: {
+      userId,
+      eventType: 'REFERRAL_CONVERSION'
+    }
+  });
+
+  // Get total points earned from referrals
+  const referralEvents = await prisma.gamificationEvent.findMany({
+    where: {
+      userId,
+      eventType: {
+        in: ['REFERRAL_SIGNUP', 'REFERRAL_CONVERSION']
+      }
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 10
+  });
+
+  const totalPointsEarned = referralEvents.reduce((sum, e) => sum + e.points, 0);
+
+  return {
+    referralCode: gamificationPoints.referralCode,
+    totalReferrals: referralSignups,
+    activeReferrals: referralConversions,
+    pendingReferrals: referralSignups - referralConversions,
+    totalPointsEarned,
+    recentReferrals: referralEvents.map(e => ({
+      id: e.id,
+      type: e.eventType,
+      points: e.points,
+      description: e.description,
+      date: e.createdAt
+    }))
+  };
+};
+
 // Get leaderboard
 export const getLeaderboard = async (limit: number = 10, tier?: GamificationTier) => {
   const where = tier ? { tier } : {};
