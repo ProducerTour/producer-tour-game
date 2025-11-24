@@ -612,7 +612,8 @@ router.post(
 
       // Create StatementItems with assigned writers and apply commission
       // Note: One song can have multiple writers with different splits
-      const createPromises: any[] = [];
+      // Using batch inserts to prevent database connection pool exhaustion
+      const itemsToCreate: any[] = [];
       let totalCommission = 0;
       let totalNet = 0;
 
@@ -640,36 +641,42 @@ router.post(
           totalCommission += itemCommissionAmount;
           totalNet += itemNetRevenue;
 
-          createPromises.push(
-            prisma.statementItem.create({
-              data: {
-                statementId: id,
-                userId: assignment.userId,
-                workTitle: item.workTitle,
-                revenue: writerRevenue,
-                performances: item.performances,
-                splitPercentage: splitPercentage,
-                writerIpiNumber: assignment.writerIpiNumber || null,
-                commissionRate: commissionRateToUse,
-                commissionAmount: itemCommissionAmount,
-                commissionRecipient: commissionRecipient,
-                netRevenue: itemNetRevenue,
-                isVisibleToWriter: false, // Hidden until payment processed
-                metadata: {
-                  ...item.metadata,
-                  originalTotalRevenue: parseFloat(item.revenue), // Store original total before split
-                  publisherIpiNumber: assignment.publisherIpiNumber || null, // Store publisher IPI in metadata
-                },
-              },
-            })
-          );
+          itemsToCreate.push({
+            statementId: id,
+            userId: assignment.userId,
+            workTitle: item.workTitle,
+            revenue: writerRevenue,
+            performances: item.performances,
+            splitPercentage: splitPercentage,
+            writerIpiNumber: assignment.writerIpiNumber || null,
+            commissionRate: commissionRateToUse,
+            commissionAmount: itemCommissionAmount,
+            commissionRecipient: commissionRecipient,
+            netRevenue: itemNetRevenue,
+            isVisibleToWriter: false, // Hidden until payment processed
+            metadata: {
+              ...item.metadata,
+              originalTotalRevenue: parseFloat(item.revenue), // Store original total before split
+              publisherIpiNumber: assignment.publisherIpiNumber || null, // Store publisher IPI in metadata
+            },
+          });
         });
       });
 
-      // Use transaction to create all items and update statement
-      await prisma.$transaction([
-        ...createPromises,
-        prisma.statement.update({
+      // Use transaction with batched createMany to prevent connection pool exhaustion
+      // Process in batches of 500 to handle very large statements
+      const BATCH_SIZE = 500;
+      await prisma.$transaction(async (tx) => {
+        // Insert items in batches
+        for (let i = 0; i < itemsToCreate.length; i += BATCH_SIZE) {
+          const batch = itemsToCreate.slice(i, i + BATCH_SIZE);
+          await tx.statementItem.createMany({
+            data: batch,
+          });
+        }
+
+        // Update statement status
+        await tx.statement.update({
           where: { id },
           data: {
             status: 'PUBLISHED',
@@ -679,8 +686,10 @@ router.post(
             totalCommission: totalCommission,
             totalNet: totalNet,
           },
-        }),
-      ]);
+        });
+      }, {
+        timeout: 120000, // 2 minute timeout for large statements
+      });
 
       const updatedStatement = await prisma.statement.findUnique({
         where: { id },
@@ -769,8 +778,8 @@ router.post(
         }
       });
 
-      // Create StatementItems with new precision
-      const createPromises: any[] = [];
+      // Create StatementItems with new precision using batch inserts
+      const itemsToCreate: any[] = [];
       let totalCommission = 0;
       let totalNet = 0;
 
@@ -795,43 +804,50 @@ router.post(
           totalCommission += itemCommissionAmount;
           totalNet += itemNetRevenue;
 
-          createPromises.push(
-            prisma.statementItem.create({
-              data: {
-                statementId: id,
-                userId: assignment.userId,
-                workTitle: item.workTitle,
-                revenue: writerRevenue,
-                performances: item.performances,
-                splitPercentage: splitPercentage,
-                writerIpiNumber: assignment.writerIpiNumber || null,
-                commissionRate: commissionRateToUse,
-                commissionAmount: itemCommissionAmount,
-                commissionRecipient: commissionRecipient,
-                netRevenue: itemNetRevenue,
-                isVisibleToWriter: false,
-                metadata: {
-                  ...item.metadata,
-                  originalTotalRevenue: parseFloat(item.revenue),
-                  publisherIpiNumber: assignment.publisherIpiNumber || null,
-                },
-              },
-            })
-          );
+          itemsToCreate.push({
+            statementId: id,
+            userId: assignment.userId,
+            workTitle: item.workTitle,
+            revenue: writerRevenue,
+            performances: item.performances,
+            splitPercentage: splitPercentage,
+            writerIpiNumber: assignment.writerIpiNumber || null,
+            commissionRate: commissionRateToUse,
+            commissionAmount: itemCommissionAmount,
+            commissionRecipient: commissionRecipient,
+            netRevenue: itemNetRevenue,
+            isVisibleToWriter: false,
+            metadata: {
+              ...item.metadata,
+              originalTotalRevenue: parseFloat(item.revenue),
+              publisherIpiNumber: assignment.publisherIpiNumber || null,
+            },
+          });
         });
       });
 
-      // Use transaction to create all items and update totals
-      await prisma.$transaction([
-        ...createPromises,
-        prisma.statement.update({
+      // Use transaction with batched createMany to prevent connection pool exhaustion
+      const BATCH_SIZE = 500;
+      await prisma.$transaction(async (tx) => {
+        // Insert items in batches
+        for (let i = 0; i < itemsToCreate.length; i += BATCH_SIZE) {
+          const batch = itemsToCreate.slice(i, i + BATCH_SIZE);
+          await tx.statementItem.createMany({
+            data: batch,
+          });
+        }
+
+        // Update statement totals
+        await tx.statement.update({
           where: { id },
           data: {
             totalCommission: totalCommission,
             totalNet: totalNet,
           },
-        }),
-      ]);
+        });
+      }, {
+        timeout: 120000, // 2 minute timeout for large statements
+      });
 
       const updatedStatement = await prisma.statement.findUnique({
         where: { id },
@@ -842,7 +858,7 @@ router.post(
 
       res.json({
         message: 'Statement republished successfully with updated precision',
-        itemsRecreated: createPromises.length,
+        itemsRecreated: itemsToCreate.length,
         statement: updatedStatement
       });
     } catch (error) {
