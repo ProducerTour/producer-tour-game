@@ -67,10 +67,10 @@ export default function DashboardOverviewTremor() {
     );
   }
 
-  // Prepare KPI data
-  const kpis: KpiData[] = [
+  // Financial summary data (Revenue, Net, Commission)
+  const financialKpis: KpiData[] = [
     {
-      title: 'Total Revenue',
+      title: 'Gross Revenue',
       value: formatCurrency(Number(stats?.totalRevenue || 0)),
       icon: '💰',
       delta: stats?.totalRevenueChange !== null && stats?.totalRevenueChange !== undefined
@@ -79,6 +79,24 @@ export default function DashboardOverviewTremor() {
       deltaType: stats?.totalRevenueTrend === 'up' ? 'increase' : stats?.totalRevenueTrend === 'down' ? 'decrease' : 'unchanged',
       color: 'blue',
     },
+    {
+      title: 'Net to Writers',
+      value: formatCurrency(Number(stats?.totalNet || 0)),
+      icon: '💵',
+      deltaType: 'unchanged',
+      color: 'cyan',
+    },
+    {
+      title: 'Commission',
+      value: formatCurrency(Number(stats?.totalCommission || 0)),
+      icon: '📈',
+      deltaType: 'unchanged',
+      color: 'amber',
+    },
+  ];
+
+  // Prepare KPI data (other stats)
+  const kpis: KpiData[] = [
     {
       title: 'Total Writers',
       value: stats?.totalWriters || 0,
@@ -129,9 +147,9 @@ export default function DashboardOverviewTremor() {
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards */}
-      <Grid numItemsSm={2} numItemsLg={4} className="gap-6">
-        {kpis.map((kpi) => (
+      {/* Financial Summary - Revenue, Net, Commission */}
+      <Grid numItemsSm={1} numItemsLg={3} className="gap-6">
+        {financialKpis.map((kpi) => (
           <Card
             key={kpi.title}
             className={cn(
@@ -144,16 +162,49 @@ export default function DashboardOverviewTremor() {
             <Flex alignItems="start">
               <div className="truncate">
                 <Text className="text-gray-400">{kpi.title}</Text>
-                <Metric className="text-white mt-1 truncate">
+                <Metric className="text-white mt-1 truncate text-2xl">
                   {typeof kpi.value === 'number' ? kpi.value.toLocaleString() : kpi.value}
                 </Metric>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center text-xl shrink-0">
+              <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center text-2xl shrink-0">
                 {kpi.icon}
               </div>
             </Flex>
             {kpi.delta && (
               <Flex className="mt-4 space-x-2">
+                <BadgeDelta deltaType={kpi.deltaType} size="xs">
+                  {kpi.delta}
+                </BadgeDelta>
+                <Text className="text-gray-500 text-xs">vs last period</Text>
+              </Flex>
+            )}
+          </Card>
+        ))}
+      </Grid>
+
+      {/* Other Stats - Writers, Statements, Works */}
+      <Grid numItemsSm={3} numItemsLg={3} className="gap-6">
+        {kpis.map((kpi) => (
+          <Card
+            key={kpi.title}
+            className={cn(
+              'bg-gradient-to-b from-white/[0.06] to-white/[0.02]',
+              'border-white/[0.06] ring-0'
+            )}
+          >
+            <Flex alignItems="start">
+              <div className="truncate">
+                <Text className="text-gray-500 text-sm">{kpi.title}</Text>
+                <Metric className="text-white mt-1 truncate text-xl">
+                  {typeof kpi.value === 'number' ? kpi.value.toLocaleString() : kpi.value}
+                </Metric>
+              </div>
+              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-lg shrink-0">
+                {kpi.icon}
+              </div>
+            </Flex>
+            {kpi.delta && (
+              <Flex className="mt-3 space-x-2">
                 <BadgeDelta deltaType={kpi.deltaType} size="xs">
                   {kpi.delta}
                 </BadgeDelta>

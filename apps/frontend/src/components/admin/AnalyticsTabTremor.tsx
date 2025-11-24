@@ -291,7 +291,56 @@ export default function AnalyticsTabTremor() {
         </div>
       )}
 
-      {/* KPI Cards Grid */}
+      {/* Financial Summary - Revenue, Net, Commission */}
+      <Grid numItemsSm={1} numItemsLg={3} className="gap-6">
+        <Card
+          className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
+          decoration="top"
+          decorationColor="blue"
+        >
+          <Flex alignItems="start">
+            <div>
+              <Text className="text-gray-400">Gross Revenue</Text>
+              <Metric className="text-white mt-1">
+                {currencyFormatter(Number(stats?.totalRevenue || 0))}
+              </Metric>
+            </div>
+            <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center text-2xl">💰</div>
+          </Flex>
+        </Card>
+        <Card
+          className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
+          decoration="top"
+          decorationColor="cyan"
+        >
+          <Flex alignItems="start">
+            <div>
+              <Text className="text-gray-400">Net to Writers</Text>
+              <Metric className="text-white mt-1">
+                {currencyFormatter(Number(stats?.totalNet || 0))}
+              </Metric>
+            </div>
+            <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center text-2xl">💵</div>
+          </Flex>
+        </Card>
+        <Card
+          className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
+          decoration="top"
+          decorationColor="amber"
+        >
+          <Flex alignItems="start">
+            <div>
+              <Text className="text-gray-400">Commission</Text>
+              <Metric className="text-white mt-1">
+                {currencyFormatter(Number(stats?.totalCommission || 0))}
+              </Metric>
+            </div>
+            <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center text-2xl">📈</div>
+          </Flex>
+        </Card>
+      </Grid>
+
+      {/* Other Stats - KPI Cards Grid */}
       <Grid numItemsSm={2} numItemsMd={3} numItemsLg={5} className="gap-4">
         <Card
           className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
