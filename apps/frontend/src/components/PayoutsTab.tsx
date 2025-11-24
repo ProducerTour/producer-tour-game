@@ -363,8 +363,8 @@ const PayoutsTab: React.FC = () => {
     );
   }
 
-  const totalUnpaidRevenue = paymentQueue.reduce((sum, s) => sum + s.totalNet, 0);
-  const totalPaidRevenue = paymentHistory.reduce((sum, s) => sum + s.totalNet, 0);
+  const totalUnpaidRevenue = paymentQueue.reduce((sum, s) => sum + Number(s.totalNet || 0), 0);
+  const totalPaidRevenue = paymentHistory.reduce((sum, s) => sum + Number(s.totalNet || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -407,7 +407,7 @@ const PayoutsTab: React.FC = () => {
             {formatCurrency(
               Array.from(selectedStatements).reduce((sum, id) => {
                 const stmt = statements?.find(s => s.id === id);
-                return sum + (stmt?.totalNet || 0);
+                return sum + Number(stmt?.totalNet || 0);
               }, 0)
             )}
           </div>
@@ -694,7 +694,7 @@ const PayoutsTab: React.FC = () => {
                 <tr>
                   <td colSpan={3} className="py-3 px-2 text-white font-bold text-sm">TOTAL PAID</td>
                   <td className="py-3 px-2 text-right text-white font-bold">
-                    {paymentHistory.reduce((sum, s) => sum + s.itemCount, 0).toLocaleString()}
+                    {paymentHistory.reduce((sum, s) => sum + Number(s.itemCount || 0), 0).toLocaleString()}
                   </td>
                   <td className="py-3 px-2 text-right text-green-400 font-bold">
                     {formatCurrency(totalPaidRevenue)}
