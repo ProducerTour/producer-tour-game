@@ -20,7 +20,6 @@ import ApplicationPage from './pages/ApplicationPage';
 import PubDealSimulatorPage from './pages/PubDealSimulatorPage';
 import ConsultationFormPage from './pages/ConsultationFormPage';
 import CaseStudyPage from './pages/CaseStudyPage';
-import RoyaltyPortalPage from './pages/RoyaltyPortalPage';
 import OpportunitiesToolPage from './pages/OpportunitiesToolPage';
 import AdvanceEstimatorToolPage from './pages/AdvanceEstimatorToolPage';
 import SettingsPage from './pages/SettingsPage';
@@ -106,7 +105,6 @@ function App() {
         <Route path="/tools/pub-deal-simulator" element={<PubDealSimulatorPage />} />
         <Route path="/tools/consultation" element={<ConsultationFormPage />} />
         <Route path="/tools/case-study" element={<CaseStudyPage />} />
-        <Route path="/tools/royalty-portal" element={<RoyaltyPortalPage />} />
         <Route path="/tools/opportunities" element={<OpportunitiesToolPage />} />
         <Route path="/tools/advance-estimator" element={<AdvanceEstimatorToolPage />} />
         <Route path="/tools/metadata-index" element={<MetadataIndexPage />} />

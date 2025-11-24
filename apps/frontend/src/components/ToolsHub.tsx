@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, BarChart3, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, Coins } from 'lucide-react';
+import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, Coins } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { gamificationApi } from '../lib/api';
 
@@ -48,16 +48,6 @@ const TOOLS: Tool[] = [
     color: 'from-green-500 to-green-600',
     url: '/tools/case-study',
     category: 'Learning',
-    roles: ['ADMIN'] // Admin only
-  },
-  {
-    id: 'royalty-tracker',
-    name: 'Royalty Portal',
-    description: 'Track and manage royalty payments. Real-time analytics and earning reports.',
-    icon: BarChart3,
-    color: 'from-orange-500 to-orange-600',
-    url: '/tools/royalty-portal',
-    category: 'Financial',
     roles: ['ADMIN'] // Admin only
   },
   {

@@ -13,7 +13,6 @@ import {
   Calculator,
   Trophy,
   Briefcase,
-  Music,
   LogOut,
   User,
   Shield,
@@ -140,13 +139,6 @@ export default function CommandPalette() {
       icon: <Briefcase className="mr-3 h-4 w-4" />,
       action: () => navigate('/tools/opportunities'),
       keywords: ['jobs', 'gigs', 'sync', 'placements'],
-    },
-    {
-      id: 'royalty-portal',
-      label: 'Royalty Portal',
-      icon: <Music className="mr-3 h-4 w-4" />,
-      action: () => navigate('/tools/royalty-portal'),
-      keywords: ['earnings', 'streams', 'revenue'],
     },
     {
       id: 'consultation',

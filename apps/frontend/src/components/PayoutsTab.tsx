@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { statementApi, payoutApi } from '../lib/api';
-import { DollarSign, Download, Send, CheckCircle, Clock, XCircle, Filter, Wallet, User, RefreshCw, AlertTriangle } from 'lucide-react';
+import { DollarSign, Download, Send, CheckCircle, Clock, XCircle, Filter, Wallet, User, RefreshCw, AlertTriangle, Eye, X, Users } from 'lucide-react';
 
 interface Statement {
   id: string;
@@ -11,9 +11,11 @@ interface Statement {
   uploadedAt: string;
   totalRevenue: number;
   totalNet: number;
+  totalCommission?: number;
   itemCount: number;
   paymentStatus: 'UNPAID' | 'PENDING' | 'PAID';
   paymentProcessedAt?: string;
+  writerCount?: number;
   writerBreakdown?: Array<{
     userId: string;
     userName: string;
@@ -23,9 +25,40 @@ interface Statement {
   }>;
 }
 
+interface Writer {
+  userId: string;
+  name: string;
+  email: string;
+  grossRevenue: number;
+  commissionAmount: number;
+  netRevenue: number;
+  songCount: number;
+}
+
+interface PaymentSummary {
+  statement: {
+    id: string;
+    proType: string;
+    filename: string;
+    publishedAt: string;
+    paymentStatus: string;
+  };
+  totals: {
+    grossRevenue: number;
+    commissionToProducerTour: number;
+    netToWriters: number;
+    songCount: number;
+  };
+  writers: Writer[];
+}
+
 export const PayoutsTab: React.FC = () => {
   const [selectedStatements, setSelectedStatements] = useState<Set<string>>(new Set());
   const [historyFilter, setHistoryFilter] = useState<string>('');
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null);
+  const [selectedStatementForDetails, setSelectedStatementForDetails] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // Fetch all statements for payment processing
@@ -110,6 +143,28 @@ export const PayoutsTab: React.FC = () => {
       toast.error(error.response?.data?.error || 'Failed to cancel withdrawal');
     },
   });
+
+  // Load payment summary for a statement (writer breakdown)
+  const loadPaymentSummary = async (statementId: string) => {
+    try {
+      setDetailsLoading(true);
+      const response = await statementApi.getPaymentSummary(statementId);
+      setPaymentSummary(response.data);
+      setSelectedStatementForDetails(statementId);
+      setShowDetailsModal(true);
+    } catch (error) {
+      console.error('Failed to load payment summary:', error);
+      toast.error('Failed to load payment details');
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const closeDetailsModal = () => {
+    setShowDetailsModal(false);
+    setPaymentSummary(null);
+    setSelectedStatementForDetails(null);
+  };
 
   // Payment queue (unpaid statements)
   const paymentQueue = statements?.filter(s => s.paymentStatus === 'UNPAID') || [];
@@ -491,14 +546,25 @@ export const PayoutsTab: React.FC = () => {
                     <td className="py-3 px-2 text-right text-green-400 font-semibold">{formatCurrency(statement.totalNet)}</td>
                     <td className="py-3 px-2 text-sm text-gray-400">{formatDate(statement.uploadedAt)}</td>
                     <td className="py-3 px-2 text-center">
-                      <button
-                        onClick={() => handleProcessPayment(statement.id)}
-                        disabled={processPaymentMutation.isPending}
-                        className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
-                      >
-                        <Send className="h-3.5 w-3.5" />
-                        Process
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => loadPaymentSummary(statement.id)}
+                          disabled={detailsLoading}
+                          className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                          title="View writer breakdown"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          Details
+                        </button>
+                        <button
+                          onClick={() => handleProcessPayment(statement.id)}
+                          disabled={processPaymentMutation.isPending}
+                          className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          Process
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -671,7 +737,10 @@ export const PayoutsTab: React.FC = () => {
       <div className="bg-slate-700/30 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-white mb-4">Export & Reconciliation</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors">
+          <button
+            onClick={() => statementApi.exportUnpaidSummary()}
+            className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+          >
             <Download className="h-4 w-4" />
             Export Payment Queue (CSV)
           </button>
@@ -688,6 +757,141 @@ export const PayoutsTab: React.FC = () => {
           Export payment data for accounting, reconciliation, or manual processing in external systems.
         </p>
       </div>
+
+      {/* Writer Breakdown Modal */}
+      {showDetailsModal && paymentSummary && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-slate-700 shadow-2xl">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-400" />
+                  Payment Details
+                </h2>
+                <p className="text-sm text-gray-400 mt-1">
+                  {paymentSummary.statement.proType} - {paymentSummary.statement.filename}
+                </p>
+              </div>
+              <button
+                onClick={closeDetailsModal}
+                className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+              {/* Totals Summary */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-slate-700/50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-400">Gross Revenue</p>
+                  <p className="text-xl font-bold text-white mt-1">
+                    {formatCurrency(paymentSummary.totals.grossRevenue)}
+                  </p>
+                </div>
+                <div className="bg-blue-900/30 p-4 rounded-lg border border-blue-700/30">
+                  <p className="text-sm text-blue-400">Commission</p>
+                  <p className="text-xl font-bold text-blue-300 mt-1">
+                    {formatCurrency(paymentSummary.totals.commissionToProducerTour)}
+                  </p>
+                </div>
+                <div className="bg-green-900/30 p-4 rounded-lg border border-green-700/30">
+                  <p className="text-sm text-green-400">Net to Writers</p>
+                  <p className="text-xl font-bold text-green-300 mt-1">
+                    {formatCurrency(paymentSummary.totals.netToWriters)}
+                  </p>
+                </div>
+                <div className="bg-slate-700/50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-400">Songs</p>
+                  <p className="text-xl font-bold text-white mt-1">
+                    {paymentSummary.totals.songCount.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              {/* Writer Breakdown Table */}
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <User className="h-5 w-5 text-gray-400" />
+                  Writer Breakdown ({paymentSummary.writers.length} writers)
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="border-b-2 border-slate-600">
+                      <tr>
+                        <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Writer</th>
+                        <th className="text-center text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Songs</th>
+                        <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Gross Revenue</th>
+                        <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Commission</th>
+                        <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Net Payment</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paymentSummary.writers.map((writer) => (
+                        <tr key={writer.userId} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
+                          <td className="py-3 px-2">
+                            <div>
+                              <p className="text-white font-medium">{writer.name}</p>
+                              <p className="text-xs text-gray-400">{writer.email}</p>
+                            </div>
+                          </td>
+                          <td className="py-3 px-2 text-center text-gray-300">{writer.songCount}</td>
+                          <td className="py-3 px-2 text-right text-gray-300">{formatCurrency(writer.grossRevenue)}</td>
+                          <td className="py-3 px-2 text-right text-blue-400">{formatCurrency(writer.commissionAmount)}</td>
+                          <td className="py-3 px-2 text-right text-green-400 font-semibold">{formatCurrency(writer.netRevenue)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-slate-900/50 border-t border-slate-700 flex justify-between">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => selectedStatementForDetails && statementApi.exportCSV(selectedStatementForDetails)}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => selectedStatementForDetails && statementApi.exportQuickBooks(selectedStatementForDetails)}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  QuickBooks
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={closeDetailsModal}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    if (selectedStatementForDetails) {
+                      handleProcessPayment(selectedStatementForDetails);
+                      closeDetailsModal();
+                    }
+                  }}
+                  disabled={processPaymentMutation.isPending}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Send className="h-4 w-4" />
+                  Process Payment
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
