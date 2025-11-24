@@ -1234,21 +1234,28 @@ router.post(
           writerBalanceUpdates.set(userId, currentTotal + netRevenue);
         }
 
-        // Update each writer's balance
-        for (const [userId, netAmount] of writerBalanceUpdates.entries()) {
-          await tx.user.update({
-            where: { id: userId },
-            data: {
-              availableBalance: { increment: netAmount },
-              lifetimeEarnings: { increment: netAmount }
-            }
-          });
+        // Update each writer's balance - process in batches of 10 for controlled parallelism
+        const writerEntries = Array.from(writerBalanceUpdates.entries());
+        const WRITER_BATCH_SIZE = 10;
+        for (let i = 0; i < writerEntries.length; i += WRITER_BATCH_SIZE) {
+          const batch = writerEntries.slice(i, i + WRITER_BATCH_SIZE);
+          await Promise.all(
+            batch.map(([userId, netAmount]) =>
+              tx.user.update({
+                where: { id: userId },
+                data: {
+                  availableBalance: { increment: netAmount },
+                  lifetimeEarnings: { increment: netAmount }
+                }
+              })
+            )
+          );
         }
 
-        // Mark commission reduction redemptions as used
-        for (const redemptionId of appliedReductions) {
-          await tx.rewardRedemption.update({
-            where: { id: redemptionId },
+        // Mark commission reduction redemptions as used - batch update if any
+        if (appliedReductions.size > 0) {
+          await tx.rewardRedemption.updateMany({
+            where: { id: { in: Array.from(appliedReductions) } },
             data: {
               isActive: false,
               appliedToPayoutId: id
@@ -1257,6 +1264,9 @@ router.post(
         }
 
         return { updatedStatement, writerBalanceUpdates };
+      }, {
+        timeout: 120000, // 2 minute timeout for large statements with many writers
+        maxWait: 30000,  // 30 second max wait to acquire connection
       });
 
       // Extract for use in milestone checks
