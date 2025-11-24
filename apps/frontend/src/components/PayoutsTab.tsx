@@ -218,18 +218,21 @@ const PayoutsTab: React.FC = () => {
     setSelectedStatementForDetails(null);
   };
 
+  // Ensure statements is always an array
+  const safeStatements = Array.isArray(statements) ? statements : [];
+
   // Payment queue (unpaid statements)
-  const paymentQueue = statements?.filter(s => s.paymentStatus === 'UNPAID') || [];
+  const paymentQueue = safeStatements.filter(s => s.paymentStatus === 'UNPAID');
 
   // Payment history (paid statements)
-  const paymentHistory = statements?.filter(s => s.paymentStatus === 'PAID').filter(s => {
+  const paymentHistory = safeStatements.filter(s => s.paymentStatus === 'PAID').filter(s => {
     if (!historyFilter) return true;
     return s.filename.toLowerCase().includes(historyFilter.toLowerCase()) ||
            s.proType.toLowerCase().includes(historyFilter.toLowerCase());
-  }) || [];
+  });
 
   // Pending statements
-  const pendingStatements = statements?.filter(s => s.paymentStatus === 'PENDING') || [];
+  const pendingStatements = safeStatements.filter(s => s.paymentStatus === 'PENDING');
 
   const handleSelectStatement = (id: string) => {
     const newSelected = new Set(selectedStatements);
@@ -406,7 +409,7 @@ const PayoutsTab: React.FC = () => {
           <div className="text-sm text-gray-400 mt-1">
             {formatCurrency(
               Array.from(selectedStatements).reduce((sum, id) => {
-                const stmt = statements?.find(s => s.id === id);
+                const stmt = safeStatements.find(s => s.id === id);
                 return sum + Number(stmt?.totalNet || 0);
               }, 0)
             )}
