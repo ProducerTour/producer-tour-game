@@ -1,8 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { statementApi, payoutApi } from '../lib/api';
 import { DollarSign, Download, Send, CheckCircle, Clock, XCircle, Filter, Wallet, User, RefreshCw, AlertTriangle, Eye, X, Users } from 'lucide-react';
+
+// Error boundary to catch rendering errors
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  onReset?: () => void;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+class PayoutsErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('PayoutsTab Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+          <AlertTriangle className="h-12 w-12 text-red-400" />
+          <div className="text-red-400 text-lg font-semibold">Something went wrong</div>
+          <p className="text-gray-400 text-sm text-center max-w-md">
+            {this.state.error?.message || 'An error occurred while loading the payouts tab'}
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false, error: undefined });
+              this.props.onReset?.();
+            }}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Try Again
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 interface Statement {
   id: string;
@@ -52,7 +104,7 @@ interface PaymentSummary {
   writers: Writer[];
 }
 
-export const PayoutsTab: React.FC = () => {
+const PayoutsTab: React.FC = () => {
   const [selectedStatements, setSelectedStatements] = useState<Set<string>>(new Set());
   const [historyFilter, setHistoryFilter] = useState<string>('');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -363,7 +415,7 @@ export const PayoutsTab: React.FC = () => {
       </div>
 
       {/* Withdrawal Requests Section */}
-      {withdrawalRequests && withdrawalRequests.length > 0 && (
+      {Array.isArray(withdrawalRequests) && withdrawalRequests.length > 0 && (
         <div className="bg-slate-800 rounded-lg shadow-xl p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -666,7 +718,7 @@ export const PayoutsTab: React.FC = () => {
           </div>
         </div>
 
-        {!allPayoutsData || allPayoutsData.payouts.length === 0 ? (
+        {!allPayoutsData || !allPayoutsData.payouts || allPayoutsData.payouts.length === 0 ? (
           <div className="text-center py-12 text-gray-400">
             <Clock className="h-12 w-12 mx-auto mb-3 text-gray-500" />
             <p>No payout history yet</p>
@@ -896,4 +948,23 @@ export const PayoutsTab: React.FC = () => {
   );
 };
 
-export default PayoutsTab;
+// Wrapped component with error boundary
+const PayoutsTabWithErrorBoundary: React.FC = () => {
+  const queryClient = useQueryClient();
+
+  const handleReset = () => {
+    // Invalidate queries to refetch data
+    queryClient.invalidateQueries({ queryKey: ['admin-statements'] });
+    queryClient.invalidateQueries({ queryKey: ['pending-withdrawals'] });
+    queryClient.invalidateQueries({ queryKey: ['all-payouts'] });
+  };
+
+  return (
+    <PayoutsErrorBoundary onReset={handleReset}>
+      <PayoutsTab />
+    </PayoutsErrorBoundary>
+  );
+};
+
+export { PayoutsTab };
+export default PayoutsTabWithErrorBoundary;
