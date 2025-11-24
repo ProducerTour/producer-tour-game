@@ -295,9 +295,9 @@ export default function MLCAnalyticsTab() {
   const platformBarData = platforms?.slice(0, 10).map((p: any) => ({
     name: p.name.length > 12 ? p.name.slice(0, 12) + '...' : p.name,
     fullName: p.name,
-    revenue: p.revenue,
-    netRevenue: p.netRevenue,
-    margin: p.margin,
+    revenue: Number(p.revenue) || 0,
+    netRevenue: Number(p.netRevenue) || 0,
+    margin: Number(p.margin) || 0,
   })) || [];
 
   // Group service types into meaningful categories
@@ -348,29 +348,29 @@ export default function MLCAnalyticsTab() {
   const timelineAreaData = timeline?.map((t: any) => ({
     month: t.month.replace(/^\d{4}-/, ''),
     fullMonth: t.month,
-    revenue: t.revenue,
-    netRevenue: t.netRevenue,
-    count: t.count,
+    revenue: Number(t.revenue) || 0,
+    netRevenue: Number(t.netRevenue) || 0,
+    count: Number(t.count) || 0,
   })) || [];
 
   const topSongsBarData = topSongs?.slice(0, 10).map((s: any) => ({
     title: s.title.length > 20 ? s.title.slice(0, 20) + '...' : s.title,
     fullTitle: s.title,
-    revenue: s.revenue,
-    performances: s.performances,
-    platforms: s.platformCount,
+    revenue: Number(s.revenue) || 0,
+    performances: Number(s.performances) || 0,
+    platforms: Number(s.platformCount) || 0,
   })) || [];
 
   const territoryData = territories?.map((t: any, i: number) => ({
     name: t.territory,
-    revenue: t.revenue,
+    revenue: Number(t.revenue) || 0,
     fill: COLORS[i % COLORS.length],
   })) || [];
 
   // Radial bar data for use types
   const useTypeRadialData = useTypes?.slice(0, 5).map((u: any, i: number) => ({
     name: u.type.length > 20 ? u.type.slice(0, 20) + '...' : u.type,
-    value: u.revenue,
+    value: Number(u.revenue) || 0,
     fill: COLORS[i % COLORS.length],
   })) || [];
 
