@@ -103,55 +103,42 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       submittedByEmail,
     } = req.body;
 
-    // Validate required fields
-    if (!sessionDate || !artistName || !songTitles || !startTime || !finishTime || !studioName || !trackingEngineer) {
-      return res.status(400).json({ error: 'Missing required session details' });
-    }
-
-    if (!masterLink || !sessionFilesLink || !beatStemsLink || !beatLink) {
-      return res.status(400).json({ error: 'All primary asset links are required' });
-    }
-
-    if (!submittedByName) {
-      return res.status(400).json({ error: 'Submitter name is required' });
-    }
-
     // Auto-generate work order number (ignore any passed value)
     const generatedWorkOrder = await generateWorkOrderNumber();
 
     const sessionPayout = await prisma.sessionPayout.create({
       data: {
-        sessionDate: new Date(sessionDate),
+        sessionDate: sessionDate ? new Date(sessionDate) : new Date(),
         workOrderNumber: generatedWorkOrder,
-        artistName,
-        songTitles,
-        startTime,
-        finishTime,
-        totalHours,
-        studioName,
-        trackingEngineer,
-        assistantEngineer,
-        mixEngineer,
-        masteringEngineer,
-        sessionNotes,
-        masterLink,
-        sessionFilesLink,
-        beatStemsLink,
-        beatLink,
-        sampleInfo,
-        midiPresetsLink,
-        studioRateType,
-        studioRate,
-        engineerRateType,
-        engineerRate,
-        paymentSplit,
+        artistName: artistName || '',
+        songTitles: songTitles || '',
+        startTime: startTime || '',
+        finishTime: finishTime || '',
+        totalHours: totalHours || 0,
+        studioName: studioName || '',
+        trackingEngineer: trackingEngineer || '',
+        assistantEngineer: assistantEngineer || null,
+        mixEngineer: mixEngineer || null,
+        masteringEngineer: masteringEngineer || null,
+        sessionNotes: sessionNotes || null,
+        masterLink: masterLink || '',
+        sessionFilesLink: sessionFilesLink || '',
+        beatStemsLink: beatStemsLink || '',
+        beatLink: beatLink || '',
+        sampleInfo: sampleInfo || null,
+        midiPresetsLink: midiPresetsLink || null,
+        studioRateType: studioRateType || 'flat',
+        studioRate: studioRate || 0,
+        engineerRateType: engineerRateType || 'flat',
+        engineerRate: engineerRate || 0,
+        paymentSplit: paymentSplit || 'combined',
         depositPaid: depositPaid || 0,
-        studioCost,
-        engineerFee,
-        totalSessionCost,
-        payoutAmount,
+        studioCost: studioCost || 0,
+        engineerFee: engineerFee || 0,
+        totalSessionCost: totalSessionCost || 0,
+        payoutAmount: payoutAmount || 0,
         submittedById: user.id,
-        submittedByName,
+        submittedByName: submittedByName || user.firstName || user.email || 'Unknown',
         submittedByEmail: submittedByEmail || user.email,
         status: 'PENDING',
       },

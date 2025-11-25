@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -7,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { DollarSign, Clock, Music, Users, FileText, CreditCard, CheckCircle2, ArrowRight, Hash, Loader2 } from 'lucide-react';
+import { DollarSign, Clock, Music, Users, FileText, CreditCard, CheckCircle2, ArrowRight, Hash, Loader2, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { sessionPayoutApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
@@ -38,9 +39,11 @@ interface SessionData {
   engineerRate: number;
   paymentSplit: 'split' | 'combined';
   depositPaid: number;
+  totalSessionAmount: number; // Used when combined payment
 }
 
 export default function SessionPayoutTool() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<SessionData>({
     date: new Date().toISOString().split('T')[0],
     artistName: '',
@@ -67,6 +70,7 @@ export default function SessionPayoutTool() {
     engineerRate: 50,
     paymentSplit: 'split',
     depositPaid: 0,
+    totalSessionAmount: 0,
   });
 
   const [calculations, setCalculations] = useState({
@@ -108,19 +112,29 @@ export default function SessionPayoutTool() {
 
   // Recalculate payment whenever relevant fields change
   useEffect(() => {
-    const { totalHours, studioRateType, studioRate, engineerRateType, engineerRate, paymentSplit, depositPaid } = formData;
+    const { totalHours, studioRateType, studioRate, engineerRateType, engineerRate, paymentSplit, depositPaid, totalSessionAmount } = formData;
 
     let studioCost = 0;
-    if (totalHours > 0 || studioRateType === 'flat') {
-      studioCost = studioRateType === 'hourly' ? studioRate * totalHours : studioRate;
-    }
-
     let engineerFee = 0;
-    if (totalHours > 0 || engineerRateType === 'flat') {
-      engineerFee = engineerRateType === 'hourly' ? engineerRate * totalHours : engineerRate;
-    }
+    let totalSessionCost = 0;
 
-    const totalSessionCost = studioCost + engineerFee;
+    if (paymentSplit === 'combined') {
+      // Combined: Engineer gets total amount, handles studio payment themselves
+      totalSessionCost = totalSessionAmount;
+      studioCost = 0; // Not tracked separately
+      engineerFee = totalSessionAmount;
+    } else {
+      // Split: Calculate studio and engineer separately
+      if (totalHours > 0 || studioRateType === 'flat') {
+        studioCost = studioRateType === 'hourly' ? studioRate * totalHours : studioRate;
+      }
+
+      if (totalHours > 0 || engineerRateType === 'flat') {
+        engineerFee = engineerRateType === 'hourly' ? engineerRate * totalHours : engineerRate;
+      }
+
+      totalSessionCost = studioCost + engineerFee;
+    }
 
     let paymentDueToEngineer = 0;
     if (paymentSplit === 'combined') {
@@ -209,6 +223,7 @@ export default function SessionPayoutTool() {
         engineerRate: 50,
         paymentSplit: 'split',
         depositPaid: 0,
+        totalSessionAmount: 0,
       });
       refetchWorkOrder();
     } catch (error: any) {
@@ -224,6 +239,13 @@ export default function SessionPayoutTool() {
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
           <h1 className="text-display-lg text-text-primary mb-3 font-display">
             Session Payout & Delivery
           </h1>
@@ -249,50 +271,46 @@ export default function SessionPayoutTool() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="date" className="text-text-secondary">Session Date *</Label>
+                  <Label htmlFor="date" className="text-text-secondary">Session Date</Label>
                   <Input
                     id="date"
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     className="bg-surface-200 border-panel-border text-text-primary"
-                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="artistName" className="text-text-secondary">Artist Name *</Label>
+                  <Label htmlFor="artistName" className="text-text-secondary">Artist Name</Label>
                   <Input
                     id="artistName"
                     placeholder="Artist Name"
                     value={formData.artistName}
                     onChange={(e) => setFormData({ ...formData, artistName: e.target.value })}
                     className="bg-surface-200 border-panel-border text-text-primary"
-                    required
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="producerName" className="text-text-secondary">Your Name (Engineer / Producer) *</Label>
+                  <Label htmlFor="producerName" className="text-text-secondary">Your Name (Engineer / Producer)</Label>
                   <Input
                     id="producerName"
                     placeholder="Full Name"
                     value={formData.producerName}
                     onChange={(e) => setFormData({ ...formData, producerName: e.target.value })}
                     className="bg-surface-200 border-panel-border text-text-primary"
-                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="songTitles" className="text-text-secondary">Song Title(s) *</Label>
+                  <Label htmlFor="songTitles" className="text-text-secondary">Song Title(s)</Label>
                   <Input
                     id="songTitles"
                     placeholder="Song Title or Working Title"
                     value={formData.songTitles}
                     onChange={(e) => setFormData({ ...formData, songTitles: e.target.value })}
                     className="bg-surface-200 border-panel-border text-text-primary"
-                    required
                   />
                 </div>
               </div>
@@ -304,7 +322,7 @@ export default function SessionPayoutTool() {
                     <div className="space-y-2">
                       <Label htmlFor="startTime" className="text-text-secondary flex items-center gap-2">
                         <Clock className="w-4 h-4" />
-                        Start Time *
+                        Start Time
                       </Label>
                       <Input
                         id="startTime"
@@ -312,13 +330,12 @@ export default function SessionPayoutTool() {
                         value={formData.startTime}
                         onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                         className="bg-surface-300 border-panel-border text-text-primary"
-                        required
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="finishTime" className="text-text-secondary flex items-center gap-2">
                         <Clock className="w-4 h-4" />
-                        Finish Time *
+                        Finish Time
                       </Label>
                       <Input
                         id="finishTime"
@@ -326,7 +343,6 @@ export default function SessionPayoutTool() {
                         value={formData.finishTime}
                         onChange={(e) => setFormData({ ...formData, finishTime: e.target.value })}
                         className="bg-surface-300 border-panel-border text-text-primary"
-                        required
                       />
                     </div>
                     <div className="space-y-2">
@@ -359,25 +375,23 @@ export default function SessionPayoutTool() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="studioName" className="text-text-secondary">Studio Name *</Label>
+                  <Label htmlFor="studioName" className="text-text-secondary">Studio Name</Label>
                   <Input
                     id="studioName"
                     placeholder="e.g., audiOVISION STUDIOS"
                     value={formData.studioName}
                     onChange={(e) => setFormData({ ...formData, studioName: e.target.value })}
                     className="bg-surface-200 border-panel-border text-text-primary"
-                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="trackingEngineer" className="text-text-secondary">Tracking Engineer *</Label>
+                  <Label htmlFor="trackingEngineer" className="text-text-secondary">Tracking Engineer</Label>
                   <Input
                     id="trackingEngineer"
                     placeholder="Primary tracking engineer"
                     value={formData.trackingEngineer}
                     onChange={(e) => setFormData({ ...formData, trackingEngineer: e.target.value })}
                     className="bg-surface-200 border-panel-border text-text-primary"
-                    required
                   />
                 </div>
               </div>
@@ -438,7 +452,7 @@ export default function SessionPayoutTool() {
                 <div>
                   <CardTitle className="text-text-primary">Asset Delivery</CardTitle>
                   <CardDescription className="text-text-muted">
-                    All primary asset links are required for payment
+                    Links to session files and deliverables
                   </CardDescription>
                 </div>
               </div>
@@ -446,7 +460,7 @@ export default function SessionPayoutTool() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="masterLink" className="text-text-secondary">Master Recording *</Label>
+                  <Label htmlFor="masterLink" className="text-text-secondary">Master Recording</Label>
                   <Input
                     id="masterLink"
                     type="url"
@@ -454,11 +468,10 @@ export default function SessionPayoutTool() {
                     value={formData.masterLink}
                     onChange={(e) => setFormData({ ...formData, masterLink: e.target.value })}
                     className="bg-surface-200 border-panel-border text-text-primary"
-                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="sessionFilesLink" className="text-text-secondary">Session Files *</Label>
+                  <Label htmlFor="sessionFilesLink" className="text-text-secondary">Session Files</Label>
                   <Input
                     id="sessionFilesLink"
                     type="url"
@@ -466,14 +479,13 @@ export default function SessionPayoutTool() {
                     value={formData.sessionFilesLink}
                     onChange={(e) => setFormData({ ...formData, sessionFilesLink: e.target.value })}
                     className="bg-surface-200 border-panel-border text-text-primary"
-                    required
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="beatStemsLink" className="text-text-secondary">Beat Stems *</Label>
+                  <Label htmlFor="beatStemsLink" className="text-text-secondary">Beat Stems</Label>
                   <Input
                     id="beatStemsLink"
                     type="url"
@@ -481,11 +493,10 @@ export default function SessionPayoutTool() {
                     value={formData.beatStemsLink}
                     onChange={(e) => setFormData({ ...formData, beatStemsLink: e.target.value })}
                     className="bg-surface-200 border-panel-border text-text-primary"
-                    required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="beatLink" className="text-text-secondary">Beat / Instrumental *</Label>
+                  <Label htmlFor="beatLink" className="text-text-secondary">Beat / Instrumental</Label>
                   <Input
                     id="beatLink"
                     type="url"
@@ -493,7 +504,6 @@ export default function SessionPayoutTool() {
                     value={formData.beatLink}
                     onChange={(e) => setFormData({ ...formData, beatLink: e.target.value })}
                     className="bg-surface-200 border-panel-border text-text-primary"
-                    required
                   />
                 </div>
               </div>
@@ -526,87 +536,7 @@ export default function SessionPayoutTool() {
             </CardContent>
           </Card>
 
-          {/* Section 4: Rates & Payment */}
-          <Card className="bg-surface-100 border-panel-border shadow-card">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary-500/10">
-                  <DollarSign className="w-5 h-5 text-primary-500" />
-                </div>
-                <div>
-                  <CardTitle className="text-text-primary">Rates & Payment</CardTitle>
-                  <CardDescription className="text-text-muted">Studio and engineer rates</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Studio Fee */}
-                <Card className="bg-surface-200 border-panel-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base text-text-primary">Studio Rate</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <RadioGroup
-                      value={formData.studioRateType}
-                      onValueChange={(value: 'hourly' | 'flat') => setFormData({ ...formData, studioRateType: value })}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="hourly" id="studio-hourly" />
-                        <Label htmlFor="studio-hourly" className="text-text-primary cursor-pointer text-sm">Hourly</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="flat" id="studio-flat" />
-                        <Label htmlFor="studio-flat" className="text-text-primary cursor-pointer text-sm">Flat Fee</Label>
-                      </div>
-                    </RadioGroup>
-                    <Input
-                      type="number"
-                      placeholder="Rate ($)"
-                      value={formData.studioRate}
-                      onChange={(e) => setFormData({ ...formData, studioRate: parseFloat(e.target.value) || 0 })}
-                      className="bg-surface-300 border-panel-border text-text-primary"
-                      required
-                    />
-                  </CardContent>
-                </Card>
-
-                {/* Engineer Fee */}
-                <Card className="bg-surface-200 border-panel-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base text-text-primary">Engineer Rate</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <RadioGroup
-                      value={formData.engineerRateType}
-                      onValueChange={(value: 'hourly' | 'flat') => setFormData({ ...formData, engineerRateType: value })}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="hourly" id="engineer-hourly" />
-                        <Label htmlFor="engineer-hourly" className="text-text-primary cursor-pointer text-sm">Hourly</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="flat" id="engineer-flat" />
-                        <Label htmlFor="engineer-flat" className="text-text-primary cursor-pointer text-sm">Flat Fee</Label>
-                      </div>
-                    </RadioGroup>
-                    <Input
-                      type="number"
-                      placeholder="Rate ($)"
-                      value={formData.engineerRate}
-                      onChange={(e) => setFormData({ ...formData, engineerRate: parseFloat(e.target.value) || 0 })}
-                      className="bg-surface-300 border-panel-border text-text-primary"
-                      required
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 5: Payment Logic */}
+          {/* Section 4: Payment Structure - Choose first */}
           <Card className="bg-surface-100 border-panel-border shadow-card">
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -625,7 +555,7 @@ export default function SessionPayoutTool() {
                 onValueChange={(value: 'split' | 'combined') => setFormData({ ...formData, paymentSplit: value })}
                 className="space-y-3"
               >
-                <div className="p-3 rounded-lg border border-panel-border bg-surface-200">
+                <div className={`p-3 rounded-lg border bg-surface-200 transition-colors ${formData.paymentSplit === 'split' ? 'border-primary-500' : 'border-panel-border'}`}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="split" id="split" />
                     <Label htmlFor="split" className="text-text-primary font-medium cursor-pointer">
@@ -637,7 +567,7 @@ export default function SessionPayoutTool() {
                   </p>
                 </div>
 
-                <div className="p-3 rounded-lg border border-panel-border bg-surface-200">
+                <div className={`p-3 rounded-lg border bg-surface-200 transition-colors ${formData.paymentSplit === 'combined' ? 'border-primary-500' : 'border-panel-border'}`}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="combined" id="combined" />
                     <Label htmlFor="combined" className="text-text-primary font-medium cursor-pointer">
@@ -649,16 +579,121 @@ export default function SessionPayoutTool() {
                   </p>
                 </div>
               </RadioGroup>
+            </CardContent>
+          </Card>
+
+          {/* Section 5: Rates - Conditional based on payment structure */}
+          <Card className="bg-surface-100 border-panel-border shadow-card">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary-500/10">
+                  <DollarSign className="w-5 h-5 text-primary-500" />
+                </div>
+                <div>
+                  <CardTitle className="text-text-primary">
+                    {formData.paymentSplit === 'combined' ? 'Session Amount' : 'Rates'}
+                  </CardTitle>
+                  <CardDescription className="text-text-muted">
+                    {formData.paymentSplit === 'combined'
+                      ? 'Total amount for the session'
+                      : 'Studio and engineer rates (calculated separately)'}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {formData.paymentSplit === 'combined' ? (
+                // Combined: Single total amount input
+                <div className="space-y-2">
+                  <Label htmlFor="totalSessionAmount" className="text-text-secondary">Total Session Amount ($)</Label>
+                  <Input
+                    id="totalSessionAmount"
+                    type="number"
+                    placeholder="Enter total session cost"
+                    value={formData.totalSessionAmount || ''}
+                    onChange={(e) => setFormData({ ...formData, totalSessionAmount: parseFloat(e.target.value) || 0 })}
+                    className="bg-surface-200 border-panel-border text-text-primary text-lg"
+                  />
+                  <p className="text-xs text-text-muted">
+                    This is the total amount you'll receive. You're responsible for paying the studio.
+                  </p>
+                </div>
+              ) : (
+                // Split: Separate studio and engineer rates
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Studio Fee */}
+                  <Card className="bg-surface-200 border-panel-border">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-text-primary">Studio Rate</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <RadioGroup
+                        value={formData.studioRateType}
+                        onValueChange={(value: 'hourly' | 'flat') => setFormData({ ...formData, studioRateType: value })}
+                        className="flex gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="hourly" id="studio-hourly" />
+                          <Label htmlFor="studio-hourly" className="text-text-primary cursor-pointer text-sm">Hourly</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="flat" id="studio-flat" />
+                          <Label htmlFor="studio-flat" className="text-text-primary cursor-pointer text-sm">Flat Fee</Label>
+                        </div>
+                      </RadioGroup>
+                      <Input
+                        type="number"
+                        placeholder="Rate ($)"
+                        value={formData.studioRate || ''}
+                        onChange={(e) => setFormData({ ...formData, studioRate: parseFloat(e.target.value) || 0 })}
+                        className="bg-surface-300 border-panel-border text-text-primary"
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Engineer Fee */}
+                  <Card className="bg-surface-200 border-panel-border">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base text-text-primary">Engineer Rate</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <RadioGroup
+                        value={formData.engineerRateType}
+                        onValueChange={(value: 'hourly' | 'flat') => setFormData({ ...formData, engineerRateType: value })}
+                        className="flex gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="hourly" id="engineer-hourly" />
+                          <Label htmlFor="engineer-hourly" className="text-text-primary cursor-pointer text-sm">Hourly</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="flat" id="engineer-flat" />
+                          <Label htmlFor="engineer-flat" className="text-text-primary cursor-pointer text-sm">Flat Fee</Label>
+                        </div>
+                      </RadioGroup>
+                      <Input
+                        type="number"
+                        placeholder="Rate ($)"
+                        value={formData.engineerRate || ''}
+                        onChange={(e) => setFormData({ ...formData, engineerRate: parseFloat(e.target.value) || 0 })}
+                        className="bg-surface-300 border-panel-border text-text-primary"
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              <Separator className="bg-panel-border" />
 
               <div className="space-y-2">
-                <Label htmlFor="depositPaid" className="text-text-secondary">Client Deposit Paid ($)</Label>
+                <Label htmlFor="depositPaid" className="text-text-secondary">Client Deposit Already Paid ($)</Label>
                 <Input
                   id="depositPaid"
                   type="number"
-                  value={formData.depositPaid}
+                  placeholder="0"
+                  value={formData.depositPaid || ''}
                   onChange={(e) => setFormData({ ...formData, depositPaid: parseFloat(e.target.value) || 0 })}
                   className="bg-surface-200 border-panel-border text-text-primary"
-                  required
                 />
               </div>
             </CardContent>
@@ -694,29 +729,42 @@ export default function SessionPayoutTool() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex justify-between py-2 border-b border-panel-border">
-                <span className="text-text-secondary">Studio Cost:</span>
-                <span className="text-text-primary font-semibold">${calculations.studioCost.toFixed(2)}</span>
-              </div>
+              {formData.paymentSplit === 'split' ? (
+                // Split mode: Show studio + engineer breakdown
+                <>
+                  <div className="flex justify-between py-2 border-b border-panel-border">
+                    <span className="text-text-secondary">Studio Cost:</span>
+                    <span className="text-text-primary font-semibold">${calculations.studioCost.toFixed(2)}</span>
+                  </div>
 
-              <div className="flex justify-between py-2 border-b border-panel-border">
-                <span className="text-text-secondary">Engineer Fee:</span>
-                <span className="text-text-primary font-semibold">${calculations.engineerFee.toFixed(2)}</span>
-              </div>
+                  <div className="flex justify-between py-2 border-b border-panel-border">
+                    <span className="text-text-secondary">Engineer Fee:</span>
+                    <span className="text-text-primary font-semibold">${calculations.engineerFee.toFixed(2)}</span>
+                  </div>
 
-              <div className="flex justify-between py-3 border-b-2 border-panel-border">
-                <span className="text-text-primary font-bold">TOTAL SESSION:</span>
-                <span className="text-text-primary font-bold text-lg">${calculations.totalSessionCost.toFixed(2)}</span>
-              </div>
+                  <div className="flex justify-between py-3 border-b-2 border-panel-border">
+                    <span className="text-text-primary font-bold">TOTAL SESSION:</span>
+                    <span className="text-text-primary font-bold text-lg">${calculations.totalSessionCost.toFixed(2)}</span>
+                  </div>
+                </>
+              ) : (
+                // Combined mode: Just show total
+                <div className="flex justify-between py-3 border-b-2 border-panel-border">
+                  <span className="text-text-primary font-bold">TOTAL SESSION:</span>
+                  <span className="text-text-primary font-bold text-lg">${calculations.totalSessionCost.toFixed(2)}</span>
+                </div>
+              )}
 
-              <div className="flex justify-between py-2 border-b border-panel-border">
-                <span className="text-text-secondary">Deposit Applied:</span>
-                <span className="text-text-primary font-semibold">-${formData.depositPaid.toFixed(2)}</span>
-              </div>
+              {formData.depositPaid > 0 && (
+                <div className="flex justify-between py-2 border-b border-panel-border">
+                  <span className="text-text-secondary">Deposit Applied:</span>
+                  <span className="text-text-primary font-semibold">-${formData.depositPaid.toFixed(2)}</span>
+                </div>
+              )}
 
               <div className="flex justify-between py-4 mt-4 bg-primary-500/10 rounded-lg px-4 border border-primary-500/30">
                 <span className="text-primary-400 font-bold text-lg">
-                  ENGINEER PAYOUT:
+                  {formData.paymentSplit === 'combined' ? 'YOUR PAYOUT:' : 'ENGINEER PAYOUT:'}
                 </span>
                 <span className="text-primary-400 font-bold text-2xl">${calculations.paymentDueToEngineer.toFixed(2)}</span>
               </div>
