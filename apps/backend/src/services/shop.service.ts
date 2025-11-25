@@ -574,6 +574,44 @@ export const shopService = {
     // Determine mode
     const mode = hasSubscription ? 'subscription' : 'payment';
 
+    // Create or retrieve Stripe customer (required for Accounts V2)
+    let customerId: string | undefined;
+
+    if (data.userId) {
+      // Check if user already has a Stripe customer ID
+      const user = await prisma.user.findUnique({
+        where: { id: data.userId },
+        select: { stripeCustomerId: true, email: true, firstName: true, lastName: true },
+      });
+
+      if (user?.stripeCustomerId) {
+        customerId = user.stripeCustomerId;
+      } else if (user) {
+        // Create Stripe customer for this user
+        const customer = await stripeClient.customers.create({
+          email: user.email,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || undefined,
+          metadata: {
+            userId: data.userId,
+          },
+        });
+
+        // Save customer ID to user
+        await prisma.user.update({
+          where: { id: data.userId },
+          data: { stripeCustomerId: customer.id },
+        });
+
+        customerId = customer.id;
+      }
+    } else if (data.email) {
+      // For guest checkout, create a customer with just email
+      const customer = await stripeClient.customers.create({
+        email: data.email,
+      });
+      customerId = customer.id;
+    }
+
     // Create Stripe checkout session
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode,
@@ -581,7 +619,8 @@ export const shopService = {
       line_items: lineItems,
       success_url: data.successUrl,
       cancel_url: data.cancelUrl,
-      customer_email: data.email,
+      customer: customerId, // Use customer ID instead of customer_email for Accounts V2
+      customer_email: !customerId ? data.email : undefined, // Fallback to email if no customer ID
       metadata: {
         userId: data.userId || '',
         itemsJson: JSON.stringify(orderItems),
