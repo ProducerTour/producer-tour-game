@@ -84,6 +84,7 @@ export const adminNavigation: NavSection[] = [
         ],
       },
       { id: 'payouts', label: 'Payouts', icon: 'money' },
+      { id: 'recording-sessions', label: 'Recording Sessions', icon: 'mic' },
       {
         id: 'placement-deals',
         label: 'Placement Tracker',
