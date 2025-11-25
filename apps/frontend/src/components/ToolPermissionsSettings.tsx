@@ -1,86 +1,65 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toolPermissionsApi } from '@/lib/api';
+import toast from 'react-hot-toast';
+import { Loader2, Save, RotateCcw, Shield, CheckCircle } from 'lucide-react';
 
 interface ToolPermission {
   id: string;
-  name: string;
-  icon: string;
+  toolId: string;
+  toolName: string;
   roles: string[];
+  isActive: boolean;
 }
 
-// This would ideally come from the backend/database
-// For now, it mirrors the TOOLS array from ToolsHub
-const INITIAL_TOOL_PERMISSIONS: ToolPermission[] = [
-  {
-    id: 'pub-deal-simulator',
-    name: 'Pub Deal Simulator',
-    icon: '💰',
-    roles: ['ADMIN']
-  },
-  {
-    id: 'consultation-form',
-    name: 'Consultation Form',
-    icon: '📋',
-    roles: ['ADMIN']
-  },
-  {
-    id: 'case-study',
-    name: 'Case Study',
-    icon: '📚',
-    roles: ['ADMIN']
-  },
-  {
-    id: 'royalty-tracker',
-    name: 'Royalty Portal',
-    icon: '📊',
-    roles: ['ADMIN']
-  },
-  {
-    id: 'opportunities',
-    name: 'Opportunities',
-    icon: '🎯',
-    roles: ['ADMIN']
-  },
-  {
-    id: 'advance-estimator',
-    name: 'Advance Estimator',
-    icon: '💰',
-    roles: ['ADMIN']
-  },
-  {
-    id: 'placement-tracker',
-    name: 'Placement Tracker',
-    icon: '🎵',
-    roles: ['ADMIN']
-  },
-  {
-    id: 'work-registration',
-    name: 'Work Registration Tool',
-    icon: '✨',
-    roles: ['ADMIN', 'WRITER', 'MANAGER', 'LEGAL']
-  },
-  {
-    id: 'metadata-index',
-    name: 'Metadata Index',
-    icon: '🔍',
-    roles: ['ADMIN']
-  },
-  {
-    id: 'session-payout',
-    name: 'Session Payout & Delivery',
-    icon: '✅',
-    roles: ['ADMIN']
-  }
-];
-
-const AVAILABLE_ROLES = ['ADMIN', 'WRITER', 'MANAGER', 'LEGAL'];
+const AVAILABLE_ROLES = ['ADMIN', 'WRITER', 'MANAGER', 'LEGAL', 'CUSTOMER'];
 
 export default function ToolPermissionsSettings() {
-  const [toolPermissions, setToolPermissions] = useState<ToolPermission[]>(INITIAL_TOOL_PERMISSIONS);
+  const queryClient = useQueryClient();
+  const [localPermissions, setLocalPermissions] = useState<ToolPermission[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Fetch permissions from backend
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['tool-permissions'],
+    queryFn: async () => {
+      const response = await toolPermissionsApi.getAll();
+      return response.data;
+    },
+  });
+
+  // Update local state when data loads
+  useEffect(() => {
+    if (data?.permissions) {
+      setLocalPermissions(data.permissions);
+      setHasChanges(false);
+    }
+  }, [data]);
+
+  // Save mutation
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const permissionsToSave = localPermissions.map(p => ({
+        toolId: p.toolId,
+        toolName: p.toolName,
+        roles: p.roles,
+      }));
+      return toolPermissionsApi.updateAll(permissionsToSave);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tool-permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['user-tool-permissions'] });
+      toast.success('Tool permissions saved successfully!');
+      setHasChanges(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to save tool permissions');
+    },
+  });
+
   const toggleRoleForTool = (toolId: string, role: string) => {
-    setToolPermissions(prev => prev.map(tool => {
-      if (tool.id === toolId) {
+    setLocalPermissions(prev => prev.map(tool => {
+      if (tool.toolId === toolId) {
         const hasRole = tool.roles.includes(role);
         return {
           ...tool,
@@ -95,23 +74,57 @@ export default function ToolPermissionsSettings() {
   };
 
   const handleSave = () => {
-    // TODO: Send to backend API to save permissions
-    console.log('Saving tool permissions:', toolPermissions);
-    alert('Tool permissions saved! (Note: This will be connected to the backend in a future update)');
-    setHasChanges(false);
+    saveMutation.mutate();
   };
 
   const handleReset = () => {
-    setToolPermissions(INITIAL_TOOL_PERMISSIONS);
-    setHasChanges(false);
+    if (data?.permissions) {
+      setLocalPermissions(data.permissions);
+      setHasChanges(false);
+    }
   };
+
+  const applyPreset = (preset: 'writers-limited' | 'full-access') => {
+    if (preset === 'writers-limited') {
+      setLocalPermissions(prev => prev.map(tool => ({
+        ...tool,
+        roles: tool.toolId === 'work-registration' ? ['ADMIN', 'WRITER', 'MANAGER', 'LEGAL'] : ['ADMIN']
+      })));
+    } else if (preset === 'full-access') {
+      setLocalPermissions(prev => prev.map(tool => ({
+        ...tool,
+        roles: AVAILABLE_ROLES
+      })));
+    }
+    setHasChanges(true);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <span className="ml-2 text-text-muted">Loading tool permissions...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-lg">
+        <p className="text-red-400">Failed to load tool permissions. Please try again.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Tool Permissions</h2>
+          <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+            <Shield className="w-6 h-6 text-blue-400" />
+            Tool Permissions
+          </h2>
           <p className="text-text-muted">
             Configure which roles have access to each tool in the Tools Hub
           </p>
@@ -120,19 +133,37 @@ export default function ToolPermissionsSettings() {
           <div className="flex gap-3">
             <button
               onClick={handleReset}
-              className="px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10 transition-colors"
+              disabled={saveMutation.isPending}
+              className="px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10 transition-colors flex items-center gap-2 disabled:opacity-50"
             >
+              <RotateCcw className="w-4 h-4" />
               Reset
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              disabled={saveMutation.isPending}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 disabled:opacity-50"
             >
+              {saveMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
               Save Changes
             </button>
           </div>
         )}
       </div>
+
+      {/* Success indicator */}
+      {!hasChanges && localPermissions.length > 0 && (
+        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+          <p className="text-sm text-green-300">
+            Tool permissions are saved and active. Changes take effect immediately.
+          </p>
+        </div>
+      )}
 
       {/* Info Banner */}
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
@@ -159,15 +190,14 @@ export default function ToolPermissionsSettings() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.08]">
-              {toolPermissions.map((tool, index) => (
+              {localPermissions.map((tool, index) => (
                 <tr
-                  key={tool.id}
+                  key={tool.toolId}
                   className={index % 2 === 0 ? 'bg-white/[0.04]' : 'bg-surface'}
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{tool.icon}</span>
-                      <span className="text-white font-medium">{tool.name}</span>
+                      <span className="text-white font-medium">{tool.toolName}</span>
                     </div>
                   </td>
                   {AVAILABLE_ROLES.map(role => {
@@ -175,7 +205,7 @@ export default function ToolPermissionsSettings() {
                     return (
                       <td key={role} className="px-6 py-4 text-center">
                         <button
-                          onClick={() => toggleRoleForTool(tool.id, role)}
+                          onClick={() => toggleRoleForTool(tool.toolId, role)}
                           className={`relative inline-flex items-center justify-center w-6 h-6 rounded transition-all ${
                             hasAccess
                               ? 'bg-green-500 hover:bg-green-600'
@@ -217,25 +247,13 @@ export default function ToolPermissionsSettings() {
           </p>
           <div className="space-y-2">
             <button
-              onClick={() => {
-                setToolPermissions(prev => prev.map(tool => ({
-                  ...tool,
-                  roles: tool.id === 'work-registration' ? ['ADMIN', 'WRITER', 'MANAGER', 'LEGAL'] : ['ADMIN']
-                })));
-                setHasChanges(true);
-              }}
+              onClick={() => applyPreset('writers-limited')}
               className="w-full px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors text-sm"
             >
               ✏️ Writers: Work Registration Only
             </button>
             <button
-              onClick={() => {
-                setToolPermissions(prev => prev.map(tool => ({
-                  ...tool,
-                  roles: AVAILABLE_ROLES
-                })));
-                setHasChanges(true);
-              }}
+              onClick={() => applyPreset('full-access')}
               className="w-full px-4 py-2 bg-green-500/20 text-green-300 rounded-lg hover:bg-green-500/30 transition-colors text-sm"
             >
               🌐 All Roles: Full Access
@@ -250,12 +268,12 @@ export default function ToolPermissionsSettings() {
           </p>
           <div className="space-y-2">
             {AVAILABLE_ROLES.map(role => {
-              const toolCount = toolPermissions.filter(tool => tool.roles.includes(role)).length;
+              const toolCount = localPermissions.filter(tool => tool.roles.includes(role)).length;
               return (
                 <div key={role} className="flex justify-between items-center text-sm">
                   <span className="text-text-secondary font-medium">{role}</span>
                   <span className="text-blue-400">
-                    {toolCount} / {toolPermissions.length} tools
+                    {toolCount} / {localPermissions.length} tools
                   </span>
                 </div>
               );

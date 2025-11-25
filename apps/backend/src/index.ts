@@ -41,6 +41,7 @@ import profileRoutes from './routes/profile.routes';
 import youtubeRoutes from './routes/youtube.routes';
 import shopRoutes from './routes/shop.routes';
 import sessionPayoutRoutes from './routes/session-payout.routes';
+import toolPermissionsRoutes from './routes/tool-permissions.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -168,6 +169,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/youtube', youtubeRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/session-payouts', sessionPayoutRoutes);
+app.use('/api/tool-permissions', toolPermissionsRoutes);
 
 // Error handling
 app.use(notFoundHandler);

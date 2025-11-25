@@ -1780,6 +1780,22 @@ model ShopSubscription {
   @@map("shop_subscriptions")
 }
 
+// Tool Permissions - Admin-managed tool access by role
+model ToolPermission {
+  id          String   @id @default(cuid())
+  toolId      String   @unique  // e.g., "pub-deal-simulator", "work-registration"
+  toolName    String             // Human-readable name
+  roles       Json               // Array of roles that have access: ["ADMIN", "WRITER"]
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([toolId])
+  @@index([isActive])
+  @@map("tool_permissions")
+}
+
 // Coupons and discounts
 model Coupon {
   id              String    @id @default(cuid())

@@ -629,3 +629,20 @@ export const sessionPayoutApi = {
   processPayment: (id: string) =>
     api.post(`/session-payouts/${id}/process-payment`),
 };
+
+// Tool Permissions API - Admin-managed tool access by role
+export const toolPermissionsApi = {
+  // Get all tool permissions (admin only)
+  getAll: () => api.get('/tool-permissions'),
+
+  // Get permissions for current user (returns tool IDs they can access)
+  getUserPermissions: () => api.get('/tool-permissions/user'),
+
+  // Update all tool permissions (admin only)
+  updateAll: (permissions: Array<{ toolId: string; toolName: string; roles: string[] }>) =>
+    api.put('/tool-permissions', { permissions }),
+
+  // Update a single tool's permissions (admin only)
+  updateTool: (toolId: string, roles: string[], toolName?: string) =>
+    api.patch(`/tool-permissions/${toolId}`, { roles, toolName }),
+};

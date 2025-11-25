@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, Coins, FileCheck } from 'lucide-react';
+import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, Coins, FileCheck, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
-import { gamificationApi } from '../lib/api';
+import { gamificationApi, toolPermissionsApi } from '../lib/api';
 
 interface Tool {
   id: string;
@@ -131,6 +131,16 @@ export default function ToolsHub() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('All');
 
+  // Fetch user's tool permissions from backend
+  const { data: permissionsData, isLoading: permissionsLoading } = useQuery({
+    queryKey: ['user-tool-permissions'],
+    queryFn: async () => {
+      const response = await toolPermissionsApi.getUserPermissions();
+      return response.data;
+    },
+    enabled: !!user,
+  });
+
   // Fetch user's tool access for premium tools (only for CUSTOMER role)
   const { data: toolAccessData } = useQuery({
     queryKey: ['user-tool-access'],
@@ -142,9 +152,22 @@ export default function ToolsHub() {
     enabled: !!user && user.role !== 'ADMIN' && user.role !== 'WRITER',
   });
 
-  // Filter tools based on user role
+  // Get allowed tool IDs from backend permissions
+  const allowedToolIds = permissionsData?.toolIds || [];
   const userRole = user?.role || 'WRITER';
-  const roleBasedTools = TOOLS.filter(tool => tool.roles.includes(userRole));
+
+  // Filter tools based on backend permissions
+  const roleBasedTools = TOOLS.filter(tool => allowedToolIds.includes(tool.id));
+
+  // Show loading state while fetching permissions
+  if (permissionsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <span className="ml-3 text-text-muted">Loading tools...</span>
+      </div>
+    );
+  }
 
   // Check if user has access to a premium tool
   const hasToolAccess = (tool: Tool): boolean => {
