@@ -1,7 +1,11 @@
 import { useAuthStore } from '../store/auth.store';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { sessionPayoutApi } from '@/lib/api';
+import { Bell, DollarSign, ChevronRight, X } from 'lucide-react';
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
+import { format } from 'date-fns';
 
 interface NavigationProps {
   activeTab?: string;
@@ -11,9 +15,38 @@ interface NavigationProps {
 
 export default function Navigation({ activeTab, onTabChange, tabs }: NavigationProps) {
   const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = user?.role === 'ADMIN';
+
+  // Fetch pending session payouts for admin notifications
+  const { data: pendingData } = useQuery({
+    queryKey: ['pending-session-payouts'],
+    queryFn: async () => {
+      const response = await sessionPayoutApi.getPending();
+      return response.data;
+    },
+    enabled: isAdmin,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  const pendingCount = pendingData?.count || 0;
+  const pendingPayouts = pendingData?.pendingPayouts || [];
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <nav className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700/50 backdrop-blur-sm shadow-lg">
@@ -55,6 +88,100 @@ export default function Navigation({ activeTab, onTabChange, tabs }: NavigationP
           {/* Right side - User info and actions */}
           <div className="flex items-center">
             <div className="hidden md:flex md:items-center md:gap-4">
+              {/* Admin Notifications Bell */}
+              {isAdmin && (
+                <div className="relative" ref={notificationsRef}>
+                  <button
+                    onClick={() => setNotificationsOpen(!notificationsOpen)}
+                    className="relative p-2 text-gray-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                  >
+                    <Bell className="w-5 h-5" />
+                    {pendingCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                        {pendingCount > 9 ? '9+' : pendingCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Notifications Dropdown */}
+                  {notificationsOpen && (
+                    <div className="absolute right-0 mt-2 w-96 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                      <div className="px-4 py-3 bg-slate-700/50 border-b border-slate-700 flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                          <Bell className="w-4 h-4" />
+                          Notifications
+                        </h3>
+                        <button
+                          onClick={() => setNotificationsOpen(false)}
+                          className="text-gray-400 hover:text-white"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="max-h-96 overflow-y-auto">
+                        {pendingPayouts.length === 0 ? (
+                          <div className="px-4 py-8 text-center text-gray-400">
+                            <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No pending notifications</p>
+                          </div>
+                        ) : (
+                          <div className="divide-y divide-slate-700">
+                            {pendingPayouts.map((payout: any) => (
+                              <button
+                                key={payout.id}
+                                onClick={() => {
+                                  setNotificationsOpen(false);
+                                  navigate('/admin?tab=payouts');
+                                }}
+                                className="w-full px-4 py-3 hover:bg-slate-700/50 transition-colors text-left"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="p-2 bg-teal-500/20 rounded-lg flex-shrink-0">
+                                    <DollarSign className="w-4 h-4 text-teal-400" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-white truncate">
+                                      Session Payout Request
+                                    </p>
+                                    <p className="text-xs text-gray-400 truncate">
+                                      {payout.artistName} - {payout.songTitles}
+                                    </p>
+                                    <p className="text-xs text-teal-400 font-semibold mt-1">
+                                      ${Number(payout.payoutAmount).toFixed(2)} • {payout.submittedByName}
+                                    </p>
+                                  </div>
+                                  <div className="text-right flex-shrink-0">
+                                    <p className="text-xs text-gray-500">
+                                      {format(new Date(payout.createdAt), 'MMM d')}
+                                    </p>
+                                    <ChevronRight className="w-4 h-4 text-gray-500 mt-1" />
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {pendingCount > 0 && (
+                        <div className="px-4 py-3 bg-slate-700/30 border-t border-slate-700">
+                          <button
+                            onClick={() => {
+                              setNotificationsOpen(false);
+                              navigate('/admin?tab=payouts');
+                            }}
+                            className="w-full text-center text-sm text-primary-400 hover:text-primary-300 font-medium"
+                          >
+                            View All Payout Requests
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* User Info */}
               <div className="text-right">
                 <p className="text-sm font-medium text-white">

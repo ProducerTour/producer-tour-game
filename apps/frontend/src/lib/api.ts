@@ -566,3 +566,66 @@ export const shopApi = {
   // Stats
   getShopStats: () => api.get('/shop/stats'),
 };
+
+// Session Payout API - Recording session payment requests
+export const sessionPayoutApi = {
+  // Submit a new session payout request
+  submit: (data: {
+    sessionDate: string;
+    workOrderNumber?: string;
+    artistName: string;
+    songTitles: string;
+    startTime: string;
+    finishTime: string;
+    totalHours: number;
+    studioName: string;
+    trackingEngineer: string;
+    assistantEngineer?: string;
+    mixEngineer?: string;
+    masteringEngineer?: string;
+    sessionNotes?: string;
+    masterLink: string;
+    sessionFilesLink: string;
+    beatStemsLink: string;
+    beatLink: string;
+    sampleInfo?: string;
+    midiPresetsLink?: string;
+    studioRateType: string;
+    studioRate: number;
+    engineerRateType: string;
+    engineerRate: number;
+    paymentSplit: string;
+    depositPaid: number;
+    studioCost: number;
+    engineerFee: number;
+    totalSessionCost: number;
+    payoutAmount: number;
+    submittedByName: string;
+    submittedByEmail?: string;
+  }) => api.post('/session-payouts', data),
+
+  // Get session payouts (user: own, admin: all)
+  getAll: (params?: {
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }) => api.get('/session-payouts', { params }),
+
+  // Get pending session payouts (admin only - for notifications)
+  getPending: () => api.get('/session-payouts/pending'),
+
+  // Get a single session payout
+  getById: (id: string) => api.get(`/session-payouts/${id}`),
+
+  // Approve a session payout (admin only)
+  approve: (id: string, adminNotes?: string) =>
+    api.post(`/session-payouts/${id}/approve`, { adminNotes }),
+
+  // Reject a session payout (admin only)
+  reject: (id: string, rejectionReason: string, adminNotes?: string) =>
+    api.post(`/session-payouts/${id}/reject`, { rejectionReason, adminNotes }),
+
+  // Process Stripe payment for approved payout (admin only)
+  processPayment: (id: string) =>
+    api.post(`/session-payouts/${id}/process-payment`),
+};

@@ -40,6 +40,7 @@ import contactsRoutes from './routes/contacts.routes';
 import profileRoutes from './routes/profile.routes';
 import youtubeRoutes from './routes/youtube.routes';
 import shopRoutes from './routes/shop.routes';
+import sessionPayoutRoutes from './routes/session-payout.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -166,6 +167,7 @@ app.use('/api/contacts', contactsRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/youtube', youtubeRoutes);
 app.use('/api/shop', shopRoutes);
+app.use('/api/session-payouts', sessionPayoutRoutes);
 
 // Error handling
 app.use(notFoundHandler);

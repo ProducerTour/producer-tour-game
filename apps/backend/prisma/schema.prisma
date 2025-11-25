@@ -205,6 +205,10 @@ model User {
   userDocuments         Document[]        @relation("UserDocuments")
   payoutRequests        PayoutRequest[]
 
+  // Session payout relations
+  sessionPayoutsSubmitted  SessionPayout[] @relation("SessionPayoutSubmitter")
+  sessionPayoutsReviewed   SessionPayout[] @relation("SessionPayoutReviewer")
+
   // Gamification relations
   gamificationPoints    GamificationPoints?
   gamificationEvents    GamificationEvent[]
@@ -773,6 +777,93 @@ model SystemSettings {
   updatedAt DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+// ========================================
+// SESSION PAYOUT SYSTEM - Recording Session Payments
+// ========================================
+
+enum SessionPayoutStatus {
+  PENDING    // Submitted, awaiting admin review
+  APPROVED   // Admin approved, ready for Stripe payout
+  PROCESSING // Stripe transfer in progress
+  COMPLETED  // Payment sent successfully
+  REJECTED   // Admin rejected the request
+}
+
+model SessionPayout {
+  id                  String              @id @default(cuid())
+
+  // Session Details
+  sessionDate         DateTime
+  workOrderNumber     String?
+  artistName          String
+  songTitles          String
+
+  // Time tracking
+  startTime           String              // HH:mm format
+  finishTime          String              // HH:mm format
+  totalHours          Decimal             @db.Decimal(5, 2)
+
+  // Personnel
+  studioName          String
+  trackingEngineer    String
+  assistantEngineer   String?
+  mixEngineer         String?
+  masteringEngineer   String?
+  sessionNotes        String?             @db.Text
+
+  // Asset Links
+  masterLink          String
+  sessionFilesLink    String
+  beatStemsLink       String
+  beatLink            String
+  sampleInfo          String?
+  midiPresetsLink     String?
+
+  // Financial Structure
+  studioRateType      String              // 'hourly' or 'flat'
+  studioRate          Decimal             @db.Decimal(10, 2)
+  engineerRateType    String              // 'hourly' or 'flat'
+  engineerRate        Decimal             @db.Decimal(10, 2)
+  paymentSplit        String              // 'split' or 'combined'
+  depositPaid         Decimal             @default(0) @db.Decimal(10, 2)
+
+  // Calculated amounts
+  studioCost          Decimal             @db.Decimal(10, 2)
+  engineerFee         Decimal             @db.Decimal(10, 2)
+  totalSessionCost    Decimal             @db.Decimal(10, 2)
+  payoutAmount        Decimal             @db.Decimal(10, 2) // Final amount due to engineer
+
+  // Status & Processing
+  status              SessionPayoutStatus @default(PENDING)
+  submittedById       String              // User who submitted (engineer/producer)
+  submittedByName     String              // Name as entered in form
+  submittedByEmail    String?             // Email for payment
+
+  // Admin processing
+  reviewedAt          DateTime?
+  reviewedById        String?
+  adminNotes          String?             @db.Text
+  rejectionReason     String?             @db.Text
+
+  // Stripe payment
+  stripeTransferId    String?
+  stripePayoutId      String?
+  paidAt              DateTime?
+
+  // Relations
+  submittedBy         User                @relation("SessionPayoutSubmitter", fields: [submittedById], references: [id], onDelete: Cascade)
+  reviewedBy          User?               @relation("SessionPayoutReviewer", fields: [reviewedById], references: [id])
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([submittedById])
+  @@index([status])
+  @@index([sessionDate])
+  @@index([createdAt])
+  @@map("session_payouts")
 }
 
 // ========================================

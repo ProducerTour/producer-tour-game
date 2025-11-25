@@ -8,6 +8,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { DollarSign, Clock, Music, Users, FileText, CreditCard, CheckCircle2, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { sessionPayoutApi } from '@/lib/api';
+import { useAuthStore } from '@/store/auth.store';
 
 interface SessionData {
   date: string;
@@ -132,11 +134,42 @@ export default function SessionPayoutTool() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    try {
-      // Here you would typically send the data to your backend
-      // await api.post('/tools/session-payout', { ...formData, ...calculations });
+    const { user } = useAuthStore.getState();
 
-      await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      await sessionPayoutApi.submit({
+        sessionDate: formData.date,
+        workOrderNumber: formData.workOrder || undefined,
+        artistName: formData.artistName,
+        songTitles: formData.songTitles,
+        startTime: formData.startTime,
+        finishTime: formData.finishTime,
+        totalHours: formData.totalHours,
+        studioName: formData.studioName,
+        trackingEngineer: formData.trackingEngineer,
+        assistantEngineer: formData.assistantEngineer || undefined,
+        mixEngineer: formData.mixEngineer || undefined,
+        masteringEngineer: formData.masteringEngineer || undefined,
+        sessionNotes: formData.sessionNotes || undefined,
+        masterLink: formData.masterLink,
+        sessionFilesLink: formData.sessionFilesLink,
+        beatStemsLink: formData.beatStemsLink,
+        beatLink: formData.beatLink,
+        sampleInfo: formData.sampleInfo || undefined,
+        midiPresetsLink: formData.midiPresetsLink || undefined,
+        studioRateType: formData.studioRateType,
+        studioRate: formData.studioRate,
+        engineerRateType: formData.engineerRateType,
+        engineerRate: formData.engineerRate,
+        paymentSplit: formData.paymentSplit,
+        depositPaid: formData.depositPaid,
+        studioCost: calculations.studioCost,
+        engineerFee: calculations.engineerFee,
+        totalSessionCost: calculations.totalSessionCost,
+        payoutAmount: calculations.paymentDueToEngineer,
+        submittedByName: formData.producerName,
+        submittedByEmail: user?.email,
+      });
 
       toast.success(`Payment request submitted! Engineer payout: $${calculations.paymentDueToEngineer.toFixed(2)}`);
 
@@ -169,8 +202,9 @@ export default function SessionPayoutTool() {
         paymentSplit: 'split',
         depositPaid: 0,
       });
-    } catch (error) {
-      toast.error('Failed to submit session. Please try again.');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Failed to submit session. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

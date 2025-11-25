@@ -1,8 +1,9 @@
 import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { statementApi, payoutApi } from '../lib/api';
-import { DollarSign, Download, Send, CheckCircle, Clock, XCircle, Filter, Wallet, User, RefreshCw, AlertTriangle, Eye, X, Users } from 'lucide-react';
+import { statementApi, payoutApi, sessionPayoutApi } from '../lib/api';
+import { DollarSign, Download, Send, CheckCircle, Clock, XCircle, Filter, Wallet, User, RefreshCw, AlertTriangle, Eye, X, Users, Music, FileCheck, CreditCard } from 'lucide-react';
+import { format } from 'date-fns';
 
 // Error boundary to catch rendering errors
 interface ErrorBoundaryProps {
@@ -193,6 +194,69 @@ const PayoutsTab: React.FC = () => {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to cancel withdrawal');
+    },
+  });
+
+  // Fetch session payout requests
+  const { data: sessionPayoutsData } = useQuery({
+    queryKey: ['session-payouts'],
+    queryFn: async () => {
+      try {
+        const response = await sessionPayoutApi.getAll();
+        return response.data;
+      } catch (error) {
+        console.error('Failed to fetch session payouts:', error);
+        return { sessionPayouts: [], total: 0 };
+      }
+    },
+  });
+
+  const sessionPayouts = sessionPayoutsData?.sessionPayouts || [];
+  const pendingSessionPayouts = sessionPayouts.filter((p: any) => p.status === 'PENDING');
+  const approvedSessionPayouts = sessionPayouts.filter((p: any) => p.status === 'APPROVED');
+
+  // Approve session payout mutation
+  const approveSessionPayoutMutation = useMutation({
+    mutationFn: async ({ payoutId, notes }: { payoutId: string; notes?: string }) => {
+      return await sessionPayoutApi.approve(payoutId, notes);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['session-payouts'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-session-payouts'] });
+      toast.success('Session payout approved!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to approve session payout');
+    },
+  });
+
+  // Reject session payout mutation
+  const rejectSessionPayoutMutation = useMutation({
+    mutationFn: async ({ payoutId, reason }: { payoutId: string; reason: string }) => {
+      return await sessionPayoutApi.reject(payoutId, reason);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['session-payouts'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-session-payouts'] });
+      toast.success('Session payout rejected');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to reject session payout');
+    },
+  });
+
+  // Process session payout Stripe payment
+  const processSessionPaymentMutation = useMutation({
+    mutationFn: async (payoutId: string) => {
+      return await sessionPayoutApi.processPayment(payoutId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['session-payouts'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-session-payouts'] });
+      toast.success('Session payment processed successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to process session payment');
     },
   });
 
@@ -512,6 +576,185 @@ const PayoutsTab: React.FC = () => {
                     </p>
                   </div>
                 )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Session Payout Requests Section */}
+      {(pendingSessionPayouts.length > 0 || approvedSessionPayouts.length > 0) && (
+        <div className="bg-slate-800 rounded-lg shadow-xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <FileCheck className="h-6 w-6 text-teal-400" />
+              <h2 className="text-2xl font-bold text-white">Recording Session Payouts</h2>
+              {pendingSessionPayouts.length > 0 && (
+                <span className="px-3 py-1 bg-teal-500/20 text-teal-300 rounded-full text-sm font-semibold">
+                  {pendingSessionPayouts.length} Pending
+                </span>
+              )}
+              {approvedSessionPayouts.length > 0 && (
+                <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm font-semibold">
+                  {approvedSessionPayouts.length} Ready to Pay
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {/* Pending Session Payouts */}
+            {pendingSessionPayouts.map((payout: any) => (
+              <div
+                key={payout.id}
+                className="bg-slate-700/30 rounded-lg p-5 border border-teal-600/30 hover:border-teal-500/50 transition-colors"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <Music className="h-5 w-5 text-teal-400" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">
+                          {payout.artistName} - {payout.songTitles}
+                        </h3>
+                        <p className="text-sm text-gray-400">
+                          Submitted by {payout.submittedByName} • {payout.studioName}
+                        </p>
+                      </div>
+                      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded text-xs font-semibold">
+                        PENDING REVIEW
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4">
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Session Date</p>
+                        <p className="text-sm text-white font-medium">
+                          {format(new Date(payout.sessionDate), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Duration</p>
+                        <p className="text-sm text-white font-medium">{Number(payout.totalHours).toFixed(1)} hours</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Studio Cost</p>
+                        <p className="text-sm text-white font-medium">${Number(payout.studioCost).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Engineer Fee</p>
+                        <p className="text-sm text-white font-medium">${Number(payout.engineerFee).toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Payout Amount</p>
+                        <p className="text-lg text-teal-400 font-bold">${Number(payout.payoutAmount).toFixed(2)}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 p-3 bg-slate-800/50 rounded-lg">
+                      <p className="text-xs text-gray-500 uppercase mb-2">Asset Links</p>
+                      <div className="flex flex-wrap gap-2">
+                        <a href={payout.masterLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 underline">Master</a>
+                        <a href={payout.sessionFilesLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 underline">Session Files</a>
+                        <a href={payout.beatStemsLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 underline">Beat Stems</a>
+                        <a href={payout.beatLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 underline">Beat</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 ml-4">
+                    <button
+                      onClick={() => approveSessionPayoutMutation.mutate({ payoutId: payout.id })}
+                      disabled={approveSessionPayoutMutation.isPending}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => {
+                        const reason = prompt('Enter rejection reason:');
+                        if (reason) {
+                          rejectSessionPayoutMutation.mutate({ payoutId: payout.id, reason });
+                        }
+                      }}
+                      disabled={rejectSessionPayoutMutation.isPending}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Approved Session Payouts (Ready to Pay) */}
+            {approvedSessionPayouts.map((payout: any) => (
+              <div
+                key={payout.id}
+                className="bg-slate-700/30 rounded-lg p-5 border border-blue-600/30 hover:border-blue-500/50 transition-colors"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <CreditCard className="h-5 w-5 text-blue-400" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">
+                          {payout.artistName} - {payout.songTitles}
+                        </h3>
+                        <p className="text-sm text-gray-400">
+                          Pay to: {payout.submittedByName} ({payout.submittedByEmail || payout.submittedBy?.email})
+                        </p>
+                      </div>
+                      <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs font-semibold">
+                        APPROVED - READY TO PAY
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Session Date</p>
+                        <p className="text-sm text-white font-medium">
+                          {format(new Date(payout.sessionDate), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Studio</p>
+                        <p className="text-sm text-white font-medium">{payout.studioName}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Approved</p>
+                        <p className="text-sm text-white font-medium">
+                          {payout.reviewedAt ? format(new Date(payout.reviewedAt), 'MMM d, yyyy') : 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Payout Amount</p>
+                        <p className="text-lg text-blue-400 font-bold">${Number(payout.payoutAmount).toFixed(2)}</p>
+                      </div>
+                    </div>
+
+                    {!payout.submittedBy?.stripeOnboardingComplete && (
+                      <div className="mt-4 p-3 bg-red-900/30 border border-red-700 rounded-lg">
+                        <p className="text-sm text-red-200">
+                          ⚠️ Engineer has not completed Stripe Connect onboarding. Cannot process payment.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2 ml-4">
+                    <button
+                      onClick={() => processSessionPaymentMutation.mutate(payout.id)}
+                      disabled={processSessionPaymentMutation.isPending || !payout.submittedBy?.stripeOnboardingComplete}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <Send className="h-4 w-4" />
+                      Process Stripe Payment
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
