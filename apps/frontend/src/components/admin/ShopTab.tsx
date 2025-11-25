@@ -358,7 +358,7 @@ function ProductFormModal({
               <Checkbox
                 id="isFeatured"
                 checked={formData.isFeatured}
-                onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked as boolean })}
+                onCheckedChange={(checked: boolean) => setFormData({ ...formData, isFeatured: checked })}
               />
               <Label htmlFor="isFeatured" className="cursor-pointer">Featured Product</Label>
             </div>
@@ -366,7 +366,7 @@ function ProductFormModal({
               <Checkbox
                 id="isVirtual"
                 checked={formData.isVirtual}
-                onCheckedChange={(checked) => setFormData({ ...formData, isVirtual: checked as boolean })}
+                onCheckedChange={(checked: boolean) => setFormData({ ...formData, isVirtual: checked })}
               />
               <Label htmlFor="isVirtual" className="cursor-pointer">Virtual (no shipping)</Label>
             </div>
@@ -785,7 +785,7 @@ export default function ShopTab() {
                           <TableCell>
                             <Select
                               value={order.status}
-                              onValueChange={(status) =>
+                              onValueChange={(status: string) =>
                                 updateOrderStatusMutation.mutate({ id: order.id, status })
                               }
                             >

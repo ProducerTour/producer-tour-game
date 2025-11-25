@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Lock, CreditCard, Package, Shield, Loader2 } from 'lucide-react';
 import { Header, Footer } from '../components/landing';
 import { Container } from '../components/landing/ui';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -20,7 +20,7 @@ import toast from 'react-hot-toast';
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { items, couponCode, getSubtotal, getTotal, clearCart } = useCartStore();
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
 
   const [email, setEmail] = useState(user?.email || '');
   const [loading, setLoading] = useState(false);
@@ -61,7 +61,7 @@ export default function CheckoutPage() {
       const response = await shopApi.createCheckoutSession({
         items: checkoutItems,
         email,
-        couponCode,
+        couponCode: couponCode || undefined,
         successUrl: `${window.location.origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${window.location.origin}/checkout`,
       });
