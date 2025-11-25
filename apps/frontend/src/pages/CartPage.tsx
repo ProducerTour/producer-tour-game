@@ -11,7 +11,6 @@ import { Container, Button as LandingButton } from '../components/landing/ui';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/Card';
 import { Separator } from '@/components/ui/separator';
 import { useCartStore } from '../store/cart.store';
 import { shopApi } from '../lib/api';

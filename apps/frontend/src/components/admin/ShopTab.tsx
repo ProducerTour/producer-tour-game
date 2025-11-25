@@ -21,19 +21,19 @@ import {
 } from 'lucide-react';
 
 // shadcn components
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+} from '@/components/ui/Dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -50,7 +50,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/Select';
 
 import { shopApi } from '../../lib/api';
 import toast from 'react-hot-toast';
@@ -162,7 +162,7 @@ function ProductFormModal({
               <Label className="text-slate-300">Product Type</Label>
               <Select
                 value={formData.type}
-                onValueChange={(value) => setFormData({ ...formData, type: value })}
+                onValueChange={(value: string) => setFormData({ ...formData, type: value })}
               >
                 <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
                   <SelectValue placeholder="Select type" />
@@ -180,7 +180,7 @@ function ProductFormModal({
               <Label className="text-slate-300">Status</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                onValueChange={(value: string) => setFormData({ ...formData, status: value })}
               >
                 <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
                   <SelectValue placeholder="Select status" />
@@ -235,7 +235,7 @@ function ProductFormModal({
                   <Label>Billing Interval</Label>
                   <Select
                     value={formData.subscriptionInterval}
-                    onValueChange={(value) => setFormData({ ...formData, subscriptionInterval: value })}
+                    onValueChange={(value: string) => setFormData({ ...formData, subscriptionInterval: value })}
                   >
                     <SelectTrigger>
                       <SelectValue />
