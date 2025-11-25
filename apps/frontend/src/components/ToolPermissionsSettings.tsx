@@ -63,6 +63,12 @@ const INITIAL_TOOL_PERMISSIONS: ToolPermission[] = [
     name: 'Metadata Index',
     icon: '🔍',
     roles: ['ADMIN']
+  },
+  {
+    id: 'session-payout',
+    name: 'Session Payout & Delivery',
+    icon: '✅',
+    roles: ['ADMIN']
   }
 ];
 

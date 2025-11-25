@@ -126,6 +126,7 @@ export const customerNavigation: NavSection[] = [
     items: [
       { id: 'overview', label: 'Dashboard', icon: 'dashboard' },
       { id: 'tour-profile', label: 'My Tour Profile', icon: 'plane', path: '/settings?section=tourhub' },
+      { id: 'orders', label: 'My Orders', icon: 'shopping-cart', path: '/customer/orders' },
     ],
   },
   {

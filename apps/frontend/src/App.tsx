@@ -15,6 +15,7 @@ import WriterDashboard from './pages/WriterDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import CustomerDashboard from './pages/CustomerDashboard';
 import CustomerTourMilesPage from './pages/CustomerTourMilesPage';
+import CustomerOrdersPage from './pages/CustomerOrdersPage';
 import OpportunitiesPage from './pages/OpportunitiesPage';
 import ApplicationPage from './pages/ApplicationPage';
 import PubDealSimulatorPage from './pages/PubDealSimulatorPage';
@@ -30,6 +31,7 @@ import WriterTourHubPage from './pages/WriterTourHubPage';
 import MetadataIndexPage from './pages/MetadataIndexPage';
 import PricingPage from './pages/PricingPage';
 import TypeBeatVideoMakerPage from './pages/TypeBeatVideoMakerPage';
+import SessionPayoutTool from './pages/SessionPayoutTool';
 import AffiliatesDashboard from './pages/AffiliatesDashboard';
 import AffiliateManagement from './pages/AffiliateManagement';
 import CustomerSupportPage from './pages/CustomerSupportPage';
@@ -124,6 +126,14 @@ function App() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/tools/session-payout"
+          element={
+            <PrivateRoute roles={['ADMIN']}>
+              <SessionPayoutTool />
+            </PrivateRoute>
+          }
+        />
 
         {/* Work Registration Routes */}
         <Route
@@ -180,6 +190,14 @@ function App() {
           element={
             <PrivateRoute roles={['CUSTOMER']}>
               <CustomerSupportPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/customer/orders"
+          element={
+            <PrivateRoute roles={['CUSTOMER']}>
+              <CustomerOrdersPage />
             </PrivateRoute>
           }
         />

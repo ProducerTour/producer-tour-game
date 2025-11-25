@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, Coins } from 'lucide-react';
+import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, Coins, FileCheck } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { gamificationApi } from '../lib/api';
 
@@ -112,6 +112,16 @@ const TOOLS: Tool[] = [
     requiresPurchase: true, // Only applies to CUSTOMER role
     purchaseToolId: 'type-beat-video-maker',
     tourMilesCost: 750
+  },
+  {
+    id: 'session-payout',
+    name: 'Session Payout & Delivery',
+    description: 'Submit session metadata, asset delivery links, and calculate engineer payments. Complete payout management for studio sessions.',
+    icon: FileCheck,
+    color: 'from-teal-500 to-teal-600',
+    url: '/tools/session-payout',
+    category: 'Financial',
+    roles: ['ADMIN'] // Admin only for now
   }
 ];
 
