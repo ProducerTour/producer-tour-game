@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import {
   Users,
   Gift,
@@ -306,9 +307,11 @@ function PointsModal({
       });
 
       if (!res.ok) throw new Error('Failed to update points');
+      toast.success(`${action === 'award' ? 'Awarded' : 'Deducted'} ${points} TP ${action === 'award' ? 'to' : 'from'} ${userName}`);
       onSuccess();
     } catch (error) {
       console.error(error);
+      toast.error(`Failed to ${action} points`);
     } finally {
       setIsSubmitting(false);
     }
@@ -401,6 +404,10 @@ function RewardManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-rewards'] });
+      toast.success('Reward deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete reward');
     },
   });
 
@@ -563,9 +570,11 @@ function RewardModal({
       });
 
       if (!res.ok) throw new Error('Failed to save reward');
+      toast.success(reward ? 'Reward updated' : 'Reward created');
       onSuccess();
     } catch (error) {
       console.error(error);
+      toast.error('Failed to save reward');
     } finally {
       setIsSubmitting(false);
     }
@@ -726,6 +735,10 @@ function AchievementManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-achievements'] });
+      toast.success('Achievement deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete achievement');
     },
   });
 
@@ -868,9 +881,11 @@ function AchievementModal({
       });
 
       if (!res.ok) throw new Error('Failed to save achievement');
+      toast.success(achievement ? 'Achievement updated' : 'Achievement created');
       onSuccess();
     } catch (error) {
       console.error(error);
+      toast.error('Failed to save achievement');
     } finally {
       setIsSubmitting(false);
     }
@@ -1007,6 +1022,10 @@ function PointConfiguration() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['point-config'] });
       setIsEditing(false);
+      toast.success('Point configuration saved');
+    },
+    onError: () => {
+      toast.error('Failed to save configuration');
     },
   });
 

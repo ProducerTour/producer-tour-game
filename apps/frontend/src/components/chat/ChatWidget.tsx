@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Paperclip, Search, ChevronLeft, Circle, Users, UserPlus, Check, XIcon, Download, FileText, Loader2, UsersRound, Plus } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useSocket } from '../../hooks/useSocket';
 import { useAuthStore } from '../../store/auth.store';
 import { api, chatSettingsApi } from '../../lib/api';
@@ -373,9 +374,11 @@ export function ChatWidget() {
           fileSize: data.file.fileSize,
           fileMimeType: data.file.fileMimeType,
         });
+        toast.success('File sent');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to upload file:', error);
+      toast.error(error.response?.data?.error || 'Failed to upload file');
     } finally {
       setIsUploading(false);
       // Reset file input
@@ -433,8 +436,9 @@ export function ChatWidget() {
       setActiveConversation(data);
       setShowNewChat(false);
       setSearchQuery('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to start conversation:', error);
+      toast.error(error.response?.data?.error || 'Failed to start conversation');
     }
   };
 
@@ -450,6 +454,7 @@ export function ChatWidget() {
 
   const createGroupChat = async () => {
     if (selectedParticipants.length < 2) {
+      toast.error('Select at least 2 participants for a group chat');
       return;
     }
 
@@ -463,8 +468,10 @@ export function ChatWidget() {
       setConversations((prev) => [data, ...prev]);
       setActiveConversation(data);
       resetNewChatState();
-    } catch (error) {
+      toast.success('Group chat created!');
+    } catch (error: any) {
       console.error('Failed to create group chat:', error);
+      toast.error(error.response?.data?.error || 'Failed to create group chat');
     }
   };
 
@@ -532,6 +539,7 @@ export function ChatWidget() {
   const sendContactRequest = async (contactId: string) => {
     try {
       await api.post('/contacts/request', { contactId });
+      toast.success('Friend request sent!');
       // Refresh contacts
       const [contactsRes, requestsRes] = await Promise.all([
         api.get('/contacts'),
@@ -539,14 +547,16 @@ export function ChatWidget() {
       ]);
       setContacts(contactsRes.data);
       setContactRequests(requestsRes.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to send contact request:', error);
+      toast.error(error.response?.data?.error || 'Failed to send friend request');
     }
   };
 
   const acceptContactRequest = async (contactId: string) => {
     try {
       await api.post(`/contacts/accept/${contactId}`);
+      toast.success('Friend request accepted!');
       // Refresh contacts
       const [contactsRes, requestsRes] = await Promise.all([
         api.get('/contacts'),
@@ -554,14 +564,16 @@ export function ChatWidget() {
       ]);
       setContacts(contactsRes.data);
       setContactRequests(requestsRes.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to accept contact request:', error);
+      toast.error(error.response?.data?.error || 'Failed to accept request');
     }
   };
 
   const declineContactRequest = async (contactId: string) => {
     try {
       await api.delete(`/contacts/${contactId}`);
+      toast.success('Request declined');
       // Refresh contacts
       const [contactsRes, requestsRes] = await Promise.all([
         api.get('/contacts'),
@@ -569,8 +581,9 @@ export function ChatWidget() {
       ]);
       setContacts(contactsRes.data);
       setContactRequests(requestsRes.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to decline contact request:', error);
+      toast.error(error.response?.data?.error || 'Failed to decline request');
     }
   };
 

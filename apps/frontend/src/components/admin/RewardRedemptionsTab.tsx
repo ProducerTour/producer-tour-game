@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { CheckCircle, XCircle, Package, Gift } from 'lucide-react';
 
 interface Redemption {
@@ -62,7 +63,11 @@ export default function RewardRedemptionsTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-redemptions'] });
+      toast.success('Redemption approved');
       closeModal();
+    },
+    onError: () => {
+      toast.error('Failed to approve redemption');
     },
   });
 
@@ -84,7 +89,11 @@ export default function RewardRedemptionsTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-redemptions'] });
+      toast.success('Redemption denied and points refunded');
       closeModal();
+    },
+    onError: () => {
+      toast.error('Failed to deny redemption');
     },
   });
 
