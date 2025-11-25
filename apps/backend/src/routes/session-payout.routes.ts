@@ -6,8 +6,61 @@ import type { SessionPayoutStatus } from '../generated/client';
 const router = Router();
 
 // =====================
+// HELPER: Generate unique work order number
+// Format: PT-YY-XXXX (e.g., PT-25-0001)
+// =====================
+
+async function generateWorkOrderNumber(): Promise<string> {
+  const currentYear = new Date().getFullYear().toString().slice(-2); // "25" for 2025
+  const prefix = `PT-${currentYear}-`;
+
+  // Find the highest work order number for this year
+  const latestPayout = await prisma.sessionPayout.findFirst({
+    where: {
+      workOrderNumber: {
+        startsWith: prefix,
+      },
+    },
+    orderBy: {
+      workOrderNumber: 'desc',
+    },
+    select: {
+      workOrderNumber: true,
+    },
+  });
+
+  let nextSequence = 1;
+
+  if (latestPayout?.workOrderNumber) {
+    // Extract the sequence number from the latest work order
+    const sequencePart = latestPayout.workOrderNumber.split('-')[2];
+    if (sequencePart) {
+      nextSequence = parseInt(sequencePart, 10) + 1;
+    }
+  }
+
+  // Pad to 4 digits
+  const sequenceStr = nextSequence.toString().padStart(4, '0');
+  return `${prefix}${sequenceStr}`;
+}
+
+// =====================
 // SESSION PAYOUT SUBMISSION (Authenticated users)
 // =====================
+
+/**
+ * GET /api/session-payouts/next-work-order
+ * Get the next auto-generated work order number
+ */
+router.get('/next-work-order', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const workOrderNumber = await generateWorkOrderNumber();
+    res.json({ workOrderNumber });
+  } catch (error: any) {
+    console.error('Get next work order error:', error);
+    res.status(500).json({ error: error.message || 'Failed to generate work order number' });
+  }
+});
 
 /**
  * POST /api/session-payouts
@@ -63,10 +116,13 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Submitter name is required' });
     }
 
+    // Auto-generate work order number (ignore any passed value)
+    const generatedWorkOrder = await generateWorkOrderNumber();
+
     const sessionPayout = await prisma.sessionPayout.create({
       data: {
         sessionDate: new Date(sessionDate),
-        workOrderNumber,
+        workOrderNumber: generatedWorkOrder,
         artistName,
         songTitles,
         startTime,

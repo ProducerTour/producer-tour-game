@@ -569,6 +569,9 @@ export const shopApi = {
 
 // Session Payout API - Recording session payment requests
 export const sessionPayoutApi = {
+  // Get the next auto-generated work order number
+  getNextWorkOrder: () => api.get('/session-payouts/next-work-order'),
+
   // Submit a new session payout request
   submit: (data: {
     sessionDate: string;
