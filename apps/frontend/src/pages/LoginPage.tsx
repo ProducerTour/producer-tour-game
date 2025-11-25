@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -44,11 +45,11 @@ export default function LoginPage() {
           firstName: firstName || undefined,
           lastName: lastName || undefined,
         });
-        setAuth(response.data.user, response.data.token);
+        setAuth(response.data.user, response.data.token, rememberMe);
       } else {
         // Login existing user
         const response = await authApi.login(email, password);
-        setAuth(response.data.user, response.data.token);
+        setAuth(response.data.user, response.data.token, rememberMe);
       }
 
       // Wait for Zustand persist to complete before navigating
@@ -290,6 +291,20 @@ export default function LoginPage() {
                   </div>
                 </div>
               )}
+
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center">
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/20 bg-white/5 text-brand-blue focus:ring-brand-blue/50 focus:ring-offset-0 cursor-pointer"
+                />
+                <label htmlFor="rememberMe" className="ml-2 text-sm text-text-secondary cursor-pointer select-none">
+                  Remember me
+                </label>
+              </div>
 
               {/* Submit Button */}
               <button

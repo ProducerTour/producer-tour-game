@@ -129,7 +129,7 @@ function App() {
         <Route
           path="/tools/session-payout"
           element={
-            <PrivateRoute roles={['ADMIN']}>
+            <PrivateRoute roles={['ADMIN', 'WRITER']}>
               <SessionPayoutTool />
             </PrivateRoute>
           }
