@@ -124,7 +124,7 @@ export default function AffiliateManagement() {
   });
 
   // Fetch affiliate detail
-  const { data: affiliateDetail, isLoading: detailLoading } = useQuery({
+  const { data: affiliateDetail } = useQuery({
     queryKey: ['affiliate-detail', selectedAffiliate],
     queryFn: async () => {
       if (!selectedAffiliate) return null;
