@@ -103,10 +103,13 @@ export const shopService = {
     }
 
     // Create Stripe product
+    // Note: Stripe only accepts HTTP URLs for images, not base64 data URLs
+    const isBase64Image = data.featuredImageUrl?.startsWith('data:');
     const stripeProduct = await stripeClient.products.create({
       name: data.name,
       description: data.shortDescription || data.description || undefined,
-      images: data.featuredImageUrl ? [data.featuredImageUrl] : undefined,
+      // Only send image URL to Stripe if it's a real URL (not base64)
+      images: data.featuredImageUrl && !isBase64Image ? [data.featuredImageUrl] : undefined,
       metadata: {
         type: data.type,
         toolId: data.toolId || '',
@@ -216,11 +219,14 @@ export const shopService = {
     }
 
     // Update Stripe product if needed
+    // Note: Stripe only accepts HTTP URLs for images, not base64 data URLs
     if (product.stripeProductId && (data.name || data.description || data.featuredImageUrl)) {
+      const isBase64Image = data.featuredImageUrl?.startsWith('data:');
       await stripeClient.products.update(product.stripeProductId, {
         name: data.name || undefined,
         description: data.shortDescription || data.description || undefined,
-        images: data.featuredImageUrl ? [data.featuredImageUrl] : undefined,
+        // Only send image URL to Stripe if it's a real URL (not base64)
+        images: data.featuredImageUrl && !isBase64Image ? [data.featuredImageUrl] : undefined,
       });
     }
 
