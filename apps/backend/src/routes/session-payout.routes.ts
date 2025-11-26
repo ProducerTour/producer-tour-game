@@ -191,6 +191,8 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
               firstName: true,
               lastName: true,
               email: true,
+              stripeAccountId: true,
+              stripeOnboardingComplete: true,
             },
           },
           reviewedBy: {
