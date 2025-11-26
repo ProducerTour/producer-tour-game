@@ -74,7 +74,7 @@ export default function AchievementGallery() {
 
         <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 border border-yellow-500/40 rounded-xl p-4">
           <div className="text-sm text-slate-400 mb-1">Points Earned</div>
-          <div className="text-2xl font-bold text-white">{stats.totalPoints} TP</div>
+          <div className="text-2xl font-bold text-white">{stats.totalPoints} TM</div>
           <div className="text-xs text-slate-400 mt-1">From achievements</div>
         </div>
 

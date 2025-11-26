@@ -128,7 +128,7 @@ export default function LevelUpModal({ isOpen, newTier, previousTier, points, on
           {/* Points */}
           <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
             <div className="text-sm text-slate-400 mb-1">Current Points</div>
-            <div className="text-3xl font-bold text-yellow-400">{points.toLocaleString()} TP</div>
+            <div className="text-3xl font-bold text-yellow-400">{points.toLocaleString()} TM</div>
           </div>
 
           {/* Dismiss Hint */}

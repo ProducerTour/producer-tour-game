@@ -226,7 +226,7 @@ export default function Leaderboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-slate-400">
-                    <span>Lifetime: {entry.totalEarned.toLocaleString()} TP</span>
+                    <span>Lifetime: {entry.totalEarned.toLocaleString()} TM</span>
                     {entry.currentStreak > 0 && (
                       <span className="flex items-center gap-1">
                         🔥 {entry.currentStreak} day streak
@@ -240,7 +240,7 @@ export default function Leaderboard() {
                   <div className="text-2xl font-bold text-yellow-400">
                     {entry.points.toLocaleString()}
                   </div>
-                  <div className="text-xs text-slate-400">Tour Points</div>
+                  <div className="text-xs text-slate-400">Tour Miles</div>
                 </div>
               </div>
             </div>

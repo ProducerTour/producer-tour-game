@@ -534,7 +534,8 @@ router.post('/:id/process-payment', authenticate, requireAdmin, async (req: Auth
 
       // Create invoice record for the engineer
       try {
-        const invoiceNumber = `INV-SP-${sessionPayout.workOrderNumber}`;
+        // Use the same work order number as the invoice number for consistency
+        const invoiceNumber = sessionPayout.workOrderNumber;
 
         await prisma.invoice.create({
           data: {

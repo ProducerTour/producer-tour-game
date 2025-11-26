@@ -103,8 +103,8 @@ export default function SocialShareButtons({ referralCode }: SocialShareButtonsP
       </div>
 
       <p className="text-sm text-slate-400 mb-4">
-        Share Producer Tour with your network and earn <span className="text-yellow-400 font-semibold">+100 TP</span> for each signup,
-        <span className="text-green-400 font-semibold"> +250 TP</span> when they convert!
+        Share Producer Tour with your network and earn <span className="text-yellow-400 font-semibold">+100 TM</span> for each signup,
+        <span className="text-green-400 font-semibold"> +250 TM</span> when they convert!
       </p>
 
       {/* Referral Code */}
@@ -202,7 +202,7 @@ export default function SocialShareButtons({ referralCode }: SocialShareButtonsP
               <h3 className="text-lg font-semibold text-white">Confirm Your Share</h3>
             </div>
             <p className="text-slate-300 mb-6">
-              Did you complete sharing Producer Tour on {pendingPlatform}? You'll earn <span className="text-yellow-400 font-semibold">+50 TP</span> if this is your first share on this platform.
+              Did you complete sharing Producer Tour on {pendingPlatform}? You'll earn <span className="text-yellow-400 font-semibold">+50 TM</span> if this is your first share on this platform.
             </p>
             <div className="flex gap-3">
               <button

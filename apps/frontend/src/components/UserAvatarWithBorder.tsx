@@ -52,10 +52,10 @@ export function UserAvatarWithBorder({
           <img
             src={profilePhotoUrl}
             alt={`${firstName} ${lastName}`}
-            className="w-full h-full rounded-full object-cover"
+            className="absolute inset-0 w-full h-full rounded-full object-cover"
           />
         ) : (
-          <div className="w-full h-full rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm font-medium">
+          <div className="absolute inset-0 w-full h-full rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm font-medium">
             {initials}
           </div>
         )}

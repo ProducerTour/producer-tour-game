@@ -101,7 +101,7 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
         </div>
         <div className={`flex items-center gap-1 ${achievement.unlocked ? 'text-yellow-400' : 'text-slate-500'}`}>
           <span className="text-sm font-bold">+{achievement.points}</span>
-          <span className="text-xs">TP</span>
+          <span className="text-xs">TM</span>
         </div>
       </div>
 

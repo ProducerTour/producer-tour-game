@@ -444,16 +444,16 @@ export default function GamificationAnalytics() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-text-muted">Points Earned</span>
-              <span className="text-green-400 font-bold">+{gamification.pointEconomy.pointsEarned.toLocaleString()} TP</span>
+              <span className="text-green-400 font-bold">+{gamification.pointEconomy.pointsEarned.toLocaleString()} TM</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-text-muted">Points Spent</span>
-              <span className="text-red-400 font-bold">-{gamification.pointEconomy.pointsSpent.toLocaleString()} TP</span>
+              <span className="text-red-400 font-bold">-{gamification.pointEconomy.pointsSpent.toLocaleString()} TM</span>
             </div>
             <div className="border-t border-white/[0.08] pt-4">
               <div className="flex justify-between items-center">
                 <span className="text-text-muted">In Circulation</span>
-                <span className="text-yellow-400 font-bold">{gamification.pointEconomy.circulation.totalInCirculation.toLocaleString()} TP</span>
+                <span className="text-yellow-400 font-bold">{gamification.pointEconomy.circulation.totalInCirculation.toLocaleString()} TM</span>
               </div>
             </div>
             <div className="flex justify-between items-center">

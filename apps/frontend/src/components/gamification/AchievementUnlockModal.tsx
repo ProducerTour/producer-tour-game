@@ -114,7 +114,7 @@ export default function AchievementUnlockModal({ isOpen, achievement, onClose }:
               <Award className="w-6 h-6 text-yellow-400" />
               <div>
                 <div className="text-sm text-slate-400">Points Earned</div>
-                <div className="text-2xl font-bold text-yellow-400">+{achievement.points} TP</div>
+                <div className="text-2xl font-bold text-yellow-400">+{achievement.points} TM</div>
               </div>
             </div>
           </div>

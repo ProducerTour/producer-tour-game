@@ -37,7 +37,7 @@ export default function PointsToast({ points, message, isVisible, onClose }: Poi
         <div className="flex-1">
           <div className="font-semibold text-sm">{message}</div>
           <div className="text-2xl font-bold">
-            {points > 0 ? '+' : ''}{points} TP
+            {points > 0 ? '+' : ''}{points} TM
           </div>
         </div>
 
