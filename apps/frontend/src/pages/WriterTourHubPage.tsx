@@ -19,7 +19,8 @@ import {
   CloudRain,
   Smartphone
 } from 'lucide-react';
-import { api } from '../lib/api';
+import { api, gamificationApi } from '../lib/api';
+import { AnimatedBorder, parseBorderConfig } from '../components/AnimatedBorder';
 
 interface Placement {
   id: string;
@@ -89,6 +90,17 @@ export default function WriterTourHubPage() {
     },
     enabled: !!slug,
     retry: false,
+  });
+
+  // Fetch the writer's equipped customizations (border)
+  const { data: customizations } = useQuery({
+    queryKey: ['user-customizations', writer?.id],
+    queryFn: async () => {
+      const response = await gamificationApi.getUserCustomizations(writer!.id);
+      return response.data;
+    },
+    enabled: !!writer?.id,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
   if (isLoading) {
@@ -168,19 +180,26 @@ export default function WriterTourHubPage() {
             {/* Avatar and Name */}
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-16 mb-6">
               <div className="relative">
-                {writer.profilePhotoUrl ? (
-                  <img
-                    src={writer.profilePhotoUrl}
-                    alt={fullName}
-                    className="w-32 h-32 rounded-full border-4 border-slate-800 object-cover shadow-lg"
-                  />
-                ) : (
-                  <div className="w-32 h-32 rounded-full border-4 border-slate-800 bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg">
-                    <span className="text-4xl font-bold text-white">
-                      {writer.firstName[0]}{writer.lastName[0]}
-                    </span>
-                  </div>
-                )}
+                <AnimatedBorder
+                  border={customizations?.border ? parseBorderConfig(customizations.border) : null}
+                  size="xl"
+                  showBorder={!!customizations?.border}
+                  className="shadow-lg"
+                >
+                  {writer.profilePhotoUrl ? (
+                    <img
+                      src={writer.profilePhotoUrl}
+                      alt={fullName}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                      <span className="text-4xl font-bold text-white">
+                        {writer.firstName[0]}{writer.lastName[0]}
+                      </span>
+                    </div>
+                  )}
+                </AnimatedBorder>
                 {writer.gamificationPoints && (
                   <div className={`absolute -bottom-1 -right-1 w-10 h-10 rounded-full bg-gradient-to-r ${tierClass} flex items-center justify-center border-2 border-slate-800`}>
                     <Trophy className="w-5 h-5 text-white" />

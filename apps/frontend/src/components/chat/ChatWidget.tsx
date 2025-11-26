@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { useSocket } from '../../hooks/useSocket';
 import { useAuthStore } from '../../store/auth.store';
 import { api, chatSettingsApi } from '../../lib/api';
+import { UserAvatarWithBorder } from '../UserAvatarWithBorder';
 
 // Sound configuration for different notification types
 type SoundType = 'chime' | 'pop' | 'ding' | 'bell' | 'subtle';
@@ -910,29 +911,31 @@ export function ChatWidget() {
                     </div>
 
                     {/* Conversations */}
-                    {conversations.map((conv) => (
+                    {conversations.map((conv) => {
+                      const otherUser = conv.type === 'DIRECT' ? getOtherParticipant(conv) : null;
+                      return (
                       <button
                         key={conv.id}
                         onClick={() => setActiveConversation(conv)}
                         className="w-full p-3 flex items-center gap-3 hover:bg-slate-800 transition border-b border-slate-800"
                       >
-                        <div className="relative">
-                          {conv.type === 'DIRECT' && getOtherParticipant(conv)?.profilePhotoUrl ? (
-                            <img
-                              src={getOtherParticipant(conv)?.profilePhotoUrl}
-                              alt={getConversationName(conv)}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
-                          ) : (
+                        {conv.type === 'DIRECT' && otherUser ? (
+                          <UserAvatarWithBorder
+                            userId={otherUser.id}
+                            firstName={otherUser.firstName}
+                            lastName={otherUser.lastName}
+                            profilePhotoUrl={otherUser.profilePhotoUrl}
+                            size="sm"
+                            showOnlineIndicator
+                            isOnline={onlineUsers.has(otherUser.id)}
+                          />
+                        ) : (
+                          <div className="relative">
                             <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm font-medium">
                               {getConversationName(conv).slice(0, 2).toUpperCase()}
                             </div>
-                          )}
-                          {conv.type === 'DIRECT' &&
-                            onlineUsers.has(getOtherParticipant(conv)?.id || '') && (
-                              <Circle className="absolute -bottom-0.5 -right-0.5 w-3 h-3 fill-green-500 text-green-500 bg-slate-900 rounded-full" />
-                            )}
-                        </div>
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0 text-left">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-white truncate">
@@ -952,7 +955,8 @@ export function ChatWidget() {
                           </span>
                         )}
                       </button>
-                    ))}
+                      );
+                    })}
 
                     {conversations.length === 0 && !showNewChat && (
                       <div className="p-8 text-center">
@@ -978,18 +982,13 @@ export function ChatWidget() {
                             key={request.id}
                             className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 transition"
                           >
-                            {request.requester.profilePhotoUrl ? (
-                              <img
-                                src={request.requester.profilePhotoUrl}
-                                alt={`${request.requester.firstName} ${request.requester.lastName}`}
-                                className="w-10 h-10 rounded-full object-cover ring-2 ring-yellow-500/30"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 text-sm font-medium">
-                                {request.requester.firstName?.[0]}
-                                {request.requester.lastName?.[0]}
-                              </div>
-                            )}
+                            <UserAvatarWithBorder
+                              userId={request.requester.id}
+                              firstName={request.requester.firstName}
+                              lastName={request.requester.lastName}
+                              profilePhotoUrl={request.requester.profilePhotoUrl}
+                              size="sm"
+                            />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-white truncate">
                                 {request.requester.firstName} {request.requester.lastName}
@@ -1032,23 +1031,15 @@ export function ChatWidget() {
                             onClick={() => startNewConversation(contact.contactUser)}
                             className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 transition"
                           >
-                            <div className="relative">
-                              {contact.contactUser.profilePhotoUrl ? (
-                                <img
-                                  src={contact.contactUser.profilePhotoUrl}
-                                  alt={`${contact.contactUser.firstName} ${contact.contactUser.lastName}`}
-                                  className="w-10 h-10 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm font-medium">
-                                  {contact.contactUser.firstName?.[0]}
-                                  {contact.contactUser.lastName?.[0]}
-                                </div>
-                              )}
-                              {contact.isOnline && (
-                                <Circle className="absolute -bottom-0.5 -right-0.5 w-3 h-3 fill-green-500 text-green-500 bg-slate-900 rounded-full" />
-                              )}
-                            </div>
+                            <UserAvatarWithBorder
+                              userId={contact.contactUser.id}
+                              firstName={contact.contactUser.firstName}
+                              lastName={contact.contactUser.lastName}
+                              profilePhotoUrl={contact.contactUser.profilePhotoUrl}
+                              size="sm"
+                              showOnlineIndicator
+                              isOnline={contact.isOnline}
+                            />
                             <div className="flex-1 min-w-0 text-left">
                               <p className="text-sm font-medium text-white truncate">
                                 {contact.nickname ||
