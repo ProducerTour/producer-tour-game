@@ -898,8 +898,31 @@ export const getUserAchievements = async (userId: string) => {
   }));
 };
 
-// Check if user has access to a specific tool via Tour Miles
+// Check if user has access to a specific tool via Tour Miles or Paid Subscription
 export const checkToolAccess = async (userId: string, toolId: string) => {
+  // First check for paid ToolSubscription (from shop purchases)
+  const paidSubscription = await prisma.toolSubscription.findFirst({
+    where: {
+      userId,
+      toolId,
+      status: 'ACTIVE',
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gte: new Date() } }
+      ]
+    }
+  });
+
+  if (paidSubscription) {
+    return {
+      hasAccess: true,
+      subscriptionType: paidSubscription.type,
+      toolSubscription: paidSubscription,
+      expiresAt: paidSubscription.expiresAt
+    };
+  }
+
+  // Check for Tour Miles redemption
   const activeRedemption = await prisma.rewardRedemption.findFirst({
     where: {
       userId,
@@ -922,6 +945,7 @@ export const checkToolAccess = async (userId: string, toolId: string) => {
     if (details?.toolId === toolId) {
       return {
         hasAccess: true,
+        subscriptionType: 'TOUR_MILES',
         redemption: activeRedemption,
         expiresAt: activeRedemption.expiresAt
       };
@@ -951,13 +975,27 @@ export const checkToolAccess = async (userId: string, toolId: string) => {
 
   return {
     hasAccess: !!toolRedemption,
+    subscriptionType: toolRedemption ? 'TOUR_MILES' : undefined,
     redemption: toolRedemption ?? undefined,
     expiresAt: toolRedemption?.expiresAt ?? undefined
   };
 };
 
-// Get all tools a user has access to via Tour Miles
+// Get all tools a user has access to via Tour Miles or Paid Subscription
 export const getUserToolAccess = async (userId: string) => {
+  // Get paid ToolSubscriptions
+  const toolSubscriptions = await prisma.toolSubscription.findMany({
+    where: {
+      userId,
+      status: 'ACTIVE',
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gte: new Date() } }
+      ]
+    }
+  });
+
+  // Get Tour Miles redemptions
   const redemptions = await prisma.rewardRedemption.findMany({
     where: {
       userId,
@@ -972,15 +1010,40 @@ export const getUserToolAccess = async (userId: string) => {
     include: { reward: true }
   });
 
-  return redemptions.map(r => {
+  // Combine both sources
+  const toolsFromSubscriptions = toolSubscriptions.map(s => ({
+    toolId: s.toolId,
+    name: s.toolName,
+    expiresAt: s.expiresAt,
+    subscriptionId: s.id,
+    type: s.type // FREE_TRIAL, TOUR_MILES, or PAID
+  }));
+
+  const toolsFromRedemptions = redemptions.map(r => {
     const details = r.reward.details as any;
     return {
       toolId: details?.toolId,
       name: r.reward.name,
       expiresAt: r.expiresAt,
-      redemptionId: r.id
+      redemptionId: r.id,
+      type: 'TOUR_MILES' as const
     };
   }).filter(t => t.toolId);
+
+  // Merge and deduplicate by toolId (prefer paid subscriptions)
+  const toolMap = new Map<string, any>();
+
+  // Add redemptions first
+  for (const tool of toolsFromRedemptions) {
+    toolMap.set(tool.toolId, tool);
+  }
+
+  // Paid subscriptions override redemptions
+  for (const tool of toolsFromSubscriptions) {
+    toolMap.set(tool.toolId, tool);
+  }
+
+  return Array.from(toolMap.values());
 };
 
 // Check if user has active monthly payout reward
