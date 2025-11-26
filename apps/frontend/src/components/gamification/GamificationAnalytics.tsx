@@ -168,7 +168,6 @@ export default function GamificationAnalytics() {
       if (!response.ok) throw new Error('Failed to fetch analytics');
       return response.json();
     },
-    refetchInterval: 60000, // Refresh every minute
   });
 
   if (isLoading) {

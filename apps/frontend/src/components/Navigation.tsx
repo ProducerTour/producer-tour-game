@@ -30,7 +30,6 @@ export default function Navigation({ activeTab, onTabChange, tabs }: NavigationP
       return response.data;
     },
     enabled: isAdmin,
-    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   const pendingCount = pendingData?.count || 0;

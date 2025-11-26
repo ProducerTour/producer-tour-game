@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useDebounce } from '@/hooks/useDebounce';
 import {
   Plus,
   Edit,
@@ -394,6 +395,7 @@ export default function ShopTab() {
   const queryClient = useQueryClient();
   const [productModal, setProductModal] = useState<{ open: boolean; product?: any }>({ open: false });
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 300); // Debounce search to prevent excessive API calls
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [receiptModal, setReceiptModal] = useState<{ open: boolean; order: any | null }>({ open: false, order: null });
@@ -407,12 +409,12 @@ export default function ShopTab() {
     },
   });
 
-  // Fetch products
+  // Fetch products (using debounced search to prevent API spam while typing)
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ['shop-products', searchQuery, typeFilter, statusFilter],
+    queryKey: ['shop-products', debouncedSearch, typeFilter, statusFilter],
     queryFn: async () => {
       const response = await shopApi.getProducts({
-        search: searchQuery || undefined,
+        search: debouncedSearch || undefined,
         type: typeFilter && typeFilter !== 'all' ? typeFilter : undefined,
         status: statusFilter && statusFilter !== 'all' ? statusFilter : undefined,
       });

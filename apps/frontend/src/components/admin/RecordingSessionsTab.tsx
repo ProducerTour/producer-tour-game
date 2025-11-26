@@ -117,7 +117,6 @@ export default function RecordingSessionsTab() {
       if (!response.ok) throw new Error('Failed to fetch session payouts');
       return response.json();
     },
-    refetchInterval: 30000,
   });
 
   // Approve mutation

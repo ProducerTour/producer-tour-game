@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -13,17 +13,19 @@ import ToolPermissionsSettings from '../components/ToolPermissionsSettings';
 import DocumentsTab from '../components/DocumentsTab';
 import PayoutsTab from '../components/PayoutsTab';
 import ImpersonationBanner from '../components/ImpersonationBanner';
-import PlacementTracker from '../components/admin/PlacementTracker';
 import PendingPlacementsQueue from './PendingPlacementsQueue';
-import RewardRedemptionsTab from '../components/admin/RewardRedemptionsTab';
-import RecordingSessionsTab from '../components/admin/RecordingSessionsTab';
-import BillingHub from '../components/admin/BillingHub';
-import GamificationAnalytics from '../components/gamification/GamificationAnalytics';
 import TourMilesConfig from '../components/admin/TourMilesConfig';
 import DashboardOverviewTremor from '../components/admin/DashboardOverviewTremor';
-import AnalyticsTabTremor from '../components/admin/AnalyticsTabTremor';
-import MLCAnalyticsTab from '../components/admin/MLCAnalyticsTab';
-import ShopTab from '../components/admin/ShopTab';
+
+// Lazy load heavy components for better initial bundle size
+const PlacementTracker = lazy(() => import('../components/admin/PlacementTracker'));
+const RewardRedemptionsTab = lazy(() => import('../components/admin/RewardRedemptionsTab'));
+const RecordingSessionsTab = lazy(() => import('../components/admin/RecordingSessionsTab'));
+const BillingHub = lazy(() => import('../components/admin/BillingHub'));
+const GamificationAnalytics = lazy(() => import('../components/gamification/GamificationAnalytics'));
+const AnalyticsTabTremor = lazy(() => import('../components/admin/AnalyticsTabTremor'));
+const MLCAnalyticsTab = lazy(() => import('../components/admin/MLCAnalyticsTab'));
+const ShopTab = lazy(() => import('../components/admin/ShopTab'));
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { formatIpiDisplay } from '../utils/ipi-helper';
@@ -51,6 +53,19 @@ const formatChartCurrency = (value: any): string => {
   }
   return `$${rounded2.toFixed(2)}`;
 };
+
+// Loading skeleton for lazy-loaded tabs
+const TabSkeleton = () => (
+  <div className="space-y-6 animate-pulse">
+    <div className="h-8 bg-white/5 rounded-lg w-1/3" />
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="h-24 bg-white/5 rounded-xl" />
+      ))}
+    </div>
+    <div className="h-64 bg-white/5 rounded-xl" />
+  </div>
+);
 
 export default function AdminDashboard() {
   const location = useLocation();
@@ -102,21 +117,37 @@ export default function AdminDashboard() {
             {activeTab === 'overview' && <DashboardOverviewTremor />}
             {activeTab === 'statements' && <StatementsTab />}
             {activeTab === 'users' && <UsersTab />}
-            {(activeTab === 'analytics' || activeTab === 'all-analytics') && <AnalyticsTabTremor />}
-            {activeTab === 'mlc-analytics' && <MLCAnalyticsTab />}
+            {(activeTab === 'analytics' || activeTab === 'all-analytics') && (
+              <Suspense fallback={<TabSkeleton />}><AnalyticsTabTremor /></Suspense>
+            )}
+            {activeTab === 'mlc-analytics' && (
+              <Suspense fallback={<TabSkeleton />}><MLCAnalyticsTab /></Suspense>
+            )}
             {activeTab === 'payouts' && <PayoutsTab />}
-            {activeTab === 'billing-hub' && <BillingHub />}
-            {activeTab === 'recording-sessions' && <RecordingSessionsTab />}
+            {activeTab === 'billing-hub' && (
+              <Suspense fallback={<TabSkeleton />}><BillingHub /></Suspense>
+            )}
+            {activeTab === 'recording-sessions' && (
+              <Suspense fallback={<TabSkeleton />}><RecordingSessionsTab /></Suspense>
+            )}
             {activeTab === 'pending-placements' && <PendingPlacementsQueue />}
-            {activeTab === 'active-placements' && <PlacementTracker />}
+            {activeTab === 'active-placements' && (
+              <Suspense fallback={<TabSkeleton />}><PlacementTracker /></Suspense>
+            )}
             {activeTab === 'documents' && <DocumentsTab />}
             {activeTab === 'tools' && <ToolsHub />}
             {activeTab === 'tool-permissions' && <ToolPermissionsSettings />}
             {activeTab === 'commission' && <CommissionSettingsPage />}
-            {activeTab === 'reward-redemptions' && <RewardRedemptionsTab />}
-            {activeTab === 'gamification-analytics' && <GamificationAnalytics />}
+            {activeTab === 'reward-redemptions' && (
+              <Suspense fallback={<TabSkeleton />}><RewardRedemptionsTab /></Suspense>
+            )}
+            {activeTab === 'gamification-analytics' && (
+              <Suspense fallback={<TabSkeleton />}><GamificationAnalytics /></Suspense>
+            )}
             {activeTab === 'tour-miles-config' && <TourMilesConfig />}
-            {activeTab === 'shop' && <ShopTab />}
+            {activeTab === 'shop' && (
+              <Suspense fallback={<TabSkeleton />}><ShopTab /></Suspense>
+            )}
           </div>
         </main>
       </div>

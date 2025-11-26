@@ -120,7 +120,6 @@ export default function BillingHub() {
       const response = await invoiceApi.getAll(params);
       return response.data;
     },
-    refetchInterval: 30000,
   });
 
   // Fetch stats

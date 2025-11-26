@@ -77,7 +77,6 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       return response.json();
     },
     enabled: !isAdmin, // Only fetch for writers
-    refetchInterval: 30000, // Refetch every 30 seconds to catch new approvals
   });
 
   const approvedClaimsCount = claimsData?.submissions?.filter((s: any) => s.status === 'APPROVED').length || 0;

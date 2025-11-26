@@ -43,7 +43,6 @@ export default function RewardRedemptionsTab() {
       if (!response.ok) throw new Error('Failed to fetch redemptions');
       return response.json();
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   const approveMutation = useMutation({
