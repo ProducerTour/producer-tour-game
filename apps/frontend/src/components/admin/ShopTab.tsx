@@ -3,7 +3,7 @@
  * Built with shadcn/ui components
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/useDebounce';
 import {
@@ -130,6 +130,62 @@ function ProductFormModal({
     downloadExpiry: product?.downloadExpiry || undefined,
     toolId: product?.toolId || '',
   });
+
+  // Image upload state
+  const [imagePreview, setImagePreview] = useState<string | null>(product?.featuredImageUrl || null);
+
+  // Reset form data when product changes (fixes edit form not populating)
+  useEffect(() => {
+    setFormData({
+      name: product?.name || '',
+      description: product?.description || '',
+      shortDescription: product?.shortDescription || '',
+      type: product?.type || 'SIMPLE',
+      status: product?.status || 'DRAFT',
+      price: product?.price ? Number(product.price) : 0,
+      salePrice: product?.salePrice ? Number(product.salePrice) : undefined,
+      sku: product?.sku || '',
+      stockQuantity: product?.stockQuantity || undefined,
+      manageStock: product?.manageStock || false,
+      subscriptionInterval: product?.subscriptionInterval || 'MONTHLY',
+      subscriptionIntervalCount: product?.subscriptionIntervalCount || 1,
+      trialDays: product?.trialDays || 0,
+      featuredImageUrl: product?.featuredImageUrl || '',
+      isFeatured: product?.isFeatured || false,
+      isVirtual: product?.isVirtual || true,
+      downloadLimit: product?.downloadLimit || undefined,
+      downloadExpiry: product?.downloadExpiry || undefined,
+      toolId: product?.toolId || '',
+    });
+    setImagePreview(product?.featuredImageUrl || null);
+  }, [product]);
+
+  // Handle image file selection
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
+      alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Image must be less than 2MB');
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setImagePreview(base64);
+      setFormData(prev => ({ ...prev, featuredImageUrl: base64 }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -313,16 +369,36 @@ function ProductFormModal({
             />
           </div>
 
-          {/* Featured Image URL */}
+          {/* Featured Image Upload */}
           <div className="space-y-2">
-            <Label htmlFor="featuredImageUrl">Featured Image URL</Label>
+            <Label htmlFor="featuredImage">Featured Image</Label>
+            {imagePreview && (
+              <div className="relative w-32 h-32 group">
+                <img
+                  src={imagePreview}
+                  alt="Product preview"
+                  className="w-full h-full object-cover rounded-lg border border-slate-700"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImagePreview(null);
+                    setFormData(prev => ({ ...prev, featuredImageUrl: '' }));
+                  }}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-sm"
+                >
+                  ×
+                </button>
+              </div>
+            )}
             <Input
-              id="featuredImageUrl"
-              type="url"
-              value={formData.featuredImageUrl}
-              onChange={(e) => setFormData({ ...formData, featuredImageUrl: e.target.value })}
-              placeholder="https://..."
+              id="featuredImage"
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleImageChange}
+              className="bg-slate-800/50 border-slate-700 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-slate-700 file:text-white hover:file:bg-slate-600"
             />
+            <p className="text-xs text-slate-500">JPEG, PNG, GIF, or WebP. Max 2MB.</p>
           </div>
 
           {/* Download Fields */}
