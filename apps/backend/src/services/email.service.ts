@@ -1402,6 +1402,361 @@ Questions? Contact us at support@producertour.com
   }
 
   /**
+   * Send session payout notification to engineer
+   */
+  async sendSessionPayoutNotification(data: {
+    engineerName: string;
+    engineerEmail: string;
+    artistName: string;
+    songTitles: string;
+    sessionDate: string;
+    workOrderNumber: string;
+    payoutAmount: number;
+    paymentDate: string;
+    stripeTransferId: string;
+  }): Promise<boolean> {
+    if (!this.isConfigured || !this.transporter) {
+      console.warn('Email service not configured - skipping session payout notification');
+      return false;
+    }
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: data.engineerEmail,
+      replyTo: this.fromEmail,
+      subject: `Payment Sent - Session Work: ${data.artistName}`,
+      html: this.generateSessionPayoutEmailHTML(data),
+      text: this.generateSessionPayoutEmailText(data),
+      envelope: {
+        from: this.fromEmail,
+        to: data.engineerEmail,
+      },
+    };
+
+    const sent = await this.sendEmailWithRetry(mailOptions, data.engineerEmail);
+
+    if (sent) {
+      console.log(`✅ Session payout notification sent to ${data.engineerEmail}`);
+    }
+
+    return sent;
+  }
+
+  /**
+   * Generate HTML email for session payout notification
+   */
+  private generateSessionPayoutEmailHTML(data: {
+    engineerName: string;
+    engineerEmail: string;
+    artistName: string;
+    songTitles: string;
+    sessionDate: string;
+    workOrderNumber: string;
+    payoutAmount: number;
+    paymentDate: string;
+    stripeTransferId: string;
+  }): string {
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(amount);
+    };
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Sent</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 10px 10px 0 0;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    .content {
+      background: #f9fafb;
+      padding: 30px;
+      border-radius: 0 0 10px 10px;
+    }
+    .summary-box {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .summary-row:last-child {
+      border-bottom: none;
+      font-weight: bold;
+      font-size: 20px;
+      color: #10b981;
+    }
+    .label {
+      color: #6b7280;
+    }
+    .value {
+      font-weight: 600;
+      color: #111827;
+    }
+    .success-badge {
+      background: #d1fae5;
+      color: #065f46;
+      padding: 8px 16px;
+      border-radius: 20px;
+      display: inline-block;
+      font-weight: 600;
+      margin: 10px 0;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      color: #6b7280;
+      font-size: 14px;
+    }
+    .button {
+      display: inline-block;
+      background: #10b981;
+      color: white;
+      padding: 12px 30px;
+      border-radius: 6px;
+      text-decoration: none;
+      margin: 20px 0;
+    }
+    .reference {
+      background: #f3f4f6;
+      padding: 10px 15px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>💰 Payment Sent!</h1>
+    <p>Your session work has been paid</p>
+  </div>
+
+  <div class="content">
+    <p>Hi ${data.engineerName},</p>
+
+    <p>Great news! Your payment for session work has been processed and transferred to your connected Stripe account.</p>
+
+    <div style="text-align: center;">
+      <span class="success-badge">✓ Payment Complete</span>
+    </div>
+
+    <div class="summary-box">
+      <div class="summary-row">
+        <span class="label">Work Order</span>
+        <span class="value">${data.workOrderNumber}</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">Artist</span>
+        <span class="value">${data.artistName}</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">Song(s)</span>
+        <span class="value">${data.songTitles}</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">Session Date</span>
+        <span class="value">${data.sessionDate}</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">Payment Date</span>
+        <span class="value">${data.paymentDate}</span>
+      </div>
+      <div class="summary-row">
+        <span class="label">Amount Paid</span>
+        <span class="value">${formatCurrency(data.payoutAmount)}</span>
+      </div>
+    </div>
+
+    <p style="text-align: center;">
+      <a href="${process.env.FRONTEND_URL || 'https://producertour.com'}/dashboard" class="button">
+        View Payment History
+      </a>
+    </p>
+
+    <div class="reference">
+      <strong>Transaction Reference:</strong> ${data.stripeTransferId}
+    </div>
+
+    <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
+      Funds typically arrive in your bank account within 1-2 business days, depending on your bank's processing time.
+    </p>
+  </div>
+
+  <div class="footer">
+    <p>© ${new Date().getFullYear()} Producer Tour. All rights reserved.</p>
+    <p>Questions about this payment? Contact us at support@producertour.com</p>
+  </div>
+</body>
+</html>
+    `;
+  }
+
+  /**
+   * Generate plain text email for session payout notification
+   */
+  private generateSessionPayoutEmailText(data: {
+    engineerName: string;
+    engineerEmail: string;
+    artistName: string;
+    songTitles: string;
+    sessionDate: string;
+    workOrderNumber: string;
+    payoutAmount: number;
+    paymentDate: string;
+    stripeTransferId: string;
+  }): string {
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(amount);
+    };
+
+    return `
+Payment Sent!
+
+Hi ${data.engineerName},
+
+Your payment for session work has been processed and transferred to your connected Stripe account.
+
+Payment Summary:
+- Work Order: ${data.workOrderNumber}
+- Artist: ${data.artistName}
+- Song(s): ${data.songTitles}
+- Session Date: ${data.sessionDate}
+- Payment Date: ${data.paymentDate}
+- Amount Paid: ${formatCurrency(data.payoutAmount)}
+
+Transaction Reference: ${data.stripeTransferId}
+
+Funds typically arrive in your bank account within 1-2 business days.
+
+View your payment history at: ${process.env.FRONTEND_URL || 'https://producertour.com'}/dashboard
+
+Questions about this payment? Contact us at support@producertour.com
+
+© ${new Date().getFullYear()} Producer Tour. All rights reserved.
+    `.trim();
+  }
+
+  /**
+   * Send session payout admin summary notification
+   */
+  async sendSessionPayoutAdminNotification(data: {
+    adminEmail: string;
+    adminName: string;
+    engineerName: string;
+    engineerEmail: string;
+    artistName: string;
+    songTitles: string;
+    workOrderNumber: string;
+    payoutAmount: number;
+    paymentDate: string;
+    stripeTransferId: string;
+  }): Promise<boolean> {
+    if (!this.isConfigured || !this.transporter) {
+      console.warn('Email service not configured - skipping admin notification');
+      return false;
+    }
+
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(amount);
+    };
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: data.adminEmail,
+      replyTo: this.fromEmail,
+      subject: `Session Payout Processed - ${data.workOrderNumber}`,
+      html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px 10px 0 0; }
+    .content { background: #f9fafb; padding: 20px; border-radius: 0 0 10px 10px; }
+    .summary-box { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin: 15px 0; }
+    .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
+    .row:last-child { border-bottom: none; }
+    .label { color: #6b7280; }
+    .value { font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2 style="margin: 0;">📋 Session Payout Processed</h2>
+  </div>
+  <div class="content">
+    <p>Hi ${data.adminName},</p>
+    <p>A session payout has been successfully processed.</p>
+    <div class="summary-box">
+      <div class="row"><span class="label">Work Order</span><span class="value">${data.workOrderNumber}</span></div>
+      <div class="row"><span class="label">Engineer</span><span class="value">${data.engineerName} (${data.engineerEmail})</span></div>
+      <div class="row"><span class="label">Artist</span><span class="value">${data.artistName}</span></div>
+      <div class="row"><span class="label">Song(s)</span><span class="value">${data.songTitles}</span></div>
+      <div class="row"><span class="label">Amount</span><span class="value" style="color: #10b981;">${formatCurrency(data.payoutAmount)}</span></div>
+      <div class="row"><span class="label">Transfer ID</span><span class="value" style="font-family: monospace; font-size: 12px;">${data.stripeTransferId}</span></div>
+    </div>
+    <p style="color: #6b7280; font-size: 14px;">This is an automated notification for your records.</p>
+  </div>
+</body>
+</html>
+      `,
+      text: `Session Payout Processed\n\nWork Order: ${data.workOrderNumber}\nEngineer: ${data.engineerName} (${data.engineerEmail})\nArtist: ${data.artistName}\nSong(s): ${data.songTitles}\nAmount: ${formatCurrency(data.payoutAmount)}\nTransfer ID: ${data.stripeTransferId}`,
+      envelope: {
+        from: this.fromEmail,
+        to: data.adminEmail,
+      },
+    };
+
+    const sent = await this.sendEmailWithRetry(mailOptions, data.adminEmail);
+
+    if (sent) {
+      console.log(`✅ Session payout admin notification sent to ${data.adminEmail}`);
+    }
+
+    return sent;
+  }
+
+  /**
    * Test email configuration
    */
   async testConnection(): Promise<boolean> {

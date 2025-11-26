@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, requireAdmin, type AuthRequest } from '../middleware/auth.middleware';
 import type { SessionPayoutStatus } from '../generated/client';
+import { emailService } from '../services/email.service';
 
 const router = Router();
 
@@ -507,6 +508,101 @@ router.post('/:id/process-payment', authenticate, requireAdmin, async (req: Auth
           },
         },
       });
+
+      // Get admin info for notification
+      const admin = req.user!;
+      const adminUser = await prisma.user.findUnique({
+        where: { id: admin.id },
+        select: { firstName: true, lastName: true, email: true },
+      });
+
+      const paymentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+
+      const sessionDate = sessionPayout.sessionDate
+        ? new Date(sessionPayout.sessionDate).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })
+        : 'N/A';
+
+      const engineerName = `${updatedPayout.submittedBy.firstName || ''} ${updatedPayout.submittedBy.lastName || ''}`.trim() || updatedPayout.submittedByName;
+
+      // Create invoice record for the engineer
+      try {
+        const invoiceNumber = `INV-SP-${sessionPayout.workOrderNumber}`;
+
+        await prisma.invoice.create({
+          data: {
+            invoiceNumber,
+            type: 'SESSION',
+            submittedById: updatedPayout.submittedBy.id,
+            submittedByName: engineerName,
+            submittedByEmail: updatedPayout.submittedBy.email,
+            grossAmount: sessionPayout.payoutAmount,
+            commissionRate: 0, // No commission for session payouts
+            commissionAmount: 0,
+            netAmount: sessionPayout.payoutAmount,
+            description: `Session Payout: ${sessionPayout.artistName} - ${sessionPayout.songTitles}`,
+            details: {
+              workOrderNumber: sessionPayout.workOrderNumber,
+              artistName: sessionPayout.artistName,
+              songTitles: sessionPayout.songTitles,
+              sessionDate: sessionPayout.sessionDate,
+              studioName: sessionPayout.studioName,
+              totalHours: sessionPayout.totalHours,
+            },
+            status: 'PAID',
+            reviewedAt: new Date(),
+            reviewedById: admin.id,
+            stripeTransferId: transferId,
+            paidAt: new Date(),
+          },
+        });
+        console.log(`✅ Invoice created for session payout: ${invoiceNumber}`);
+      } catch (invoiceError) {
+        console.error('Failed to create invoice record:', invoiceError);
+        // Don't fail the payment if invoice creation fails
+      }
+
+      // Send email notifications (non-blocking)
+      try {
+        // Send to engineer
+        await emailService.sendSessionPayoutNotification({
+          engineerName,
+          engineerEmail: updatedPayout.submittedBy.email,
+          artistName: sessionPayout.artistName,
+          songTitles: sessionPayout.songTitles,
+          sessionDate,
+          workOrderNumber: sessionPayout.workOrderNumber,
+          payoutAmount: Number(sessionPayout.payoutAmount),
+          paymentDate,
+          stripeTransferId: transferId,
+        });
+
+        // Send to admin
+        if (adminUser?.email) {
+          await emailService.sendSessionPayoutAdminNotification({
+            adminEmail: adminUser.email,
+            adminName: `${adminUser.firstName || ''} ${adminUser.lastName || ''}`.trim() || 'Admin',
+            engineerName,
+            engineerEmail: updatedPayout.submittedBy.email,
+            artistName: sessionPayout.artistName,
+            songTitles: sessionPayout.songTitles,
+            workOrderNumber: sessionPayout.workOrderNumber,
+            payoutAmount: Number(sessionPayout.payoutAmount),
+            paymentDate,
+            stripeTransferId: transferId,
+          });
+        }
+      } catch (emailError) {
+        console.error('Failed to send payout notification emails:', emailError);
+        // Don't fail the payment if email fails
+      }
 
       res.json(updatedPayout);
     } catch (stripeError: any) {
