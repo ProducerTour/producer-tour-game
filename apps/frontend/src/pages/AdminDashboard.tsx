@@ -26,6 +26,7 @@ const GamificationAnalytics = lazy(() => import('../components/gamification/Gami
 const AnalyticsTabTremor = lazy(() => import('../components/admin/AnalyticsTabTremor'));
 const MLCAnalyticsTab = lazy(() => import('../components/admin/MLCAnalyticsTab'));
 const ShopTab = lazy(() => import('../components/admin/ShopTab'));
+const ContactsTab = lazy(() => import('../components/admin/ContactsTab'));
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { formatIpiDisplay } from '../utils/ipi-helper';
@@ -42,7 +43,7 @@ import {
   AlertDialogTrigger,
 } from '../components/ui';
 
-type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'billing-hub' | 'recording-sessions' | 'active-placements' | 'pending-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config' | 'shop';
+type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'billing-hub' | 'recording-sessions' | 'active-placements' | 'pending-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config' | 'shop' | 'contacts';
 
 // Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
 const formatChartCurrency = (value: any): string => {
@@ -147,6 +148,9 @@ export default function AdminDashboard() {
             {activeTab === 'tour-miles-config' && <TourMilesConfig />}
             {activeTab === 'shop' && (
               <Suspense fallback={<TabSkeleton />}><ShopTab /></Suspense>
+            )}
+            {activeTab === 'contacts' && (
+              <Suspense fallback={<TabSkeleton />}><ContactsTab /></Suspense>
             )}
           </div>
         </main>

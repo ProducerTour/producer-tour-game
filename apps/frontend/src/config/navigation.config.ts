@@ -111,6 +111,7 @@ export const adminNavigation: NavSection[] = [
       { id: 'commission', label: 'Commission Settings', icon: 'briefcase' },
       { id: 'shop', label: 'Shop', icon: 'shopping-cart' },
       { id: 'affiliate-management', label: 'Affiliate Management', icon: 'users', path: '/admin/affiliates' },
+      { id: 'contacts', label: 'Contacts', icon: 'user' },
     ],
   },
 ];

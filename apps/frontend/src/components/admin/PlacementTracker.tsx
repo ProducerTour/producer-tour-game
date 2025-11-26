@@ -366,22 +366,6 @@ const PlacementTracker: React.FC = () => {
     setSelectedPlacements(new Set());
   };
 
-  const handleUseContractingInfo = () => {
-    if (activeBillingDeal) {
-      const placement = placements.find(p => p.id === activeBillingDeal);
-      if (placement) {
-        setBillingData(prev => ({
-          ...prev,
-          billingClientName: placement.contractContactName,
-          billingLabelName: placement.contractCompany,
-          billingBillToEmail: placement.contractContactEmail,
-          billingClientAddress: placement.contractMailingAddress.split(',')[0] || '',
-          billingClientCity: placement.contractMailingAddress.split(',').slice(1).join(',').trim() || ''
-        }));
-      }
-    }
-  };
-
   // Auto-fill billing data when a placement is selected
   const handleSelectBillingDeal = (id: string) => {
     setActiveBillingDeal(id);
@@ -1100,16 +1084,17 @@ const PlacementTracker: React.FC = () => {
                   </div>
 
                   <form className="space-y-8" onSubmit={handleBillingSubmit}>
+                    {/* Producer/Client Info */}
                     <section className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className={labelClass}>Client Legal Name</label>
+                          <label className={labelClass}>Producer Legal Name</label>
                           <input
                             type="text"
                             value={billingData.billingClientName}
                             onChange={(e) => setBillingData({...billingData, billingClientName: e.target.value})}
                             className={inputClass}
-                            placeholder="Client legal name"
+                            placeholder="Producer's legal name"
                           />
                         </div>
                         <div>
@@ -1126,23 +1111,23 @@ const PlacementTracker: React.FC = () => {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className={labelClass}>Bill To Street Address</label>
+                          <label className={labelClass}>Artist Legal Name</label>
                           <input
                             type="text"
-                            value={billingData.billingClientAddress}
-                            onChange={(e) => setBillingData({...billingData, billingClientAddress: e.target.value})}
+                            value={billingData.billingArtistLegal}
+                            onChange={(e) => setBillingData({...billingData, billingArtistLegal: e.target.value})}
                             className={inputClass}
-                            placeholder="123 Label Street"
+                            placeholder="Artist legal name"
                           />
                         </div>
                         <div>
-                          <label className={labelClass}>City, State ZIP</label>
+                          <label className={labelClass}>Artist (p/k/a)</label>
                           <input
                             type="text"
-                            value={billingData.billingClientCity}
-                            onChange={(e) => setBillingData({...billingData, billingClientCity: e.target.value})}
+                            value={billingData.billingArtistStage}
+                            onChange={(e) => setBillingData({...billingData, billingArtistStage: e.target.value})}
                             className={inputClass}
-                            placeholder="Los Angeles, CA 90001"
+                            placeholder="Stage name"
                           />
                         </div>
                       </div>
@@ -1169,43 +1154,60 @@ const PlacementTracker: React.FC = () => {
                           />
                         </div>
                       </div>
+                    </section>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Bill To Section */}
+                    <fieldset className="space-y-4 bg-white/[0.04] border border-white/[0.08] rounded-xl p-4">
+                      <legend className="text-xs font-semibold text-gray-300 uppercase px-2">Bill To (Via Email Section)</legend>
+                      <p className="text-xs text-gray-500 -mt-2">This information appears in the "Via Email" section of the invoice</p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className={labelClass}>Artist Legal Name</label>
-                          <input
-                            type="text"
-                            value={billingData.billingArtistLegal}
-                            onChange={(e) => setBillingData({...billingData, billingArtistLegal: e.target.value})}
-                            className={inputClass}
-                            placeholder="Artist legal name"
-                          />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Artist (p/k/a)</label>
-                          <input
-                            type="text"
-                            value={billingData.billingArtistStage}
-                            onChange={(e) => setBillingData({...billingData, billingArtistStage: e.target.value})}
-                            className={inputClass}
-                            placeholder="Stage name"
-                          />
-                        </div>
-                        <div>
-                          <label className={labelClass}>Bill To Company</label>
+                          <label className={labelClass}>Company Name</label>
                           <input
                             type="text"
                             value={billingData.billingLabelName}
                             onChange={(e) => setBillingData({...billingData, billingLabelName: e.target.value})}
                             className={inputClass}
-                            placeholder="Label or company"
+                            placeholder="Label or company name"
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Attn (Contact Name)</label>
+                          <input
+                            type="text"
+                            value={billingData.billingBillToContact}
+                            onChange={(e) => setBillingData({...billingData, billingBillToContact: e.target.value})}
+                            className={inputClass}
+                            placeholder="Contact person name"
                           />
                         </div>
                       </div>
 
+                      <div>
+                        <label className={labelClass}>Street Address</label>
+                        <input
+                          type="text"
+                          value={billingData.billingClientAddress}
+                          onChange={(e) => setBillingData({...billingData, billingClientAddress: e.target.value})}
+                          className={inputClass}
+                          placeholder="123 Label Street"
+                        />
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className={labelClass}>Bill To Email</label>
+                          <label className={labelClass}>City, State ZIP</label>
+                          <input
+                            type="text"
+                            value={billingData.billingClientCity}
+                            onChange={(e) => setBillingData({...billingData, billingClientCity: e.target.value})}
+                            className={inputClass}
+                            placeholder="Los Angeles, CA 90001"
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Email</label>
                           <input
                             type="email"
                             value={billingData.billingBillToEmail}
@@ -1214,25 +1216,11 @@ const PlacementTracker: React.FC = () => {
                             placeholder="finance@label.com"
                           />
                         </div>
-                        <div>
-                          <label className={labelClass}>Attn (Employee Name)</label>
-                          <input
-                            type="text"
-                            value={billingData.billingBillToContact}
-                            onChange={(e) => setBillingData({...billingData, billingBillToContact: e.target.value})}
-                            className={inputClass}
-                            placeholder="Label employee name"
-                          />
-                        </div>
                       </div>
+                    </fieldset>
 
-                      <button
-                        type="button"
-                        onClick={handleUseContractingInfo}
-                        className="px-3 py-1.5 rounded-md border border-white/[0.08] bg-white/10 text-sm text-gray-300 hover:bg-white/15"
-                      >
-                        Use placement contracting info
-                      </button>
+                    {/* Invoice Details */}
+                    <section className="space-y-6">
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
@@ -1379,134 +1367,140 @@ const PlacementTracker: React.FC = () => {
                       </div>
 
                       <div className="bg-white/[0.04] rounded-xl p-6">
-                        <div className="bg-white rounded-lg p-6 text-gray-900">
+                        <div className="bg-white rounded-lg p-8 text-gray-900 font-serif" style={{ fontFamily: 'Times New Roman, serif' }}>
                           {!showInvoicePreview || !activeBillingDeal ? (
-                            <div className="text-center text-sm text-gray-500">
+                            <div className="text-center text-sm text-gray-500 py-12">
                               Invoice draft will appear here once you select a placement.
                             </div>
                           ) : (
                             <div className="space-y-6">
-                              {/* Invoice Header */}
-                              <div className="text-center border-b pb-4">
-                                <h1 className="text-2xl font-bold text-gray-900">INVOICE</h1>
-                                <p className="text-gray-600 mt-1">{billingData.billingInvoiceNumber || 'Draft'}</p>
+                              {/* Producer Tour Letterhead */}
+                              <div className="text-center border-b border-gray-300 pb-4">
+                                <h1 className="text-2xl font-bold tracking-wide" style={{ fontFamily: 'Arial Black, sans-serif', color: '#8B7355' }}>
+                                  Producer Tour LLC
+                                </h1>
+                                <p className="text-sm text-gray-600 mt-1">7143 State Road 54</p>
+                                <p className="text-sm text-gray-600">New Port Richey, FL 34653</p>
+                                <p className="text-sm text-blue-600">Royalties@ProducerTour.Com</p>
+                                <p className="text-sm text-gray-600">+1 (424) 274-9044</p>
                               </div>
 
-                              {/* From/To Section */}
-                              <div className="grid grid-cols-2 gap-8">
+                              {/* Date and Bill To */}
+                              <div className="flex justify-between items-start">
                                 <div>
-                                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">From</h4>
-                                  <p className="font-medium text-gray-900">{billingData.billingClientName || 'Producer Name'}</p>
-                                  {billingData.billingClientPKA && <p className="text-sm text-gray-600">p/k/a "{billingData.billingClientPKA}"</p>}
-                                  {billingData.billingClientAddress && <p className="text-sm text-gray-600">{billingData.billingClientAddress}</p>}
-                                  {billingData.billingClientCity && <p className="text-sm text-gray-600">{billingData.billingClientCity}</p>}
+                                  <p className="text-sm underline font-semibold">Via Email</p>
+                                  <p className="text-sm mt-1">{billingData.billingLabelName || 'COMPANY NAME'}</p>
+                                  <p className="text-sm">{billingData.billingClientAddress || 'COMPANY ADDRESS'}</p>
+                                  <p className="text-sm">{billingData.billingClientCity || 'CITY, STATE ZIP CODE'}</p>
                                 </div>
-                                <div>
-                                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Bill To</h4>
-                                  <p className="font-medium text-gray-900">{billingData.billingLabelName || 'Company Name'}</p>
-                                  {billingData.billingBillToContact && <p className="text-sm text-gray-600">Attn: {billingData.billingBillToContact}</p>}
-                                  {billingData.billingBillToEmail && <p className="text-sm text-gray-600">{billingData.billingBillToEmail}</p>}
-                                </div>
-                              </div>
-
-                              {/* Invoice Details */}
-                              <div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
-                                <div>
-                                  <p className="text-xs text-gray-500 uppercase">Issue Date</p>
-                                  <p className="font-medium">{billingData.billingIssueDate || 'Not set'}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-500 uppercase">Due Date</p>
-                                  <p className="font-medium">{billingData.billingDueDate || 'Not set'}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-500 uppercase">Terms</p>
-                                  <p className="font-medium">{billingData.billingPaymentTerms || 'Net 30'}</p>
+                                <div className="text-right">
+                                  <p className="text-sm">
+                                    {billingData.billingIssueDate
+                                      ? new Date(billingData.billingIssueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                                      : 'Date Not Set'}
+                                  </p>
                                 </div>
                               </div>
 
-                              {/* Project Info */}
-                              <div>
-                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Project Details</h4>
-                                <div className="bg-gray-50 p-4 rounded-lg">
-                                  <p className="font-medium text-gray-900">{billingData.billingProjectTitle || 'Song Title'}</p>
-                                  <p className="text-sm text-gray-600">Artist: {billingData.billingArtistStage || billingData.billingArtistLegal || 'Artist Name'}</p>
-                                </div>
+                              {/* INVOICE Title */}
+                              <div className="text-center py-2">
+                                <h2 className="text-lg font-bold underline">INVOICE</h2>
                               </div>
 
-                              {/* Services */}
-                              {billingData.billingServices && (
-                                <div>
-                                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Services</h4>
-                                  <p className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg">{billingData.billingServices}</p>
-                                </div>
-                              )}
+                              {/* RE: Line */}
+                              <div className="text-sm">
+                                <p>
+                                  <span className="font-bold">RE:</span>{' '}
+                                  {billingData.billingClientName || 'PRODUCER FULL NAME'} p/k/a "{billingData.billingClientPKA || 'PRODUCER NAME'}" ("Producer") t/p{' '}
+                                  {billingData.billingArtistLegal || 'ARTIST FULL NAME'} p/k/a "{billingData.billingArtistStage || 'ARTIST NAME'}" ("Artist") – Invoice #{billingData.billingInvoiceNumber || 'PT-0000-00-00000'}
+                                </p>
+                              </div>
 
-                              {/* Amount Table */}
-                              <div className="border rounded-lg overflow-hidden">
-                                <table className="w-full">
-                                  <thead className="bg-gray-100">
-                                    <tr>
-                                      <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">Description</th>
-                                      <th className="text-right p-3 text-xs font-semibold text-gray-600 uppercase">Amount</th>
-                                    </tr>
-                                  </thead>
+                              {/* Artist/Song/Label/Due Date Table */}
+                              <table className="w-full border-collapse border border-gray-400 text-sm">
+                                <thead>
+                                  <tr className="bg-gray-50">
+                                    <th className="border border-gray-400 p-2 text-left font-bold">ARTIST</th>
+                                    <th className="border border-gray-400 p-2 text-left font-bold">SONG</th>
+                                    <th className="border border-gray-400 p-2 text-left font-bold">LABEL</th>
+                                    <th className="border border-gray-400 p-2 text-left font-bold">DUE DATE</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr>
+                                    <td className="border border-gray-400 p-2">{billingData.billingArtistStage || ''}</td>
+                                    <td className="border border-gray-400 p-2">{billingData.billingProjectTitle || ''}</td>
+                                    <td className="border border-gray-400 p-2">{billingData.billingLabelName || ''}</td>
+                                    <td className="border border-gray-400 p-2">Upon Receipt</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+
+                              {/* Description of Services Table */}
+                              <table className="w-full border-collapse border border-gray-400 text-sm">
+                                <thead>
+                                  <tr className="bg-gray-50">
+                                    <th className="border border-gray-400 p-2 text-left font-bold">DESCRIPTION OF SERVICES</th>
+                                    <th className="border border-gray-400 p-2 text-center font-bold w-24">COSTS/EXP.</th>
+                                    <th className="border border-gray-400 p-2 text-center font-bold w-28">FEE/ADVANCE</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr>
+                                    <td className="border border-gray-400 p-2">
+                                      Fee for production services in connection with one (1) master recording of musical composition entitled "{billingData.billingProjectTitle || 'SONG TITLE'}" by {billingData.billingArtistStage || 'ARTIST NAME'}
+                                    </td>
+                                    <td className="border border-gray-400 p-2 text-center">{billingData.billingCostsExpenses || 'n/a'}</td>
+                                    <td className="border border-gray-400 p-2 text-center">${billingData.billingAmount || '0.00'}</td>
+                                  </tr>
+                                  {/* Empty rows for additional line items */}
+                                  <tr>
+                                    <td className="border border-gray-400 p-2 h-8"></td>
+                                    <td className="border border-gray-400 p-2"></td>
+                                    <td className="border border-gray-400 p-2"></td>
+                                  </tr>
+                                  <tr>
+                                    <td className="border border-gray-400 p-2 h-8"></td>
+                                    <td className="border border-gray-400 p-2"></td>
+                                    <td className="border border-gray-400 p-2"></td>
+                                  </tr>
+                                </tbody>
+                              </table>
+
+                              {/* Totals */}
+                              <div className="flex justify-end">
+                                <table className="border-collapse border border-gray-400 text-sm w-64">
                                   <tbody>
-                                    <tr className="border-t">
-                                      <td className="p-3">Production Services</td>
-                                      <td className="p-3 text-right">${billingData.billingAmount || '0.00'}</td>
+                                    <tr>
+                                      <td className="border border-gray-400 p-2 text-right tracking-widest">S u b t o t a l</td>
+                                      <td className="border border-gray-400 p-2 text-right w-24">${billingData.billingAmount || '0.00'}</td>
                                     </tr>
-                                    {billingData.billingCostsExpenses && billingData.billingCostsExpenses !== 'n/a' && (
-                                      <tr className="border-t">
-                                        <td className="p-3">Costs / Expenses</td>
-                                        <td className="p-3 text-right">{billingData.billingCostsExpenses}</td>
-                                      </tr>
-                                    )}
-                                    {billingData.billingSalesTax && billingData.billingSalesTax !== '$0.00' && (
-                                      <tr className="border-t">
-                                        <td className="p-3">Sales Tax</td>
-                                        <td className="p-3 text-right">{billingData.billingSalesTax}</td>
-                                      </tr>
-                                    )}
-                                    <tr className="border-t bg-gray-50 font-bold">
-                                      <td className="p-3">Total Due</td>
-                                      <td className="p-3 text-right text-green-600">${billingData.billingAmount || '0.00'}</td>
+                                    <tr>
+                                      <td className="border border-gray-400 p-2 text-right tracking-widest">S a l e s  T a x</td>
+                                      <td className="border border-gray-400 p-2 text-right">{billingData.billingSalesTax || '$0.00'}</td>
                                     </tr>
-                                    {billingData.billingAmountPaid && billingData.billingAmountPaid !== '$0.00' && (
-                                      <>
-                                        <tr className="border-t">
-                                          <td className="p-3 text-gray-600">Amount Paid</td>
-                                          <td className="p-3 text-right text-gray-600">-{billingData.billingAmountPaid}</td>
-                                        </tr>
-                                        <tr className="border-t bg-indigo-50 font-bold">
-                                          <td className="p-3">Balance Due</td>
-                                          <td className="p-3 text-right text-indigo-600">
-                                            ${(parseFloat(billingData.billingAmount || '0') - parseFloat(billingData.billingAmountPaid.replace(/[$,]/g, '') || '0')).toFixed(2)}
-                                          </td>
-                                        </tr>
-                                      </>
-                                    )}
+                                    <tr>
+                                      <td className="border border-gray-400 p-2 text-right tracking-widest">A m o u n t<br/>P a i d</td>
+                                      <td className="border border-gray-400 p-2 text-right">{billingData.billingAmountPaid || '$0.00'}</td>
+                                    </tr>
+                                    <tr className="font-bold">
+                                      <td className="border border-gray-400 p-2 text-right tracking-widest">T o t a l  D u e</td>
+                                      <td className="border border-gray-400 p-2 text-right">${billingData.billingAmount || '0.00'}</td>
+                                    </tr>
                                   </tbody>
                                 </table>
                               </div>
 
-                              {/* Payment Info */}
-                              {(billingData.billingBankName || billingData.billingPaymentChannel) && (
-                                <div className="border-t pt-4">
-                                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Payment Information</h4>
-                                  <div className="text-sm text-gray-600 space-y-1">
-                                    {billingData.billingPaymentChannel && <p>Method: {billingData.billingPaymentChannel}</p>}
-                                    {billingData.billingBankName && <p>Bank: {billingData.billingBankName}</p>}
-                                    {billingData.billingBankAccountName && <p>Account Name: {billingData.billingBankAccountName}</p>}
-                                    {billingData.billingRoutingNumber && <p>Routing #: {billingData.billingRoutingNumber}</p>}
-                                    {billingData.billingAccountNumber && <p>Account #: ****{billingData.billingAccountNumber.slice(-4)}</p>}
-                                  </div>
+                              {/* Payment Instructions */}
+                              <div className="text-sm pt-4 border-t border-gray-300">
+                                <p className="mb-2">Please mail check payable to Producer Tour LLC to the address above or send via wire to:</p>
+                                <div className="space-y-0.5">
+                                  <p><span className="font-semibold">Name:</span> Producer Tour LLC</p>
+                                  <p><span className="font-semibold">Bank Name:</span> Truist Bank</p>
+                                  <p><span className="font-semibold">Bank Address:</span> 6500 Massachusetts Ave, New Port Richey, FL 34653</p>
+                                  <p><span className="font-semibold">Account Number:</span> 1100028572520</p>
+                                  <p><span className="font-semibold">Routing Number:</span> 263191387</p>
                                 </div>
-                              )}
-
-                              {/* Footer */}
-                              <div className="text-center border-t pt-4 text-sm text-gray-500">
-                                <p>Thank you for your business!</p>
                               </div>
                             </div>
                           )}
