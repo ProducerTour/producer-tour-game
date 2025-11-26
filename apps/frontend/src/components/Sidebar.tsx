@@ -5,7 +5,9 @@ import { useQuery } from '@tanstack/react-query';
 import { getNavigationForRole, type NavSection, type NavItem } from '../config/navigation.config';
 import { SaasIcon, IconName } from './ui/SaasIcon';
 import { LogOut, Settings, ChevronDown, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
-import { getAuthToken } from '../lib/api';
+import { getAuthToken, gamificationApi } from '../lib/api';
+import { AnimatedBorder, parseBorderConfig } from './AnimatedBorder';
+import { ProfileBadge, parseBadgeConfig } from './ProfileBadge';
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 
 // Re-export types for backward compatibility
@@ -63,6 +65,16 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   }, [isMobileMenuOpen]);
 
   const isAdmin = user?.role === 'ADMIN';
+
+  // Fetch user's equipped customizations (badge & border)
+  const { data: customizations } = useQuery({
+    queryKey: ['customizations'],
+    queryFn: async () => {
+      const response = await gamificationApi.getCustomizations();
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
 
   // Fetch claims count for writers
   const { data: claimsData } = useQuery({
@@ -192,21 +204,42 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       {/* User Profile Section */}
       <div className={`${isCollapsed ? 'px-3 py-4' : 'px-6 py-4'} border-b border-white/[0.08]`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
-          {(user as any)?.profilePhotoUrl ? (
-            <img
-              src={(user as any).profilePhotoUrl}
-              alt={`${user?.firstName} ${user?.lastName}`}
-              className="w-10 h-10 rounded-xl object-cover shadow-lg"
-              title={isCollapsed ? `${user?.firstName} ${user?.lastName}` : undefined}
-            />
-          ) : (
-            <div
-              className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-blue to-green-500 flex items-center justify-center text-white font-semibold shadow-lg"
-              title={isCollapsed ? `${user?.firstName} ${user?.lastName}` : undefined}
+          {/* Profile Photo with Animated Border */}
+          <div className="relative flex-shrink-0">
+            <AnimatedBorder
+              border={customizations?.equippedBorder ? parseBorderConfig(customizations.equippedBorder) : null}
+              size="sm"
+              showBorder={!!customizations?.equippedBorder}
             >
-              {user?.firstName?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
-            </div>
-          )}
+              {(user as any)?.profilePhotoUrl ? (
+                <img
+                  src={(user as any).profilePhotoUrl}
+                  alt={`${user?.firstName} ${user?.lastName}`}
+                  className="w-full h-full rounded-full object-cover"
+                  title={isCollapsed ? `${user?.firstName} ${user?.lastName}` : undefined}
+                />
+              ) : (
+                <div
+                  className="w-full h-full rounded-full bg-gradient-to-br from-brand-blue to-green-500 flex items-center justify-center text-white font-semibold"
+                  title={isCollapsed ? `${user?.firstName} ${user?.lastName}` : undefined}
+                >
+                  {user?.firstName?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </AnimatedBorder>
+            {/* Equipped Badge */}
+            {customizations?.equippedBadge && !isCollapsed && (
+              <div className="absolute -bottom-1 -right-1">
+                <ProfileBadge
+                  badge={parseBadgeConfig(customizations.equippedBadge)!}
+                  size="xs"
+                  owned={true}
+                  isEquipped={true}
+                  showTooltip={true}
+                />
+              </div>
+            )}
+          </div>
           {!isCollapsed && (
             <>
               <div className="flex-1 min-w-0">

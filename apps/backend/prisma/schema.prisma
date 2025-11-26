@@ -221,6 +221,12 @@ model User {
   socialShares          SocialShare[]
   dailyCheckIns         DailyCheckIn[]
 
+  // Badge & Border relations
+  badges                UserBadge[]
+  borders               UserBorder[]
+  equippedBadgeId       String?     // Quick reference to currently equipped badge
+  equippedBorderId      String?     // Quick reference to currently equipped border
+
   // Chat relations
   conversationParticipants ConversationParticipant[]
   messages                 Message[]
@@ -1023,6 +1029,13 @@ enum RedemptionStatus {
   EXPIRED
 }
 
+enum BadgeRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
 // User's gamification points and level
 model GamificationPoints {
   id          String            @id @default(cuid())
@@ -1091,6 +1104,8 @@ model Achievement {
 
   // Relations
   userAchievements UserAchievement[]
+  badge            Badge?            // Badge unlocked by this achievement
+  border           ProfileBorder?    // Border unlocked by this achievement
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1138,6 +1153,7 @@ model Reward {
 
   // Relations
   redemptions RewardRedemption[]
+  badge       Badge?         // Badge purchasable via this reward
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1925,4 +1941,96 @@ model Coupon {
   @@index([isActive])
   @@index([stripeCouponId])
   @@map("coupons")
+}
+
+// ========================================
+// BADGE & BORDER SYSTEM - Profile customization
+// ========================================
+
+// Badge/Emblem definitions (CoD MW2-style)
+model Badge {
+  id            String       @id @default(cuid())
+  name          String       @unique // "Platinum Producer", "First Blood", etc.
+  description   String?      // "Awarded for your first placement"
+  imageUrl      String       // URL to badge image/SVG
+  rarity        BadgeRarity  @default(COMMON)
+  category      String       // "achievement", "store", "special"
+
+  // Unlock conditions (optional - one or none)
+  achievementId String?      @unique // Links to Achievement if achievement-based
+  achievement   Achievement? @relation(fields: [achievementId], references: [id])
+  rewardId      String?      @unique // Links to Reward if store-purchasable
+  reward        Reward?      @relation(fields: [rewardId], references: [id])
+
+  // Ownership tracking
+  owners        UserBadge[]
+
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([category])
+  @@index([rarity])
+  @@index([isActive])
+  @@map("badges")
+}
+
+// User's owned badges
+model UserBadge {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId     String
+  badge       Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  unlockedAt  DateTime @default(now())
+  isEquipped  Boolean  @default(false) // Currently displayed badge
+
+  @@unique([userId, badgeId]) // User can only own each badge once
+  @@index([userId])
+  @@index([badgeId])
+  @@index([isEquipped])
+  @@map("user_badges")
+}
+
+// Profile Border definitions (Rocket League-style animated borders)
+model ProfileBorder {
+  id            String   @id @default(cuid())
+  name          String   @unique // "First Steps", "Elite Status", etc.
+  tier          String   // Matches achievement tier for progression
+  colors        Json     // Array of hex colors for gradient ["#4ade80", "#22c55e", "#16a34a"]
+  spinSpeed     Float    @default(4) // Animation duration in seconds (lower = faster)
+  glowIntensity Float    @default(1) // 1 = normal, 2 = intense
+  specialEffect String?  // "sparkles", "particles", "shimmer", "flame", null = basic
+
+  // Unlock condition
+  achievementId String?      @unique
+  achievement   Achievement? @relation(fields: [achievementId], references: [id])
+
+  // Ownership tracking
+  owners        UserBorder[]
+
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tier])
+  @@index([isActive])
+  @@map("profile_borders")
+}
+
+// User's owned borders
+model UserBorder {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  borderId    String
+  border      ProfileBorder @relation(fields: [borderId], references: [id], onDelete: Cascade)
+  unlockedAt  DateTime      @default(now())
+  isEquipped  Boolean       @default(false) // Currently displayed border
+
+  @@unique([userId, borderId]) // User can only own each border once
+  @@index([userId])
+  @@index([borderId])
+  @@index([isEquipped])
+  @@map("user_borders")
 }

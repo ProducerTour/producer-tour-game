@@ -1560,6 +1560,588 @@ router.get('/admin/affiliates/orders', authenticate, requireAdmin, async (req: A
   }
 });
 
+// ===== BADGE & BORDER SYSTEM =====
+
+// Get all available badges
+router.get('/badges', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const badges = await prisma.badge.findMany({
+      where: { isActive: true },
+      orderBy: [{ rarity: 'asc' }, { name: 'asc' }],
+    });
+    res.json({ badges });
+  } catch (error) {
+    console.error('Get badges error:', error);
+    res.status(500).json({ error: 'Failed to get badges' });
+  }
+});
+
+// Get user's badge collection
+router.get('/badges/collection', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    // Get all badges with user ownership status
+    const [allBadges, userBadges, user] = await Promise.all([
+      prisma.badge.findMany({
+        where: { isActive: true },
+        orderBy: [{ rarity: 'asc' }, { name: 'asc' }],
+      }),
+      prisma.userBadge.findMany({
+        where: { userId },
+        include: { badge: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { equippedBadgeId: true },
+      }),
+    ]);
+
+    const ownedBadgeIds = new Set(userBadges.map((ub) => ub.badgeId));
+    const equippedBadge = userBadges.find((ub) => ub.isEquipped);
+
+    const collection = allBadges.map((badge) => ({
+      ...badge,
+      owned: ownedBadgeIds.has(badge.id),
+      isEquipped: equippedBadge?.badgeId === badge.id,
+      unlockedAt: userBadges.find((ub) => ub.badgeId === badge.id)?.unlockedAt,
+    }));
+
+    res.json({
+      collection,
+      owned: userBadges.length,
+      total: allBadges.length,
+      equippedBadgeId: user?.equippedBadgeId || equippedBadge?.badgeId || null,
+    });
+  } catch (error) {
+    console.error('Get badge collection error:', error);
+    res.status(500).json({ error: 'Failed to get badge collection' });
+  }
+});
+
+// Equip a badge
+router.post('/badges/:badgeId/equip', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { badgeId } = req.params;
+
+    // Check if user owns this badge
+    const userBadge = await prisma.userBadge.findUnique({
+      where: { userId_badgeId: { userId, badgeId } },
+    });
+
+    if (!userBadge) {
+      return res.status(403).json({ error: 'You do not own this badge' });
+    }
+
+    // Unequip all badges, equip the selected one
+    await prisma.$transaction([
+      prisma.userBadge.updateMany({
+        where: { userId, isEquipped: true },
+        data: { isEquipped: false },
+      }),
+      prisma.userBadge.update({
+        where: { userId_badgeId: { userId, badgeId } },
+        data: { isEquipped: true },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { equippedBadgeId: badgeId },
+      }),
+    ]);
+
+    res.json({ success: true, message: 'Badge equipped' });
+  } catch (error) {
+    console.error('Equip badge error:', error);
+    res.status(500).json({ error: 'Failed to equip badge' });
+  }
+});
+
+// Unequip current badge
+router.post('/badges/unequip', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    await prisma.$transaction([
+      prisma.userBadge.updateMany({
+        where: { userId, isEquipped: true },
+        data: { isEquipped: false },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { equippedBadgeId: null },
+      }),
+    ]);
+
+    res.json({ success: true, message: 'Badge unequipped' });
+  } catch (error) {
+    console.error('Unequip badge error:', error);
+    res.status(500).json({ error: 'Failed to unequip badge' });
+  }
+});
+
+// Get all available borders
+router.get('/borders', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const borders = await prisma.profileBorder.findMany({
+      where: { isActive: true },
+      orderBy: [{ tier: 'asc' }, { name: 'asc' }],
+    });
+    res.json({ borders });
+  } catch (error) {
+    console.error('Get borders error:', error);
+    res.status(500).json({ error: 'Failed to get borders' });
+  }
+});
+
+// Get user's border collection
+router.get('/borders/collection', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    const [allBorders, userBorders, user] = await Promise.all([
+      prisma.profileBorder.findMany({
+        where: { isActive: true },
+        orderBy: [{ tier: 'asc' }, { name: 'asc' }],
+      }),
+      prisma.userBorder.findMany({
+        where: { userId },
+        include: { border: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { equippedBorderId: true },
+      }),
+    ]);
+
+    const ownedBorderIds = new Set(userBorders.map((ub) => ub.borderId));
+    const equippedBorder = userBorders.find((ub) => ub.isEquipped);
+
+    const collection = allBorders.map((border) => ({
+      ...border,
+      owned: ownedBorderIds.has(border.id),
+      isEquipped: equippedBorder?.borderId === border.id,
+      unlockedAt: userBorders.find((ub) => ub.borderId === border.id)?.unlockedAt,
+    }));
+
+    res.json({
+      collection,
+      owned: userBorders.length,
+      total: allBorders.length,
+      equippedBorderId: user?.equippedBorderId || equippedBorder?.borderId || null,
+    });
+  } catch (error) {
+    console.error('Get border collection error:', error);
+    res.status(500).json({ error: 'Failed to get border collection' });
+  }
+});
+
+// Equip a border
+router.post('/borders/:borderId/equip', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { borderId } = req.params;
+
+    // Check if user owns this border
+    const userBorder = await prisma.userBorder.findUnique({
+      where: { userId_borderId: { userId, borderId } },
+    });
+
+    if (!userBorder) {
+      return res.status(403).json({ error: 'You do not own this border' });
+    }
+
+    // Unequip all borders, equip the selected one
+    await prisma.$transaction([
+      prisma.userBorder.updateMany({
+        where: { userId, isEquipped: true },
+        data: { isEquipped: false },
+      }),
+      prisma.userBorder.update({
+        where: { userId_borderId: { userId, borderId } },
+        data: { isEquipped: true },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { equippedBorderId: borderId },
+      }),
+    ]);
+
+    res.json({ success: true, message: 'Border equipped' });
+  } catch (error) {
+    console.error('Equip border error:', error);
+    res.status(500).json({ error: 'Failed to equip border' });
+  }
+});
+
+// Unequip current border
+router.post('/borders/unequip', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    await prisma.$transaction([
+      prisma.userBorder.updateMany({
+        where: { userId, isEquipped: true },
+        data: { isEquipped: false },
+      }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { equippedBorderId: null },
+      }),
+    ]);
+
+    res.json({ success: true, message: 'Border unequipped' });
+  } catch (error) {
+    console.error('Unequip border error:', error);
+    res.status(500).json({ error: 'Failed to unequip border' });
+  }
+});
+
+// Get user's equipped customizations (badge + border) - useful for profile display
+router.get('/customizations', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        equippedBadgeId: true,
+        equippedBorderId: true,
+        badges: {
+          where: { isEquipped: true },
+          include: { badge: true },
+        },
+        borders: {
+          where: { isEquipped: true },
+          include: { border: true },
+        },
+      },
+    });
+
+    res.json({
+      badge: user?.badges[0]?.badge || null,
+      border: user?.borders[0]?.border || null,
+    });
+  } catch (error) {
+    console.error('Get customizations error:', error);
+    res.status(500).json({ error: 'Failed to get customizations' });
+  }
+});
+
+// Get another user's equipped customizations (for viewing profiles)
+router.get('/customizations/:userId', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        badges: {
+          where: { isEquipped: true },
+          include: { badge: true },
+        },
+        borders: {
+          where: { isEquipped: true },
+          include: { border: true },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      badge: user.badges[0]?.badge || null,
+      border: user.borders[0]?.border || null,
+    });
+  } catch (error) {
+    console.error('Get user customizations error:', error);
+    res.status(500).json({ error: 'Failed to get customizations' });
+  }
+});
+
+// ===== ADMIN BADGE & BORDER MANAGEMENT =====
+
+// Admin: Get all badges
+router.get('/admin/badges', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const badges = await prisma.badge.findMany({
+      orderBy: [{ rarity: 'asc' }, { name: 'asc' }],
+      include: {
+        _count: { select: { owners: true } },
+        achievement: { select: { id: true, name: true } },
+        reward: { select: { id: true, name: true } },
+      },
+    });
+
+    res.json({
+      badges: badges.map((b) => ({
+        ...b,
+        ownersCount: b._count.owners,
+      })),
+      total: badges.length,
+    });
+  } catch (error) {
+    console.error('Get admin badges error:', error);
+    res.status(500).json({ error: 'Failed to get badges' });
+  }
+});
+
+// Admin: Create a badge
+router.post('/admin/badges', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, description, imageUrl, rarity, category, achievementId, rewardId } = req.body;
+
+    if (!name || !imageUrl || !category) {
+      return res.status(400).json({ error: 'name, imageUrl, and category are required' });
+    }
+
+    const badge = await prisma.badge.create({
+      data: {
+        name,
+        description,
+        imageUrl,
+        rarity: rarity || 'COMMON',
+        category,
+        achievementId: achievementId || null,
+        rewardId: rewardId || null,
+      },
+    });
+
+    res.status(201).json({ badge, message: 'Badge created successfully' });
+  } catch (error) {
+    console.error('Create badge error:', error);
+    res.status(500).json({ error: 'Failed to create badge' });
+  }
+});
+
+// Admin: Update a badge
+router.put('/admin/badges/:badgeId', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { badgeId } = req.params;
+    const { name, description, imageUrl, rarity, category, achievementId, rewardId, isActive } = req.body;
+
+    const existing = await prisma.badge.findUnique({ where: { id: badgeId } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Badge not found' });
+    }
+
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+    if (rarity !== undefined) updateData.rarity = rarity;
+    if (category !== undefined) updateData.category = category;
+    if (achievementId !== undefined) updateData.achievementId = achievementId || null;
+    if (rewardId !== undefined) updateData.rewardId = rewardId || null;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    const badge = await prisma.badge.update({
+      where: { id: badgeId },
+      data: updateData,
+    });
+
+    res.json({ badge, message: 'Badge updated successfully' });
+  } catch (error) {
+    console.error('Update badge error:', error);
+    res.status(500).json({ error: 'Failed to update badge' });
+  }
+});
+
+// Admin: Delete a badge
+router.delete('/admin/badges/:badgeId', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { badgeId } = req.params;
+
+    const owners = await prisma.userBadge.count({ where: { badgeId } });
+    if (owners > 0) {
+      // Soft delete
+      await prisma.badge.update({
+        where: { id: badgeId },
+        data: { isActive: false },
+      });
+      return res.json({ message: `Badge deactivated (${owners} users own this badge)` });
+    }
+
+    await prisma.badge.delete({ where: { id: badgeId } });
+    res.json({ message: 'Badge deleted successfully' });
+  } catch (error) {
+    console.error('Delete badge error:', error);
+    res.status(500).json({ error: 'Failed to delete badge' });
+  }
+});
+
+// Admin: Grant a badge to a user
+router.post('/admin/badges/:badgeId/grant', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { badgeId } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    const [badge, user, existing] = await Promise.all([
+      prisma.badge.findUnique({ where: { id: badgeId } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { email: true } }),
+      prisma.userBadge.findUnique({ where: { userId_badgeId: { userId, badgeId } } }),
+    ]);
+
+    if (!badge) return res.status(404).json({ error: 'Badge not found' });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (existing) return res.status(400).json({ error: 'User already owns this badge' });
+
+    await prisma.userBadge.create({
+      data: { userId, badgeId },
+    });
+
+    res.json({ success: true, message: `Badge "${badge.name}" granted to ${user.email}` });
+  } catch (error) {
+    console.error('Grant badge error:', error);
+    res.status(500).json({ error: 'Failed to grant badge' });
+  }
+});
+
+// Admin: Get all borders
+router.get('/admin/borders', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const borders = await prisma.profileBorder.findMany({
+      orderBy: [{ tier: 'asc' }, { name: 'asc' }],
+      include: {
+        _count: { select: { owners: true } },
+        achievement: { select: { id: true, name: true } },
+      },
+    });
+
+    res.json({
+      borders: borders.map((b) => ({
+        ...b,
+        ownersCount: b._count.owners,
+      })),
+      total: borders.length,
+    });
+  } catch (error) {
+    console.error('Get admin borders error:', error);
+    res.status(500).json({ error: 'Failed to get borders' });
+  }
+});
+
+// Admin: Create a border
+router.post('/admin/borders', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, tier, colors, spinSpeed, glowIntensity, specialEffect, achievementId } = req.body;
+
+    if (!name || !tier || !colors) {
+      return res.status(400).json({ error: 'name, tier, and colors are required' });
+    }
+
+    const border = await prisma.profileBorder.create({
+      data: {
+        name,
+        tier,
+        colors,
+        spinSpeed: spinSpeed || 4,
+        glowIntensity: glowIntensity || 1,
+        specialEffect: specialEffect || null,
+        achievementId: achievementId || null,
+      },
+    });
+
+    res.status(201).json({ border, message: 'Border created successfully' });
+  } catch (error) {
+    console.error('Create border error:', error);
+    res.status(500).json({ error: 'Failed to create border' });
+  }
+});
+
+// Admin: Update a border
+router.put('/admin/borders/:borderId', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { borderId } = req.params;
+    const { name, tier, colors, spinSpeed, glowIntensity, specialEffect, achievementId, isActive } = req.body;
+
+    const existing = await prisma.profileBorder.findUnique({ where: { id: borderId } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Border not found' });
+    }
+
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (tier !== undefined) updateData.tier = tier;
+    if (colors !== undefined) updateData.colors = colors;
+    if (spinSpeed !== undefined) updateData.spinSpeed = spinSpeed;
+    if (glowIntensity !== undefined) updateData.glowIntensity = glowIntensity;
+    if (specialEffect !== undefined) updateData.specialEffect = specialEffect;
+    if (achievementId !== undefined) updateData.achievementId = achievementId || null;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    const border = await prisma.profileBorder.update({
+      where: { id: borderId },
+      data: updateData,
+    });
+
+    res.json({ border, message: 'Border updated successfully' });
+  } catch (error) {
+    console.error('Update border error:', error);
+    res.status(500).json({ error: 'Failed to update border' });
+  }
+});
+
+// Admin: Delete a border
+router.delete('/admin/borders/:borderId', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { borderId } = req.params;
+
+    const owners = await prisma.userBorder.count({ where: { borderId } });
+    if (owners > 0) {
+      // Soft delete
+      await prisma.profileBorder.update({
+        where: { id: borderId },
+        data: { isActive: false },
+      });
+      return res.json({ message: `Border deactivated (${owners} users own this border)` });
+    }
+
+    await prisma.profileBorder.delete({ where: { id: borderId } });
+    res.json({ message: 'Border deleted successfully' });
+  } catch (error) {
+    console.error('Delete border error:', error);
+    res.status(500).json({ error: 'Failed to delete border' });
+  }
+});
+
+// Admin: Grant a border to a user
+router.post('/admin/borders/:borderId/grant', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { borderId } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    const [border, user, existing] = await Promise.all([
+      prisma.profileBorder.findUnique({ where: { id: borderId } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { email: true } }),
+      prisma.userBorder.findUnique({ where: { userId_borderId: { userId, borderId } } }),
+    ]);
+
+    if (!border) return res.status(404).json({ error: 'Border not found' });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (existing) return res.status(400).json({ error: 'User already owns this border' });
+
+    await prisma.userBorder.create({
+      data: { userId, borderId },
+    });
+
+    res.json({ success: true, message: `Border "${border.name}" granted to ${user.email}` });
+  } catch (error) {
+    console.error('Grant border error:', error);
+    res.status(500).json({ error: 'Failed to grant border' });
+  }
+});
+
 // ===== ADMIN POINT CONFIGURATION =====
 
 // Get current point configuration

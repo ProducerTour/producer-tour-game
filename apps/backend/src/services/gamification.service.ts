@@ -809,6 +809,44 @@ export const checkAchievements = async (userId: string) => {
         { achievementId: achievement.id }
       );
 
+      // Auto-grant badge if achievement has a linked badge
+      const linkedBadge = await prisma.badge.findFirst({
+        where: { achievementId: achievement.id, isActive: true }
+      });
+
+      if (linkedBadge) {
+        // Check if user already owns this badge
+        const existingBadge = await prisma.userBadge.findUnique({
+          where: { userId_badgeId: { userId, badgeId: linkedBadge.id } }
+        });
+
+        if (!existingBadge) {
+          await prisma.userBadge.create({
+            data: { userId, badgeId: linkedBadge.id }
+          });
+          console.log(`🏅 Auto-granted badge "${linkedBadge.name}" to user ${userId} for achievement "${achievement.name}"`);
+        }
+      }
+
+      // Auto-grant border if achievement has a linked border
+      const linkedBorder = await prisma.profileBorder.findFirst({
+        where: { achievementId: achievement.id, isActive: true }
+      });
+
+      if (linkedBorder) {
+        // Check if user already owns this border
+        const existingBorder = await prisma.userBorder.findUnique({
+          where: { userId_borderId: { userId, borderId: linkedBorder.id } }
+        });
+
+        if (!existingBorder) {
+          await prisma.userBorder.create({
+            data: { userId, borderId: linkedBorder.id }
+          });
+          console.log(`🔲 Auto-granted border "${linkedBorder.name}" to user ${userId} for achievement "${achievement.name}"`);
+        }
+      }
+
       newlyUnlocked.push(userAchievement);
     }
   }

@@ -9,7 +9,8 @@ import SocialShareButtons from '../components/gamification/SocialShareButtons';
 import LevelUpModal from '../components/gamification/LevelUpModal';
 import AchievementUnlockModal from '../components/gamification/AchievementUnlockModal';
 import PointsToast from '../components/gamification/PointsToast';
-import { Trophy, Gift, Users, Calendar, Zap, Sparkles, Target } from 'lucide-react';
+import { CustomizationGallery } from '../components/CustomizationGallery';
+import { Trophy, Gift, Users, Calendar, Zap, Sparkles, Target, Palette } from 'lucide-react';
 import { rewardRedeemedToast, errorToast, checkInToast } from '../lib/toast';
 
 const TIER_THRESHOLDS = {
@@ -44,7 +45,7 @@ const getNextTier = (tier: string) => {
 };
 
 export default function CustomerTourMilesPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'rewards' | 'leaderboard'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'rewards' | 'leaderboard' | 'customize'>('overview');
   const [showRedemptionModal, setShowRedemptionModal] = useState(false);
   const [selectedReward, setSelectedReward] = useState<any>(null);
 
@@ -276,16 +277,17 @@ export default function CustomerTourMilesPage() {
 
             {/* Tab Navigation */}
             <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-              {(['overview', 'achievements', 'rewards', 'leaderboard'] as const).map((tab) => (
+              {(['overview', 'achievements', 'rewards', 'leaderboard', 'customize'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${
                     activeTab === tab
                       ? 'bg-white/10 text-white border border-white/20'
                       : 'text-text-secondary hover:text-white hover:bg-white/5'
                   }`}
                 >
+                  {tab === 'customize' && <Palette className="w-4 h-4" />}
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>
               ))}
@@ -400,6 +402,10 @@ export default function CustomerTourMilesPage() {
 
             {activeTab === 'leaderboard' && (
               <Leaderboard />
+            )}
+
+            {activeTab === 'customize' && (
+              <CustomizationGallery />
             )}
           </div>
         </main>

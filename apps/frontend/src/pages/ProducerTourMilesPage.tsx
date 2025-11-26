@@ -9,7 +9,8 @@ import SocialShareButtons from '../components/gamification/SocialShareButtons';
 import LevelUpModal from '../components/gamification/LevelUpModal';
 import AchievementUnlockModal from '../components/gamification/AchievementUnlockModal';
 import PointsToast from '../components/gamification/PointsToast';
-import { Trophy, Gift, Star, TrendingUp, Users, Calendar, Zap, Award } from 'lucide-react';
+import { CustomizationGallery } from '../components/CustomizationGallery';
+import { Trophy, Gift, Star, TrendingUp, Users, Calendar, Zap, Award, Palette } from 'lucide-react';
 import { rewardRedeemedToast, errorToast } from '../lib/toast';
 
 const TIER_COLORS = {
@@ -52,7 +53,7 @@ const getNextTier = (tier: string) => {
 };
 
 export default function ProducerTourMilesPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'rewards' | 'leaderboard'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'rewards' | 'leaderboard' | 'customize'>('overview');
   const [showRedemptionModal, setShowRedemptionModal] = useState(false);
   const [selectedReward, setSelectedReward] = useState<any>(null);
 
@@ -351,6 +352,17 @@ export default function ProducerTourMilesPage() {
                   <Users className="w-4 h-4 inline-block mr-2" />
                   Leaderboard
                 </button>
+                <button
+                  onClick={() => setActiveTab('customize')}
+                  className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'customize'
+                      ? 'border-brand-blue text-brand-blue'
+                      : 'border-transparent text-gray-400 hover:text-white hover:border-white/30'
+                  }`}
+                >
+                  <Palette className="w-4 h-4 inline-block mr-2" />
+                  Customize
+                </button>
               </nav>
             </div>
 
@@ -478,6 +490,11 @@ export default function ProducerTourMilesPage() {
               {/* Leaderboard Tab */}
               {activeTab === 'leaderboard' && (
                 <Leaderboard />
+              )}
+
+              {/* Customize Tab */}
+              {activeTab === 'customize' && (
+                <CustomizationGallery />
               )}
             </div>
           </div>

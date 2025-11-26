@@ -535,6 +535,54 @@ export const gamificationApi = {
 
   getAffiliateOrders: (params?: { page?: number; limit?: number }) =>
     api.get('/gamification/admin/affiliates/orders', { params }),
+
+  // === BADGE SYSTEM ===
+  // Get all available badges
+  getBadges: () => api.get('/gamification/badges'),
+
+  // Get user's badge collection with ownership status
+  getBadgeCollection: () => api.get('/gamification/badges/collection'),
+
+  // Equip a badge (display on profile)
+  equipBadge: (badgeId: string) => api.post(`/gamification/badges/${badgeId}/equip`),
+
+  // Unequip current badge
+  unequipBadge: () => api.post('/gamification/badges/unequip'),
+
+  // === BORDER SYSTEM ===
+  // Get all available borders
+  getBorders: () => api.get('/gamification/borders'),
+
+  // Get user's border collection with ownership status
+  getBorderCollection: () => api.get('/gamification/borders/collection'),
+
+  // Equip a border (display on profile)
+  equipBorder: (borderId: string) => api.post(`/gamification/borders/${borderId}/equip`),
+
+  // Unequip current border
+  unequipBorder: () => api.post('/gamification/borders/unequip'),
+
+  // === CUSTOMIZATIONS (badge + border combined) ===
+  // Get current user's equipped customizations
+  getCustomizations: () => api.get('/gamification/customizations'),
+
+  // Get another user's equipped customizations
+  getUserCustomizations: (userId: string) => api.get(`/gamification/customizations/${userId}`),
+
+  // === ADMIN BADGE/BORDER MANAGEMENT ===
+  adminGetBadges: () => api.get('/gamification/admin/badges'),
+  adminCreateBadge: (data: any) => api.post('/gamification/admin/badges', data),
+  adminUpdateBadge: (badgeId: string, data: any) => api.put(`/gamification/admin/badges/${badgeId}`, data),
+  adminDeleteBadge: (badgeId: string) => api.delete(`/gamification/admin/badges/${badgeId}`),
+  adminGrantBadge: (badgeId: string, userId: string) =>
+    api.post(`/gamification/admin/badges/${badgeId}/grant`, { userId }),
+
+  adminGetBorders: () => api.get('/gamification/admin/borders'),
+  adminCreateBorder: (data: any) => api.post('/gamification/admin/borders', data),
+  adminUpdateBorder: (borderId: string, data: any) => api.put(`/gamification/admin/borders/${borderId}`, data),
+  adminDeleteBorder: (borderId: string) => api.delete(`/gamification/admin/borders/${borderId}`),
+  adminGrantBorder: (borderId: string, userId: string) =>
+    api.post(`/gamification/admin/borders/${borderId}/grant`, { userId }),
 };
 
 // Shop API - E-commerce products and orders

@@ -622,9 +622,8 @@ async function main() {
 
   for (const achievement of achievements) {
     await prisma.achievement.upsert({
-      where: { id: achievement.id },
+      where: { name: achievement.name },
       update: {
-        name: achievement.name,
         description: achievement.description,
         icon: achievement.icon,
         points: achievement.points,
@@ -647,6 +646,327 @@ async function main() {
     });
   }
   console.log('✅ Created/Updated achievements:', achievements.length);
+
+  // ============================================
+  // SEED PROFILE BADGES (CoD MW2-style emblems)
+  // ============================================
+
+  // Helper to look up achievement ID by name
+  const getAchievementId = async (achievementName: string): Promise<string | null> => {
+    const achievement = await prisma.achievement.findUnique({
+      where: { name: achievementName },
+      select: { id: true },
+    });
+    return achievement?.id || null;
+  };
+
+  // Helper to look up reward ID by name (via generated ID)
+  const getRewardId = async (rewardName: string): Promise<string | null> => {
+    const rewardId = rewardName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const reward = await prisma.reward.findUnique({
+      where: { id: rewardId },
+      select: { id: true },
+    });
+    return reward?.id || null;
+  };
+
+  const badges = [
+    // Achievement-Linked Badges
+    {
+      id: 'first-steps-badge',
+      name: 'First Steps',
+      description: 'Awarded for your first daily check-in',
+      imageUrl: '/badges/first-steps.svg',
+      rarity: 'COMMON',
+      category: 'achievement',
+      achievementName: 'First Steps',
+    },
+    {
+      id: 'week-warrior-badge',
+      name: 'Week Warrior',
+      description: 'Maintain a 7-day streak',
+      imageUrl: '/badges/week-warrior.svg',
+      rarity: 'RARE',
+      category: 'achievement',
+      achievementName: 'Week Warrior',
+    },
+    {
+      id: 'monthly-master-badge',
+      name: 'Monthly Master',
+      description: 'Maintain a 30-day streak',
+      imageUrl: '/badges/monthly-master.svg',
+      rarity: 'EPIC',
+      category: 'achievement',
+      achievementName: 'Monthly Master',
+    },
+    {
+      id: 'streak-legend-badge',
+      name: 'Streak Legend',
+      description: '90-day check-in streak',
+      imageUrl: '/badges/streak-legend.svg',
+      rarity: 'LEGENDARY',
+      category: 'achievement',
+      achievementName: 'Streak Legend',
+    },
+    {
+      id: 'social-butterfly-badge',
+      name: 'Social Butterfly',
+      description: 'Share on social media',
+      imageUrl: '/badges/social-butterfly.svg',
+      rarity: 'COMMON',
+      category: 'achievement',
+      achievementName: 'Social Butterfly',
+    },
+    {
+      id: 'ambassador-badge',
+      name: 'Ambassador',
+      description: 'Refer a friend',
+      imageUrl: '/badges/ambassador.svg',
+      rarity: 'RARE',
+      category: 'achievement',
+      achievementName: 'Ambassador',
+    },
+    {
+      id: 'community-leader-badge',
+      name: 'Community Leader',
+      description: 'Refer 10+ friends',
+      imageUrl: '/badges/community-leader.svg',
+      rarity: 'LEGENDARY',
+      category: 'achievement',
+      achievementName: 'Community Leader',
+    },
+    {
+      id: 'first-dollar-badge',
+      name: 'First Dollar',
+      description: 'Earn your first dollar',
+      imageUrl: '/badges/first-dollar.svg',
+      rarity: 'COMMON',
+      category: 'achievement',
+      achievementName: 'First Dollar',
+    },
+    {
+      id: 'thousand-earner-badge',
+      name: 'Thousand Club',
+      description: 'Earn $1,000+',
+      imageUrl: '/badges/thousand-club.svg',
+      rarity: 'EPIC',
+      category: 'achievement',
+      achievementName: 'Thousand Earner',
+    },
+    {
+      id: 'platinum-producer-badge',
+      name: 'Platinum Producer',
+      description: 'Earn $50,000+',
+      imageUrl: '/badges/platinum-producer.svg',
+      rarity: 'LEGENDARY',
+      category: 'achievement',
+      achievementName: 'Platinum Producer',
+    },
+
+    // Store-purchasable Badges
+    {
+      id: 'verified-badge',
+      name: 'Verified',
+      description: 'Verified Producer',
+      imageUrl: '/badges/verified.svg',
+      rarity: 'EPIC',
+      category: 'store',
+      rewardName: 'Verified Producer Badge',
+    },
+    {
+      id: 'custom-profile-badge',
+      name: 'Customizer',
+      description: 'Profile customization unlocked',
+      imageUrl: '/badges/customizer.svg',
+      rarity: 'RARE',
+      category: 'store',
+      rewardName: 'Custom Profile Badge',
+    },
+
+    // Special Event Badges
+    {
+      id: 'og-member-badge',
+      name: 'OG Member',
+      description: 'Early platform adopter',
+      imageUrl: '/badges/og-member.svg',
+      rarity: 'LEGENDARY',
+      category: 'special',
+    },
+    {
+      id: 'beta-tester-badge',
+      name: 'Beta Tester',
+      description: 'Helped test the platform',
+      imageUrl: '/badges/beta-tester.svg',
+      rarity: 'EPIC',
+      category: 'special',
+    },
+  ];
+
+  for (const badge of badges) {
+    const achievementId = (badge as any).achievementName
+      ? await getAchievementId((badge as any).achievementName)
+      : null;
+    const rewardId = (badge as any).rewardName
+      ? await getRewardId((badge as any).rewardName)
+      : null;
+
+    await prisma.badge.upsert({
+      where: { id: badge.id },
+      update: {
+        name: badge.name,
+        description: badge.description,
+        imageUrl: badge.imageUrl,
+        rarity: badge.rarity as any,
+        category: badge.category,
+        achievementId,
+        rewardId,
+        isActive: true,
+      },
+      create: {
+        id: badge.id,
+        name: badge.name,
+        description: badge.description,
+        imageUrl: badge.imageUrl,
+        rarity: badge.rarity as any,
+        category: badge.category,
+        achievementId,
+        rewardId,
+        isActive: true,
+      },
+    });
+  }
+  console.log('✅ Created/Updated badges:', badges.length);
+
+  // ============================================
+  // SEED PROFILE BORDERS (Rocket League-style)
+  // ============================================
+  const borders = [
+    // Check-in Streak Borders
+    {
+      id: 'first-steps-border',
+      name: 'First Steps',
+      tier: 'starter',
+      colors: ['#4ade80', '#22c55e', '#16a34a'],
+      spinSpeed: 4,
+      glowIntensity: 1,
+      specialEffect: null,
+      achievementName: 'First Steps',
+    },
+    {
+      id: 'week-warrior-border',
+      name: 'Week Warrior',
+      tier: 'week',
+      colors: ['#60a5fa', '#3b82f6', '#2563eb'],
+      spinSpeed: 3.5,
+      glowIntensity: 1.2,
+      specialEffect: null,
+      achievementName: 'Week Warrior',
+    },
+    {
+      id: 'monthly-master-border',
+      name: 'Monthly Master',
+      tier: 'month',
+      colors: ['#a78bfa', '#8b5cf6', '#7c3aed'],
+      spinSpeed: 3,
+      glowIntensity: 1.3,
+      specialEffect: 'shimmer',
+      achievementName: 'Monthly Master',
+    },
+    {
+      id: 'streak-legend-border',
+      name: 'Streak Legend',
+      tier: 'streak',
+      colors: ['#fb923c', '#f97316', '#ea580c'],
+      spinSpeed: 2.5,
+      glowIntensity: 1.5,
+      specialEffect: 'flame',
+      achievementName: 'Streak Legend',
+    },
+
+    // Tier Status Borders
+    {
+      id: 'bronze-status-border',
+      name: 'Bronze Status',
+      tier: 'BRONZE',
+      colors: ['#d97706', '#b45309', '#92400e'],
+      spinSpeed: 4,
+      glowIntensity: 1,
+      specialEffect: null,
+      achievementName: null, // Bronze is default, no achievement needed
+    },
+    {
+      id: 'silver-status-border',
+      name: 'Silver Status',
+      tier: 'SILVER',
+      colors: ['#9ca3af', '#6b7280', '#4b5563'],
+      spinSpeed: 3.5,
+      glowIntensity: 1.2,
+      specialEffect: 'shimmer',
+      achievementName: 'Silver Status',
+    },
+    {
+      id: 'gold-status-border',
+      name: 'Gold Status',
+      tier: 'GOLD',
+      colors: ['#fcd34d', '#fbbf24', '#f59e0b'],
+      spinSpeed: 3,
+      glowIntensity: 1.4,
+      specialEffect: 'sparkles',
+      achievementName: 'Gold Status',
+    },
+    {
+      id: 'diamond-status-border',
+      name: 'Diamond Status',
+      tier: 'DIAMOND',
+      colors: ['#67e8f9', '#22d3ee', '#06b6d4', '#0891b2'],
+      spinSpeed: 2.5,
+      glowIntensity: 1.6,
+      specialEffect: 'sparkles',
+      achievementName: 'Diamond Status',
+    },
+    {
+      id: 'elite-status-border',
+      name: 'Elite Status',
+      tier: 'ELITE',
+      colors: ['#f472b6', '#ec4899', '#db2777', '#be185d', '#9d174d'],
+      spinSpeed: 2,
+      glowIntensity: 2,
+      specialEffect: 'particles',
+      achievementName: 'Elite Status',
+    },
+  ];
+
+  for (const border of borders) {
+    const achievementId = border.achievementName
+      ? await getAchievementId(border.achievementName)
+      : null;
+
+    await prisma.profileBorder.upsert({
+      where: { id: border.id },
+      update: {
+        name: border.name,
+        tier: border.tier,
+        colors: border.colors,
+        spinSpeed: border.spinSpeed,
+        glowIntensity: border.glowIntensity,
+        specialEffect: border.specialEffect,
+        achievementId,
+        isActive: true,
+      },
+      create: {
+        id: border.id,
+        name: border.name,
+        tier: border.tier,
+        colors: border.colors,
+        spinSpeed: border.spinSpeed,
+        glowIntensity: border.glowIntensity,
+        specialEffect: border.specialEffect,
+        achievementId,
+        isActive: true,
+      },
+    });
+  }
+  console.log('✅ Created/Updated borders:', borders.length);
 
   console.log('✨ Gamification seeding completed!');
 }
