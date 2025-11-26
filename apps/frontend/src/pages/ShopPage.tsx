@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
@@ -291,89 +292,98 @@ export default function ShopPage() {
                       {/* Subtle glow effect on hover */}
                       <div className="absolute inset-0 bg-gradient-to-b from-slate-700/0 to-slate-700/0 group-hover:from-slate-700/10 group-hover:to-transparent transition-all duration-500 pointer-events-none" />
 
-                      {/* Product Image */}
-                      <div className={`relative h-52 bg-gradient-to-br ${typeGradient} overflow-hidden`}>
-                        {product.featuredImageUrl ? (
-                          <img
-                            src={product.featuredImageUrl}
-                            alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <div className="w-20 h-20 rounded-2xl bg-slate-800/50 flex items-center justify-center border border-slate-700/30">
-                              <TypeIcon className="w-10 h-10 text-slate-500" />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Featured Badge */}
-                        {product.isFeatured && (
-                          <Badge className="absolute top-4 left-4 bg-slate-600/90 text-white border-0 shadow-lg">
-                            <Star className="w-3 h-3 mr-1 fill-current" />
-                            Featured
-                          </Badge>
-                        )}
-
-                        {/* Sale Badge */}
-                        {hasDiscount && (
-                          <Badge className="absolute top-4 right-4 bg-emerald-500/90 text-white border-0 shadow-lg">
-                            Sale
-                          </Badge>
-                        )}
-
-                        {/* Type Badge */}
-                        <Badge variant="outline" className="absolute bottom-4 left-4 bg-slate-900/80 text-slate-300 border-slate-700/50">
-                          <TypeIcon className="w-3 h-3 mr-1" />
-                          {PRODUCT_TYPE_LABELS[product.type]}
-                        </Badge>
-                      </div>
-
-                      {/* Product Info */}
-                      <div className="relative p-6">
-                        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-slate-100 transition-colors">
-                          {product.name}
-                        </h3>
-                        <p className="text-slate-400 text-sm mb-5 line-clamp-2 leading-relaxed">
-                          {product.shortDescription || product.description}
-                        </p>
-
-                        {/* Price */}
-                        <div className="flex items-baseline gap-2 mb-5">
-                          {hasDiscount ? (
-                            <>
-                              <span className="text-2xl font-bold text-white">
-                                ${salePrice!.toFixed(2)}
-                              </span>
-                              <span className="text-slate-500 line-through text-sm">
-                                ${price.toFixed(2)}
-                              </span>
-                            </>
+                      {/* Clickable Link to Product Page */}
+                      <Link to={`/shop/${product.slug}`} className="block">
+                        {/* Product Image */}
+                        <div className={`relative h-52 bg-gradient-to-br ${typeGradient} overflow-hidden`}>
+                          {product.featuredImageUrl ? (
+                            <img
+                              src={product.featuredImageUrl}
+                              alt={product.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
                           ) : (
-                            <span className="text-2xl font-bold text-white">
-                              ${price.toFixed(2)}
-                            </span>
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div className="w-20 h-20 rounded-2xl bg-slate-800/50 flex items-center justify-center border border-slate-700/30">
+                                <TypeIcon className="w-10 h-10 text-slate-500" />
+                              </div>
+                            </div>
                           )}
-                          {product.type === 'SUBSCRIPTION' && product.subscriptionInterval && (
-                            <span className="text-slate-500 text-sm">
-                              /{product.subscriptionInterval.toLowerCase()}
-                            </span>
+
+                          {/* Featured Badge */}
+                          {product.isFeatured && (
+                            <Badge className="absolute top-4 left-4 bg-slate-600/90 text-white border-0 shadow-lg">
+                              <Star className="w-3 h-3 mr-1 fill-current" />
+                              Featured
+                            </Badge>
                           )}
+
+                          {/* Sale Badge */}
+                          {hasDiscount && (
+                            <Badge className="absolute top-4 right-4 bg-emerald-500/90 text-white border-0 shadow-lg">
+                              Sale
+                            </Badge>
+                          )}
+
+                          {/* Type Badge */}
+                          <Badge variant="outline" className="absolute bottom-4 left-4 bg-slate-900/80 text-slate-300 border-slate-700/50">
+                            <TypeIcon className="w-3 h-3 mr-1" />
+                            {PRODUCT_TYPE_LABELS[product.type]}
+                          </Badge>
                         </div>
 
-                        {/* Trial Days */}
-                        {product.type === 'SUBSCRIPTION' && product.trialDays && product.trialDays > 0 && (
-                          <div className="flex items-center gap-2 mb-5">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            <span className="text-emerald-400 text-sm font-medium">
-                              {product.trialDays}-day free trial
-                            </span>
-                          </div>
-                        )}
+                        {/* Product Info */}
+                        <div className="relative p-6 pb-0">
+                          <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-slate-100 transition-colors">
+                            {product.name}
+                          </h3>
+                          <p className="text-slate-400 text-sm mb-5 line-clamp-2 leading-relaxed">
+                            {product.shortDescription || product.description}
+                          </p>
 
-                        {/* Add to Cart Button */}
+                          {/* Price */}
+                          <div className="flex items-baseline gap-2 mb-5">
+                            {hasDiscount ? (
+                              <>
+                                <span className="text-2xl font-bold text-white">
+                                  ${salePrice!.toFixed(2)}
+                                </span>
+                                <span className="text-slate-500 line-through text-sm">
+                                  ${price.toFixed(2)}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-2xl font-bold text-white">
+                                ${price.toFixed(2)}
+                              </span>
+                            )}
+                            {product.type === 'SUBSCRIPTION' && product.subscriptionInterval && (
+                              <span className="text-slate-500 text-sm">
+                                /{product.subscriptionInterval.toLowerCase()}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Trial Days */}
+                          {product.type === 'SUBSCRIPTION' && product.trialDays && product.trialDays > 0 && (
+                            <div className="flex items-center gap-2 mb-5">
+                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              <span className="text-emerald-400 text-sm font-medium">
+                                {product.trialDays}-day free trial
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+
+                      {/* Add to Cart Button */}
+                      <div className="px-6 pb-6">
                         <Button
-                          onClick={() => handleAddToCart(product)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleAddToCart(product);
+                          }}
                           disabled={isAdding || (product.type === 'SUBSCRIPTION' && inCart)}
                           variant={inCart && product.type === 'SUBSCRIPTION' ? 'outline' : 'default'}
                           className={`w-full h-12 rounded-xl font-semibold transition-all duration-300 ${

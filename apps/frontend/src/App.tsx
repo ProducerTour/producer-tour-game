@@ -36,6 +36,7 @@ import AffiliatesDashboard from './pages/AffiliatesDashboard';
 import AffiliateManagement from './pages/AffiliateManagement';
 import CustomerSupportPage from './pages/CustomerSupportPage';
 import ShopPage from './pages/ShopPage';
+import ProductPage from './pages/ProductPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
@@ -106,6 +107,7 @@ function App() {
         <Route path="/apply" element={<ApplicationPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/shop" element={<ShopPage />} />
+        <Route path="/shop/:slug" element={<ProductPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
