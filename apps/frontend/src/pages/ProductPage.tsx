@@ -85,7 +85,7 @@ export default function ProductPage() {
     enabled: !!slug,
   });
 
-  const product: Product | null = productData?.product || null;
+  const product: Product | null = productData || null;
 
   useEffect(() => {
     if (product) {
