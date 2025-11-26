@@ -216,6 +216,7 @@ const PayoutsTab: React.FC = () => {
   const sessionPayouts = sessionPayoutsData?.sessionPayouts || [];
   const pendingSessionPayouts = sessionPayouts.filter((p: any) => p.status === 'PENDING');
   const approvedSessionPayouts = sessionPayouts.filter((p: any) => p.status === 'APPROVED');
+  const completedSessionPayouts = sessionPayouts.filter((p: any) => p.status === 'COMPLETED');
 
   // Approve session payout mutation
   const approveSessionPayoutMutation = useMutation({
@@ -1048,6 +1049,107 @@ const PayoutsTab: React.FC = () => {
                   </tr>
                 ))}
               </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Session Payout History Section */}
+      <div className="bg-slate-700/30 rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Headphones className="h-5 w-5 text-teal-400" />
+              Session Payout History
+            </h3>
+            <p className="text-sm text-gray-400 mt-1">
+              All completed recording session payouts
+            </p>
+          </div>
+          {completedSessionPayouts.length > 0 && (
+            <span className="text-sm text-gray-400">{completedSessionPayouts.length} paid</span>
+          )}
+        </div>
+
+        {completedSessionPayouts.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">
+            <Clock className="h-12 w-12 mx-auto mb-3 text-gray-500" />
+            <p>No completed session payouts yet</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b-2 border-slate-600">
+                <tr>
+                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Work Order</th>
+                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Engineer</th>
+                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Artist / Song</th>
+                  <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Amount</th>
+                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Paid At</th>
+                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Stripe Transfer</th>
+                  <th className="text-center text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {completedSessionPayouts.map((payout: any) => (
+                  <tr
+                    key={payout.id}
+                    className="border-b border-slate-700/50 hover:bg-slate-600/20 transition-colors"
+                  >
+                    <td className="py-3 px-2">
+                      <span className="font-mono text-teal-300">{payout.workOrderNumber}</span>
+                    </td>
+                    <td className="py-3 px-2">
+                      <div>
+                        <p className="text-white font-medium">{payout.submittedByName}</p>
+                        <p className="text-xs text-gray-400">{payout.submittedBy?.email}</p>
+                      </div>
+                    </td>
+                    <td className="py-3 px-2">
+                      <div>
+                        <p className="text-white">{payout.artistName}</p>
+                        <p className="text-xs text-gray-400">{payout.songTitles}</p>
+                      </div>
+                    </td>
+                    <td className="py-3 px-2 text-right text-green-400 font-semibold">
+                      ${Number(payout.payoutAmount).toFixed(2)}
+                    </td>
+                    <td className="py-3 px-2 text-sm text-gray-400">
+                      {payout.paidAt ? format(new Date(payout.paidAt), 'MMM d, yyyy h:mm a') : '-'}
+                    </td>
+                    <td className="py-3 px-2">
+                      {payout.stripeTransferId ? (
+                        <code className="text-xs text-blue-300 bg-slate-900/50 px-2 py-1 rounded">
+                          {payout.stripeTransferId}
+                        </code>
+                      ) : (
+                        <span className="text-xs text-gray-500">-</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-2 text-center">
+                      <button
+                        onClick={() => {
+                          setSelectedSessionPayout(payout);
+                          setShowSessionPayoutModal(true);
+                        }}
+                        className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1 mx-auto"
+                      >
+                        <Eye className="h-3 w-3" />
+                        Details
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="border-t-2 border-slate-600 bg-slate-700/20">
+                <tr>
+                  <td colSpan={3} className="py-3 px-2 text-white font-bold text-sm">TOTAL SESSION PAYOUTS</td>
+                  <td className="py-3 px-2 text-right text-green-400 font-bold">
+                    ${completedSessionPayouts.reduce((sum: number, p: any) => sum + Number(p.payoutAmount || 0), 0).toFixed(2)}
+                  </td>
+                  <td colSpan={3}></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}
