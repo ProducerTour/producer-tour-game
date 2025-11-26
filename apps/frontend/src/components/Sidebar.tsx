@@ -207,9 +207,9 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
           {/* Profile Photo with Animated Border */}
           <div className="relative flex-shrink-0">
             <AnimatedBorder
-              border={customizations?.equippedBorder ? parseBorderConfig(customizations.equippedBorder) : null}
+              border={customizations?.border ? parseBorderConfig(customizations.border) : null}
               size="sm"
-              showBorder={!!customizations?.equippedBorder}
+              showBorder={!!customizations?.border}
             >
               {(user as any)?.profilePhotoUrl ? (
                 <img
@@ -228,10 +228,10 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
               )}
             </AnimatedBorder>
             {/* Equipped Badge */}
-            {customizations?.equippedBadge && !isCollapsed && (
+            {customizations?.badge && !isCollapsed && (
               <div className="absolute -bottom-1 -right-1">
                 <ProfileBadge
-                  badge={parseBadgeConfig(customizations.equippedBadge)!}
+                  badge={parseBadgeConfig(customizations.badge)!}
                   size="xs"
                   owned={true}
                   isEquipped={true}

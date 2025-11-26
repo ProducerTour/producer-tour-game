@@ -440,7 +440,8 @@ export const getLeaderboard = async (limit: number = 10, tier?: GamificationTier
           id: true,
           firstName: true,
           lastName: true,
-          role: true
+          role: true,
+          profilePhotoUrl: true
         }
       }
     }

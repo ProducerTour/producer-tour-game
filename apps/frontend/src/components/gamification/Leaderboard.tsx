@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Trophy, Medal, Award, Crown } from 'lucide-react';
 import { getAuthToken } from '../../lib/api';
+import { UserAvatarWithBorder } from '../UserAvatarWithBorder';
 
 const TIER_COLORS = {
   BRONZE: '#CD7F32',
@@ -30,6 +31,7 @@ interface LeaderboardEntry {
     firstName: string | null;
     lastName: string | null;
     role: string;
+    profilePhotoUrl: string | null;
   };
 }
 
@@ -194,6 +196,15 @@ export default function Leaderboard() {
                     {getRankIcon(index)}
                   </div>
                 )}
+
+                {/* User Avatar with Border */}
+                <UserAvatarWithBorder
+                  userId={entry.user.id}
+                  firstName={entry.user.firstName || undefined}
+                  lastName={entry.user.lastName || undefined}
+                  profilePhotoUrl={entry.user.profilePhotoUrl}
+                  size="sm"
+                />
 
                 {/* User Info */}
                 <div className="flex-1 min-w-0">
