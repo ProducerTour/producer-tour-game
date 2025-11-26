@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Calendar, Save, Trash2, Upload, Youtube, LogOut, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Calendar, Save, Trash2, Upload, Youtube, LogOut, Loader2, Copy, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
+import toast from 'react-hot-toast';
 import type { YouTubeMetadata, VideoWithMetadata } from '../../types/youtube';
 import type { YouTubeAuthStatus } from '../../lib/youtube-api';
 import {
   titleTemplates,
   descriptionTemplates,
   addTitleTemplate,
-  addDescriptionTemplate,
   removeTitleTemplate
 } from '../../config/youtube-templates';
 
@@ -20,21 +20,22 @@ interface YouTubeMetadataEditorProps {
   youtubeAuth: YouTubeAuthStatus;
   onAuthClick: () => void;
   uploadProgress: { [videoId: string]: number };
+  onBulkDelete?: (videoIds: string[]) => void;
 }
 
 export function YouTubeMetadataEditor({
-  videos: _videos,
+  videos,
   selectedVideo,
   onMetadataUpdate,
   onUpload,
   youtubeAuth,
   onAuthClick,
   uploadProgress,
+  onBulkDelete,
 }: YouTubeMetadataEditorProps) {
   const [selectedTitleTemplate, setSelectedTitleTemplate] = useState('Keep File Name');
   const [selectedDescTemplate, setSelectedDescTemplate] = useState('Default');
   const [customTitleCount, setCustomTitleCount] = useState(1);
-  const [customDescCount, setCustomDescCount] = useState(1);
 
   // Form fields
   const [title, setTitle] = useState('');
@@ -48,6 +49,23 @@ export function YouTubeMetadataEditor({
   // Ready for upload list
   const [readyVideos, setReadyVideos] = useState<VideoWithMetadata[]>([]);
   const [selectedReady, setSelectedReady] = useState<VideoWithMetadata | null>(null);
+
+  // Apply templates helper
+  const applyTemplates = useCallback((baseName: string, titleTpl?: string, descTpl?: string) => {
+    // Apply title template
+    const titleTemplate = titleTemplates[titleTpl || selectedTitleTemplate];
+    if (titleTemplate) {
+      setTitle(titleTemplate(baseName));
+    }
+
+    // Apply description template
+    const descTemplate = descriptionTemplates[descTpl || selectedDescTemplate];
+    if (typeof descTemplate === 'string') {
+      setDescription(descTemplate);
+    } else if (typeof descTemplate === 'function') {
+      setDescription(descTemplate(baseName));
+    }
+  }, [selectedTitleTemplate, selectedDescTemplate]);
 
   // Load metadata when video is selected
   useEffect(() => {
@@ -65,40 +83,85 @@ export function YouTubeMetadataEditor({
           const date = new Date(selectedVideo.metadata.scheduledTime);
           setScheduleDate(date.toISOString().split('T')[0]);
           setScheduleTime(date.toTimeString().slice(0, 5));
+        } else {
+          setEnableSchedule(false);
+          setScheduleDate('');
+          setScheduleTime('');
         }
       } else {
-        setTitle(baseName);
+        // Auto-apply templates for new videos
         applyTemplates(baseName);
+        setTags('');
+        setPrivacy('public');
+        setEnableSchedule(false);
       }
     }
-  }, [selectedVideo]);
+  }, [selectedVideo, applyTemplates]);
 
-  const applyTemplates = (baseName: string) => {
-    // Apply title template
-    const titleTemplate = titleTemplates[selectedTitleTemplate];
-    if (titleTemplate) {
-      setTitle(titleTemplate(baseName));
+  // Auto-apply templates when template selection changes
+  useEffect(() => {
+    if (selectedVideo && !selectedVideo.metadata) {
+      const baseName = selectedVideo.videoName.replace(/\.(mp4|mov|avi)$/i, '');
+      applyTemplates(baseName);
     }
-
-    // Apply description template
-    const descTemplate = descriptionTemplates[selectedDescTemplate];
-    if (typeof descTemplate === 'string') {
-      setDescription(descTemplate);
-    } else if (typeof descTemplate === 'function') {
-      setDescription(descTemplate(baseName));
-    }
-  };
+  }, [selectedTitleTemplate, selectedDescTemplate, selectedVideo, applyTemplates]);
 
   const handleApplyTemplates = () => {
     if (selectedVideo) {
       const baseName = selectedVideo.videoName.replace(/\.(mp4|mov|avi)$/i, '');
       applyTemplates(baseName);
+      toast.success('Templates applied');
+    } else {
+      toast.error('No video selected');
     }
+  };
+
+  // Apply current metadata to all videos
+  const handleApplyToAll = (field: 'description' | 'tags' | 'privacy') => {
+    if (videos.length === 0) {
+      toast.error('No videos to update');
+      return;
+    }
+
+    let count = 0;
+    videos.forEach((video) => {
+      const baseName = video.videoName.replace(/\.(mp4|mov|avi)$/i, '');
+      const existingMetadata = video.metadata || {
+        title: baseName,
+        description: '',
+        tags: [],
+        privacy: 'public' as const,
+      };
+
+      let updatedMetadata: YouTubeMetadata;
+
+      switch (field) {
+        case 'description':
+          updatedMetadata = { ...existingMetadata, description };
+          break;
+        case 'tags':
+          updatedMetadata = {
+            ...existingMetadata,
+            tags: tags.split(',').map((t) => t.trim()).filter((t) => t),
+          };
+          break;
+        case 'privacy':
+          updatedMetadata = { ...existingMetadata, privacy };
+          break;
+        default:
+          return;
+      }
+
+      onMetadataUpdate(video.videoId, updatedMetadata);
+      count++;
+    });
+
+    toast.success(`Applied ${field} to ${count} videos`);
   };
 
   const handleSaveCustomTitle = () => {
     if (!title.trim()) {
-      alert('Title is empty. Cannot save empty template.');
+      toast.error('Title is empty');
       return;
     }
 
@@ -106,50 +169,35 @@ export function YouTubeMetadataEditor({
     addTitleTemplate(customKey, () => title);
     setSelectedTitleTemplate(customKey);
     setCustomTitleCount(prev => prev + 1);
-    alert(`Custom title template '${customKey}' saved.`);
+    toast.success(`Template "${customKey}" saved`);
   };
 
   const handleDeleteCustomTitle = () => {
     if (!selectedTitleTemplate.startsWith('Custom')) {
-      alert('Selected template is not a custom title and cannot be deleted.');
+      toast.error('Only custom templates can be deleted');
       return;
     }
 
-    if (confirm(`Delete custom title template '${selectedTitleTemplate}'?`)) {
-      removeTitleTemplate(selectedTitleTemplate);
-      setSelectedTitleTemplate('Keep File Name');
-      alert(`Custom title template deleted.`);
-    }
-  };
-
-  const handleSaveCustomDescription = () => {
-    if (!description.trim()) {
-      alert('Description is empty. Cannot save empty template.');
-      return;
-    }
-
-    const customKey = `Custom Desc ${customDescCount}`;
-    addDescriptionTemplate(customKey, description);
-    setSelectedDescTemplate(customKey);
-    setCustomDescCount(prev => prev + 1);
-    alert(`Custom description template '${customKey}' saved.`);
+    removeTitleTemplate(selectedTitleTemplate);
+    setSelectedTitleTemplate('Keep File Name');
+    toast.success('Template deleted');
   };
 
   const handleSaveVideoDetails = () => {
     if (!selectedVideo) {
-      alert('No video selected.');
+      toast.error('No video selected');
       return;
     }
 
     if (!title.trim()) {
-      alert('Please provide a title.');
+      toast.error('Please provide a title');
       return;
     }
 
     let scheduledTime: Date | undefined;
     if (enableSchedule) {
       if (!scheduleDate || !scheduleTime) {
-        alert('Please provide both date and time for scheduling.');
+        toast.error('Please set both date and time');
         return;
       }
       scheduledTime = new Date(`${scheduleDate}T${scheduleTime}`);
@@ -175,7 +223,7 @@ export function YouTubeMetadataEditor({
       );
     }
 
-    alert('Video details saved! Moved to "Ready for Upload".');
+    toast.success('Ready for upload!', { icon: '✅' });
   };
 
   const handleSelectReady = (video: VideoWithMetadata) => {
@@ -199,9 +247,25 @@ export function YouTubeMetadataEditor({
     }
   };
 
+  const handleRemoveFromReady = (videoId: string) => {
+    setReadyVideos(prev => prev.filter(v => v.videoId !== videoId));
+    if (selectedReady?.videoId === videoId) {
+      setSelectedReady(null);
+    }
+    toast.success('Removed from ready list');
+  };
+
+  const handleDeleteVideo = (videoId: string) => {
+    if (onBulkDelete) {
+      onBulkDelete([videoId]);
+      handleRemoveFromReady(videoId);
+      toast.success('Video deleted');
+    }
+  };
+
   const handleUploadSelected = () => {
     if (readyVideos.length === 0) {
-      alert('No videos ready for upload.');
+      toast.error('No videos ready for upload');
       return;
     }
     onUpload(readyVideos);
@@ -258,77 +322,67 @@ export function YouTubeMetadataEditor({
         </div>
       )}
 
-      {/* Title Template */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-zinc-300 block">Title Template:</label>
-        <select
-          value={selectedTitleTemplate}
-          onChange={(e) => setSelectedTitleTemplate(e.target.value)}
-          className="w-full bg-zinc-800 border-zinc-700 text-sm p-2 rounded-lg"
-        >
-          {Object.keys(titleTemplates).map((key) => (
-            <option key={key} value={key}>
-              {key}
-            </option>
-          ))}
-        </select>
-
-        <div className="flex gap-2">
-          <Button
-            onClick={handleSaveCustomTitle}
-            size="sm"
-            variant="outline"
-            className="flex-1 text-xs"
+      {/* Templates Section */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Title Template */}
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-zinc-400 block">Title Template</label>
+          <select
+            value={selectedTitleTemplate}
+            onChange={(e) => setSelectedTitleTemplate(e.target.value)}
+            className="w-full bg-zinc-800 border-zinc-700 text-xs p-2 rounded-lg"
           >
-            <Save size={12} className="mr-1" />
-            Save
-          </Button>
+            {Object.keys(titleTemplates).map((key) => (
+              <option key={key} value={key}>{key}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Description Template */}
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-zinc-400 block">Description Template</label>
+          <select
+            value={selectedDescTemplate}
+            onChange={(e) => setSelectedDescTemplate(e.target.value)}
+            className="w-full bg-zinc-800 border-zinc-700 text-xs p-2 rounded-lg"
+          >
+            {Object.keys(descriptionTemplates).map((key) => (
+              <option key={key} value={key}>{key}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Template Actions */}
+      <div className="flex gap-2">
+        <Button
+          onClick={handleApplyTemplates}
+          className="flex-1 bg-gradient-to-r from-brand-blue to-blue-500 hover:from-brand-blue hover:to-blue-600"
+          size="sm"
+        >
+          Apply Templates
+        </Button>
+        <Button
+          onClick={handleSaveCustomTitle}
+          size="sm"
+          variant="outline"
+          className="text-xs border-zinc-700"
+          title="Save current title as template"
+        >
+          <Save size={12} />
+        </Button>
+        {selectedTitleTemplate.startsWith('Custom') && (
           <Button
             onClick={handleDeleteCustomTitle}
             size="sm"
             variant="outline"
-            className="flex-1 text-xs hover:bg-red-500/20 hover:text-red-400"
+            className="text-xs border-red-500/50 text-red-400 hover:bg-red-500/20"
+            title="Delete custom template"
           >
-            <Trash2 size={12} className="mr-1" />
-            Delete
+            <Trash2 size={12} />
           </Button>
-        </div>
+        )}
       </div>
-
-      {/* Description Template */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-zinc-300 block">Description Template:</label>
-        <select
-          value={selectedDescTemplate}
-          onChange={(e) => setSelectedDescTemplate(e.target.value)}
-          className="w-full bg-zinc-800 border-zinc-700 text-sm p-2 rounded-lg"
-        >
-          {Object.keys(descriptionTemplates).map((key) => (
-            <option key={key} value={key}>
-              {key}
-            </option>
-          ))}
-        </select>
-
-        <Button
-          onClick={handleSaveCustomDescription}
-          size="sm"
-          variant="outline"
-          className="w-full text-xs"
-        >
-          <Save size={12} className="mr-1" />
-          Save Custom Description
-        </Button>
-      </div>
-
-      {/* Apply Templates Button */}
-      <Button
-        onClick={handleApplyTemplates}
-        className="w-full bg-gradient-to-r from-brand-blue to-blue-500 hover:from-brand-blue hover:to-blue-600"
-        size="sm"
-      >
-        Apply Templates
-      </Button>
 
       {/* Metadata Fields */}
       <div className="space-y-3 pt-2 border-t border-white/10">
@@ -338,38 +392,74 @@ export function YouTubeMetadataEditor({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full bg-gradient-to-br from-[#1e1e1e] to-[#252525] text-white text-xs p-2 rounded-lg border border-white/10 hover:border-blue-500/30 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+            className="w-full bg-zinc-800 text-white text-xs p-2 rounded-lg border border-zinc-700 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all"
             placeholder="Video title..."
           />
         </div>
 
         <div>
-          <label className="text-white text-xs block mb-1 font-medium">Description:</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-white text-xs font-medium">Description:</label>
+            <Button
+              onClick={() => handleApplyToAll('description')}
+              size="sm"
+              variant="ghost"
+              className="text-[10px] h-5 px-2 text-zinc-400 hover:text-white"
+              title="Apply to all videos"
+            >
+              <Copy size={10} className="mr-1" />
+              Apply to All
+            </Button>
+          </div>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full bg-gradient-to-br from-[#1e1e1e] to-[#252525] text-white text-xs p-2 rounded-lg border border-white/10 hover:border-brand-blue/30 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 transition-all min-h-[100px]"
+            className="w-full bg-zinc-800 text-white text-xs p-2 rounded-lg border border-zinc-700 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all min-h-[80px]"
             placeholder="Video description..."
           />
         </div>
 
         <div>
-          <label className="text-white text-xs block mb-1 font-medium">Tags (comma separated):</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-white text-xs font-medium">Tags (comma separated):</label>
+            <Button
+              onClick={() => handleApplyToAll('tags')}
+              size="sm"
+              variant="ghost"
+              className="text-[10px] h-5 px-2 text-zinc-400 hover:text-white"
+              title="Apply to all videos"
+            >
+              <Copy size={10} className="mr-1" />
+              Apply to All
+            </Button>
+          </div>
           <input
             type="text"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
-            className="w-full bg-gradient-to-br from-[#1e1e1e] to-[#252525] text-white text-xs p-2 rounded-lg border border-white/10 hover:border-green-500/30 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all"
+            className="w-full bg-zinc-800 text-white text-xs p-2 rounded-lg border border-zinc-700 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all"
             placeholder="beat, trap, type beat..."
           />
         </div>
 
         <div>
-          <label className="text-white text-xs block mb-1 font-medium">Privacy:</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-white text-xs font-medium">Privacy:</label>
+            <Button
+              onClick={() => handleApplyToAll('privacy')}
+              size="sm"
+              variant="ghost"
+              className="text-[10px] h-5 px-2 text-zinc-400 hover:text-white"
+              title="Apply to all videos"
+            >
+              <Copy size={10} className="mr-1" />
+              Apply to All
+            </Button>
+          </div>
           <select
             value={privacy}
-            onChange={(e) => setPrivacy(e.target.value as any)}
-            className="w-full bg-gradient-to-br from-[#1e1e1e] to-[#252525] text-white text-xs p-2 rounded-lg border border-white/10 hover:border-orange-500/30 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
+            onChange={(e) => setPrivacy(e.target.value as 'public' | 'unlisted' | 'private')}
+            className="w-full bg-zinc-800 text-white text-xs p-2 rounded-lg border border-zinc-700 focus:border-brand-blue focus:ring-1 focus:ring-brand-blue/50 transition-all"
           >
             <option value="public">Public</option>
             <option value="unlisted">Unlisted</option>
@@ -396,13 +486,13 @@ export function YouTubeMetadataEditor({
                 type="date"
                 value={scheduleDate}
                 onChange={(e) => setScheduleDate(e.target.value)}
-                className="flex-1 bg-gradient-to-br from-[#1e1e1e] to-[#252525] text-white text-xs p-2 rounded-lg border border-white/10 hover:border-pink-500/30 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all"
+                className="flex-1 bg-zinc-800 text-white text-xs p-2 rounded-lg border border-zinc-700"
               />
               <input
                 type="time"
                 value={scheduleTime}
                 onChange={(e) => setScheduleTime(e.target.value)}
-                className="flex-1 bg-gradient-to-br from-[#1e1e1e] to-[#252525] text-white text-xs p-2 rounded-lg border border-white/10 hover:border-pink-500/30 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all"
+                className="flex-1 bg-zinc-800 text-white text-xs p-2 rounded-lg border border-zinc-700"
               />
             </div>
           )}
@@ -413,33 +503,56 @@ export function YouTubeMetadataEditor({
       <Button
         onClick={handleSaveVideoDetails}
         disabled={!selectedVideo}
-        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-xs py-2 font-medium shadow-lg shadow-green-500/30 disabled:opacity-50 disabled:shadow-none"
+        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-xs py-2 font-medium disabled:opacity-50"
       >
-        <Save size={12} className="mr-1" />
-        Save Video Details
+        <CheckCircle size={12} className="mr-1" />
+        Mark Ready for Upload
       </Button>
 
       {/* Ready for Upload List */}
       {readyVideos.length > 0 && (
         <div className="pt-4 border-t border-white/10">
-          <h4 className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500 text-xs font-bold mb-2">
+          <h4 className="text-green-400 text-xs font-bold mb-2 flex items-center gap-2">
+            <CheckCircle size={12} />
             Ready for Upload ({readyVideos.length})
           </h4>
           <div className="space-y-1 max-h-40 overflow-y-auto mb-3">
             {readyVideos.map((video) => (
               <div
                 key={video.videoId}
-                onClick={() => handleSelectReady(video)}
-                className={`bg-gradient-to-br from-[#1e1e1e] to-[#252525] rounded-lg px-2 py-1.5 cursor-pointer text-xs transition-all border ${
+                className={`group bg-zinc-800 rounded-lg px-2 py-1.5 text-xs transition-all border flex items-center gap-2 ${
                   selectedReady?.videoId === video.videoId
-                    ? 'border-red-500 ring-2 ring-red-500/30 shadow-lg shadow-red-500/20'
-                    : 'border-white/5 hover:border-red-500/30'
+                    ? 'border-red-500 bg-red-500/10'
+                    : 'border-zinc-700 hover:border-zinc-600'
                 }`}
               >
-                <p className="text-white truncate font-medium">{video.metadata?.title || video.videoName}</p>
-                <p className="text-transparent bg-clip-text bg-gradient-to-r from-gray-400 to-gray-500 text-[10px] font-semibold uppercase">
-                  {video.metadata?.privacy}
-                </p>
+                <div
+                  className="flex-1 cursor-pointer min-w-0"
+                  onClick={() => handleSelectReady(video)}
+                >
+                  <p className="text-white truncate font-medium">{video.metadata?.title || video.videoName}</p>
+                  <p className="text-zinc-500 text-[10px] uppercase">{video.metadata?.privacy}</p>
+                </div>
+                <Button
+                  onClick={() => handleRemoveFromReady(video.videoId)}
+                  size="sm"
+                  variant="ghost"
+                  className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-zinc-400 hover:text-red-400"
+                  title="Remove from ready list"
+                >
+                  <Trash2 size={12} />
+                </Button>
+                {onBulkDelete && (
+                  <Button
+                    onClick={() => handleDeleteVideo(video.videoId)}
+                    size="sm"
+                    variant="ghost"
+                    className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                    title="Delete video permanently"
+                  >
+                    <Trash2 size={12} />
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -447,7 +560,7 @@ export function YouTubeMetadataEditor({
           <Button
             onClick={handleUploadSelected}
             disabled={!youtubeAuth.authenticated || Object.keys(uploadProgress).length > 0}
-            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs py-2 font-medium shadow-lg shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs py-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {Object.keys(uploadProgress).length > 0 ? (
               <>

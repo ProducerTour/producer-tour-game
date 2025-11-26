@@ -779,3 +779,175 @@
 .page-transition {
   animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
+
+/* ============================================
+   SUCCESS ANIMATION
+   ============================================ */
+
+/* Confetti falling animation */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.animate-confetti-fall {
+  animation: confetti-fall 3s ease-out forwards;
+}
+
+/* Success popup animation */
+@keyframes success-pop {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-success-pop {
+  animation: success-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Ping slow animation for success icon */
+@keyframes ping-slow {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  75%, 100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.animate-ping-slow {
+  animation: ping-slow 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Subtle bounce for success icon */
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s ease-in-out infinite;
+}
+
+/* Sparkle animation */
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(180deg);
+  }
+}
+
+.animate-sparkle {
+  animation: sparkle 1.5s ease-in-out infinite;
+}
+
+.animate-sparkle-delayed {
+  animation: sparkle 1.5s ease-in-out infinite;
+  animation-delay: 0.75s;
+}
+
+/* Progress bar pulse glow */
+@keyframes progress-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.8), 0 0 30px rgba(139, 92, 246, 0.4);
+  }
+}
+
+.animate-progress-pulse {
+  animation: progress-pulse 2s ease-in-out infinite;
+}
+
+/* Completion glow effect */
+@keyframes completion-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.animate-completion-glow {
+  animation: completion-glow 1s ease-out;
+}
+
+/* Video card hover lift effect */
+.video-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.video-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.3);
+}
+
+/* Completed video checkmark animation */
+@keyframes check-draw {
+  0% {
+    stroke-dashoffset: 50;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-check-draw {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: check-draw 0.5s ease forwards;
+  animation-delay: 0.2s;
+}
+
+/* Processing indicator shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}

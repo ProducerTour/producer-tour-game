@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { AlertCircle, Loader2, Video, Upload, Settings, Youtube, HelpCircle, Menu, X, ArrowLeft } from 'lucide-react';
+import { AlertCircle, Loader2, Video, Upload, Settings, Youtube, HelpCircle, Menu, X, ArrowLeft, Film } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useFFmpeg } from '../hooks/useFFmpeg';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useToolAccess } from '../hooks/useToolAccess';
@@ -16,6 +17,10 @@ import { Button } from '../components/ui/Button';
 import { ToolLockedScreen } from '../components/gamification/ToolLockedScreen';
 import { pairFiles } from '../lib/file-pairing';
 import { VideoProcessor } from '../lib/video-processor';
+import { saveVideo, type StoredVideoWithUrl } from '../lib/video-storage';
+import { MyVideosTab } from '../components/video-maker/MyVideosTab';
+import { PairingPreview } from '../components/video-maker/PairingPreview';
+import { SuccessAnimation } from '../components/video-maker/SuccessAnimation';
 import {
   checkAuthStatus,
   authorizeYouTube,
@@ -25,6 +30,8 @@ import {
 } from '../lib/youtube-api';
 import type {
   VideoFormat,
+  VideoResolution,
+  VideoQuality,
   ProcessingJob,
   CompletedVideo,
   ProgressUpdate,
@@ -53,6 +60,9 @@ export default function VideoMaker() {
   const [beats, setBeats] = useState<File[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [outputFormat, setOutputFormat] = useLocalStorage<VideoFormat>('videomaker-output-format', 'both');
+  const [outputResolution, setOutputResolution] = useLocalStorage<VideoResolution>('videomaker-output-resolution', '720p');
+  const [outputQuality, setOutputQuality] = useLocalStorage<VideoQuality>('videomaker-output-quality', 'balanced');
+  const [customPairs, setCustomPairs] = useState<Array<{ beat: File; image: File; beatName: string }>>([]);
 
   // Processing state
   const [processingQueue, setProcessingQueue] = useState<ProcessingJob[]>([]);
@@ -60,6 +70,15 @@ export default function VideoMaker() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentProgress, setCurrentProgress] = useState<ProgressUpdate | null>(null);
   const [errors, setErrors] = useState<ErrorLog[]>([]);
+
+  // Processing control state
+  const [isPaused, setIsPaused] = useState(false);
+  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState<number | null>(null);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const [successVideoCount, setSuccessVideoCount] = useState(0);
+  const pausedRef = useRef(false);
+  const cancelledRef = useRef(false);
+  const skipRef = useRef(false);
 
   // YouTube metadata state
   const [videosWithMetadata, setVideosWithMetadata] = useLocalStorage<VideoWithMetadata[]>('videomaker-videos-with-metadata', []);
@@ -75,7 +94,7 @@ export default function VideoMaker() {
 
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useLocalStorage<boolean>('videomaker-sidebar-open', true);
-  const [activeSection, setActiveSection] = useLocalStorage<'upload' | 'youtube' | 'help'>('videomaker-active-section', 'upload');
+  const [activeSection, setActiveSection] = useLocalStorage<'upload' | 'youtube' | 'myvideos' | 'help'>('videomaker-active-section', 'upload');
 
   // Close sidebar on mobile by default
   useEffect(() => {
@@ -229,9 +248,16 @@ export default function VideoMaker() {
       setIsProcessing(true);
       setErrors([]);
       setCompletedVideos([]);
+      setIsPaused(false);
+      pausedRef.current = false;
+      cancelledRef.current = false;
+      skipRef.current = false;
+      setEstimatedTimeRemaining(null);
 
-      // Pair files
-      const pairs = pairFiles(beats, images);
+      // Use custom pairs if available, otherwise fall back to auto-pairing
+      const pairs = customPairs.length > 0
+        ? customPairs.map((p) => ({ beat: p.beat, image: p.image, beatName: p.beatName }))
+        : pairFiles(beats, images);
 
       // Create jobs based on format selection
       const jobs: ProcessingJob[] = [];
@@ -262,12 +288,44 @@ export default function VideoMaker() {
 
       setProcessingQueue(jobs);
 
-      // Process jobs sequentially
-      const processor = new VideoProcessor(ffmpeg);
+      // Process jobs sequentially with configured options
+      const processor = new VideoProcessor(ffmpeg, {
+        resolution: outputResolution,
+        quality: outputQuality,
+      });
       const completed: CompletedVideo[] = [];
+      const times: number[] = [];
 
       for (let i = 0; i < jobs.length; i++) {
         const job = jobs[i];
+        const jobStartTime = Date.now();
+
+        // Check if cancelled
+        if (cancelledRef.current) {
+          toast('Processing cancelled', { icon: '🛑' });
+          break;
+        }
+
+        // Check if paused - wait until resumed
+        while (pausedRef.current && !cancelledRef.current) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+
+        // Check again after pause loop
+        if (cancelledRef.current) {
+          toast('Processing cancelled', { icon: '🛑' });
+          break;
+        }
+
+        // Check if skip was requested for this job
+        if (skipRef.current) {
+          skipRef.current = false;
+          setProcessingQueue((prev) =>
+            prev.map((j) => (j.id === job.id ? { ...j, status: 'skipped' as const } : j))
+          );
+          toast(`Skipped "${job.outputName}"`, { icon: '⏭️' });
+          continue;
+        }
 
         // Update progress
         setCurrentProgress({
@@ -277,6 +335,13 @@ export default function VideoMaker() {
           stage: 'loading',
           currentJobName: job.outputName,
         });
+
+        // Calculate estimated time remaining
+        if (times.length > 0) {
+          const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
+          const remainingJobs = jobs.length - i;
+          setEstimatedTimeRemaining((avgTime * remainingJobs) / 1000);
+        }
 
         try {
           // Update job status
@@ -302,6 +367,10 @@ export default function VideoMaker() {
 
           clearInterval(progressInterval);
 
+          // Track processing time for estimates
+          const jobTime = Date.now() - jobStartTime;
+          times.push(jobTime);
+
           // Complete progress
           setCurrentProgress((prev) =>
             prev ? { ...prev, currentProgress: 100, stage: 'complete' } : null
@@ -321,6 +390,20 @@ export default function VideoMaker() {
 
           completed.push(completedVideo);
           setCompletedVideos((prev) => [...prev, completedVideo]);
+
+          // Save to IndexedDB for 24-hour storage
+          try {
+            await saveVideo({
+              id: job.id,
+              name: job.outputName,
+              blob: videoBlob,
+              format: job.format,
+              size: videoBlob.size,
+            });
+          } catch (storageError) {
+            console.warn('Failed to save video to IndexedDB:', storageError);
+            // Don't fail the entire process if storage fails
+          }
 
           // Update job status
           setProcessingQueue((prev) =>
@@ -349,6 +432,29 @@ export default function VideoMaker() {
       }
 
       setCurrentProgress(null);
+
+      // Show completion toast and animation
+      const successCount = completed.length;
+      const failCount = jobs.length - successCount;
+
+      if (successCount > 0 && failCount === 0) {
+        // Show success animation for perfect completion
+        setSuccessVideoCount(successCount);
+        setShowSuccessAnimation(true);
+        toast.success(`All ${successCount} video${successCount > 1 ? 's' : ''} generated successfully!`, {
+          duration: 5000,
+          icon: '🎬',
+        });
+      } else if (successCount > 0 && failCount > 0) {
+        toast(`${successCount} video${successCount > 1 ? 's' : ''} completed, ${failCount} failed`, {
+          duration: 5000,
+          icon: '⚠️',
+        });
+      } else if (failCount > 0) {
+        toast.error(`Failed to generate ${failCount} video${failCount > 1 ? 's' : ''}`, {
+          duration: 5000,
+        });
+      }
     } catch (err) {
       console.error('Processing error:', err);
       setErrors((prev) => [
@@ -358,10 +464,11 @@ export default function VideoMaker() {
           message: `Processing failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
         },
       ]);
+      toast.error('Video processing failed. Please try again.');
     } finally {
       setIsProcessing(false);
     }
-  }, [ffmpeg, loaded, beats, images, outputFormat]);
+  }, [ffmpeg, loaded, beats, images, outputFormat, outputResolution, outputQuality, customPairs]);
 
   // Convert completed videos to VideoWithMetadata format when they're created
   useEffect(() => {
@@ -384,19 +491,157 @@ export default function VideoMaker() {
     );
   }, []);
 
+  // Handle YouTube sign out
+  const handleYouTubeSignOut = useCallback(async () => {
+    try {
+      await revokeAuth();
+      setYoutubeAuth({ authenticated: false });
+      toast.success('Signed out of YouTube');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Failed to sign out. Please try again.');
+    }
+  }, []);
+
   // Handle YouTube authentication
+  // Processing control handlers
+  const handlePause = useCallback(() => {
+    pausedRef.current = true;
+    setIsPaused(true);
+    toast('Processing will pause after current video', { icon: '⏸️' });
+  }, []);
+
+  const handleResume = useCallback(() => {
+    pausedRef.current = false;
+    setIsPaused(false);
+    toast('Processing resumed', { icon: '▶️' });
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    cancelledRef.current = true;
+    // Also unpause if paused to allow the loop to exit
+    pausedRef.current = false;
+    setIsPaused(false);
+  }, []);
+
+  const handleSkip = useCallback(() => {
+    skipRef.current = true;
+    // Also unpause if paused
+    if (pausedRef.current) {
+      pausedRef.current = false;
+      setIsPaused(false);
+    }
+  }, []);
+
+  const handleRetry = useCallback(async (jobId: string) => {
+    // Find the job to retry
+    const jobToRetry = processingQueue.find((j) => j.id === jobId);
+    if (!jobToRetry || !ffmpeg || !loaded) return;
+
+    // Update job status to processing
+    setProcessingQueue((prev) =>
+      prev.map((j) => (j.id === jobId ? { ...j, status: 'processing' as const, error: undefined } : j))
+    );
+
+    try {
+      setIsProcessing(true);
+      const processor = new VideoProcessor(ffmpeg, {
+        resolution: outputResolution,
+        quality: outputQuality,
+      });
+
+      setCurrentProgress({
+        currentJobIndex: 1,
+        totalJobs: 1,
+        currentProgress: 0,
+        stage: 'loading',
+        currentJobName: jobToRetry.outputName,
+      });
+
+      const progressInterval = setInterval(() => {
+        setCurrentProgress((prev) =>
+          prev
+            ? {
+                ...prev,
+                currentProgress: Math.min(prev.currentProgress + 10, 90),
+                stage: prev.currentProgress < 30 ? 'loading' : prev.currentProgress < 70 ? 'encoding' : 'finalizing',
+              }
+            : null
+        );
+      }, 500);
+
+      const videoBlob = await processor.processJob(jobToRetry);
+      clearInterval(progressInterval);
+
+      // Create completed video entry
+      const url = URL.createObjectURL(videoBlob);
+      const completedVideo: CompletedVideo = {
+        id: jobToRetry.id,
+        name: jobToRetry.outputName,
+        blob: videoBlob,
+        url,
+        size: videoBlob.size,
+        duration: 180,
+        format: jobToRetry.format,
+      };
+
+      setCompletedVideos((prev) => [...prev, completedVideo]);
+      setProcessingQueue((prev) =>
+        prev.map((j) => (j.id === jobId ? { ...j, status: 'complete' as const, progress: 100 } : j))
+      );
+
+      // Save to IndexedDB
+      try {
+        await saveVideo({
+          id: jobToRetry.id,
+          name: jobToRetry.outputName,
+          blob: videoBlob,
+          format: jobToRetry.format,
+          size: videoBlob.size,
+        });
+      } catch (storageError) {
+        console.warn('Failed to save retried video to IndexedDB:', storageError);
+      }
+
+      toast.success(`Retry successful: ${jobToRetry.outputName}`);
+    } catch (error) {
+      setProcessingQueue((prev) =>
+        prev.map((j) =>
+          j.id === jobId
+            ? { ...j, status: 'error' as const, error: error instanceof Error ? error.message : 'Unknown error' }
+            : j
+        )
+      );
+      toast.error(`Retry failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsProcessing(false);
+      setCurrentProgress(null);
+    }
+  }, [processingQueue, ffmpeg, loaded, outputResolution, outputQuality]);
+
   const handleYouTubeAuth = useCallback(async () => {
     if (youtubeAuth.authenticated) {
-      // If already authenticated, revoke and sign out
-      if (confirm('Sign out of YouTube?')) {
-        try {
-          await revokeAuth();
-          setYoutubeAuth({ authenticated: false });
-        } catch (error) {
-          console.error('Error signing out:', error);
-          alert('Failed to sign out. Please try again.');
-        }
-      }
+      // If already authenticated, show toast with sign out option
+      toast((t) => (
+        <div className="flex items-center gap-3">
+          <span>Sign out of YouTube?</span>
+          <button
+            onClick={() => {
+              toast.dismiss(t.id);
+              handleYouTubeSignOut();
+            }}
+            className="px-3 py-1 bg-red-500 text-white rounded-md text-sm font-medium hover:bg-red-600"
+          >
+            Sign Out
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="px-3 py-1 bg-zinc-600 text-white rounded-md text-sm font-medium hover:bg-zinc-500"
+          >
+            Cancel
+          </button>
+        </div>
+      ), { duration: 10000 });
     } else {
       // Authenticate - opens popup window, preserves page state
       try {
@@ -408,14 +653,17 @@ export default function VideoMaker() {
 
         // Show success message
         if (status.authenticated) {
-          alert(`Successfully connected to YouTube${status.channel?.title ? ` as ${status.channel.title}` : ''}!`);
+          toast.success(`Connected to YouTube${status.channel?.title ? ` as ${status.channel.title}` : ''}!`, {
+            duration: 5000,
+            icon: '🎬',
+          });
         }
       } catch (error) {
         console.error('Authentication error:', error);
-        alert(error instanceof Error ? error.message : 'Failed to authenticate with YouTube');
+        toast.error(error instanceof Error ? error.message : 'Failed to authenticate with YouTube');
       }
     }
-  }, [youtubeAuth.authenticated]);
+  }, [youtubeAuth.authenticated, handleYouTubeSignOut]);
 
   // Handle bulk delete of videos
   const handleBulkDelete = useCallback((videoIds: string[]) => {
@@ -431,14 +679,18 @@ export default function VideoMaker() {
   const handleYouTubeUpload = useCallback(async (videos: VideoWithMetadata[]) => {
     // Check authentication
     if (!youtubeAuth.authenticated) {
-      alert('Please authenticate with YouTube first.');
+      toast.error('Please authenticate with YouTube first.', {
+        icon: '🔒',
+      });
       return;
     }
 
     // Upload each video
     for (const video of videos) {
       if (!video.metadata) {
-        alert(`Please set metadata for "${video.videoName}" before uploading.`);
+        toast.error(`Please set metadata for "${video.videoName}" before uploading.`, {
+          duration: 4000,
+        });
         continue;
       }
 
@@ -465,15 +717,25 @@ export default function VideoMaker() {
           return updated;
         });
 
-        alert(
-          `Successfully uploaded "${video.videoName}"!\n\n` +
-          `Video ID: ${result.id}\n` +
-          `URL: ${result.url}\n` +
-          `Privacy: ${result.privacyStatus}`
+        // Show success toast with action to view video
+        toast.success(
+          (t) => (
+            <div className="flex flex-col gap-2">
+              <div className="font-medium">Uploaded "{video.videoName}"!</div>
+              <div className="text-sm text-zinc-400">Privacy: {result.privacyStatus}</div>
+              <button
+                onClick={() => {
+                  window.open(result.url, '_blank');
+                  toast.dismiss(t.id);
+                }}
+                className="mt-1 px-3 py-1.5 bg-red-500 text-white rounded-md text-sm font-medium hover:bg-red-600 w-fit"
+              >
+                View on YouTube
+              </button>
+            </div>
+          ),
+          { duration: 8000, icon: '🎉' }
         );
-
-        // Open the video in a new tab
-        window.open(result.url, '_blank');
       } catch (error) {
         setUploadProgress((prev) => {
           const updated = { ...prev };
@@ -482,9 +744,9 @@ export default function VideoMaker() {
         });
 
         console.error(`Error uploading ${video.videoName}:`, error);
-        alert(
-          `Failed to upload "${video.videoName}".\n\n` +
-          `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        toast.error(
+          `Failed to upload "${video.videoName}": ${error instanceof Error ? error.message : 'Unknown error'}`,
+          { duration: 6000 }
         );
       }
     }
@@ -526,6 +788,13 @@ export default function VideoMaker() {
     <div className="video-maker-wrapper">
       {/* Animated Particle Background */}
       <ParticleBackground />
+
+      {/* Success Animation Overlay */}
+      <SuccessAnimation
+        show={showSuccessAnimation}
+        videoCount={successVideoCount}
+        onComplete={() => setShowSuccessAnimation(false)}
+      />
 
       {/* Drag & Drop Overlay */}
       {isDragging && (
@@ -659,6 +928,27 @@ export default function VideoMaker() {
 
           <button
             onClick={() => {
+              setActiveSection('myvideos');
+              // Close sidebar on mobile after selection
+              if (window.innerWidth < 768) {
+                setSidebarOpen(false);
+              }
+            }}
+            className={`w-full flex items-center rounded-lg transition-all ${
+              sidebarOpen ? 'gap-3 px-3 py-2.5' : 'justify-center p-3'
+            } ${
+              activeSection === 'myvideos'
+                ? 'bg-brand-blue text-white'
+                : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+            }`}
+            title={!sidebarOpen ? 'My Videos' : undefined}
+          >
+            <Film size={sidebarOpen ? 20 : 24} />
+            {sidebarOpen && <span className="font-medium">My Videos</span>}
+          </button>
+
+          <button
+            onClick={() => {
               setActiveSection('help');
               // Close sidebar on mobile after selection
               if (window.innerWidth < 768) {
@@ -766,7 +1056,14 @@ export default function VideoMaker() {
                 onRemove={handleRemoveImage}
               />
 
-              <VideoSettings format={outputFormat} onFormatChange={setOutputFormat} />
+              <VideoSettings
+                format={outputFormat}
+                onFormatChange={setOutputFormat}
+                resolution={outputResolution}
+                onResolutionChange={setOutputResolution}
+                quality={outputQuality}
+                onQualityChange={setOutputQuality}
+              />
 
               {/* Generate Button */}
               <div className="space-y-2">
@@ -790,12 +1087,28 @@ export default function VideoMaker() {
 
             {/* Right Content - Preview and Results */}
             <div className="lg:col-span-2 space-y-6">
+              {/* File Pairing Preview - show when files are uploaded but not processing */}
+              {!isProcessing && beats.length > 0 && images.length > 0 && (
+                <PairingPreview
+                  beats={beats}
+                  images={images}
+                  onPairsChange={(pairs) => setCustomPairs(pairs)}
+                />
+              )}
+
               {/* Processing Queue */}
-              {isProcessing && processingQueue.length > 0 && (
+              {(isProcessing || processingQueue.some((j) => j.status === 'error')) && processingQueue.length > 0 && (
                 <ProcessingQueue
                   jobs={processingQueue}
                   currentProgress={currentProgress}
                   isProcessing={isProcessing}
+                  isPaused={isPaused}
+                  onPause={handlePause}
+                  onResume={handleResume}
+                  onCancel={handleCancel}
+                  onSkip={handleSkip}
+                  onRetry={handleRetry}
+                  estimatedTimeRemaining={estimatedTimeRemaining}
                 />
               )}
 
@@ -869,9 +1182,43 @@ export default function VideoMaker() {
                   youtubeAuth={youtubeAuth}
                   onAuthClick={handleYouTubeAuth}
                   uploadProgress={uploadProgress}
+                  onBulkDelete={handleBulkDelete}
                 />
               </div>
             )}
+          </div>
+        )}
+
+        {/* My Videos Section */}
+        {activeSection === 'myvideos' && (
+          <div className="max-w-6xl mx-auto">
+            <MyVideosTab
+              onSendToYouTube={(video: StoredVideoWithUrl) => {
+                // Convert stored video to VideoWithMetadata format
+                const ytVideo = {
+                  videoId: video.id,
+                  videoName: video.name,
+                  videoBlob: video.blob,
+                  videoUrl: video.url,
+                  metadata: video.metadata ? {
+                    title: video.metadata.title || video.name.replace('.mp4', ''),
+                    description: video.metadata.description || '',
+                    tags: video.metadata.tags || [],
+                    privacy: (video.metadata.privacy as 'public' | 'private' | 'unlisted') || 'private',
+                  } : undefined,
+                };
+                setVideosWithMetadata((prev) => {
+                  // Check if already exists
+                  if (prev.some((v) => v.videoId === video.id)) {
+                    return prev;
+                  }
+                  return [...prev, ytVideo];
+                });
+                setSelectedVideoForYT(ytVideo);
+                setActiveSection('youtube');
+                toast.success(`"${video.name}" ready for YouTube upload`);
+              }}
+            />
           </div>
         )}
 

@@ -1,24 +1,35 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 import { parseBlob } from 'music-metadata-browser';
-import type { ProcessingJob } from '../types/video-maker';
+import type { ProcessingJob, VideoResolution, VideoQuality } from '../types/video-maker';
+import { RESOLUTION_CONFIG, QUALITY_PRESETS } from '../types/video-maker';
 import { getImageType } from './file-pairing';
+
+export interface ProcessorOptions {
+  resolution: VideoResolution;
+  quality: VideoQuality;
+}
 
 /**
  * Video Processor - Replicates Python tool's FFmpeg logic
  */
 export class VideoProcessor {
   private ffmpeg: FFmpeg;
+  private options: ProcessorOptions;
 
-  constructor(ffmpeg: FFmpeg) {
+  constructor(ffmpeg: FFmpeg, options?: Partial<ProcessorOptions>) {
     this.ffmpeg = ffmpeg;
+    this.options = {
+      resolution: options?.resolution || '720p',
+      quality: options?.quality || 'balanced',
+    };
   }
 
   /**
    * Process a single job (beat + image → video)
    */
   async processJob(job: ProcessingJob): Promise<Blob> {
-    console.log(`[VideoProcessor] Processing ${job.outputName}`);
+    console.log(`[VideoProcessor] Processing ${job.outputName} at ${this.options.resolution}, quality: ${this.options.quality}`);
 
     // Get audio duration
     const metadata = await parseBlob(job.beat);
@@ -55,23 +66,22 @@ export class VideoProcessor {
   }
 
   /**
-   * Get scale filter based on format (matches Python tool)
+   * Get scale filter based on format and resolution settings
    */
   private getScaleFilter(format: '16x9' | '9x16'): string {
-    if (format === '16x9') {
-      // 1280x720 with black padding
-      return 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:black';
-    } else {
-      // 720x1280 with black padding
-      return 'scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:black';
-    }
+    const resConfig = RESOLUTION_CONFIG[this.options.resolution];
+    const dims = format === '16x9' ? resConfig.landscape : resConfig.portrait;
+    const { width, height } = dims;
+
+    // Scale with padding to maintain aspect ratio
+    return `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:black`;
   }
 
   /**
-   * Build FFmpeg arguments optimized for speed
+   * Build FFmpeg arguments with configurable quality
    * Key optimizations:
-   * - Static images: output at 1fps (30x fewer frames to encode)
-   * - Higher CRF (28) for faster encoding with acceptable quality
+   * - Static images: output at lower fps since image doesn't change
+   * - CRF based on quality setting for encoding speed vs quality tradeoff
    * - -tune stillimage for static content optimization
    */
   private buildFFmpegArgs(
@@ -80,6 +90,12 @@ export class VideoProcessor {
     scaleFilter: string,
     imageExt: string
   ): string[] {
+    const crf = QUALITY_PRESETS[this.options.quality].crf.toString();
+
+    // Framerate based on quality - higher quality = more frames
+    const outputFps = this.options.quality === 'high' ? '24' : this.options.quality === 'balanced' ? '15' : '10';
+    const animatedFps = this.options.quality === 'high' ? '30' : '24';
+
     if (isAnimated) {
       // For GIF/MP4 (animated) - keep higher framerate for smooth animation
       return [
@@ -95,9 +111,9 @@ export class VideoProcessor {
         '-preset',
         'ultrafast',
         '-crf',
-        '28', // Faster encoding, slightly lower quality (default is 23)
+        crf,
         '-vf',
-        `fps=24,${scaleFilter}`, // Reduced from 30fps to 24fps
+        `fps=${animatedFps},${scaleFilter}`,
         '-c:a',
         'aac',
         '-b:a',
@@ -113,7 +129,7 @@ export class VideoProcessor {
       ];
     } else {
       // For static images (PNG/JPG) - OPTIMIZED for speed
-      // Key: output at 1fps since image doesn't change (massive speedup)
+      // Key: output at lower fps since image doesn't change (massive speedup)
       return [
         '-y',
         '-loop',
@@ -131,13 +147,13 @@ export class VideoProcessor {
         '-tune',
         'stillimage', // Optimize encoding for static content
         '-crf',
-        '28', // Faster encoding with acceptable quality
+        crf,
         '-t',
         duration.toString(),
         '-vf',
         scaleFilter,
         '-r',
-        '15', // Output at 15fps - 2x faster than 30fps while staying YouTube compatible
+        outputFps,
         '-c:a',
         'aac',
         '-b:a',
