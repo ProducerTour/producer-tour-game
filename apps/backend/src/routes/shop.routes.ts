@@ -180,7 +180,7 @@ router.post('/categories', authenticate, requireAdmin, async (req: Request, res:
  */
 router.post('/checkout', async (req: Request, res: Response) => {
   try {
-    const { items, email, successUrl, cancelUrl, couponCode, billingAddress, shippingAddress } = req.body;
+    const { items, email, successUrl, cancelUrl, couponCode, billingAddress, shippingAddress, referralCode } = req.body;
 
     // Get user ID if authenticated
     let userId: string | undefined;
@@ -206,6 +206,7 @@ router.post('/checkout', async (req: Request, res: Response) => {
       couponCode,
       billingAddress,
       shippingAddress,
+      referralCode,
     });
 
     res.json(session);

@@ -518,6 +518,23 @@ export const gamificationApi = {
 
   // Monthly Payout Access
   checkMonthlyPayoutAccess: () => api.get('/gamification/payout/monthly-access'),
+
+  // Admin Affiliate Management
+  getAffiliateStats: () => api.get('/gamification/admin/affiliates/stats'),
+
+  getAffiliates: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: string;
+  }) => api.get('/gamification/admin/affiliates', { params }),
+
+  getAffiliateDetail: (userId: string) =>
+    api.get(`/gamification/admin/affiliates/${userId}`),
+
+  getAffiliateOrders: (params?: { page?: number; limit?: number }) =>
+    api.get('/gamification/admin/affiliates/orders', { params }),
 };
 
 // Shop API - E-commerce products and orders

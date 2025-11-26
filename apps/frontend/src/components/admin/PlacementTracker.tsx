@@ -78,6 +78,7 @@ const PlacementTracker: React.FC = () => {
   const [editingPlacement, setEditingPlacement] = useState<Placement | null>(null);
   const [clientFilter, setClientFilter] = useState('all');
   const [activeBillingDeal, setActiveBillingDeal] = useState<string | null>(null);
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
 
   // Fetch placements from API
   const { data: dealsData } = useQuery({
@@ -379,6 +380,53 @@ const PlacementTracker: React.FC = () => {
         }));
       }
     }
+  };
+
+  // Auto-fill billing data when a placement is selected
+  const handleSelectBillingDeal = (id: string) => {
+    setActiveBillingDeal(id);
+    const placement = placements.find(p => p.id === id);
+    if (placement) {
+      // Generate invoice number based on current date and placement
+      const today = new Date();
+      const invoiceNum = `INV-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}-${placement.clientPKA?.replace(/\s+/g, '').substring(0, 4).toUpperCase() || 'XXXX'}`;
+
+      // Set due date to 30 days from now
+      const dueDate = new Date(today);
+      dueDate.setDate(dueDate.getDate() + 30);
+
+      setBillingData(prev => ({
+        ...prev,
+        billingClientName: placement.clientFullName || '',
+        billingClientPKA: placement.clientPKA || '',
+        billingProjectTitle: placement.songTitle || '',
+        billingInvoiceNumber: invoiceNum,
+        billingArtistLegal: placement.artistName || '',
+        billingArtistStage: placement.artistName || '',
+        billingLabelName: placement.contractCompany || placement.label || '',
+        billingBillToEmail: placement.contractContactEmail || '',
+        billingBillToContact: placement.contractContactName || '',
+        billingClientAddress: placement.contractMailingAddress?.split(',')[0] || '',
+        billingClientCity: placement.contractMailingAddress?.split(',').slice(1).join(',').trim() || '',
+        billingIssueDate: today.toISOString().split('T')[0],
+        billingDueDate: dueDate.toISOString().split('T')[0],
+        billingAmount: placement.advance?.replace(/[^0-9.]/g, '') || '',
+        billingServices: `Production services for "${placement.songTitle}" by ${placement.artistName}`,
+        billingPaymentTerms: 'Net 30',
+      }));
+      // Show preview when placement is selected
+      setShowInvoicePreview(true);
+    }
+  };
+
+  // Generate draft invoice preview
+  const handleDraftInvoice = () => {
+    if (!activeBillingDeal) {
+      toast.error('Please select a placement first');
+      return;
+    }
+    setShowInvoicePreview(true);
+    toast.success('Invoice preview generated! Review and edit as needed.');
   };
 
   // Handle billing invoice submission - creates FEE invoice in Billing Hub
@@ -1010,7 +1058,7 @@ const PlacementTracker: React.FC = () => {
                         return (
                           <button
                             key={id}
-                            onClick={() => setActiveBillingDeal(id)}
+                            onClick={() => handleSelectBillingDeal(id)}
                             className={`w-full text-left rounded-lg border p-4 transition ${
                               activeBillingDeal === id
                                 ? 'border-blue-500 bg-blue-900/30 ring-1 ring-blue-400'
@@ -1303,7 +1351,9 @@ const PlacementTracker: React.FC = () => {
                         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Invoice Preview</h3>
                         <button
                           type="button"
-                          className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          onClick={handleDraftInvoice}
+                          disabled={!activeBillingDeal}
+                          className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Draft Invoice with Billing AI
                         </button>
@@ -1330,14 +1380,144 @@ const PlacementTracker: React.FC = () => {
 
                       <div className="bg-white/[0.04] rounded-xl p-6">
                         <div className="bg-white rounded-lg p-6 text-gray-900">
-                          <div className="text-center text-sm text-gray-500">
-                            Invoice draft will appear here once you select a placement.
-                          </div>
+                          {!showInvoicePreview || !activeBillingDeal ? (
+                            <div className="text-center text-sm text-gray-500">
+                              Invoice draft will appear here once you select a placement.
+                            </div>
+                          ) : (
+                            <div className="space-y-6">
+                              {/* Invoice Header */}
+                              <div className="text-center border-b pb-4">
+                                <h1 className="text-2xl font-bold text-gray-900">INVOICE</h1>
+                                <p className="text-gray-600 mt-1">{billingData.billingInvoiceNumber || 'Draft'}</p>
+                              </div>
+
+                              {/* From/To Section */}
+                              <div className="grid grid-cols-2 gap-8">
+                                <div>
+                                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">From</h4>
+                                  <p className="font-medium text-gray-900">{billingData.billingClientName || 'Producer Name'}</p>
+                                  {billingData.billingClientPKA && <p className="text-sm text-gray-600">p/k/a "{billingData.billingClientPKA}"</p>}
+                                  {billingData.billingClientAddress && <p className="text-sm text-gray-600">{billingData.billingClientAddress}</p>}
+                                  {billingData.billingClientCity && <p className="text-sm text-gray-600">{billingData.billingClientCity}</p>}
+                                </div>
+                                <div>
+                                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Bill To</h4>
+                                  <p className="font-medium text-gray-900">{billingData.billingLabelName || 'Company Name'}</p>
+                                  {billingData.billingBillToContact && <p className="text-sm text-gray-600">Attn: {billingData.billingBillToContact}</p>}
+                                  {billingData.billingBillToEmail && <p className="text-sm text-gray-600">{billingData.billingBillToEmail}</p>}
+                                </div>
+                              </div>
+
+                              {/* Invoice Details */}
+                              <div className="grid grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase">Issue Date</p>
+                                  <p className="font-medium">{billingData.billingIssueDate || 'Not set'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase">Due Date</p>
+                                  <p className="font-medium">{billingData.billingDueDate || 'Not set'}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase">Terms</p>
+                                  <p className="font-medium">{billingData.billingPaymentTerms || 'Net 30'}</p>
+                                </div>
+                              </div>
+
+                              {/* Project Info */}
+                              <div>
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Project Details</h4>
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                  <p className="font-medium text-gray-900">{billingData.billingProjectTitle || 'Song Title'}</p>
+                                  <p className="text-sm text-gray-600">Artist: {billingData.billingArtistStage || billingData.billingArtistLegal || 'Artist Name'}</p>
+                                </div>
+                              </div>
+
+                              {/* Services */}
+                              {billingData.billingServices && (
+                                <div>
+                                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Services</h4>
+                                  <p className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg">{billingData.billingServices}</p>
+                                </div>
+                              )}
+
+                              {/* Amount Table */}
+                              <div className="border rounded-lg overflow-hidden">
+                                <table className="w-full">
+                                  <thead className="bg-gray-100">
+                                    <tr>
+                                      <th className="text-left p-3 text-xs font-semibold text-gray-600 uppercase">Description</th>
+                                      <th className="text-right p-3 text-xs font-semibold text-gray-600 uppercase">Amount</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr className="border-t">
+                                      <td className="p-3">Production Services</td>
+                                      <td className="p-3 text-right">${billingData.billingAmount || '0.00'}</td>
+                                    </tr>
+                                    {billingData.billingCostsExpenses && billingData.billingCostsExpenses !== 'n/a' && (
+                                      <tr className="border-t">
+                                        <td className="p-3">Costs / Expenses</td>
+                                        <td className="p-3 text-right">{billingData.billingCostsExpenses}</td>
+                                      </tr>
+                                    )}
+                                    {billingData.billingSalesTax && billingData.billingSalesTax !== '$0.00' && (
+                                      <tr className="border-t">
+                                        <td className="p-3">Sales Tax</td>
+                                        <td className="p-3 text-right">{billingData.billingSalesTax}</td>
+                                      </tr>
+                                    )}
+                                    <tr className="border-t bg-gray-50 font-bold">
+                                      <td className="p-3">Total Due</td>
+                                      <td className="p-3 text-right text-green-600">${billingData.billingAmount || '0.00'}</td>
+                                    </tr>
+                                    {billingData.billingAmountPaid && billingData.billingAmountPaid !== '$0.00' && (
+                                      <>
+                                        <tr className="border-t">
+                                          <td className="p-3 text-gray-600">Amount Paid</td>
+                                          <td className="p-3 text-right text-gray-600">-{billingData.billingAmountPaid}</td>
+                                        </tr>
+                                        <tr className="border-t bg-indigo-50 font-bold">
+                                          <td className="p-3">Balance Due</td>
+                                          <td className="p-3 text-right text-indigo-600">
+                                            ${(parseFloat(billingData.billingAmount || '0') - parseFloat(billingData.billingAmountPaid.replace(/[$,]/g, '') || '0')).toFixed(2)}
+                                          </td>
+                                        </tr>
+                                      </>
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+
+                              {/* Payment Info */}
+                              {(billingData.billingBankName || billingData.billingPaymentChannel) && (
+                                <div className="border-t pt-4">
+                                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Payment Information</h4>
+                                  <div className="text-sm text-gray-600 space-y-1">
+                                    {billingData.billingPaymentChannel && <p>Method: {billingData.billingPaymentChannel}</p>}
+                                    {billingData.billingBankName && <p>Bank: {billingData.billingBankName}</p>}
+                                    {billingData.billingBankAccountName && <p>Account Name: {billingData.billingBankAccountName}</p>}
+                                    {billingData.billingRoutingNumber && <p>Routing #: {billingData.billingRoutingNumber}</p>}
+                                    {billingData.billingAccountNumber && <p>Account #: ****{billingData.billingAccountNumber.slice(-4)}</p>}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Footer */}
+                              <div className="text-center border-t pt-4 text-sm text-gray-500">
+                                <p>Thank you for your business!</p>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       <p className="text-xs text-gray-500 text-center">
-                        Review the generated invoice, make edits in the fields above, then export or send when ready.
+                        {showInvoicePreview && activeBillingDeal
+                          ? 'Edit the fields above to update the preview. Export when ready.'
+                          : 'Review the generated invoice, make edits in the fields above, then export or send when ready.'
+                        }
                       </p>
                     </section>
 

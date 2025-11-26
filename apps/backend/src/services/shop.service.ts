@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { prisma } from '../lib/prisma';
 import type { ProductType, ProductStatus, OrderStatus, ShopSubscriptionInterval } from '../generated/client';
+import { recordReferralConversion } from './gamification.service';
 
 // Initialize Stripe
 let stripe: Stripe | null = null;
@@ -514,6 +515,7 @@ export const shopService = {
     couponCode?: string;
     billingAddress?: any;
     shippingAddress?: any;
+    referralCode?: string;
   }) {
     const stripeClient = ensureStripeConfigured();
 
@@ -624,6 +626,7 @@ export const shopService = {
       metadata: {
         userId: data.userId || '',
         itemsJson: JSON.stringify(orderItems),
+        referralCode: data.referralCode || '',
       },
       billing_address_collection: 'auto',
       shipping_address_collection: hasPhysicalProduct ? {
@@ -667,6 +670,18 @@ export const shopService = {
     const orderItems = JSON.parse(session.metadata.itemsJson);
     const orderNumber = await generateOrderNumber();
 
+    // Resolve referral code to get referrer user ID
+    let referralCode: string | null = session.metadata.referralCode || null;
+    let referredByUserId: string | null = null;
+
+    if (referralCode) {
+      const referrerGamification = await prisma.gamificationPoints.findUnique({
+        where: { referralCode },
+        select: { userId: true },
+      });
+      referredByUserId = referrerGamification?.userId || null;
+    }
+
     // Calculate totals
     const subtotal = orderItems.reduce((sum: number, item: any) => sum + item.subtotal, 0);
     const totalAmount = (session.amount_total || 0) / 100;
@@ -687,6 +702,9 @@ export const shopService = {
         taxAmount,
         discountAmount,
         totalAmount,
+        // Affiliate tracking
+        referralCode,
+        referredByUserId,
         paymentMethod: 'stripe',
         stripePaymentIntentId: typeof session.payment_intent === 'string'
           ? session.payment_intent
@@ -809,6 +827,31 @@ export const shopService = {
                 : null,
             },
           });
+        }
+      }
+    }
+
+    // Trigger referral conversion if this user was referred and this is their first order
+    if (session.metadata.userId) {
+      const userId = session.metadata.userId;
+
+      // Check if this is the user's first completed order
+      const previousOrdersCount = await prisma.order.count({
+        where: {
+          userId,
+          status: { in: ['PROCESSING', 'COMPLETED'] },
+          id: { not: order.id }, // Exclude current order
+        },
+      });
+
+      if (previousOrdersCount === 0) {
+        // This is their first purchase - trigger conversion for affiliates
+        try {
+          await recordReferralConversion(userId);
+          console.log(`🎉 Referral conversion triggered for user ${userId}`);
+        } catch (error) {
+          // Don't fail the order if conversion tracking fails
+          console.error('Failed to record referral conversion:', error);
         }
       }
     }

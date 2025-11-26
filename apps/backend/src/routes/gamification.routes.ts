@@ -1168,6 +1168,398 @@ router.post('/admin/achievements/:achievementId/grant', authenticate, requireAdm
   }
 });
 
+// ===== ADMIN AFFILIATE MANAGEMENT =====
+
+// Get affiliate program stats
+router.get('/admin/affiliates/stats', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    // Get all users with referral codes and their stats
+    const [
+      totalAffiliates,
+      referralSignups,
+      referralConversions,
+      totalOrdersWithReferral,
+      totalRevenueFromReferrals,
+    ] = await Promise.all([
+      // Count users with referral codes
+      prisma.gamificationPoints.count({
+        where: { referralCode: { not: null } },
+      }),
+      // Count referral signup events
+      prisma.gamificationEvent.count({
+        where: { eventType: 'REFERRAL_SIGNUP' },
+      }),
+      // Count referral conversion events
+      prisma.gamificationEvent.count({
+        where: { eventType: 'REFERRAL_CONVERSION' },
+      }),
+      // Count orders with referral codes
+      prisma.order.count({
+        where: {
+          referralCode: { not: null },
+          status: { in: ['PROCESSING', 'COMPLETED'] },
+        },
+      }),
+      // Sum revenue from referred orders
+      prisma.order.aggregate({
+        where: {
+          referralCode: { not: null },
+          status: { in: ['PROCESSING', 'COMPLETED'] },
+        },
+        _sum: { totalAmount: true },
+      }),
+    ]);
+
+    // Calculate conversion rate
+    const conversionRate = referralSignups > 0
+      ? Math.round((referralConversions / referralSignups) * 100)
+      : 0;
+
+    // Get total Tour Miles earned from referrals
+    const referralPoints = await prisma.gamificationEvent.aggregate({
+      where: {
+        eventType: { in: ['REFERRAL_SIGNUP', 'REFERRAL_CONVERSION'] },
+      },
+      _sum: { points: true },
+    });
+
+    res.json({
+      totalAffiliates,
+      activeAffiliates: referralSignups > 0 ? Math.min(totalAffiliates, referralSignups) : 0,
+      totalReferrals: referralSignups,
+      totalConversions: referralConversions,
+      conversionRate,
+      totalOrdersWithReferral,
+      totalRevenueFromReferrals: Number(totalRevenueFromReferrals._sum.totalAmount || 0),
+      totalTourMilesEarned: referralPoints._sum.points || 0,
+    });
+  } catch (error) {
+    console.error('Get affiliate stats error:', error);
+    res.status(500).json({ error: 'Failed to get affiliate stats' });
+  }
+});
+
+// Get all affiliates with their stats
+router.get('/admin/affiliates', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const search = req.query.search as string;
+    const sortBy = (req.query.sortBy as string) || 'referrals';
+    const sortOrder = (req.query.sortOrder as string) || 'desc';
+
+    // Get all users with referral codes
+    const where: any = {
+      gamificationPoints: {
+        referralCode: { not: null },
+      },
+    };
+
+    if (search) {
+      where.OR = [
+        { email: { contains: search, mode: 'insensitive' } },
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const total = await prisma.user.count({ where });
+
+    const users = await prisma.user.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        createdAt: true,
+        gamificationPoints: {
+          select: {
+            referralCode: true,
+            points: true,
+            tier: true,
+          },
+        },
+      },
+    });
+
+    // Get referral stats for each user
+    const affiliatesWithStats = await Promise.all(
+      users.map(async (user) => {
+        const [signups, conversions, ordersFromReferral] = await Promise.all([
+          prisma.gamificationEvent.count({
+            where: {
+              userId: user.id,
+              eventType: 'REFERRAL_SIGNUP',
+            },
+          }),
+          prisma.gamificationEvent.count({
+            where: {
+              userId: user.id,
+              eventType: 'REFERRAL_CONVERSION',
+            },
+          }),
+          // Get orders where this user's code was used
+          prisma.order.aggregate({
+            where: {
+              referredByUserId: user.id,
+              status: { in: ['PROCESSING', 'COMPLETED'] },
+            },
+            _count: true,
+            _sum: { totalAmount: true },
+          }),
+        ]);
+
+        // Calculate Tour Miles earned from referrals
+        const referralPointsEarned = await prisma.gamificationEvent.aggregate({
+          where: {
+            userId: user.id,
+            eventType: { in: ['REFERRAL_SIGNUP', 'REFERRAL_CONVERSION'] },
+          },
+          _sum: { points: true },
+        });
+
+        return {
+          id: user.id,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+          email: user.email,
+          role: user.role,
+          referralCode: user.gamificationPoints?.referralCode,
+          tier: user.gamificationPoints?.tier || 'BRONZE',
+          totalReferrals: signups,
+          conversions,
+          conversionRate: signups > 0 ? Math.round((conversions / signups) * 100) : 0,
+          ordersFromReferral: ordersFromReferral._count,
+          revenueFromReferrals: Number(ordersFromReferral._sum.totalAmount || 0),
+          tourMilesEarned: referralPointsEarned._sum.points || 0,
+          joinedAt: user.createdAt,
+        };
+      })
+    );
+
+    // Sort the results
+    affiliatesWithStats.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'referrals':
+          comparison = a.totalReferrals - b.totalReferrals;
+          break;
+        case 'conversions':
+          comparison = a.conversions - b.conversions;
+          break;
+        case 'revenue':
+          comparison = a.revenueFromReferrals - b.revenueFromReferrals;
+          break;
+        case 'tourMiles':
+          comparison = a.tourMilesEarned - b.tourMilesEarned;
+          break;
+        default:
+          comparison = a.totalReferrals - b.totalReferrals;
+      }
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+
+    res.json({
+      affiliates: affiliatesWithStats,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error('Get affiliates error:', error);
+    res.status(500).json({ error: 'Failed to get affiliates' });
+  }
+});
+
+// Get detailed affiliate info for a specific user
+router.get('/admin/affiliates/:userId', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        createdAt: true,
+        gamificationPoints: {
+          select: {
+            referralCode: true,
+            points: true,
+            tier: true,
+            totalEarned: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Get referral events
+    const referralEvents = await prisma.gamificationEvent.findMany({
+      where: {
+        userId,
+        eventType: { in: ['REFERRAL_SIGNUP', 'REFERRAL_CONVERSION'] },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    // Get orders made with this user's referral code
+    const referredOrders = await prisma.order.findMany({
+      where: {
+        referredByUserId: userId,
+        status: { in: ['PROCESSING', 'COMPLETED'] },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        orderNumber: true,
+        email: true,
+        totalAmount: true,
+        status: true,
+        createdAt: true,
+        referralCode: true,
+      },
+    });
+
+    const totalRevenue = referredOrders.reduce(
+      (sum, order) => sum + Number(order.totalAmount),
+      0
+    );
+
+    res.json({
+      user: {
+        id: user.id,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        email: user.email,
+        role: user.role,
+        referralCode: user.gamificationPoints?.referralCode,
+        tier: user.gamificationPoints?.tier || 'BRONZE',
+        totalPoints: user.gamificationPoints?.points || 0,
+        joinedAt: user.createdAt,
+      },
+      stats: {
+        totalReferrals: referralEvents.filter((e) => e.eventType === 'REFERRAL_SIGNUP').length,
+        conversions: referralEvents.filter((e) => e.eventType === 'REFERRAL_CONVERSION').length,
+        totalOrders: referredOrders.length,
+        totalRevenue,
+        tourMilesEarned: referralEvents.reduce((sum, e) => sum + e.points, 0),
+      },
+      recentEvents: referralEvents.map((e) => ({
+        id: e.id,
+        type: e.eventType,
+        points: e.points,
+        description: e.description,
+        date: e.createdAt,
+      })),
+      referredOrders: referredOrders.map((o) => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        customerEmail: o.email,
+        amount: Number(o.totalAmount),
+        status: o.status,
+        date: o.createdAt,
+      })),
+    });
+  } catch (error) {
+    console.error('Get affiliate detail error:', error);
+    res.status(500).json({ error: 'Failed to get affiliate details' });
+  }
+});
+
+// Get all orders with referral codes (for commission tracking)
+router.get('/admin/affiliates/orders', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where: {
+          referralCode: { not: null },
+          status: { in: ['PROCESSING', 'COMPLETED'] },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          orderNumber: true,
+          email: true,
+          userId: true,
+          totalAmount: true,
+          status: true,
+          referralCode: true,
+          referredByUserId: true,
+          createdAt: true,
+        },
+      }),
+      prisma.order.count({
+        where: {
+          referralCode: { not: null },
+          status: { in: ['PROCESSING', 'COMPLETED'] },
+        },
+      }),
+    ]);
+
+    // Get referrer info for each order
+    const ordersWithReferrer = await Promise.all(
+      orders.map(async (order) => {
+        let referrer = null;
+        if (order.referredByUserId) {
+          const referrerUser = await prisma.user.findUnique({
+            where: { id: order.referredByUserId },
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          });
+          if (referrerUser) {
+            referrer = {
+              id: referrerUser.id,
+              name: `${referrerUser.firstName || ''} ${referrerUser.lastName || ''}`.trim() || referrerUser.email,
+              email: referrerUser.email,
+            };
+          }
+        }
+        return {
+          ...order,
+          totalAmount: Number(order.totalAmount),
+          referrer,
+        };
+      })
+    );
+
+    res.json({
+      orders: ordersWithReferrer,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error('Get affiliate orders error:', error);
+    res.status(500).json({ error: 'Failed to get affiliate orders' });
+  }
+});
+
 // ===== ADMIN POINT CONFIGURATION =====
 
 // Get current point configuration

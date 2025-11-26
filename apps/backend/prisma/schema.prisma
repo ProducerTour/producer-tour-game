@@ -1688,6 +1688,10 @@ model Order {
   email           String      // Customer email (for guest checkout)
   status          OrderStatus @default(PENDING)
 
+  // Affiliate/Referral tracking
+  referralCode      String?     // Referral code used at checkout
+  referredByUserId  String?     // User ID of the referrer (resolved from referral code)
+
   // Billing info
   billingFirstName  String?
   billingLastName   String?
@@ -1752,6 +1756,8 @@ model Order {
   @@index([status])
   @@index([stripePaymentIntentId])
   @@index([createdAt])
+  @@index([referralCode])
+  @@index([referredByUserId])
   @@map("orders")
 }
 
