@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, Coins, FileCheck, Loader2 } from 'lucide-react';
+import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, FileCheck, Loader2, Coins } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { gamificationApi, toolPermissionsApi } from '../lib/api';
 
@@ -121,7 +121,7 @@ const TOOLS: Tool[] = [
     color: 'from-teal-500 to-teal-600',
     url: '/tools/session-payout',
     category: 'Financial',
-    roles: ['ADMIN'] // Admin only for now
+    roles: ['ADMIN', 'WRITER'] // Available to admins and writers
   }
 ];
 
@@ -439,7 +439,27 @@ export default function ToolsHub() {
                       </div>
                     </>
                   )}
-                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration', 'metadata-index', 'type-beat-video-maker'].includes(currentTool.id) && (
+                  {currentTool.id === 'session-payout' && (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-text-secondary">Submit session metadata and asset links</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-text-secondary">Calculate engineer payments automatically</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-text-secondary">Track session files and deliverables</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-text-secondary">Auto-generated work order numbers</span>
+                      </div>
+                    </>
+                  )}
+                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration', 'metadata-index', 'type-beat-video-maker', 'session-payout'].includes(currentTool.id) && (
                     <>
                       <div className="flex items-start gap-3">
                         <Check className="w-5 h-5 text-green-400 flex-shrink-0" />

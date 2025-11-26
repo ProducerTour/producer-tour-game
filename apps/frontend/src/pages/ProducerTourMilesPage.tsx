@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { gamificationApi } from '../lib/api';
+import { gamificationApi, getAuthToken } from '../lib/api';
 import { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import ImpersonationBanner from '../components/ImpersonationBanner';
@@ -151,7 +151,7 @@ export default function ProducerTourMilesPage() {
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${getAuthToken()}`,
           },
         }
       );

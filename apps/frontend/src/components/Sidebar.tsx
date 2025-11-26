@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getNavigationForRole, type NavSection, type NavItem } from '../config/navigation.config';
 import { SaasIcon, IconName } from './ui/SaasIcon';
 import { LogOut, Settings, ChevronDown, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
+import { getAuthToken } from '../lib/api';
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 
 // Re-export types for backward compatibility
@@ -69,7 +70,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
     queryFn: async () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/work-registration/my-submissions`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${getAuthToken()}`,
         },
       });
       if (!response.ok) throw new Error('Failed to fetch submissions');

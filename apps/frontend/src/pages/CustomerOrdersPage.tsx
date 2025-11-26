@@ -1,12 +1,14 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { shopApi } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/Button';
 import { Separator } from '@/components/ui/separator';
-import { Package, Download, ShoppingBag, Clock, CheckCircle2, XCircle, Truck, RefreshCw } from 'lucide-react';
+import { Package, Download, ShoppingBag, Clock, CheckCircle2, XCircle, Truck, RefreshCw, Receipt } from 'lucide-react';
 import { format } from 'date-fns';
 import Sidebar from '@/components/Sidebar';
+import OrderReceipt from '@/components/OrderReceipt';
 
 interface OrderItem {
   id: string;
@@ -51,6 +53,8 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
 };
 
 export default function CustomerOrdersPage() {
+  const [receiptModal, setReceiptModal] = useState<{ open: boolean; order: Order | null }>({ open: false, order: null });
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['customer-orders'],
     queryFn: async () => {
@@ -144,6 +148,15 @@ export default function CustomerOrdersPage() {
                           <span className="text-text-primary font-bold text-lg">
                             ${parseFloat(order.total).toFixed(2)}
                           </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setReceiptModal({ open: true, order })}
+                            className="text-primary-400 border-primary-500/30 hover:bg-primary-500/10"
+                          >
+                            <Receipt className="w-3 h-3 mr-1" />
+                            Receipt
+                          </Button>
                         </div>
                       </div>
                     </CardHeader>
@@ -234,6 +247,13 @@ export default function CustomerOrdersPage() {
               })}
             </div>
           )}
+
+          {/* Order Receipt Modal */}
+          <OrderReceipt
+            order={receiptModal.order}
+            open={receiptModal.open}
+            onOpenChange={(open) => setReceiptModal({ open, order: open ? receiptModal.order : null })}
+          />
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { dashboardApi, statementApi, documentApi, userApi, payoutApi } from '../lib/api';
+import { dashboardApi, statementApi, documentApi, userApi, payoutApi, getAuthToken } from '../lib/api';
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
@@ -13,7 +13,7 @@ import { useAuthStore } from '../store/auth.store';
 import { formatIpiDisplay } from '../utils/ipi-helper';
 import { X, Bell, ClipboardList, Users, Paperclip, Upload, FileText, Loader2 } from 'lucide-react';
 
-type TabType = 'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile' | 'tools' | 'claims';
+type TabType = 'overview' | 'songs' | 'statements' | 'documents' | 'billing' | 'profile' | 'tools' | 'claims';
 
 export default function WriterDashboard() {
   const location = useLocation();
@@ -147,7 +147,7 @@ export default function WriterDashboard() {
         {/* Left Sidebar */}
         <Sidebar
           activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as 'overview' | 'songs' | 'statements' | 'documents' | 'payments' | 'profile' | 'tools' | 'claims')}
+          onTabChange={(tab) => setActiveTab(tab as 'overview' | 'songs' | 'statements' | 'documents' | 'billing' | 'profile' | 'tools' | 'claims')}
         />
 
         {/* Main Content Area */}
@@ -271,7 +271,7 @@ export default function WriterDashboard() {
 
             {activeTab === 'documents' && <WriterDocumentsSection />}
 
-            {activeTab === 'payments' && (
+            {activeTab === 'billing' && (
               <div className="space-y-6">
                 <PaymentSettings />
                 <WithdrawalHistory />
@@ -396,7 +396,7 @@ function ClaimsSection() {
     queryFn: async () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/work-registration/my-submissions`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${getAuthToken()}`,
         },
       });
       if (!response.ok) throw new Error('Failed to fetch submissions');

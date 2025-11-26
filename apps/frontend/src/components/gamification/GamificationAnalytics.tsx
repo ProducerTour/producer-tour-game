@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { getAuthToken } from '../../lib/api';
 import {
   TrendingUp,
   Users,
@@ -161,7 +162,7 @@ export default function GamificationAnalytics() {
     queryFn: async () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/gamification/admin/analytics`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${getAuthToken()}`,
         },
       });
       if (!response.ok) throw new Error('Failed to fetch analytics');

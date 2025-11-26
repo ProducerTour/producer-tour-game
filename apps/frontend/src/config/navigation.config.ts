@@ -38,7 +38,7 @@ export const writerNavigation: NavSection[] = [
       { id: 'songs', label: 'My Songs', icon: 'music' },
       { id: 'statements', label: 'My Statements', icon: 'chart' },
       { id: 'documents', label: 'Documents', icon: 'file' },
-      { id: 'payments', label: 'Payments', icon: 'credit-card' },
+      { id: 'billing', label: 'Billing & Payments', icon: 'credit-card' },
       { id: 'claims', label: 'Claims', icon: 'check-circle' },
       { id: 'tour-miles', label: 'Tour Miles', icon: 'target', path: '/tour-miles' },
       { id: 'profile', label: 'User Info', icon: 'user' },
@@ -83,8 +83,8 @@ export const adminNavigation: NavSection[] = [
           { id: 'mlc-analytics', label: 'MLC Analytics', icon: 'music' },
         ],
       },
+      { id: 'billing-hub', label: 'Billing Hub', icon: 'credit-card' },
       { id: 'payouts', label: 'Payouts', icon: 'money' },
-      { id: 'recording-sessions', label: 'Recording Sessions', icon: 'mic' },
       {
         id: 'placement-deals',
         label: 'Placement Tracker',

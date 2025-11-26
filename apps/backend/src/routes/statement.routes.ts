@@ -1851,4 +1851,113 @@ router.get(
   }
 );
 
+/**
+ * GET /api/statements/:id/my-export
+ * Export writer's own statement data as CSV (Writer only)
+ * Writers can only download their own earnings from a statement
+ */
+router.get(
+  '/:id/my-export',
+  authenticate,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user!.id;
+
+      const statement = await prisma.statement.findUnique({
+        where: { id },
+        include: {
+          items: {
+            where: {
+              userId,
+              isVisibleToWriter: true
+            },
+            orderBy: { workTitle: 'asc' }
+          }
+        }
+      });
+
+      if (!statement) {
+        return res.status(404).json({ error: 'Statement not found' });
+      }
+
+      if (statement.status !== 'PUBLISHED') {
+        return res.status(400).json({ error: 'Statement not available for download' });
+      }
+
+      if (statement.items.length === 0) {
+        return res.status(400).json({ error: 'No earnings found for this statement' });
+      }
+
+      // Build CSV content for writer's items
+      const headers = [
+        'Work Title',
+        'Revenue',
+        'Performances',
+        'Split %',
+        'Gross Amount',
+        'Commission Rate',
+        'Commission Amount',
+        'Net Amount',
+        'Payment Date'
+      ];
+
+      const rows = statement.items.map(item => [
+        `"${(item.workTitle || '').replace(/"/g, '""')}"`,
+        Number(item.revenue).toFixed(4),
+        item.performances.toString(),
+        `${Number(item.splitPercentage)}%`,
+        Number(item.revenue).toFixed(2),
+        `${Number(item.commissionRate)}%`,
+        Number(item.commissionAmount).toFixed(2),
+        Number(item.netRevenue).toFixed(2),
+        item.paidAt ? formatExportDate(item.paidAt) : 'Pending'
+      ]);
+
+      // Calculate totals
+      const totalGross = statement.items.reduce((sum, item) => sum + Number(item.revenue), 0);
+      const totalCommission = statement.items.reduce((sum, item) => sum + Number(item.commissionAmount), 0);
+      const totalNet = statement.items.reduce((sum, item) => sum + Number(item.netRevenue), 0);
+
+      // Add totals row
+      rows.push([
+        '"TOTAL"',
+        '',
+        '',
+        '',
+        totalGross.toFixed(2),
+        '',
+        totalCommission.toFixed(2),
+        totalNet.toFixed(2),
+        ''
+      ]);
+
+      const csv = [
+        headers.join(','),
+        ...rows.map(row => row.join(','))
+      ].join('\n');
+
+      // Add statement info header
+      const headerInfo = [
+        `# Statement Export`,
+        `# PRO: ${statement.proType}`,
+        `# File: ${statement.filename}`,
+        `# Published: ${formatExportDate(statement.publishedAt)}`,
+        `# Songs: ${statement.items.length}`,
+        `# Total Net Earnings: $${totalNet.toFixed(2)}`,
+        ``
+      ].join('\n');
+
+      const fullCsv = headerInfo + csv;
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="my-statement-${statement.proType}-${formatExportDate(statement.publishedAt)}.csv"`);
+      res.send(fullCsv);
+    } catch (error) {
+      console.error('Writer export statement error:', error);
+      res.status(500).json({ error: 'Failed to export statement' });
+    }
+  }
+);
+
 export default router;

@@ -17,6 +17,7 @@ import PlacementTracker from '../components/admin/PlacementTracker';
 import PendingPlacementsQueue from './PendingPlacementsQueue';
 import RewardRedemptionsTab from '../components/admin/RewardRedemptionsTab';
 import RecordingSessionsTab from '../components/admin/RecordingSessionsTab';
+import BillingHub from '../components/admin/BillingHub';
 import GamificationAnalytics from '../components/gamification/GamificationAnalytics';
 import TourMilesConfig from '../components/admin/TourMilesConfig';
 import DashboardOverviewTremor from '../components/admin/DashboardOverviewTremor';
@@ -39,7 +40,7 @@ import {
   AlertDialogTrigger,
 } from '../components/ui';
 
-type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'recording-sessions' | 'active-placements' | 'pending-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config' | 'shop';
+type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'billing-hub' | 'recording-sessions' | 'active-placements' | 'pending-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config' | 'shop';
 
 // Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
 const formatChartCurrency = (value: any): string => {
@@ -104,6 +105,7 @@ export default function AdminDashboard() {
             {(activeTab === 'analytics' || activeTab === 'all-analytics') && <AnalyticsTabTremor />}
             {activeTab === 'mlc-analytics' && <MLCAnalyticsTab />}
             {activeTab === 'payouts' && <PayoutsTab />}
+            {activeTab === 'billing-hub' && <BillingHub />}
             {activeTab === 'recording-sessions' && <RecordingSessionsTab />}
             {activeTab === 'pending-placements' && <PendingPlacementsQueue />}
             {activeTab === 'active-placements' && <PlacementTracker />}

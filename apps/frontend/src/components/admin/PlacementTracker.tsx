@@ -140,6 +140,54 @@ const PlacementTracker: React.FC = () => {
     },
   });
 
+  // Create billing invoice mutation - sends to Billing Hub with FEE type
+  const createBillingInvoiceMutation = useMutation({
+    mutationFn: ({ dealId, data }: { dealId: string; data: any }) =>
+      placementDealApi.createBillingInvoice(dealId, data),
+    onSuccess: (response: any) => {
+      queryClient.invalidateQueries({ queryKey: ['placement-deals'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      const invoice = response.data?.invoice;
+      const invoiceNumber = invoice?.invoiceNumber || 'Invoice';
+      const amount = invoice?.grossAmount ? `$${Number(invoice.grossAmount).toFixed(2)}` : '';
+      toast.success(`${invoiceNumber} created for ${amount}! View it in the Billing Hub.`);
+      setShowBillingModal(false);
+      setBillingData({
+        billingClientName: '',
+        billingClientPKA: '',
+        billingClientAddress: '',
+        billingClientCity: '',
+        billingProjectTitle: '',
+        billingInvoiceNumber: '',
+        billingArtistLegal: '',
+        billingArtistStage: '',
+        billingLabelName: '',
+        billingBillToEmail: '',
+        billingBillToContact: '',
+        billingIssueDate: '',
+        billingDueDate: '',
+        billingAmount: '',
+        billingCostsExpenses: 'n/a',
+        billingSalesTax: '$0.00',
+        billingAmountPaid: '$0.00',
+        billingServices: '',
+        billingPaymentTerms: '',
+        billingPaymentChannel: '',
+        billingBookkeepingNotes: '',
+        billingBankAccountName: '',
+        billingBankName: '',
+        billingBankAddress: '',
+        billingRoutingNumber: '',
+        billingAccountNumber: '',
+        billingSwiftCode: ''
+      });
+      setActiveBillingDeal(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to create billing invoice');
+    },
+  });
+
   const [formData, setFormData] = useState<Placement>({
     id: '',
     clientFullName: '',
@@ -331,6 +379,39 @@ const PlacementTracker: React.FC = () => {
         }));
       }
     }
+  };
+
+  // Handle billing invoice submission - creates FEE invoice in Billing Hub
+  const handleBillingSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!activeBillingDeal) {
+      toast.error('Please select a placement deal first');
+      return;
+    }
+
+    // Parse amount - remove $ and commas if present
+    const amountStr = billingData.billingAmount.replace(/[$,]/g, '');
+    const amount = parseFloat(amountStr);
+
+    if (!amount || amount <= 0) {
+      toast.error('Please enter a valid billing amount');
+      return;
+    }
+
+    const placement = placements.find(p => p.id === activeBillingDeal);
+
+    createBillingInvoiceMutation.mutate({
+      dealId: activeBillingDeal,
+      data: {
+        grossAmount: amount,
+        description: billingData.billingServices || `Billing for ${placement?.songTitle || 'Placement'} - ${placement?.artistName || 'Unknown Artist'}`,
+        billingClientName: billingData.billingClientName || placement?.clientFullName,
+        billingLabelName: billingData.billingLabelName,
+        billingBillToEmail: billingData.billingBillToEmail,
+        billingBillToContact: billingData.billingBillToContact,
+      },
+    });
   };
 
   const uniqueClients = [...new Set(placements.map(p => p.clientFullName))];
@@ -970,7 +1051,7 @@ const PlacementTracker: React.FC = () => {
                     )}
                   </div>
 
-                  <form className="space-y-8">
+                  <form className="space-y-8" onSubmit={handleBillingSubmit}>
                     <section className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -1332,16 +1413,21 @@ const PlacementTracker: React.FC = () => {
                         type="button"
                         onClick={() => setShowBillingModal(false)}
                         className="px-4 py-2 bg-white/10 border border-white/[0.08] rounded-md text-sm font-semibold text-gray-300 hover:bg-white/15"
+                        disabled={createBillingInvoiceMutation.isPending}
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        className="px-4 py-2 bg-indigo-600 border border-transparent rounded-md shadow-sm font-semibold text-sm text-white hover:bg-indigo-700"
+                        disabled={!activeBillingDeal || createBillingInvoiceMutation.isPending}
+                        className="px-4 py-2 bg-indigo-600 border border-transparent rounded-md shadow-sm font-semibold text-sm text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Send Billing Package
+                        {createBillingInvoiceMutation.isPending ? 'Creating Invoice...' : 'Create Invoice & Send to Billing Hub'}
                       </button>
                     </div>
+                    <p className="text-xs text-gray-500 text-center mt-2">
+                      Invoice will appear in the Billing Hub with FEE type (20% commission). You can review and process payment from there.
+                    </p>
                   </form>
                 </section>
               </div>

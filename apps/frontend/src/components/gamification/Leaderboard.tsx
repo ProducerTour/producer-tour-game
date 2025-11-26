@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Trophy, Medal, Award, Crown } from 'lucide-react';
+import { getAuthToken } from '../../lib/api';
 
 const TIER_COLORS = {
   BRONZE: '#CD7F32',
@@ -49,7 +50,7 @@ export default function Leaderboard() {
         `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/gamification/leaderboard?${params}`,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${getAuthToken()}`,
           },
         }
       );

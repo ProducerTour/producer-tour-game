@@ -6,6 +6,12 @@ export const api = axios.create({
   baseURL: `${API_URL}/api`,
 });
 
+// Helper to get token from the correct storage (handles Remember Me feature)
+export const getAuthToken = (): string | null => {
+  // Check sessionStorage first (for non-remembered sessions), then localStorage
+  return sessionStorage.getItem('token') || localStorage.getItem('token');
+};
+
 // Request interceptor - add auth token and content type
 api.interceptors.request.use(
   (config) => {
@@ -16,7 +22,7 @@ api.interceptors.request.use(
                            config.url?.includes('/auth/reset-password');
 
     if (!isAuthEndpoint) {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -42,9 +48,12 @@ api.interceptors.response.use(
       const isPublicPage = ['/login', '/forgot-password', '/reset-password', '/apply', '/pricing', '/'].includes(window.location.pathname);
 
       if (!isLoginPage && !isPublicPage) {
+        // Clear tokens from both storages
         localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         // Clear auth storage to prevent stale state
         localStorage.removeItem('auth-storage');
+        sessionStorage.removeItem('auth-storage');
         window.location.href = '/login';
       }
     }
@@ -156,18 +165,24 @@ export const statementApi = {
 
   // Export methods
   exportCSV: (id: string) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     window.open(`${API_URL}/api/statements/${id}/export/csv?token=${token}`, '_blank');
   },
 
   exportQuickBooks: (id: string) => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     window.open(`${API_URL}/api/statements/${id}/export/quickbooks?token=${token}`, '_blank');
   },
 
   exportUnpaidSummary: () => {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     window.open(`${API_URL}/api/statements/export/unpaid-summary?token=${token}`, '_blank');
+  },
+
+  // Writer export - download own statement data
+  exportMyStatement: (id: string) => {
+    const token = getAuthToken();
+    window.open(`${API_URL}/api/statements/${id}/my-export?token=${token}`, '_blank');
   },
 };
 
@@ -459,6 +474,16 @@ export const placementDealApi = {
   // Generate invoice for a deal
   generateInvoice: (id: string) => api.post(`/placement-deals/${id}/generate-invoice`),
 
+  // Create a billing invoice (FEE type) for a placement deal - appears in Billing Hub
+  createBillingInvoice: (id: string, data: {
+    grossAmount: string | number;
+    description?: string;
+    billingClientName?: string;
+    billingLabelName?: string;
+    billingBillToEmail?: string;
+    billingBillToContact?: string;
+  }) => api.post(`/placement-deals/${id}/create-billing-invoice`, data),
+
   // Get summary statistics
   getStats: () => api.get('/placement-deals/stats/summary'),
 };
@@ -648,4 +673,51 @@ export const toolPermissionsApi = {
   // Update a single tool's permissions (admin only)
   updateTool: (toolId: string, roles: string[], toolName?: string) =>
     api.patch(`/tool-permissions/${toolId}`, { roles, toolName }),
+};
+
+// Invoice API - Unified billing system
+export const invoiceApi = {
+  // Get the next auto-generated invoice number
+  getNextNumber: () => api.get('/invoices/next-number'),
+
+  // Submit a new invoice
+  submit: (data: {
+    type: 'SESSION' | 'ADVANCE' | 'FEE';
+    grossAmount: number;
+    description?: string;
+    details?: any;
+    placementDealId?: string;
+    advanceType?: 'FUTURE_ROYALTY' | 'DEAL_ADVANCE';
+    submittedByName?: string;
+    submittedByEmail?: string;
+  }) => api.post('/invoices', data),
+
+  // Get invoices (user: own, admin: all)
+  getAll: (params?: {
+    status?: string;
+    type?: string;
+    limit?: number;
+    offset?: number;
+  }) => api.get('/invoices', { params }),
+
+  // Get pending invoices (admin only - for notifications)
+  getPending: () => api.get('/invoices/pending'),
+
+  // Get invoice statistics (admin only)
+  getStats: () => api.get('/invoices/stats'),
+
+  // Get a single invoice
+  getById: (id: string) => api.get(`/invoices/${id}`),
+
+  // Approve an invoice (admin only)
+  approve: (id: string, adminNotes?: string) =>
+    api.post(`/invoices/${id}/approve`, { adminNotes }),
+
+  // Reject an invoice (admin only)
+  reject: (id: string, rejectionReason: string, adminNotes?: string) =>
+    api.post(`/invoices/${id}/reject`, { rejectionReason, adminNotes }),
+
+  // Process Stripe payment for approved invoice (admin only)
+  processPayment: (id: string) =>
+    api.post(`/invoices/${id}/process-payment`),
 };

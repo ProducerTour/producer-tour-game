@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Share2, Copy, CheckCircle, AlertCircle } from 'lucide-react';
 import { socialShareToast, successToast, errorToast } from '../../lib/toast';
+import { getAuthToken } from '../../lib/api';
 
 interface SocialShareButtonsProps {
   referralCode: string;
@@ -22,7 +23,7 @@ export default function SocialShareButtons({ referralCode }: SocialShareButtonsP
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${getAuthToken()}`,
         },
         body: JSON.stringify({ platform }),
       });

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { workRegistrationApi, WorkSubmission } from '@/lib/workRegistrationApi';
+import { getAuthToken } from '@/lib/api';
 import { SubmissionStatusBadge } from '@/components/SubmissionStatusBadge';
 
 type ActionType = 'approve' | 'deny' | 'request_documents';
@@ -139,7 +140,7 @@ export default function PendingPlacementsQueue() {
   const handleDownload = (documentId: string, filename: string) => {
     // This would call the document download API
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const url = `${API_URL}/api/documents/${documentId}/download`;
 
     // Create a temporary anchor element to trigger download

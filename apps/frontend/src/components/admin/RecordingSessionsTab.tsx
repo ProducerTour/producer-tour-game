@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { getAuthToken } from '../../lib/api';
 import {
   CheckCircle,
   XCircle,
@@ -109,7 +110,7 @@ export default function RecordingSessionsTab() {
         `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/session-payouts?${params}`,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${getAuthToken()}`,
           },
         }
       );
@@ -128,7 +129,7 @@ export default function RecordingSessionsTab() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${getAuthToken()}`,
           },
           body: JSON.stringify({ adminNotes: notes }),
         }
@@ -158,7 +159,7 @@ export default function RecordingSessionsTab() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${getAuthToken()}`,
           },
           body: JSON.stringify({ rejectionReason: reason, adminNotes: notes }),
         }
@@ -188,7 +189,7 @@ export default function RecordingSessionsTab() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${getAuthToken()}`,
           },
         }
       );

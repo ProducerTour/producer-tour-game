@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { CheckCircle, XCircle, Package, Gift } from 'lucide-react';
+import { getAuthToken } from '../../lib/api';
 
 interface Redemption {
   id: string;
@@ -35,7 +36,7 @@ export default function RewardRedemptionsTab() {
         `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/gamification/admin/redemptions`,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${getAuthToken()}`,
           },
         }
       );
@@ -53,7 +54,7 @@ export default function RewardRedemptionsTab() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${getAuthToken()}`,
           },
           body: JSON.stringify({ adminNotes: notes }),
         }
@@ -79,7 +80,7 @@ export default function RewardRedemptionsTab() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${getAuthToken()}`,
           },
           body: JSON.stringify({ adminNotes: notes }),
         }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import AchievementCard from './AchievementCard';
+import { getAuthToken } from '../../lib/api';
 
 interface Achievement {
   id: string;
@@ -23,7 +24,7 @@ export default function AchievementGallery() {
     queryFn: async () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/gamification/achievements`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${getAuthToken()}`,
         },
       });
       if (!response.ok) throw new Error('Failed to fetch achievements');

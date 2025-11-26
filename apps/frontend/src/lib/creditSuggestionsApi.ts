@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAuthToken } from './api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
@@ -14,7 +15,7 @@ export interface CollaboratorSuggestion {
 
 class CreditSuggestionsAPI {
   private getAuthHeaders() {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     return {
       Authorization: token ? `Bearer ${token}` : '',
     };

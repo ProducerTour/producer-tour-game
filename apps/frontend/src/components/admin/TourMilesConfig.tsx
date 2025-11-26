@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { getAuthToken } from '../../lib/api';
 import {
   Users,
   Gift,
@@ -20,7 +21,7 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
+  Authorization: `Bearer ${getAuthToken()}`,
   'Content-Type': 'application/json',
 });
 

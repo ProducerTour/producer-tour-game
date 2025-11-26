@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { Upload, X, FileText } from 'lucide-react';
+import { getAuthToken } from '../lib/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
@@ -99,7 +100,7 @@ export function DocumentUpload({ documents, onChange, placementId, disabled = fa
         formData.append('description', doc.description);
       }
 
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await axios.post(`${API_URL}/api/documents/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',

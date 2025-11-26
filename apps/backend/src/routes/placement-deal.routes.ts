@@ -233,6 +233,127 @@ router.post('/:id/generate-invoice', authenticate, requireAdmin, async (req: Aut
 });
 
 /**
+ * POST /api/placement-deals/:id/create-billing-invoice
+ * Create a FEE invoice in the Billing Hub from a placement deal
+ * This allows billing invoices to Labels to be tracked in the centralized Billing Hub
+ */
+router.post('/:id/create-billing-invoice', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.user!.id;
+    const {
+      grossAmount,
+      description,
+      billingClientName,
+      billingLabelName,
+      billingBillToEmail,
+      billingBillToContact,
+    } = req.body;
+
+    // Validate amount
+    if (!grossAmount || parseFloat(grossAmount) <= 0) {
+      return res.status(400).json({ error: 'A valid billing amount is required' });
+    }
+
+    // Get the placement deal
+    const deal = await prisma.placementDeal.findUnique({
+      where: { id },
+    });
+
+    if (!deal) {
+      return res.status(404).json({ error: 'Placement deal not found' });
+    }
+
+    // Generate unique invoice number
+    const currentYear = new Date().getFullYear();
+    const prefix = `INV-${currentYear}-`;
+    const latestInvoice = await prisma.invoice.findFirst({
+      where: { invoiceNumber: { startsWith: prefix } },
+      orderBy: { invoiceNumber: 'desc' },
+      select: { invoiceNumber: true },
+    });
+
+    let nextSequence = 1;
+    if (latestInvoice?.invoiceNumber) {
+      const sequencePart = latestInvoice.invoiceNumber.split('-')[2];
+      if (sequencePart) {
+        nextSequence = parseInt(sequencePart, 10) + 1;
+      }
+    }
+    const invoiceNumber = `${prefix}${nextSequence.toString().padStart(4, '0')}`;
+
+    // Calculate commission (20% for FEE type invoices)
+    const amount = parseFloat(grossAmount);
+    const commissionRate = 20;
+    const commissionAmount = Math.round((amount * commissionRate / 100) * 100) / 100;
+    const netAmount = Math.round((amount - commissionAmount) * 100) / 100;
+
+    // Create invoice linked to placement deal
+    const invoice = await prisma.invoice.create({
+      data: {
+        invoiceNumber,
+        type: 'FEE',
+        submittedById: adminId,
+        submittedByName: billingClientName || deal.clientFullName || 'Producer',
+        submittedByEmail: billingBillToEmail || null,
+        grossAmount: amount,
+        commissionRate,
+        commissionAmount,
+        netAmount,
+        description: description || `Billing for ${deal.songTitle || 'Placement'} - ${deal.artistName || 'Unknown Artist'}`,
+        details: JSON.stringify({
+          billingClientName,
+          billingLabelName,
+          billingBillToEmail,
+          billingBillToContact,
+          songTitle: deal.songTitle,
+          artistName: deal.artistName,
+          clientFullName: deal.clientFullName,
+          clientPKA: deal.clientPKA,
+        }),
+        placementDealId: id,
+        status: 'PENDING',
+      },
+      include: {
+        submittedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        placementDeal: {
+          select: {
+            id: true,
+            clientFullName: true,
+            songTitle: true,
+            artistName: true,
+          },
+        },
+      },
+    });
+
+    // Update placement deal with the billing invoice reference
+    await prisma.placementDeal.update({
+      where: { id },
+      data: {
+        billingInvoiceNumber: invoiceNumber,
+        billingIssueDate: new Date().toISOString().split('T')[0],
+      },
+    });
+
+    res.status(201).json({
+      message: 'Billing invoice created successfully',
+      invoice,
+    });
+  } catch (error) {
+    console.error('Create billing invoice error:', error);
+    res.status(500).json({ error: 'Failed to create billing invoice' });
+  }
+});
+
+/**
  * GET /api/placement-deals/stats/summary
  * Get summary statistics for placement deals
  */

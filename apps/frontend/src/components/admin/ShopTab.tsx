@@ -18,6 +18,7 @@ import {
   Repeat,
   Download,
   Zap,
+  Receipt,
 } from 'lucide-react';
 
 // shadcn components
@@ -54,6 +55,7 @@ import {
 
 import { shopApi } from '../../lib/api';
 import toast from 'react-hot-toast';
+import OrderReceipt from '../OrderReceipt';
 
 // Product types for the form
 const PRODUCT_TYPES = [
@@ -394,6 +396,7 @@ export default function ShopTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [receiptModal, setReceiptModal] = useState<{ open: boolean; order: any | null }>({ open: false, order: null });
 
   // Fetch shop stats
   const { data: stats } = useQuery({
@@ -765,6 +768,7 @@ export default function ShopTab() {
                       <TableHead className="text-slate-400 font-medium">Total</TableHead>
                       <TableHead className="text-slate-400 font-medium">Status</TableHead>
                       <TableHead className="text-slate-400 font-medium">Date</TableHead>
+                      <TableHead className="text-right text-slate-400 font-medium">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -803,6 +807,17 @@ export default function ShopTab() {
                           </TableCell>
                           <TableCell className="text-slate-400">
                             {new Date(order.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setReceiptModal({ open: true, order })}
+                              className="text-slate-400 hover:text-white hover:bg-slate-700/50"
+                            >
+                              <Receipt className="w-4 h-4 mr-1" />
+                              Receipt
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );
@@ -861,6 +876,13 @@ export default function ShopTab() {
         onOpenChange={(open) => setProductModal({ open, product: open ? productModal.product : undefined })}
         onSave={handleSaveProduct}
         isLoading={createProductMutation.isPending || updateProductMutation.isPending}
+      />
+
+      {/* Order Receipt Modal */}
+      <OrderReceipt
+        order={receiptModal.order}
+        open={receiptModal.open}
+        onOpenChange={(open) => setReceiptModal({ open, order: open ? receiptModal.order : null })}
       />
     </div>
   );
