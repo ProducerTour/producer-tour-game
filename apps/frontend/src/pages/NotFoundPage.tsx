@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Home, ArrowLeft, Search, HelpCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { BugReportButton } from '../components/BugReportButton';
 
 export default function NotFoundPage() {
   return (
@@ -80,8 +81,8 @@ export default function NotFoundPage() {
           If you believe this is an error, please{' '}
           <Link to="/contact" className="text-orange-400 hover:text-orange-300">
             contact support
-          </Link>
-          .
+          </Link>{' '}
+          or <BugReportButton variant="inline" className="text-orange-400 hover:text-orange-300" />.
         </p>
       </div>
     </div>

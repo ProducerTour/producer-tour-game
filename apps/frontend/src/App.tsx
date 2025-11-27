@@ -5,6 +5,7 @@ import { useAuthStore } from './store/auth.store';
 // Components
 import CommandPalette from './components/CommandPalette';
 import { ChatWidget } from './components/chat';
+import { BugReportButton } from './components/BugReportButton';
 
 // Pages
 import LandingPage from './pages/LandingPageNew';
@@ -101,6 +102,9 @@ function App() {
 
       {/* Chat Widget - visible when logged in */}
       <ChatWidget />
+
+      {/* Bug Report Button - visible when logged in (beta) */}
+      {user && <BugReportButton />}
 
       <Routes>
         <Route path="/login" element={<LoginPage />} />
