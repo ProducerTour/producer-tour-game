@@ -110,6 +110,9 @@ export const dashboardApi = {
 
   getMlcAnalytics: () =>
     api.get('/dashboard/mlc-analytics'),
+
+  getBmiAnalytics: () =>
+    api.get('/dashboard/bmi-analytics'),
 };
 
 export type WriterAssignment = {
@@ -179,10 +182,13 @@ export const statementApi = {
     window.open(`${API_URL}/api/statements/export/unpaid-summary?token=${token}`, '_blank');
   },
 
-  // Writer export - download own statement data
+  // Writer methods - access own statement data
+  getMyStatementItems: (id: string) =>
+    api.get(`/statements/my/${id}/items`),
+
   exportMyStatement: (id: string) => {
     const token = getAuthToken();
-    window.open(`${API_URL}/api/statements/${id}/my-export?token=${token}`, '_blank');
+    window.open(`${API_URL}/api/statements/my/${id}/export?token=${token}`, '_blank');
   },
 };
 

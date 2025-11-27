@@ -36,6 +36,11 @@ export interface PublisherRowMatch {
   matches: WriterMatch[];
 }
 
+// Options for writer matching
+export interface MatcherOptions {
+  proType?: 'BMI' | 'ASCAP' | 'SESAC' | 'GMR' | 'MLC' | 'SOCAN' | 'PRS' | 'OTHER';
+}
+
 /**
  * Calculate Levenshtein distance between two strings
  * Used to measure similarity between writer names
@@ -112,13 +117,27 @@ function normalizeIPI(ipi: string): string {
  *
  * BMI/ASCAP Format (Traditional):
  * - Single writer, match by writer IPI or name similarity
+ * - For BMI: Only matches writers with proAffiliation = 'BMI'
+ * - For ASCAP: Only matches writers with proAffiliation = 'ASCAP'
  */
-export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]> {
+export async function smartMatchWriters(song: ParsedSong, options: MatcherOptions = {}): Promise<WriterMatch[]> {
   const matches: WriterMatch[] = [];
+  const { proType } = options;
 
-  // Get all writers
+  // Build writer query - filter by PRO affiliation for traditional formats (BMI, ASCAP, etc.)
+  // MLC uses publisher IPI matching, so PRO affiliation is less relevant
+  const writerWhereClause: any = { role: 'WRITER' };
+
+  // For BMI/ASCAP/SESAC/GMR statements, only match writers with that PRO affiliation
+  if (proType && proType !== 'MLC' && proType !== 'OTHER') {
+    writerWhereClause.producer = {
+      proAffiliation: proType
+    };
+  }
+
+  // Get writers (filtered by PRO if applicable)
   const allWriters = await prisma.user.findMany({
-    where: { role: 'WRITER' },
+    where: writerWhereClause,
     select: {
       id: true,
       firstName: true,
@@ -126,7 +145,12 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
       lastName: true,
       email: true,
       writerIpiNumber: true,
-      publisherIpiNumber: true
+      publisherIpiNumber: true,
+      producer: {
+        select: {
+          proAffiliation: true
+        }
+      }
     }
   });
 
@@ -329,10 +353,25 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
   const isMlcFormat = originalPublisherIpi && workWriterList;
 
   if (!isMlcFormat) {
-    const historicalAssignments = await prisma.statementItem.findMany({
-    where: {
+    // Build historical query - filter by PRO type and writer's PRO affiliation
+    const historicalWhereClause: any = {
       statement: { status: 'PUBLISHED' }
-    },
+    };
+
+    // For BMI/ASCAP/etc. statements, only look at historical assignments from:
+    // 1. Statements of the same PRO type
+    // 2. Writers who have that PRO affiliation
+    if (proType && proType !== 'MLC' && proType !== 'OTHER') {
+      historicalWhereClause.statement.proType = proType;
+      historicalWhereClause.user = {
+        producer: {
+          proAffiliation: proType
+        }
+      };
+    }
+
+    const historicalAssignments = await prisma.statementItem.findMany({
+    where: historicalWhereClause,
     select: {
       workTitle: true,
       userId: true,
@@ -401,14 +440,18 @@ export async function smartMatchWriters(song: ParsedSong): Promise<WriterMatch[]
  * Smart match all songs in a statement
  * For MLC statements: Returns ALL publisher rows (same song can appear multiple times with different publishers)
  * For traditional statements: Returns one row per song
+ *
+ * @param parsedSongs - Array of parsed songs from the statement
+ * @param options - Matching options including proType for PRO-filtered matching
  */
 export async function smartMatchStatement(
-  parsedSongs: ParsedSong[]
+  parsedSongs: ParsedSong[],
+  options: MatcherOptions = {}
 ): Promise<PublisherRowMatch[]> {
   const results: PublisherRowMatch[] = [];
 
   for (const song of parsedSongs) {
-    const matches = await smartMatchWriters(song);
+    const matches = await smartMatchWriters(song, options);
 
     // Preserve ALL rows with their publisher-specific metadata and matches
     results.push({

@@ -1204,4 +1204,293 @@ router.get('/mlc-analytics', authenticate, requireAdmin, async (req: AuthRequest
   }
 });
 
+/**
+ * GET /api/dashboard/bmi-analytics
+ * Comprehensive BMI-specific analytics with detailed breakdowns
+ * Returns territory, performance source, and quarter analysis
+ */
+router.get('/bmi-analytics', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    // Get all BMI statement items with full metadata
+    const items = await prisma.statementItem.findMany({
+      where: {
+        statement: {
+          proType: 'BMI',
+          paymentStatus: 'PAID'
+        }
+      },
+      select: {
+        id: true,
+        workTitle: true,
+        revenue: true,
+        netRevenue: true,
+        commissionAmount: true,
+        performances: true,
+        createdAt: true,
+        metadata: true,
+        statement: {
+          select: {
+            id: true,
+            statementPeriod: true,
+            uploadDate: true
+          }
+        }
+      }
+    });
+
+    // Get BMI statement totals
+    const bmiStatements = await prisma.statement.findMany({
+      where: {
+        proType: 'BMI',
+        paymentStatus: 'PAID'
+      },
+      select: {
+        id: true,
+        filename: true,
+        totalRevenue: true,
+        totalNet: true,
+        totalCommission: true,
+        statementPeriod: true,
+        uploadDate: true,
+        metadata: true,
+        _count: {
+          select: { items: true }
+        }
+      },
+      orderBy: { uploadDate: 'desc' }
+    });
+
+    // Territory breakdown
+    const territoryMap = new Map<string, {
+      revenue: number;
+      netRevenue: number;
+      count: number;
+      performances: number;
+    }>();
+
+    // Country of Performance breakdown (more specific than territory)
+    const countryMap = new Map<string, {
+      revenue: number;
+      netRevenue: number;
+      count: number;
+      performances: number;
+    }>();
+
+    // Performance Source breakdown (radio, TV, streaming, etc.)
+    const perfSourceMap = new Map<string, {
+      revenue: number;
+      netRevenue: number;
+      count: number;
+      performances: number;
+    }>();
+
+    // Quarter/Period timeline
+    const quarterMap = new Map<string, {
+      revenue: number;
+      netRevenue: number;
+      count: number;
+      performances: number;
+    }>();
+
+    // Top songs analysis
+    const songMap = new Map<string, {
+      revenue: number;
+      netRevenue: number;
+      performances: number;
+      territories: Set<string>;
+      perfSources: Set<string>;
+    }>();
+
+    items.forEach((item) => {
+      const metadata = item.metadata as any;
+      const territory = metadata?.territory || 'Unknown';
+      const countryOfPerformance = metadata?.countryOfPerformance || territory || 'Unknown';
+      const perfSource = metadata?.perfSource || 'Unknown';
+      const quarter = metadata?.quarter || 'Unknown';
+      const revenue = Number(item.revenue) || 0;
+      const netRevenue = Number(item.netRevenue) || 0;
+      const performances = Number(item.performances) || 0;
+
+      // Territory aggregation
+      if (territory && territory !== 'Unknown') {
+        if (!territoryMap.has(territory)) {
+          territoryMap.set(territory, { revenue: 0, netRevenue: 0, count: 0, performances: 0 });
+        }
+        const terr = territoryMap.get(territory)!;
+        terr.revenue += revenue;
+        terr.netRevenue += netRevenue;
+        terr.count += 1;
+        terr.performances += performances;
+      }
+
+      // Country of Performance aggregation
+      if (countryOfPerformance && countryOfPerformance !== 'Unknown') {
+        if (!countryMap.has(countryOfPerformance)) {
+          countryMap.set(countryOfPerformance, { revenue: 0, netRevenue: 0, count: 0, performances: 0 });
+        }
+        const country = countryMap.get(countryOfPerformance)!;
+        country.revenue += revenue;
+        country.netRevenue += netRevenue;
+        country.count += 1;
+        country.performances += performances;
+      }
+
+      // Performance Source aggregation
+      if (perfSource && perfSource !== 'Unknown') {
+        if (!perfSourceMap.has(perfSource)) {
+          perfSourceMap.set(perfSource, { revenue: 0, netRevenue: 0, count: 0, performances: 0 });
+        }
+        const source = perfSourceMap.get(perfSource)!;
+        source.revenue += revenue;
+        source.netRevenue += netRevenue;
+        source.count += 1;
+        source.performances += performances;
+      }
+
+      // Quarter/Period timeline
+      if (quarter && quarter !== 'Unknown') {
+        if (!quarterMap.has(quarter)) {
+          quarterMap.set(quarter, { revenue: 0, netRevenue: 0, count: 0, performances: 0 });
+        }
+        const q = quarterMap.get(quarter)!;
+        q.revenue += revenue;
+        q.netRevenue += netRevenue;
+        q.count += 1;
+        q.performances += performances;
+      }
+
+      // Song aggregation
+      if (item.workTitle) {
+        if (!songMap.has(item.workTitle)) {
+          songMap.set(item.workTitle, {
+            revenue: 0,
+            netRevenue: 0,
+            performances: 0,
+            territories: new Set(),
+            perfSources: new Set()
+          });
+        }
+        const song = songMap.get(item.workTitle)!;
+        song.revenue += revenue;
+        song.netRevenue += netRevenue;
+        song.performances += performances;
+        if (territory && territory !== 'Unknown') song.territories.add(territory);
+        if (perfSource && perfSource !== 'Unknown') song.perfSources.add(perfSource);
+      }
+    });
+
+    // Format territory data
+    const territories = Array.from(territoryMap.entries())
+      .map(([territory, data]) => ({
+        territory,
+        revenue: smartRound(data.revenue),
+        netRevenue: smartRound(data.netRevenue),
+        count: data.count,
+        performances: data.performances
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    // Format country data
+    const countries = Array.from(countryMap.entries())
+      .map(([country, data]) => ({
+        country,
+        revenue: smartRound(data.revenue),
+        netRevenue: smartRound(data.netRevenue),
+        count: data.count,
+        performances: data.performances
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    // Format performance source data
+    const perfSources = Array.from(perfSourceMap.entries())
+      .map(([source, data]) => ({
+        source,
+        revenue: smartRound(data.revenue),
+        netRevenue: smartRound(data.netRevenue),
+        count: data.count,
+        performances: data.performances,
+        avgPerItem: smartRound(data.revenue / data.count)
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    // Format quarter timeline
+    const timeline = Array.from(quarterMap.entries())
+      .map(([quarter, data]) => ({
+        quarter,
+        revenue: smartRound(data.revenue),
+        netRevenue: smartRound(data.netRevenue),
+        count: data.count,
+        performances: data.performances
+      }))
+      .sort((a, b) => a.quarter.localeCompare(b.quarter));
+
+    // Format top songs (top 20)
+    const topSongs = Array.from(songMap.entries())
+      .map(([title, data]) => ({
+        title,
+        revenue: smartRound(data.revenue),
+        netRevenue: smartRound(data.netRevenue),
+        performances: data.performances,
+        territoryCount: data.territories.size,
+        perfSourceCount: data.perfSources.size
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 20);
+
+    // Calculate totals and KPIs
+    const totalRevenue = smartRound(items.reduce((sum, i) => sum + Number(i.revenue), 0));
+    const totalNetRevenue = smartRound(items.reduce((sum, i) => sum + Number(i.netRevenue), 0));
+    const totalCommission = smartRound(items.reduce((sum, i) => sum + Number(i.commissionAmount), 0));
+    const totalPerformances = items.reduce((sum, i) => sum + Number(i.performances), 0);
+    const avgRevenuePerItem = items.length > 0 ? smartRound(totalRevenue / items.length) : 0;
+    const marginPercentage = totalRevenue > 0 ? smartRound(((totalRevenue - totalNetRevenue) / totalRevenue) * 100) : 0;
+
+    // Statement summary
+    const statementSummary = bmiStatements.map(s => {
+      const statementMeta = s.metadata as any;
+      return {
+        id: s.id,
+        filename: s.filename,
+        period: s.statementPeriod,
+        uploadDate: s.uploadDate,
+        revenue: Number(s.totalRevenue),
+        netRevenue: Number(s.totalNet),
+        commission: Number(s.totalCommission),
+        itemCount: s._count.items,
+        // Include analytics summary from statement metadata if available
+        analytics: statementMeta?.analytics || null
+      };
+    });
+
+    res.json({
+      // KPIs
+      kpis: {
+        totalRevenue,
+        totalNetRevenue,
+        totalCommission,
+        totalPerformances,
+        totalItems: items.length,
+        totalStatements: bmiStatements.length,
+        uniqueSongs: songMap.size,
+        uniqueTerritories: territoryMap.size,
+        uniqueCountries: countryMap.size,
+        uniquePerfSources: perfSourceMap.size,
+        avgRevenuePerItem,
+        marginPercentage
+      },
+      // Chart data
+      territories,
+      countries,
+      perfSources,
+      timeline,
+      topSongs,
+      // Statement details
+      statements: statementSummary
+    });
+  } catch (error) {
+    console.error('BMI Analytics error:', error);
+    res.status(500).json({ error: 'Failed to fetch BMI analytics' });
+  }
+});
+
 export default router;

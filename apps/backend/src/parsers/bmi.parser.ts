@@ -77,6 +77,34 @@ export class BMIParser {
       'region',
       'location',
     ];
+    // BMI-specific analytics columns
+    const perfSourceKeywords = [
+      'perf source',
+      'performance source',
+      'source',
+      'medium',
+      'perf type',
+      'performance type',
+    ];
+    const countryKeywords = [
+      'country of perf',
+      'country of performance',
+      'perf country',
+      'country code',
+    ];
+    const workNumberKeywords = [
+      'bmi work',
+      'work number',
+      'work id',
+      'bmi work no',
+      'work #',
+    ];
+    const quarterKeywords = [
+      'quarter',
+      'period',
+      'qtr',
+      'distribution period',
+    ];
 
     const titleIndex = findHeaderIndexByKeywords(header, titleKeywords);
     const amountIndex = findHeaderIndexByKeywords(header, amountKeywords);
@@ -85,6 +113,11 @@ export class BMIParser {
       performancesKeywords
     );
     const territoryIndex = findHeaderIndexByKeywords(header, territoryKeywords);
+    // BMI-specific analytics columns
+    const perfSourceIndex = findHeaderIndexByKeywords(header, perfSourceKeywords);
+    const countryIndex = findHeaderIndexByKeywords(header, countryKeywords);
+    const workNumberIndex = findHeaderIndexByKeywords(header, workNumberKeywords);
+    const quarterIndex = findHeaderIndexByKeywords(header, quarterKeywords);
 
     // Validate required columns found
     if (titleIndex === -1) {
@@ -104,9 +137,23 @@ export class BMIParser {
       performancesIndex !== -1 ? header[performancesIndex] : null;
     const territoryCol =
       territoryIndex !== -1 ? header[territoryIndex] : null;
+    // BMI-specific analytics columns
+    const perfSourceCol =
+      perfSourceIndex !== -1 ? header[perfSourceIndex] : null;
+    const countryCol =
+      countryIndex !== -1 ? header[countryIndex] : null;
+    const workNumberCol =
+      workNumberIndex !== -1 ? header[workNumberIndex] : null;
+    const quarterCol =
+      quarterIndex !== -1 ? header[quarterIndex] : null;
 
     let totalRevenue = 0;
     let totalPerformances = 0;
+
+    // Track unique values for analytics summary
+    const uniqueTerritories = new Set<string>();
+    const uniquePerfSources = new Set<string>();
+    const uniqueCountries = new Set<string>();
 
     // Process each row (same logic as PHP)
     for (const row of data) {
@@ -120,6 +167,16 @@ export class BMIParser {
         ? parseIntValue(row[performancesCol])
         : 0;
       const territory = territoryCol ? row[territoryCol]?.trim() || null : null;
+      // Extract BMI-specific analytics fields
+      const perfSource = perfSourceCol ? row[perfSourceCol]?.trim() || null : null;
+      const countryOfPerformance = countryCol ? row[countryCol]?.trim() || null : null;
+      const bmiWorkNumber = workNumberCol ? row[workNumberCol]?.trim() || null : null;
+      const quarter = quarterCol ? row[quarterCol]?.trim() || null : null;
+
+      // Track unique values for summary
+      if (territory) uniqueTerritories.add(territory);
+      if (perfSource) uniquePerfSources.add(perfSource);
+      if (countryOfPerformance) uniqueCountries.add(countryOfPerformance);
 
       totalRevenue += amount;
       totalPerformances += performances;
@@ -150,7 +207,7 @@ export class BMIParser {
         });
       }
 
-      // Create item for database insertion
+      // Create item for database insertion with analytics metadata
       items.push({
         workTitle: title,
         revenue: amount,
@@ -159,6 +216,11 @@ export class BMIParser {
           source: 'BMI',
           rawRow: row,
           territory,
+          // BMI-specific analytics fields
+          perfSource,
+          countryOfPerformance,
+          bmiWorkNumber,
+          quarter,
         },
       });
     }
@@ -175,6 +237,15 @@ export class BMIParser {
         filename,
         parsedAt: new Date().toISOString(),
         rowCount: data.length,
+        // Analytics summary for quick reference
+        analytics: {
+          uniqueTerritories: Array.from(uniqueTerritories),
+          uniquePerfSources: Array.from(uniquePerfSources),
+          uniqueCountries: Array.from(uniqueCountries),
+          territoryCount: uniqueTerritories.size,
+          perfSourceCount: uniquePerfSources.size,
+          countryCount: uniqueCountries.size,
+        },
       },
     };
   }

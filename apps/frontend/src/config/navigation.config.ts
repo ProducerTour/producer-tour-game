@@ -81,6 +81,7 @@ export const adminNavigation: NavSection[] = [
         children: [
           { id: 'all-analytics', label: 'All Analytics', icon: 'chart' },
           { id: 'mlc-analytics', label: 'MLC Analytics', icon: 'music' },
+          { id: 'bmi-analytics', label: 'BMI Analytics', icon: 'music' },
         ],
       },
       { id: 'billing-hub', label: 'Billing Hub', icon: 'credit-card' },

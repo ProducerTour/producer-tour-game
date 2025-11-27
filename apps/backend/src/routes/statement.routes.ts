@@ -437,6 +437,234 @@ router.get(
 );
 
 /**
+ * GET /api/statements/my/:id/items
+ * Get writer's detailed items (songs) for a specific statement
+ * Writers can see their assigned songs with revenue breakdown
+ */
+router.get('/my/:id/items', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+    const isWriter = req.user!.role === 'WRITER';
+
+    // Only writers can access this endpoint
+    if (!isWriter) {
+      return res.status(403).json({ error: 'This endpoint is for writers only' });
+    }
+
+    // Get the statement with writer's items
+    const statement = await prisma.statement.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        proType: true,
+        status: true,
+        statementPeriod: true,
+        periodStart: true,
+        periodEnd: true,
+        uploadDate: true,
+        items: {
+          where: {
+            userId,
+            isVisibleToWriter: true
+          },
+          select: {
+            id: true,
+            workTitle: true,
+            revenue: true,
+            netRevenue: true,
+            commissionAmount: true,
+            commissionRate: true,
+            performances: true,
+            splitPercentage: true,
+            metadata: true
+          },
+          orderBy: { netRevenue: 'desc' }
+        }
+      }
+    });
+
+    if (!statement) {
+      return res.status(404).json({ error: 'Statement not found' });
+    }
+
+    // Only allow access to published statements
+    if (statement.status !== 'PUBLISHED') {
+      return res.status(403).json({ error: 'Statement is not yet available' });
+    }
+
+    // Calculate totals
+    const totalGross = statement.items.reduce((sum, item) => sum + Number(item.revenue), 0);
+    const totalNet = statement.items.reduce((sum, item) => sum + Number(item.netRevenue), 0);
+    const totalCommission = statement.items.reduce((sum, item) => sum + Number(item.commissionAmount), 0);
+    const totalPerformances = statement.items.reduce((sum, item) => sum + Number(item.performances), 0);
+
+    // Format items for response
+    const formattedItems = statement.items.map(item => ({
+      id: item.id,
+      workTitle: item.workTitle,
+      grossRevenue: Number(item.revenue),
+      netRevenue: Number(item.netRevenue),
+      commission: Number(item.commissionAmount),
+      commissionRate: Number(item.commissionRate),
+      performances: Number(item.performances),
+      splitPercentage: Number(item.splitPercentage),
+      // Include relevant metadata for analytics (territory, etc.)
+      territory: (item.metadata as any)?.territory || null,
+      perfSource: (item.metadata as any)?.perfSource || null,
+      countryOfPerformance: (item.metadata as any)?.countryOfPerformance || null
+    }));
+
+    res.json({
+      statement: {
+        id: statement.id,
+        proType: statement.proType,
+        period: statement.statementPeriod,
+        periodStart: statement.periodStart,
+        periodEnd: statement.periodEnd,
+        uploadDate: statement.uploadDate
+      },
+      items: formattedItems,
+      totals: {
+        grossRevenue: totalGross,
+        netRevenue: totalNet,
+        commission: totalCommission,
+        performances: totalPerformances,
+        songCount: statement.items.length
+      }
+    });
+  } catch (error) {
+    console.error('Get writer statement items error:', error);
+    res.status(500).json({ error: 'Failed to fetch statement items' });
+  }
+});
+
+/**
+ * GET /api/statements/my/:id/export
+ * Export writer's statement items as CSV
+ * Allows writers to download their earnings breakdown
+ */
+router.get('/my/:id/export', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+    const isWriter = req.user!.role === 'WRITER';
+
+    // Only writers can access this endpoint
+    if (!isWriter) {
+      return res.status(403).json({ error: 'This endpoint is for writers only' });
+    }
+
+    // Get writer info for the filename
+    const writer = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true }
+    });
+
+    // Get the statement with writer's items
+    const statement = await prisma.statement.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        proType: true,
+        status: true,
+        statementPeriod: true,
+        periodStart: true,
+        periodEnd: true,
+        items: {
+          where: {
+            userId,
+            isVisibleToWriter: true
+          },
+          select: {
+            workTitle: true,
+            revenue: true,
+            netRevenue: true,
+            commissionAmount: true,
+            commissionRate: true,
+            performances: true,
+            splitPercentage: true,
+            metadata: true
+          },
+          orderBy: { netRevenue: 'desc' }
+        }
+      }
+    });
+
+    if (!statement) {
+      return res.status(404).json({ error: 'Statement not found' });
+    }
+
+    // Only allow access to published statements
+    if (statement.status !== 'PUBLISHED') {
+      return res.status(403).json({ error: 'Statement is not yet available' });
+    }
+
+    // Calculate totals
+    const totalGross = statement.items.reduce((sum, item) => sum + Number(item.revenue), 0);
+    const totalNet = statement.items.reduce((sum, item) => sum + Number(item.netRevenue), 0);
+    const totalCommission = statement.items.reduce((sum, item) => sum + Number(item.commissionAmount), 0);
+    const totalPerformances = statement.items.reduce((sum, item) => sum + Number(item.performances), 0);
+
+    // Build CSV content
+    const headers = [
+      'Song Title',
+      'Gross Revenue',
+      'Commission Rate (%)',
+      'Commission Amount',
+      'Net Revenue',
+      'Performances',
+      'Split (%)',
+      'Territory',
+      'Performance Source'
+    ];
+
+    const rows = statement.items.map(item => {
+      const metadata = item.metadata as any;
+      return [
+        `"${(item.workTitle || '').replace(/"/g, '""')}"`,
+        Number(item.revenue).toFixed(4),
+        Number(item.commissionRate).toFixed(2),
+        Number(item.commissionAmount).toFixed(4),
+        Number(item.netRevenue).toFixed(4),
+        Number(item.performances),
+        Number(item.splitPercentage).toFixed(2),
+        `"${(metadata?.territory || metadata?.countryOfPerformance || '').replace(/"/g, '""')}"`,
+        `"${(metadata?.perfSource || '').replace(/"/g, '""')}"`
+      ].join(',');
+    });
+
+    // Add totals row
+    rows.push(''); // Empty row
+    rows.push([
+      '"TOTALS"',
+      totalGross.toFixed(4),
+      '',
+      totalCommission.toFixed(4),
+      totalNet.toFixed(4),
+      totalPerformances,
+      '',
+      '',
+      ''
+    ].join(','));
+
+    const csv = [headers.join(','), ...rows].join('\n');
+
+    // Generate filename
+    const writerName = writer ? `${writer.firstName || ''}_${writer.lastName || ''}`.replace(/\s+/g, '_') : 'writer';
+    const periodStr = statement.statementPeriod || formatExportDate(new Date());
+    const filename = `${statement.proType}_Statement_${writerName}_${periodStr}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (error) {
+    console.error('Export writer statement error:', error);
+    res.status(500).json({ error: 'Failed to export statement' });
+  }
+});
+
+/**
  * GET /api/statements/:id
  * Get statement details
  */
@@ -1480,7 +1708,10 @@ router.post(
 
       // Run fuzzy matching on all songs
       // Returns ALL publisher rows (for MLC, same song can appear multiple times with different publishers)
-      const matchResults = await smartMatchStatement(parsedItems);
+      // Pass proType so BMI/ASCAP/etc. statements only match writers with that PRO affiliation
+      const matchResults = await smartMatchStatement(parsedItems, {
+        proType: statement.proType as 'BMI' | 'ASCAP' | 'SESAC' | 'GMR' | 'MLC' | 'SOCAN' | 'PRS' | 'OTHER'
+      });
 
       // Categorize matches by confidence
       const autoAssigned: any[] = []; // >90% confidence - can auto-assign

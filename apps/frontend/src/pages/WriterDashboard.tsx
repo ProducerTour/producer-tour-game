@@ -1318,10 +1318,17 @@ function PaymentStatusIndicator({ status }: { status: any }) {
 }
 
 function StatementCard({ statement }: { statement: any }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [items, setItems] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+
   const proColors: Record<string, string> = {
     BMI: 'from-blue-500/20 to-blue-600/20 border-blue-500/30',
     ASCAP: 'from-green-500/20 to-green-600/20 border-green-500/30',
     SESAC: 'from-purple-500/20 to-purple-600/20 border-purple-500/30',
+    MLC: 'from-orange-500/20 to-orange-600/20 border-orange-500/30',
+    GMR: 'from-pink-500/20 to-pink-600/20 border-pink-500/30',
   };
 
   const statusColors: Record<string, string> = {
@@ -1340,34 +1347,135 @@ function StatementCard({ statement }: { statement: any }) {
     return 'Period not specified';
   };
 
+  const handleExpand = async () => {
+    if (!isExpanded && !hasLoaded) {
+      setIsLoading(true);
+      try {
+        const response = await statementApi.getMyStatementItems(statement.id);
+        setItems(response.data.items || []);
+        setHasLoaded(true);
+      } catch (error) {
+        console.error('Failed to load statement items:', error);
+        toast.error('Failed to load song details');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    setIsExpanded(!isExpanded);
+  };
+
+  const handleDownload = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    statementApi.exportMyStatement(statement.id);
+    toast.success('Downloading statement...');
+  };
+
   return (
-    <div className={`bg-gradient-to-br ${proColors[statement.proType] || proColors.BMI} border rounded-lg p-5 hover:shadow-lg transition-shadow`}>
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <h4 className="text-lg font-bold text-white">{statement.proType}</h4>
-          <p className="text-xs text-gray-400 mt-1">{formatPeriod(statement)}</p>
+    <div className={`bg-gradient-to-br ${proColors[statement.proType] || proColors.BMI} border rounded-xl overflow-hidden hover:shadow-lg transition-all`}>
+      {/* Header - Clickable to expand */}
+      <div
+        className="p-5 cursor-pointer"
+        onClick={handleExpand}
+      >
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <h4 className="text-lg font-bold text-white">{statement.proType}</h4>
+            <p className="text-xs text-gray-400 mt-1">{formatPeriod(statement)}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`px-2 py-1 rounded text-xs font-medium border ${statusColors[statement.status] || statusColors.UPLOADED}`}>
+              {statement.status}
+            </span>
+            <button
+              onClick={handleDownload}
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              title="Download CSV"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </button>
+          </div>
         </div>
-        <span className={`px-2 py-1 rounded text-xs font-medium border ${statusColors[statement.status] || statusColors.UPLOADED}`}>
-          {statement.status}
-        </span>
+
+        <div className="space-y-2 mt-4">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-400">Songs:</span>
+            <span className="text-white font-medium">{statement.itemCount || 0}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-400">Performances:</span>
+            <span className="text-white font-medium">{Number(statement.totalPerformances || 0).toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between text-sm pt-2 border-t border-white/10">
+            <span className="text-gray-400">Net Revenue:</span>
+            <span className="text-green-400 font-bold text-lg">
+              ${Number(statement.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+        </div>
+
+        {/* Expand indicator */}
+        <div className="flex items-center justify-center mt-4 text-gray-400">
+          <span className="text-xs mr-1">{isExpanded ? 'Hide' : 'View'} Songs</span>
+          <svg
+            className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
       </div>
 
-      <div className="space-y-2 mt-4">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-400">Items:</span>
-          <span className="text-white font-medium">{statement.itemCount || 0}</span>
+      {/* Expanded song list */}
+      {isExpanded && (
+        <div className="border-t border-white/10 bg-black/20">
+          {isLoading ? (
+            <div className="p-4 text-center">
+              <Loader2 className="w-5 h-5 animate-spin text-white mx-auto" />
+              <p className="text-xs text-gray-400 mt-2">Loading songs...</p>
+            </div>
+          ) : items.length > 0 ? (
+            <div className="max-h-64 overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-black/30 sticky top-0">
+                  <tr>
+                    <th className="text-left text-gray-400 font-medium px-4 py-2">Song</th>
+                    <th className="text-right text-gray-400 font-medium px-4 py-2">Perfs</th>
+                    <th className="text-right text-gray-400 font-medium px-4 py-2">Net</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {items.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-white/5">
+                      <td className="px-4 py-2">
+                        <p className="text-white truncate max-w-[180px]" title={item.workTitle}>
+                          {item.workTitle}
+                        </p>
+                        {item.territory && (
+                          <p className="text-xs text-gray-500">{item.territory}</p>
+                        )}
+                      </td>
+                      <td className="text-right text-gray-300 px-4 py-2">
+                        {Number(item.performances || 0).toLocaleString()}
+                      </td>
+                      <td className="text-right text-green-400 font-medium px-4 py-2">
+                        ${Number(item.netRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-4 text-center text-gray-400 text-sm">
+              No song details available
+            </div>
+          )}
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-400">Performances:</span>
-          <span className="text-white font-medium">{Number(statement.totalPerformances || 0).toLocaleString()}</span>
-        </div>
-        <div className="flex justify-between text-sm pt-2 border-t border-white/10">
-          <span className="text-gray-400">Revenue:</span>
-          <span className="text-green-400 font-bold text-lg">
-            ${Number(statement.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
