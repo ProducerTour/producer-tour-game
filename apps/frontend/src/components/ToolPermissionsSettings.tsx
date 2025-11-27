@@ -229,22 +229,8 @@ export default function ToolPermissionsSettings() {
   const availableTools: AvailableTool[] = availableToolsData?.tools || [];
   const userGrants: UserToolGrant[] = userGrantsData?.permissions || [];
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        <span className="ml-2 text-text-muted">Loading tool permissions...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-lg">
-        <p className="text-red-400">Failed to load tool permissions. Please try again.</p>
-      </div>
-    );
-  }
+  // Only show loading for role-based permissions when on roles tab
+  // User access tab should work independently
 
   return (
     <div className="space-y-6">
@@ -524,25 +510,43 @@ export default function ToolPermissionsSettings() {
       {/* ROLE-BASED ACCESS SECTION */}
       {activeSection === 'roles' && (
         <div className="space-y-6">
-          {/* Success indicator */}
-          {!hasChanges && localPermissions.length > 0 && (
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
-              <p className="text-sm text-green-300">
-                Tool permissions are saved and active. Changes take effect immediately.
-              </p>
+          {/* Loading state for roles */}
+          {isLoading && (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              <span className="ml-2 text-text-muted">Loading role permissions...</span>
             </div>
           )}
 
-          {/* Info Banner */}
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-            <p className="text-sm text-blue-300">
-              Enable access for specific roles by checking the boxes below.
-              Changes will apply to all users with those roles immediately after saving.
-            </p>
-          </div>
+          {/* Error state for roles */}
+          {error && !isLoading && (
+            <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <p className="text-red-400">Failed to load role permissions. Please try again.</p>
+            </div>
+          )}
 
-          {/* Permissions Table */}
+          {/* Content when loaded */}
+          {!isLoading && !error && (
+            <>
+              {/* Success indicator */}
+              {!hasChanges && localPermissions.length > 0 && (
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                  <p className="text-sm text-green-300">
+                    Tool permissions are saved and active. Changes take effect immediately.
+                  </p>
+                </div>
+              )}
+
+              {/* Info Banner */}
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <p className="text-sm text-blue-300">
+                  Enable access for specific roles by checking the boxes below.
+                  Changes will apply to all users with those roles immediately after saving.
+                </p>
+              </div>
+
+              {/* Permissions Table */}
       <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -650,6 +654,8 @@ export default function ToolPermissionsSettings() {
           </div>
         </div>
       </div>
+            </>
+          )}
         </div>
       )}
     </div>
