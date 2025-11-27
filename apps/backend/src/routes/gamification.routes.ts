@@ -2232,4 +2232,383 @@ router.put('/admin/config/points', authenticate, requireAdmin, async (req: AuthR
   }
 });
 
+// ===== ADMIN TOOL PERMISSIONS MANAGEMENT =====
+
+// Available tools that can be granted
+const AVAILABLE_TOOLS = [
+  { id: 'type-beat-video-maker', name: 'Type Beat Video Maker', description: 'Create professional videos for type beats' },
+  { id: 'session-payout', name: 'Session Payout Tool', description: 'Calculate and manage session payouts' },
+  { id: 'work-registration', name: 'Work Registration', description: 'Register musical works with PROs' },
+  { id: 'metadata-index', name: 'Metadata Index', description: 'Search and explore music metadata' },
+  { id: 'pub-deal-simulator', name: 'Pub Deal Simulator', description: 'Simulate publishing deal scenarios' },
+  { id: 'advance-estimator', name: 'Advance Estimator', description: 'Estimate publishing advances' },
+];
+
+// Get list of available tools
+router.get('/admin/tools/available', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  res.json({ tools: AVAILABLE_TOOLS });
+});
+
+// Get all tool permissions across users
+router.get('/admin/tools/permissions', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const search = req.query.search as string;
+    const toolId = req.query.toolId as string;
+    const type = req.query.type as string;
+
+    const where: any = {
+      status: 'ACTIVE',
+    };
+
+    if (toolId) {
+      where.toolId = toolId;
+    }
+
+    if (type) {
+      where.type = type;
+    }
+
+    if (search) {
+      where.user = {
+        OR: [
+          { email: { contains: search, mode: 'insensitive' } },
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastName: { contains: search, mode: 'insensitive' } },
+        ],
+      };
+    }
+
+    const [permissions, total] = await Promise.all([
+      prisma.toolSubscription.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.toolSubscription.count({ where }),
+    ]);
+
+    res.json({
+      permissions: permissions.map((p) => ({
+        id: p.id,
+        userId: p.userId,
+        userName: `${p.user.firstName || ''} ${p.user.lastName || ''}`.trim() || p.user.email,
+        userEmail: p.user.email,
+        userRole: p.user.role,
+        toolId: p.toolId,
+        toolName: p.toolName,
+        type: p.type,
+        status: p.status,
+        expiresAt: p.expiresAt,
+        grantedById: p.grantedById,
+        grantReason: p.grantReason,
+        createdAt: p.createdAt,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error('Get tool permissions error:', error);
+    res.status(500).json({ error: 'Failed to get tool permissions' });
+  }
+});
+
+// Get a specific user's tool permissions
+router.get('/admin/users/:userId/tools', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const permissions = await prisma.toolSubscription.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Check which tools user has access to
+    const toolAccess = AVAILABLE_TOOLS.map((tool) => {
+      const permission = permissions.find(
+        (p) => p.toolId === tool.id && p.status === 'ACTIVE' && (!p.expiresAt || p.expiresAt > new Date())
+      );
+      return {
+        ...tool,
+        hasAccess: !!permission || user.role === 'ADMIN' || user.role === 'WRITER',
+        accessType: permission?.type || (user.role === 'ADMIN' || user.role === 'WRITER' ? 'ROLE_BASED' : null),
+        expiresAt: permission?.expiresAt,
+        grantReason: permission?.grantReason,
+        permissionId: permission?.id,
+      };
+    });
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        role: user.role,
+      },
+      tools: toolAccess,
+      permissions,
+    });
+  } catch (error) {
+    console.error('Get user tools error:', error);
+    res.status(500).json({ error: 'Failed to get user tool permissions' });
+  }
+});
+
+// Grant tool access to a user
+router.post('/admin/users/:userId/tools/grant', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { toolId, reason, expiresInDays } = req.body;
+    const adminId = req.user!.id;
+
+    if (!toolId) {
+      return res.status(400).json({ error: 'toolId is required' });
+    }
+
+    // Validate tool exists
+    const tool = AVAILABLE_TOOLS.find((t) => t.id === toolId);
+    if (!tool) {
+      return res.status(400).json({ error: 'Invalid toolId' });
+    }
+
+    // Check user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if user already has admin-granted access to this tool
+    const existingPermission = await prisma.toolSubscription.findFirst({
+      where: {
+        userId,
+        toolId,
+        type: 'ADMIN_GRANTED',
+        status: 'ACTIVE',
+      },
+    });
+
+    if (existingPermission) {
+      return res.status(400).json({
+        error: 'User already has admin-granted access to this tool',
+        existingPermission,
+      });
+    }
+
+    // Calculate expiration date
+    let expiresAt: Date | null = null;
+    if (expiresInDays && expiresInDays > 0) {
+      expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+    }
+
+    // Create the permission
+    const permission = await prisma.toolSubscription.create({
+      data: {
+        userId,
+        toolId,
+        toolName: tool.name,
+        type: 'ADMIN_GRANTED',
+        status: 'ACTIVE',
+        usesRemaining: 0, // Unlimited
+        usesTotal: 0,
+        grantedById: adminId,
+        grantReason: reason || 'Admin granted access',
+        expiresAt,
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Granted "${tool.name}" access to ${user.email}`,
+      permission: {
+        id: permission.id,
+        toolId: permission.toolId,
+        toolName: permission.toolName,
+        expiresAt: permission.expiresAt,
+        grantReason: permission.grantReason,
+      },
+    });
+  } catch (error) {
+    console.error('Grant tool access error:', error);
+    res.status(500).json({ error: 'Failed to grant tool access' });
+  }
+});
+
+// Revoke tool access from a user
+router.post('/admin/users/:userId/tools/revoke', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { toolId, permissionId } = req.body;
+
+    if (!toolId && !permissionId) {
+      return res.status(400).json({ error: 'toolId or permissionId is required' });
+    }
+
+    // Check user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Find and update the permission
+    const where: any = { userId };
+    if (permissionId) {
+      where.id = permissionId;
+    } else {
+      where.toolId = toolId;
+      where.type = 'ADMIN_GRANTED';
+      where.status = 'ACTIVE';
+    }
+
+    const permission = await prisma.toolSubscription.findFirst({ where });
+
+    if (!permission) {
+      return res.status(404).json({ error: 'Permission not found' });
+    }
+
+    // Only allow revoking admin-granted permissions
+    if (permission.type !== 'ADMIN_GRANTED') {
+      return res.status(400).json({
+        error: 'Can only revoke admin-granted permissions. This permission is type: ' + permission.type
+      });
+    }
+
+    // Revoke by setting status to CANCELLED
+    await prisma.toolSubscription.update({
+      where: { id: permission.id },
+      data: { status: 'CANCELLED' },
+    });
+
+    res.json({
+      success: true,
+      message: `Revoked "${permission.toolName}" access from ${user.email}`,
+    });
+  } catch (error) {
+    console.error('Revoke tool access error:', error);
+    res.status(500).json({ error: 'Failed to revoke tool access' });
+  }
+});
+
+// Bulk grant tool access to multiple users
+router.post('/admin/tools/bulk-grant', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { userIds, toolId, reason, expiresInDays } = req.body;
+    const adminId = req.user!.id;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ error: 'userIds array is required' });
+    }
+
+    if (!toolId) {
+      return res.status(400).json({ error: 'toolId is required' });
+    }
+
+    // Validate tool exists
+    const tool = AVAILABLE_TOOLS.find((t) => t.id === toolId);
+    if (!tool) {
+      return res.status(400).json({ error: 'Invalid toolId' });
+    }
+
+    // Calculate expiration date
+    let expiresAt: Date | null = null;
+    if (expiresInDays && expiresInDays > 0) {
+      expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+    }
+
+    // Get existing permissions to avoid duplicates
+    const existingPermissions = await prisma.toolSubscription.findMany({
+      where: {
+        userId: { in: userIds },
+        toolId,
+        type: 'ADMIN_GRANTED',
+        status: 'ACTIVE',
+      },
+      select: { userId: true },
+    });
+
+    const existingUserIds = new Set(existingPermissions.map((p) => p.userId));
+    const newUserIds = userIds.filter((id: string) => !existingUserIds.has(id));
+
+    if (newUserIds.length === 0) {
+      return res.status(400).json({ error: 'All users already have access to this tool' });
+    }
+
+    // Verify all users exist
+    const users = await prisma.user.findMany({
+      where: { id: { in: newUserIds } },
+      select: { id: true, email: true },
+    });
+
+    const validUserIds = users.map((u) => u.id);
+
+    // Create permissions for valid users
+    const created = await prisma.toolSubscription.createMany({
+      data: validUserIds.map((uid) => ({
+        userId: uid,
+        toolId,
+        toolName: tool.name,
+        type: 'ADMIN_GRANTED' as const,
+        status: 'ACTIVE' as const,
+        usesRemaining: 0,
+        usesTotal: 0,
+        grantedById: adminId,
+        grantReason: reason || 'Admin granted access',
+        expiresAt,
+      })),
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Granted "${tool.name}" access to ${created.count} users`,
+      granted: created.count,
+      skipped: userIds.length - created.count,
+      skippedReason: existingUserIds.size > 0 ? 'Already had access' : 'Invalid user IDs',
+    });
+  } catch (error) {
+    console.error('Bulk grant tool access error:', error);
+    res.status(500).json({ error: 'Failed to bulk grant tool access' });
+  }
+});
+
 export default router;

@@ -583,6 +583,43 @@ export const gamificationApi = {
   adminDeleteBorder: (borderId: string) => api.delete(`/gamification/admin/borders/${borderId}`),
   adminGrantBorder: (borderId: string, userId: string) =>
     api.post(`/gamification/admin/borders/${borderId}/grant`, { userId }),
+
+  // === ADMIN TOOL PERMISSIONS ===
+  // Get list of available tools
+  adminGetAvailableTools: () => api.get('/gamification/admin/tools/available'),
+
+  // Get all tool permissions across users
+  adminGetToolPermissions: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    toolId?: string;
+    type?: string;
+  }) => api.get('/gamification/admin/tools/permissions', { params }),
+
+  // Get a specific user's tool permissions
+  adminGetUserTools: (userId: string) => api.get(`/gamification/admin/users/${userId}/tools`),
+
+  // Grant tool access to a user
+  adminGrantToolAccess: (userId: string, data: {
+    toolId: string;
+    reason?: string;
+    expiresInDays?: number;
+  }) => api.post(`/gamification/admin/users/${userId}/tools/grant`, data),
+
+  // Revoke tool access from a user
+  adminRevokeToolAccess: (userId: string, data: {
+    toolId?: string;
+    permissionId?: string;
+  }) => api.post(`/gamification/admin/users/${userId}/tools/revoke`, data),
+
+  // Bulk grant tool access to multiple users
+  adminBulkGrantToolAccess: (data: {
+    userIds: string[];
+    toolId: string;
+    reason?: string;
+    expiresInDays?: number;
+  }) => api.post('/gamification/admin/tools/bulk-grant', data),
 };
 
 // Shop API - E-commerce products and orders

@@ -1373,6 +1373,7 @@ enum ToolSubscriptionType {
   FREE_TRIAL        // Limited trial access
   TOUR_MILES        // Redeemed with Tour Miles
   PAID              // Paid subscription via Stripe
+  ADMIN_GRANTED     // Manually granted by admin
 }
 
 enum ToolSubscriptionStatus {
@@ -1407,6 +1408,10 @@ model ToolSubscription {
 
   // Time-based access
   expiresAt       DateTime?               // When access expires (null = no expiration)
+
+  // Admin grant details
+  grantedById     String?                 // Admin who granted access (for ADMIN_GRANTED type)
+  grantReason     String?                 // Reason for admin grant (beta tester, special access, etc.)
 
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
