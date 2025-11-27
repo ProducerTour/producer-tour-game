@@ -934,6 +934,7 @@ const PayoutsTab: React.FC = () => {
                   <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Items</th>
                   <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Net Paid</th>
                   <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Processed Date</th>
+                  <th className="text-center text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -956,6 +957,27 @@ const PayoutsTab: React.FC = () => {
                     <td className="py-3 px-2 text-sm text-gray-400">
                       {statement.paymentProcessedAt ? formatDate(statement.paymentProcessedAt) : '-'}
                     </td>
+                    <td className="py-3 px-2 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => loadPaymentSummary(statement.id)}
+                          disabled={detailsLoading}
+                          className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                          title="View writer breakdown"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          View
+                        </button>
+                        <button
+                          onClick={() => statementApi.exportCSV(statement.id)}
+                          className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors inline-flex items-center gap-1"
+                          title="Download CSV"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          CSV
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -968,7 +990,7 @@ const PayoutsTab: React.FC = () => {
                   <td className="py-3 px-2 text-right text-green-400 font-bold">
                     {formatCurrency(totalPaidRevenue)}
                   </td>
-                  <td></td>
+                  <td colSpan={2}></td>
                 </tr>
               </tfoot>
             </table>
