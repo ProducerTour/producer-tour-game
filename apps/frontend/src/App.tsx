@@ -40,6 +40,8 @@ import ProductPage from './pages/ProductPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
+import ContactPage from './pages/ContactPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -112,6 +114,7 @@ function App() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
         <Route path="/opportunities" element={<OpportunitiesPage />} />
+        <Route path="/contact" element={<ContactPage />} />
 
         {/* Tool Routes */}
         <Route path="/tools/pub-deal-simulator" element={<PubDealSimulatorPage />} />
@@ -253,6 +256,9 @@ function App() {
         <Route path="/writer/:slug" element={<WriterTourHubPage />} />
 
         <Route path="/" element={<LandingPage />} />
+
+        {/* 404 Catch-all - must be last */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );
