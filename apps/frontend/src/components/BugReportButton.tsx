@@ -86,7 +86,7 @@ Context:
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-full shadow-lg transition-all hover:scale-105 group ${className}`}
+        className={`fixed bottom-6 right-24 z-40 flex items-center gap-2 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-full shadow-lg transition-all hover:scale-105 group ${className}`}
         title="Report a Bug"
       >
         <Bug size={20} className="text-orange-400" />
