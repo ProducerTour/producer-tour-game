@@ -39,7 +39,7 @@ export function Hero() {
           {/* Subtitle */}
           <BlurFade delay={0.2}>
             <p className="text-body-xl text-text-secondary max-w-2xl mx-auto mb-12">
-              We collect your performance royalties, process the complex PRO statements,
+              We collect your performance royalties, process the complex royalty statements,
               and pay you monthly. See every dollar. Control your catalog. Get paid.
             </p>
           </BlurFade>
@@ -77,7 +77,7 @@ export function Hero() {
               {[
                 { label: 'BMI, ASCAP, SESAC' },
                 { label: '$50 Minimum Payout' },
-                { label: 'No Lock-In Contracts' }
+                { label: 'Easy to Onboard' }
               ].map((item, i) => (
                 <motion.div
                   key={item.label}
