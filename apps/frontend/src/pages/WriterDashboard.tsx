@@ -1339,12 +1339,22 @@ function StatementCard({ statement }: { statement: any }) {
   };
 
   const formatPeriod = (statement: any) => {
+    // Try period range first
     if (statement.periodStart && statement.periodEnd) {
       const start = new Date(statement.periodStart);
       const end = new Date(statement.periodEnd);
       return `${start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
     }
-    return 'Period not specified';
+    // Fall back to statementPeriod string (e.g., "Q1 2024")
+    if (statement.statementPeriod) {
+      return statement.statementPeriod;
+    }
+    // Fall back to upload date
+    if (statement.uploadDate) {
+      const uploadDate = new Date(statement.uploadDate);
+      return `Uploaded ${uploadDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+    return 'Date not available';
   };
 
   const handleExpand = async () => {

@@ -182,15 +182,23 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
           totalPerformances: writerPerformances,
           itemCount: statement.items.length, // Show only their items count
           items: undefined, // Remove items from response
+          _hasVisibleItems: statement.items.length > 0, // Flag for filtering
         };
       }
 
       return base;
     });
 
-    const total = await prisma.statement.count({ where });
+    // For writers, only show statements that have visible items (queued for payment)
+    const filteredStatements = isWriter
+      ? statementsWithCount.filter((s: any) => s._hasVisibleItems).map(({ _hasVisibleItems, ...rest }: any) => rest)
+      : statementsWithCount;
 
-    res.json({ statements: statementsWithCount, total });
+    const total = isWriter
+      ? filteredStatements.length
+      : await prisma.statement.count({ where });
+
+    res.json({ statements: filteredStatements, total });
   } catch (error) {
     console.error('Get statements error:', error);
     res.status(500).json({ error: 'Failed to fetch statements' });
