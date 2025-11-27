@@ -1,5 +1,6 @@
 import { Download, Video, Play, Trash2, CheckSquare, Square } from 'lucide-react';
 import JSZip from 'jszip';
+import toast from 'react-hot-toast';
 import type { CompletedVideo } from '../../types/video-maker';
 import { Button } from '../ui/Button';
 import { useState, useEffect } from 'react';
@@ -124,11 +125,31 @@ export function VideoPreview({ videos, onDownloadAll, onSelectVideo, selectedVid
   const handleBulkDelete = () => {
     if (selectedVideos.size === 0) return;
 
-    if (confirm(`Delete ${selectedVideos.size} video(s)?`)) {
-      onBulkDelete?.(Array.from(selectedVideos));
-      setSelectedVideos(new Set());
-      setSelectionMode(false);
-    }
+    toast((t) => (
+      <div className="flex flex-col gap-2">
+        <span>Delete {selectedVideos.size} video{selectedVideos.size > 1 ? 's' : ''}?</span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              onBulkDelete?.(Array.from(selectedVideos));
+              setSelectedVideos(new Set());
+              setSelectionMode(false);
+              toast.dismiss(t.id);
+              toast.success(`Deleted ${selectedVideos.size} video${selectedVideos.size > 1 ? 's' : ''}`);
+            }}
+            className="px-3 py-1 bg-red-500 text-white rounded text-sm font-medium hover:bg-red-600"
+          >
+            Delete
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="px-3 py-1 bg-zinc-600 text-white rounded text-sm font-medium hover:bg-zinc-500"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    ), { duration: 10000 });
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -315,19 +336,56 @@ export function VideoPreview({ videos, onDownloadAll, onSelectVideo, selectedVid
                 <span>{formatDuration(video.duration)}</span>
               </div>
 
-              {/* Download Button */}
+              {/* Action Buttons */}
               {!selectionMode && (
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDownload(video);
-                  }}
-                  className="w-full bg-gradient-to-r from-brand-blue to-blue-500 hover:from-brand-blue hover:to-blue-600"
-                  size="sm"
-                >
-                  <Download size={12} className="mr-1" />
-                  Download Video
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload(video);
+                    }}
+                    className="flex-1 bg-gradient-to-r from-brand-blue to-blue-500 hover:from-brand-blue hover:to-blue-600"
+                    size="sm"
+                  >
+                    <Download size={12} className="mr-1" />
+                    Download
+                  </Button>
+                  {onBulkDelete && (
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toast((t) => (
+                          <div className="flex flex-col gap-2">
+                            <span className="text-sm">Delete "{video.name}"?</span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  onBulkDelete([video.id]);
+                                  toast.dismiss(t.id);
+                                  toast.success('Video deleted');
+                                }}
+                                className="px-3 py-1 bg-red-500 text-white rounded text-sm font-medium hover:bg-red-600"
+                              >
+                                Delete
+                              </button>
+                              <button
+                                onClick={() => toast.dismiss(t.id)}
+                                className="px-3 py-1 bg-zinc-600 text-white rounded text-sm font-medium hover:bg-zinc-500"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ), { duration: 10000 });
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="border-red-500/50 text-red-400 hover:bg-red-500/20"
+                    >
+                      <Trash2 size={12} />
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           </div>
