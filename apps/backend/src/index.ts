@@ -36,7 +36,8 @@ import creditSuggestionsRoutes from './routes/creditSuggestions.routes';
 import gamificationRoutes from './routes/gamification.routes';
 import spotifyRoutes from './routes/spotify.routes';
 import chatRoutes from './routes/chat.routes';
-import contactsRoutes from './routes/contacts.routes';
+import socialContactsRoutes from './routes/contacts.routes';
+import businessContactsRoutes from './routes/business-contacts.routes';
 import profileRoutes from './routes/profile.routes';
 import youtubeRoutes from './routes/youtube.routes';
 import shopRoutes from './routes/shop.routes';
@@ -165,7 +166,8 @@ app.use('/api/credit-suggestions', creditSuggestionsRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/spotify', spotifyRoutes);
 app.use('/api/chat', chatRoutes);
-app.use('/api/contacts', contactsRoutes);
+app.use('/api/contacts', businessContactsRoutes); // Business contacts directory (labels, publishers, etc.)
+app.use('/api/social-contacts', socialContactsRoutes); // Social contacts (user friends)
 app.use('/api/profile', profileRoutes);
 app.use('/api/youtube', youtubeRoutes);
 app.use('/api/shop', shopRoutes);

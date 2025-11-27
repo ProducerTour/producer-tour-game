@@ -2039,3 +2039,40 @@ model UserBorder {
   @@index([isEquipped])
   @@map("user_borders")
 }
+
+// ========================================
+// BUSINESS CONTACTS DIRECTORY
+// Admin contacts for labels, publishers, etc.
+// ========================================
+
+enum BusinessContactCategory {
+  LABEL
+  PUBLISHER
+  DISTRIBUTOR
+  ATTORNEY
+  MANAGER
+  OTHER
+}
+
+model BusinessContact {
+  id          String                  @id @default(cuid())
+  companyName String
+  contactName String
+  email       String
+  phone       String?
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?
+  country     String?                 @default("USA")
+  category    BusinessContactCategory @default(OTHER)
+  notes       String?                 @db.Text
+
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@index([category])
+  @@index([companyName])
+  @@index([email])
+  @@map("business_contacts")
+}
