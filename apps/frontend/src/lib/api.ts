@@ -515,6 +515,7 @@ export const gamificationApi = {
   // Tool Access
   checkToolAccess: (toolId: string) => api.get(`/gamification/tools/${toolId}/access`),
   getUserToolAccess: () => api.get('/gamification/tools/access'),
+  getToolReward: (toolId: string) => api.get(`/gamification/tools/${toolId}/reward`),
 
   // Monthly Payout Access
   checkMonthlyPayoutAccess: () => api.get('/gamification/payout/monthly-access'),

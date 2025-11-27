@@ -13,19 +13,30 @@ router.use(authenticate);
 /**
  * GET /api/users
  * List all users (Admin only)
+ * Supports search by email, firstName, lastName
  */
 router.get('/', requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
-    const { role, limit = '50', offset = '0' } = req.query;
+    const { role, search, limit = '50', offset = '0' } = req.query;
 
     const where: any = {};
     if (role) where.role = role;
+
+    // Add search functionality
+    if (search && typeof search === 'string' && search.length >= 2) {
+      where.OR = [
+        { email: { contains: search, mode: 'insensitive' } },
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     const users = await prisma.user.findMany({
       where,
       take: parseInt(limit as string),
       skip: parseInt(offset as string),
       include: { producer: true },
+      orderBy: { createdAt: 'desc' },
     });
 
     // Remove password hash from response for security

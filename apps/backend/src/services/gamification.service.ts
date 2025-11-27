@@ -567,6 +567,9 @@ export const redeemReward = async (userId: string, rewardId: string) => {
 
 // Get available rewards for user
 export const getAvailableRewards = async (userId: string) => {
+  // Initialize gamification for user if not exists
+  await initializeUserGamification(userId);
+
   const userPoints = await prisma.gamificationPoints.findUnique({
     where: { userId }
   });

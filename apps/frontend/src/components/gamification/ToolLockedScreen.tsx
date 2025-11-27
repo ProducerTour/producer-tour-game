@@ -34,19 +34,13 @@ export function ToolLockedScreen({
     },
   });
 
-  // Get available rewards to find the tool access reward
-  const { data: rewards } = useQuery({
-    queryKey: ['gamification-rewards'],
+  // Get the specific reward for this tool (creates it if it doesn't exist)
+  const { data: toolReward, isLoading: isLoadingReward } = useQuery({
+    queryKey: ['tool-reward', toolId],
     queryFn: async () => {
-      const response = await gamificationApi.getRewards();
+      const response = await gamificationApi.getToolReward(toolId);
       return response.data;
     },
-  });
-
-  // Find the matching reward for this tool
-  const toolReward = rewards?.find((r: any) => {
-    const details = r.details as any;
-    return r.type === 'TOOL_ACCESS' && details?.toolId === toolId;
   });
 
   const actualCost = toolReward?.cost || cost;
@@ -147,7 +141,15 @@ export function ToolLockedScreen({
 
           {/* Action buttons */}
           <div className="space-y-3">
-            {canAfford && toolReward ? (
+            {isLoadingReward ? (
+              <button
+                disabled
+                className="w-full py-3 px-6 bg-gradient-to-r from-amber-500/50 to-orange-500/50 text-white font-semibold rounded-xl transition-all opacity-50 cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Loading...
+              </button>
+            ) : canAfford && toolReward ? (
               <button
                 onClick={handleRedeem}
                 disabled={redeemMutation.isPending}
@@ -165,13 +167,17 @@ export function ToolLockedScreen({
                   </>
                 )}
               </button>
-            ) : (
+            ) : !canAfford ? (
               <Link
                 to="/tour-miles"
                 className="block w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold rounded-xl transition-all text-center"
               >
                 Earn More Tour Miles
               </Link>
+            ) : (
+              <div className="p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                <p className="text-yellow-300 text-sm">This reward is currently unavailable. Please try again later or contact support.</p>
+              </div>
             )}
 
             <Link

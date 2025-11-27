@@ -2611,4 +2611,106 @@ router.post('/admin/tools/bulk-grant', authenticate, requireAdmin, async (req: A
   }
 });
 
+// Ensure default tool access rewards exist (Admin only)
+// This creates the Tour Miles rewards for tools if they don't exist
+router.post('/admin/rewards/ensure-defaults', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const defaultToolRewards = [
+      {
+        name: 'Video Maker Tool Access',
+        description: 'Unlock the Type Beat Video Maker tool for 30 days. Create professional videos by combining beats with images and upload directly to YouTube.',
+        cost: 750,
+        category: 'PLATFORM' as const,
+        type: 'TOOL_ACCESS',
+        roleRestriction: 'CUSTOMER',
+        details: {
+          toolId: 'type-beat-video-maker',
+          durationDays: 30,
+          features: ['Batch processing', 'YouTube upload', '16:9 and 9:16 formats', 'Custom artwork']
+        },
+      },
+    ];
+
+    const results = [];
+
+    for (const reward of defaultToolRewards) {
+      // Check if reward already exists
+      const existing = await prisma.reward.findFirst({
+        where: {
+          type: reward.type,
+          details: {
+            path: ['toolId'],
+            equals: (reward.details as any).toolId
+          }
+        }
+      });
+
+      if (existing) {
+        results.push({ name: reward.name, status: 'already_exists', id: existing.id });
+      } else {
+        const created = await prisma.reward.create({
+          data: reward
+        });
+        results.push({ name: reward.name, status: 'created', id: created.id });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Default rewards ensured',
+      results
+    });
+  } catch (error) {
+    console.error('Ensure default rewards error:', error);
+    res.status(500).json({ error: 'Failed to ensure default rewards' });
+  }
+});
+
+// Get or create a specific tool reward (for customers needing to unlock tools)
+router.get('/tools/:toolId/reward', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { toolId } = req.params;
+
+    // Find the reward for this tool
+    let reward = await prisma.reward.findFirst({
+      where: {
+        type: 'TOOL_ACCESS',
+        isActive: true,
+        details: {
+          path: ['toolId'],
+          equals: toolId
+        }
+      }
+    });
+
+    // If reward doesn't exist, create it (for type-beat-video-maker)
+    if (!reward && toolId === 'type-beat-video-maker') {
+      reward = await prisma.reward.create({
+        data: {
+          name: 'Video Maker Tool Access',
+          description: 'Unlock the Type Beat Video Maker tool for 30 days. Create professional videos by combining beats with images and upload directly to YouTube.',
+          cost: 750,
+          category: 'PLATFORM',
+          type: 'TOOL_ACCESS',
+          roleRestriction: 'CUSTOMER',
+          details: {
+            toolId: 'type-beat-video-maker',
+            durationDays: 30,
+            features: ['Batch processing', 'YouTube upload', '16:9 and 9:16 formats', 'Custom artwork']
+          },
+        }
+      });
+    }
+
+    if (!reward) {
+      return res.status(404).json({ error: 'Tool reward not found' });
+    }
+
+    res.json(reward);
+  } catch (error) {
+    console.error('Get tool reward error:', error);
+    res.status(500).json({ error: 'Failed to get tool reward' });
+  }
+});
+
 export default router;
