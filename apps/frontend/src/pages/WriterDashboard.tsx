@@ -1215,23 +1215,17 @@ function WriterDocumentsSection() {
   );
 }
 
-function StatCard({ title, value, subtitle, color }: { title: string; value: string; subtitle: string; color: 'blue' | 'green' | 'purple' | 'orange' }) {
-  const colorClasses: Record<string, { gradient: string; border: string; accent: string }> = {
-    blue: { gradient: 'from-brand-blue/20 to-brand-blue/5', border: 'border-brand-blue/30', accent: 'bg-brand-blue' },
-    green: { gradient: 'from-green-500/20 to-green-500/5', border: 'border-green-500/30', accent: 'bg-green-500' },
-    purple: { gradient: 'from-purple-500/20 to-purple-500/5', border: 'border-purple-500/30', accent: 'bg-purple-500' },
-    orange: { gradient: 'from-orange-500/20 to-orange-500/5', border: 'border-orange-500/30', accent: 'bg-orange-500' },
-  };
-
-  const styles = colorClasses[color];
-
+function StatCard({ title, value, subtitle }: { title: string; value: string; subtitle: string; color?: string }) {
   return (
-    <div className={`relative overflow-hidden bg-gradient-to-br ${styles.gradient} ${styles.border} border rounded-2xl p-6 backdrop-blur-sm`}>
-      {/* Accent line */}
-      <div className={`absolute top-0 left-0 right-0 h-1 ${styles.accent}`} />
-      <h3 className="text-sm font-medium text-text-secondary mb-2">{title}</h3>
-      <p className="text-3xl font-bold text-white mb-1">{value}</p>
-      <p className="text-xs text-text-muted">{subtitle}</p>
+    <div className="relative overflow-hidden bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 hover:bg-slate-800/80 hover:border-slate-600/50 transition-all duration-300 group">
+      {/* Subtle glow effect on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+
+      <div className="relative">
+        <h3 className="text-sm font-medium text-gray-400 mb-2">{title}</h3>
+        <p className="text-3xl font-bold text-white mb-1 tracking-tight">{value}</p>
+        <p className="text-xs text-gray-500">{subtitle}</p>
+      </div>
     </div>
   );
 }
