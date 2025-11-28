@@ -1,5 +1,6 @@
 import React from 'react';
 import { Wifi, TrendingUp, Clock, AlertCircle } from 'lucide-react';
+import ptLogo from '../assets/images/logos/whitetransparentpt.png';
 
 interface WalletBalance {
   availableBalance: number;
@@ -39,14 +40,25 @@ export const WalletCard: React.FC<WalletCardProps> = ({
         className="relative w-full max-w-[400px] overflow-hidden rounded-2xl shadow-2xl"
         style={{ aspectRatio: '1.586' }}
       >
-        {/* Card Background - Premium gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-          {/* Decorative circles */}
-          <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/10 blur-3xl" />
-          <div className="absolute -left-10 -bottom-10 w-48 h-48 rounded-full bg-gradient-to-br from-emerald-500/15 to-cyan-500/10 blur-2xl" />
-          {/* Subtle pattern overlay */}
-          <div className="absolute inset-0 opacity-5" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        {/* Card Background - Sleek black with shine */}
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-black to-zinc-900">
+          {/* Shine effect - diagonal glossy stripe */}
+          <div
+            className="absolute inset-0 opacity-[0.15]"
+            style={{
+              background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.4) 45%, rgba(255,255,255,0.1) 50%, transparent 55%)',
+            }}
+          />
+          {/* Secondary subtle shine */}
+          <div
+            className="absolute inset-0 opacity-[0.08]"
+            style={{
+              background: 'linear-gradient(160deg, transparent 60%, rgba(255,255,255,0.3) 75%, transparent 85%)',
+            }}
+          />
+          {/* Edge highlight */}
+          <div className="absolute inset-0 rounded-2xl" style={{
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.05) 100%)',
           }} />
         </div>
 
@@ -58,10 +70,12 @@ export const WalletCard: React.FC<WalletCardProps> = ({
           <div className="relative h-full p-5 flex flex-col justify-between">
             {/* Top Row - Logo & Contactless */}
             <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-medium">Producer Tour</p>
-                <p className="text-xs text-gray-500 mt-0.5">Writer Wallet</p>
-              </div>
+              {/* Producer Tour Logo */}
+              <img
+                src={ptLogo}
+                alt="Producer Tour"
+                className="h-8 w-auto opacity-90"
+              />
               <div className="flex items-center gap-2">
                 {/* Contactless icon */}
                 <Wifi className="w-6 h-6 text-gray-400 rotate-90" />
@@ -88,7 +102,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({
               </p>
             </div>
 
-            {/* Bottom Row - Cardholder & Valid */}
+            {/* Bottom Row - Cardholder & Lifetime/Logo */}
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-[8px] uppercase tracking-wider text-gray-500 mb-0.5">Cardholder</p>
@@ -96,19 +110,18 @@ export const WalletCard: React.FC<WalletCardProps> = ({
                   {userName}
                 </p>
               </div>
+
+              {/* Right side - Lifetime earnings above logo */}
               <div className="text-right">
-                <p className="text-[8px] uppercase tracking-wider text-gray-500 mb-0.5">Lifetime</p>
-                <p className="text-xs font-medium text-emerald-400">
+                <p className="text-[8px] uppercase tracking-wider text-gray-500 mb-0.5">Lifetime Earned</p>
+                <p className="text-sm font-semibold text-emerald-400 mb-2">
                   {formatCurrency(balance.lifetimeEarnings)}
                 </p>
-              </div>
-            </div>
-
-            {/* Card brand / Logo */}
-            <div className="absolute bottom-5 right-5">
-              <div className="flex -space-x-2">
-                <div className="w-7 h-7 rounded-full bg-red-500/80" />
-                <div className="w-7 h-7 rounded-full bg-amber-500/80" />
+                {/* Card brand circles */}
+                <div className="flex justify-end -space-x-2">
+                  <div className="w-7 h-7 rounded-full bg-red-500/90" />
+                  <div className="w-7 h-7 rounded-full bg-amber-500/90" />
+                </div>
               </div>
             </div>
           </div>
