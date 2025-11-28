@@ -11,6 +11,7 @@ import { TerritoryHeatmap } from '../TerritoryHeatmap';
 import { ChartCard } from '../ChartCard';
 import { NivoBarChart, NivoPieChart } from '../charts';
 import { useState } from 'react';
+import { useAuthStore } from '../../store/auth.store';
 
 interface WriterOverviewTremorProps {
   onWithdrawClick: () => void;
@@ -18,6 +19,12 @@ interface WriterOverviewTremorProps {
 
 export default function WriterOverviewTremor({ onWithdrawClick }: WriterOverviewTremorProps) {
   const [expandedCharts, setExpandedCharts] = useState<Record<string, boolean>>({});
+  const { user } = useAuthStore();
+
+  // Format user name for card display
+  const userName = user
+    ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'PRODUCER TOUR MEMBER'
+    : 'PRODUCER TOUR MEMBER';
 
   const toggleChartExpansion = (chartId: string) => {
     setExpandedCharts(prev => ({
@@ -185,6 +192,7 @@ export default function WriterOverviewTremor({ onWithdrawClick }: WriterOverview
           balance={walletBalance || { availableBalance: 0, pendingBalance: 0, lifetimeEarnings: 0 }}
           isLoading={balanceLoading}
           onWithdraw={onWithdrawClick}
+          userName={userName}
         />
       </div>
 
