@@ -3,7 +3,7 @@
  * Premium dashboard experience for writers with KPIs, charts, and analytics
  */
 
-import { Card, Title, Text, Metric, Flex, Grid, BadgeDelta, List, ListItem } from '@tremor/react';
+import { Card, Title, Text, Metric, Flex, Grid, List, ListItem } from '@tremor/react';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi, statementApi, payoutApi } from '../../lib/api';
 import { WalletCard } from '../WalletCard';
@@ -107,82 +107,44 @@ export default function WriterOverviewTremor({ onWithdrawClick }: WriterOverview
       {summaryLoading ? (
         <div className="text-center text-text-secondary py-12">Loading...</div>
       ) : (
-        <Grid numItemsSm={2} numItemsLg={4} className="gap-6">
+        <Grid numItemsSm={2} numItemsLg={4} className="gap-4">
           {/* Total Earnings */}
-          <Card
-            className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
-            decoration="top"
-            decorationColor="blue"
-          >
-            <Flex alignItems="start">
-              <div>
-                <Text className="text-gray-400">Total Earnings</Text>
-                <Metric className="text-white mt-2">
-                  ${Number(summary?.totalEarnings || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </Metric>
-                <Text className="text-gray-500 mt-1">All time</Text>
-              </div>
-              <BadgeDelta deltaType="increase" size="sm">
-                Lifetime
-              </BadgeDelta>
-            </Flex>
-          </Card>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+            <Text className="text-gray-400 text-sm">Total Earnings</Text>
+            <Metric className="text-white mt-1">
+              ${Number(summary?.totalEarnings || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Metric>
+            <Text className="text-gray-500 text-xs mt-1">All time</Text>
+          </div>
 
           {/* Year to Date */}
-          <Card
-            className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
-            decoration="top"
-            decorationColor="emerald"
-          >
-            <Flex alignItems="start">
-              <div>
-                <Text className="text-gray-400">Year to Date</Text>
-                <Metric className="text-white mt-2">
-                  ${Number(summary?.yearToDate || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </Metric>
-                <Text className="text-gray-500 mt-1">{new Date().getFullYear()}</Text>
-              </div>
-              <BadgeDelta deltaType="moderateIncrease" size="sm">
-                +12.3%
-              </BadgeDelta>
-            </Flex>
-          </Card>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+            <Text className="text-gray-400 text-sm">Year to Date</Text>
+            <Metric className="text-white mt-1">
+              ${Number(summary?.yearToDate || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Metric>
+            <Text className="text-gray-500 text-xs mt-1">{new Date().getFullYear()}</Text>
+          </div>
 
           {/* Last Month */}
-          <Card
-            className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
-            decoration="top"
-            decorationColor="violet"
-          >
-            <Flex alignItems="start">
-              <div>
-                <Text className="text-gray-400">Last Month</Text>
-                <Metric className="text-white mt-2">
-                  ${Number(summary?.lastMonth || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </Metric>
-                <Text className="text-gray-500 mt-1">
-                  {new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleDateString('en-US', { month: 'long' })}
-                </Text>
-              </div>
-            </Flex>
-          </Card>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+            <Text className="text-gray-400 text-sm">Last Month</Text>
+            <Metric className="text-white mt-1">
+              ${Number(summary?.lastMonth || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Metric>
+            <Text className="text-gray-500 text-xs mt-1">
+              {new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleDateString('en-US', { month: 'long' })}
+            </Text>
+          </div>
 
           {/* Total Performances */}
-          <Card
-            className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
-            decoration="top"
-            decorationColor="amber"
-          >
-            <Flex alignItems="start">
-              <div>
-                <Text className="text-gray-400">Total Performances</Text>
-                <Metric className="text-white mt-2">
-                  {Number(summary?.totalPerformances || 0).toLocaleString()}
-                </Metric>
-                <Text className="text-gray-500 mt-1">{summary?.totalSongs || 0} songs</Text>
-              </div>
-            </Flex>
-          </Card>
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50">
+            <Text className="text-gray-400 text-sm">Total Performances</Text>
+            <Metric className="text-white mt-1">
+              {Number(summary?.totalPerformances || 0).toLocaleString()}
+            </Metric>
+            <Text className="text-gray-500 text-xs mt-1">{summary?.totalSongs || 0} songs</Text>
+          </div>
         </Grid>
       )}
 
