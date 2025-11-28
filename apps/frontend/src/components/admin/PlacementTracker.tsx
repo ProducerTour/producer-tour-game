@@ -97,6 +97,7 @@ const PlacementTracker: React.FC = () => {
   const [activeBillingDeal, setActiveBillingDeal] = useState<string | null>(null);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
+  const [showBillingContactPicker, setShowBillingContactPicker] = useState(false);
 
   // Fetch placements from API
   const { data: dealsData } = useQuery({
@@ -386,6 +387,27 @@ const PlacementTracker: React.FC = () => {
     }));
     setShowContactPicker(false);
     toast.success(`Autofilled from ${contact.companyName}`);
+  };
+
+  // Autofill billing info from a business contact
+  const handleAutofillBillingFromContact = (contact: BusinessContact) => {
+    // Build city/state/zip string
+    const cityStateZip = [
+      contact.city,
+      contact.state,
+      contact.zipCode
+    ].filter(Boolean).join(', ');
+
+    setBillingData(prev => ({
+      ...prev,
+      billingLabelName: contact.companyName,
+      billingBillToContact: contact.contactName,
+      billingClientAddress: contact.address || '',
+      billingClientCity: cityStateZip,
+      billingBillToEmail: contact.email,
+    }));
+    setShowBillingContactPicker(false);
+    toast.success(`Billing info autofilled from ${contact.companyName}`);
   };
 
   const handleEdit = (placement: Placement) => {
@@ -1254,7 +1276,43 @@ const PlacementTracker: React.FC = () => {
 
                     {/* Bill To Section */}
                     <fieldset className="space-y-4 bg-white/[0.04] border border-white/[0.08] rounded-xl p-4">
-                      <legend className="text-xs font-semibold text-gray-300 uppercase px-2">Bill To (Via Email Section)</legend>
+                      <div className="flex items-center justify-between">
+                        <legend className="text-xs font-semibold text-gray-300 uppercase px-2">Bill To (Via Email Section)</legend>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setShowBillingContactPicker(!showBillingContactPicker)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-colors"
+                          >
+                            <BookUser className="w-3.5 h-3.5" />
+                            Autofill from Contacts
+                            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showBillingContactPicker ? 'rotate-180' : ''}`} />
+                          </button>
+                          {showBillingContactPicker && (
+                            <div className="absolute right-0 mt-1 w-72 max-h-64 overflow-y-auto bg-slate-800 border border-white/10 rounded-lg shadow-xl z-50">
+                              {businessContacts.length === 0 ? (
+                                <div className="p-3 text-sm text-gray-400 text-center">
+                                  No contacts found. Add contacts in the Contacts tab.
+                                </div>
+                              ) : (
+                                <div className="py-1">
+                                  {businessContacts.map((contact) => (
+                                    <button
+                                      key={contact.id}
+                                      type="button"
+                                      onClick={() => handleAutofillBillingFromContact(contact)}
+                                      className="w-full px-3 py-2 text-left hover:bg-white/5 transition-colors"
+                                    >
+                                      <div className="text-sm font-medium text-white">{contact.companyName}</div>
+                                      <div className="text-xs text-gray-400">{contact.contactName} • {contact.category.toLowerCase()}</div>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       <p className="text-xs text-gray-500 -mt-2">This information appears in the "Via Email" section of the invoice</p>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
