@@ -1,7 +1,24 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { placementDealApi } from '../../lib/api';
+import { placementDealApi, getAuthToken } from '../../lib/api';
+import { BookUser, ChevronDown } from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+interface BusinessContact {
+  id: string;
+  companyName: string;
+  contactName: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  category: string;
+}
 
 interface Placement {
   id: string;
@@ -79,6 +96,7 @@ const PlacementTracker: React.FC = () => {
   const [clientFilter, setClientFilter] = useState('all');
   const [activeBillingDeal, setActiveBillingDeal] = useState<string | null>(null);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const [showContactPicker, setShowContactPicker] = useState(false);
 
   // Fetch placements from API
   const { data: dealsData } = useQuery({
@@ -90,6 +108,25 @@ const PlacementTracker: React.FC = () => {
   });
 
   const placements = (dealsData?.deals || []) as Placement[];
+
+  // Fetch business contacts for autofill
+  const { data: contactsData } = useQuery({
+    queryKey: ['business-contacts'],
+    queryFn: async () => {
+      const response = await fetch(`${API_URL}/api/contacts`, {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      });
+      if (!response.ok) {
+        if (response.status === 404) return { contacts: [] };
+        throw new Error('Failed to fetch contacts');
+      }
+      return response.json();
+    },
+  });
+
+  const businessContacts: BusinessContact[] = contactsData?.contacts || [];
 
   // Create mutation
   const createMutation = useMutation({
@@ -326,6 +363,29 @@ const PlacementTracker: React.FC = () => {
       agreement: 'Draft has not been received',
       notes: ''
     });
+  };
+
+  // Autofill contracting info from a business contact
+  const handleAutofillFromContact = (contact: BusinessContact) => {
+    // Build mailing address from contact fields
+    const addressParts = [
+      contact.address,
+      contact.city,
+      contact.state,
+      contact.zipCode,
+      contact.country
+    ].filter(Boolean);
+    const mailingAddress = addressParts.join(', ');
+
+    setFormData(prev => ({
+      ...prev,
+      contractContactName: contact.contactName,
+      contractCompany: contact.companyName,
+      contractContactEmail: contact.email,
+      contractMailingAddress: mailingAddress,
+    }));
+    setShowContactPicker(false);
+    toast.success(`Autofilled from ${contact.companyName}`);
   };
 
   const handleEdit = (placement: Placement) => {
@@ -803,7 +863,43 @@ const PlacementTracker: React.FC = () => {
 
                   {/* Contracting Info */}
                   <fieldset className="md:col-span-3 mt-4 bg-white/[0.04] border border-white/[0.08] rounded-lg p-4">
-                    <legend className="text-xs font-semibold text-gray-300 mb-2 uppercase">Contracting Info</legend>
+                    <div className="flex items-center justify-between mb-2">
+                      <legend className="text-xs font-semibold text-gray-300 uppercase">Contracting Info</legend>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowContactPicker(!showContactPicker)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg transition-colors"
+                        >
+                          <BookUser className="w-3.5 h-3.5" />
+                          Autofill from Contacts
+                          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showContactPicker ? 'rotate-180' : ''}`} />
+                        </button>
+                        {showContactPicker && (
+                          <div className="absolute right-0 mt-1 w-72 max-h-64 overflow-y-auto bg-slate-800 border border-white/10 rounded-lg shadow-xl z-50">
+                            {businessContacts.length === 0 ? (
+                              <div className="p-3 text-sm text-gray-400 text-center">
+                                No contacts found. Add contacts in the Contacts tab.
+                              </div>
+                            ) : (
+                              <div className="py-1">
+                                {businessContacts.map((contact) => (
+                                  <button
+                                    key={contact.id}
+                                    type="button"
+                                    onClick={() => handleAutofillFromContact(contact)}
+                                    className="w-full px-3 py-2 text-left hover:bg-white/5 transition-colors"
+                                  >
+                                    <div className="text-sm font-medium text-white">{contact.companyName}</div>
+                                    <div className="text-xs text-gray-400">{contact.contactName} • {contact.category.toLowerCase()}</div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className={labelClass}>Full Name</label>
