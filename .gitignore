@@ -60,3 +60,6 @@ QUICK_*.md
 # Prisma generated client
 apps/backend/src/generated/
 .vercel
+
+# Production env (local only)
+apps/backend/.env.production

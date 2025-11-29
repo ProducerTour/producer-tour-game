@@ -60,6 +60,7 @@ router.get('/balance', authenticate, async (req: AuthRequest, res: Response) => 
 /**
  * POST /api/payouts/request
  * Writer requests a payout from their available balance
+ * Uses a transaction to prevent race conditions
  */
 router.post('/request', authenticate, async (req: AuthRequest, res: Response) => {
   try {
@@ -75,11 +76,18 @@ router.post('/request', authenticate, async (req: AuthRequest, res: Response) =>
     }
     const minimumAmount = Number(settings.minimumWithdrawalAmount);
 
-    // Get user with balance and Stripe account info
+    // Check minimum payout amount (dynamic)
+    if (amount < minimumAmount) {
+      return res.status(400).json({
+        error: `Minimum payout amount is $${minimumAmount.toFixed(2)}`,
+        minimumAmount,
+      });
+    }
+
+    // Get user with Stripe account info (pre-check before transaction)
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
-        availableBalance: true,
         stripeAccountId: true,
         stripeOnboardingComplete: true,
       },
@@ -97,54 +105,75 @@ router.post('/request', authenticate, async (req: AuthRequest, res: Response) =>
       });
     }
 
-    // Check if user has sufficient balance
-    const availableBalance = Number(user.availableBalance);
-    if (amount > availableBalance) {
-      return res.status(400).json({
-        error: `Insufficient balance. Available: $${availableBalance.toFixed(2)}`,
-        availableBalance,
+    // Use a transaction to atomically check balance, create request, and update balance
+    // This prevents race conditions where balance changes between check and update
+    const result = await prisma.$transaction(async (tx) => {
+      // Get fresh balance inside transaction (with implicit row lock)
+      const freshUser = await tx.user.findUnique({
+        where: { id: userId },
+        select: { availableBalance: true },
       });
-    }
 
-    // Check minimum payout amount (dynamic)
-    if (amount < minimumAmount) {
-      return res.status(400).json({
-        error: `Minimum payout amount is $${minimumAmount.toFixed(2)}`,
-        minimumAmount,
+      if (!freshUser) {
+        throw new Error('USER_NOT_FOUND');
+      }
+
+      const availableBalance = Number(freshUser.availableBalance);
+
+      // Check sufficient balance inside transaction
+      if (amount > availableBalance) {
+        throw new Error(`INSUFFICIENT_BALANCE:${availableBalance}`);
+      }
+
+      // Create payout request and update balance atomically
+      const payoutRequest = await tx.payoutRequest.create({
+        data: {
+          userId,
+          amount,
+          status: 'PENDING',
+        },
       });
-    }
 
-    // Create payout request
-    const payoutRequest = await prisma.payoutRequest.create({
-      data: {
-        userId,
-        amount,
-        status: 'PENDING',
-      },
-    });
+      // Move amount from available to pending balance
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          availableBalance: { decrement: amount },
+          pendingBalance: { increment: amount },
+        },
+      });
 
-    // Move amount from available to pending balance
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        availableBalance: { decrement: amount },
-        pendingBalance: { increment: amount },
-      },
+      return payoutRequest;
     });
 
     res.status(201).json({
       message: 'Payout request submitted successfully',
       request: {
-        id: payoutRequest.id,
-        amount: Number(payoutRequest.amount),
-        status: payoutRequest.status,
-        requestedAt: payoutRequest.requestedAt,
+        id: result.id,
+        amount: Number(result.amount),
+        status: result.status,
+        requestedAt: result.requestedAt,
       },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
     }
+
+    // Handle our custom transaction errors
+    if (error instanceof Error) {
+      if (error.message === 'USER_NOT_FOUND') {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (error.message.startsWith('INSUFFICIENT_BALANCE:')) {
+        const availableBalance = parseFloat(error.message.split(':')[1]);
+        return res.status(400).json({
+          error: `Insufficient balance. Available: $${availableBalance.toFixed(2)}`,
+          availableBalance,
+        });
+      }
+    }
+
     console.error('Request payout error:', error);
     res.status(500).json({ error: 'Failed to request payout' });
   }
