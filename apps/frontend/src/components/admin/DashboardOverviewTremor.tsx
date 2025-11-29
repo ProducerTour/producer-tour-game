@@ -19,17 +19,11 @@ import {
 import type { DeltaType } from '@tremor/react';
 import { dashboardApi, statementApi } from '../../lib/api';
 import { cn } from '../../lib/utils';
-import { NivoLineChart, NivoPieChart } from '../charts';
+import { NivoPieChart, RechartsRevenueChart } from '../charts';
 
 // Smart currency formatter
 const formatCurrency = (value: number) =>
   `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-const formatCompactCurrency = (value: number) => {
-  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`;
-  return `$${value.toFixed(2)}`;
-};
 
 interface KpiData {
   title: string;
@@ -129,14 +123,11 @@ export default function DashboardOverviewTremor() {
     },
   ];
 
-  // Prepare Nivo line chart data
-  const revenueChartData = stats?.revenueTimeline?.length > 0 ? [{
-    id: 'Revenue',
-    data: stats.revenueTimeline.map((item: any) => ({
-      x: item.month,
-      y: Number(item.revenue) || 0,
-    })),
-  }] : [];
+  // Prepare Recharts revenue chart data
+  const revenueChartData = stats?.revenueTimeline?.map((item: any) => ({
+    month: item.month,
+    revenue: Number(item.revenue) || 0,
+  })) || [];
 
   // Prepare Nivo pie chart data
   const proDistribution = stats?.statementsByPRO?.map((item: any) => ({
@@ -230,13 +221,12 @@ export default function DashboardOverviewTremor() {
               <Text className="text-gray-400">Monthly revenue trend</Text>
             </div>
           </div>
-          {revenueChartData.length > 0 && revenueChartData[0]?.data?.length > 0 ? (
-            <NivoLineChart
+          {revenueChartData.length > 0 ? (
+            <RechartsRevenueChart
               data={revenueChartData}
               height={288}
-              enableArea={true}
-              colors={['#3b82f6']}
-              valueFormat={formatCompactCurrency}
+              color="#3b82f6"
+              gradientId="adminRevenueGradient"
             />
           ) : (
             <div className="flex items-center justify-center h-72 text-gray-500">

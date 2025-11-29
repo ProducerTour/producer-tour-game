@@ -9,7 +9,7 @@ import { dashboardApi, statementApi, payoutApi } from '../../lib/api';
 import { WalletCard } from '../WalletCard';
 import { TerritoryHeatmap } from '../TerritoryHeatmap';
 import { ChartCard } from '../ChartCard';
-import { NivoBarChart, NivoPieChart } from '../charts';
+import { NivoPieChart, RechartsRevenueChart } from '../charts';
 import { useState } from 'react';
 import { useAuthStore } from '../../store/auth.store';
 
@@ -81,12 +81,12 @@ export default function WriterOverviewTremor({ onWithdrawClick }: WriterOverview
     }));
   };
 
-  // Format timeline data for Nivo BarChart
+  // Format timeline data for Recharts
   const getTimelineChartData = () => {
     if (!timelineData?.timeline) return [];
     return timelineData.timeline.map((item: any) => ({
       month: item.month,
-      Revenue: Number(item.revenue) || 0,
+      revenue: Number(item.revenue) || 0,
     }));
   };
 
@@ -107,19 +107,18 @@ export default function WriterOverviewTremor({ onWithdrawClick }: WriterOverview
 
       {/* Charts Section */}
       <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
-        {/* Earnings Timeline - Nivo Bar Chart */}
+        {/* Earnings Timeline - Recharts Area Chart */}
         <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
           <div className="mb-4">
             <Title className="text-white">Earnings Timeline</Title>
-            <Text className="text-gray-400">Monthly revenue breakdown</Text>
+            <Text className="text-gray-400">Monthly revenue trend</Text>
           </div>
           {timelineChartData.length > 0 ? (
-            <NivoBarChart
+            <RechartsRevenueChart
               data={timelineChartData}
-              keys={['Revenue']}
-              indexBy="month"
               height={288}
-              colors={['#3b82f6']}
+              color="#3b82f6"
+              gradientId="writerRevenueGradient"
             />
           ) : (
             <div className="h-72 flex items-center justify-center text-gray-400">
