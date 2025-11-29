@@ -25,6 +25,8 @@ interface RechartsRevenueChartProps {
   showGrid?: boolean;
   color?: string;
   gradientId?: string;
+  /** Pad data with empty months to show context (default: 6) */
+  minMonths?: number;
 }
 
 // Custom tooltip component matching dashboard design
@@ -65,6 +67,7 @@ export function RechartsRevenueChart({
   showGrid = true,
   color = '#3b82f6',
   gradientId = 'revenueGradient',
+  minMonths = 6,
 }: RechartsRevenueChartProps) {
   // Format currency for Y axis
   const formatYAxis = (value: number) => {
@@ -73,11 +76,74 @@ export function RechartsRevenueChart({
     return `$${value.toFixed(0)}`;
   };
 
+  // Format month label (2024-01 -> Jan '24)
+  const formatMonth = (month: string) => {
+    const [year, m] = month.split('-');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthIndex = parseInt(m, 10) - 1;
+    return `${monthNames[monthIndex]} '${year.slice(-2)}`;
+  };
+
+  // Pad data with previous months if we have less than minMonths
+  const getPaddedData = (): RevenueDataPoint[] => {
+    if (data.length >= minMonths) return data;
+
+    // Create a map of existing data
+    const dataMap = new Map(data.map(d => [d.month, d.revenue]));
+
+    // Find the earliest month in data, or use current month
+    const now = new Date();
+    let startDate: Date;
+
+    if (data.length > 0) {
+      // Sort to find earliest month
+      const sortedMonths = [...data].sort((a, b) => a.month.localeCompare(b.month));
+      const [year, month] = sortedMonths[0].month.split('-').map(Number);
+      // Go back enough months to have minMonths total
+      startDate = new Date(year, month - 1 - (minMonths - data.length), 1);
+    } else {
+      // No data, show last minMonths months
+      startDate = new Date(now.getFullYear(), now.getMonth() - minMonths + 1, 1);
+    }
+
+    // Generate months from startDate to now
+    const paddedData: RevenueDataPoint[] = [];
+    const endDate = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let current = new Date(startDate);
+    while (current <= endDate && paddedData.length < minMonths) {
+      const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+      paddedData.push({
+        month: monthKey,
+        revenue: dataMap.get(monthKey) || 0,
+      });
+      current.setMonth(current.getMonth() + 1);
+    }
+
+    // If we still don't have enough, add more at the end
+    while (paddedData.length < minMonths) {
+      current.setMonth(current.getMonth() + 1);
+      const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+      paddedData.push({
+        month: monthKey,
+        revenue: dataMap.get(monthKey) || 0,
+      });
+    }
+
+    return paddedData;
+  };
+
+  const chartData = getPaddedData();
+
+  // Check if we have sparse data (few points with revenue)
+  const pointsWithRevenue = chartData.filter(d => d.revenue > 0).length;
+  const showAllDots = pointsWithRevenue <= 3;
+
   return (
     <div style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
-          data={data}
+          data={chartData}
           margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
         >
           <defs>
@@ -105,6 +171,7 @@ export function RechartsRevenueChart({
             axisLine={{ stroke: '#374151', strokeWidth: 1 }}
             dy={10}
             tick={{ fill: '#9ca3af' }}
+            tickFormatter={formatMonth}
           />
 
           <YAxis
@@ -121,6 +188,7 @@ export function RechartsRevenueChart({
           <Tooltip
             content={<CustomTooltip />}
             cursor={{ stroke: '#6b7280', strokeDasharray: '4 4' }}
+            labelFormatter={formatMonth}
           />
 
           <Area
@@ -131,9 +199,14 @@ export function RechartsRevenueChart({
             strokeWidth={2.5}
             fillOpacity={1}
             fill={`url(#${gradientId})`}
-            dot={false}
+            dot={showAllDots ? {
+              r: 5,
+              fill: color,
+              stroke: '#fff',
+              strokeWidth: 2,
+            } : false}
             activeDot={{
-              r: 6,
+              r: 7,
               fill: color,
               stroke: '#fff',
               strokeWidth: 2,
