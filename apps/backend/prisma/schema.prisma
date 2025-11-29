@@ -2076,3 +2076,67 @@ model BusinessContact {
   @@index([email])
   @@map("business_contacts")
 }
+
+// ========================================
+// INSIGHTS FEED - Music Industry News Hub
+// Aggregated content from music blogs, news, PROs
+// ========================================
+
+enum InsightCategory {
+  AGGREGATOR   // Hype Machine
+  TASTEMAKERS  // Pitchfork, FADER, NME, Pigeons & Planes
+  DISCOVERY    // Lyrical Lemonade, XXL, On The Radar, etc.
+  NEWS         // Billboard, Rolling Stone, MBW, Variety
+  PUBLISHERS   // ASCAP, BMI, The MLC
+}
+
+model InsightArticle {
+  id            String          @id @default(cuid())
+  url           String          @unique // Prevent duplicates
+  title         String
+  description   String?         @db.Text
+  imageUrl      String?
+  source        String          // "Billboard", "Pitchfork", etc.
+  category      InsightCategory
+  publishedAt   DateTime?       // When article was published
+  fetchedAt     DateTime        @default(now()) // When we fetched it
+
+  // Curation
+  isPinned      Boolean         @default(false)
+  isHidden      Boolean         @default(false)
+  pinnedBy      String?         // Admin who pinned
+  pinnedAt      DateTime?
+
+  // Manual entries (admin-added, not from RSS)
+  isManual      Boolean         @default(false)
+  addedBy       String?         // Admin who added manually
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([category])
+  @@index([source])
+  @@index([isPinned])
+  @@index([publishedAt])
+  @@index([fetchedAt])
+  @@map("insight_articles")
+}
+
+// Track RSS feed sources and their last fetch time
+model InsightFeedSource {
+  id            String          @id @default(cuid())
+  name          String          @unique // "Billboard", "Pitchfork", etc.
+  feedUrl       String          // RSS/Atom feed URL
+  category      InsightCategory
+  isActive      Boolean         @default(true)
+  lastFetchedAt DateTime?
+  lastError     String?         // Store last error for debugging
+  articleCount  Int             @default(0)
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([isActive])
+  @@index([category])
+  @@map("insight_feed_sources")
+}

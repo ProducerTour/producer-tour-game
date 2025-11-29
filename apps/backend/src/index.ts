@@ -44,6 +44,7 @@ import shopRoutes from './routes/shop.routes';
 import sessionPayoutRoutes from './routes/session-payout.routes';
 import toolPermissionsRoutes from './routes/tool-permissions.routes';
 import invoiceRoutes from './routes/invoice.routes';
+import insightsRoutes from './routes/insights.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -174,6 +175,7 @@ app.use('/api/shop', shopRoutes);
 app.use('/api/session-payouts', sessionPayoutRoutes);
 app.use('/api/tool-permissions', toolPermissionsRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/insights', insightsRoutes);
 
 // Error handling
 app.use(notFoundHandler);
