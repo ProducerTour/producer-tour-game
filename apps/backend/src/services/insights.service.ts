@@ -7,10 +7,59 @@ import Parser from 'rss-parser';
 import { prisma } from '../lib/prisma';
 import { InsightCategory } from '../generated/client';
 
+/**
+ * Fetch Open Graph image from article URL
+ * Fallback for sites that don't include images in RSS
+ */
+async function fetchOgImage(url: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'ProducerTour/1.0 (Music Industry Insights)',
+      },
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) return null;
+
+    const html = await response.text();
+
+    // Look for og:image meta tag
+    const ogMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+    if (ogMatch && ogMatch[1]) return ogMatch[1];
+
+    // Try alternate format
+    const ogMatch2 = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    if (ogMatch2 && ogMatch2[1]) return ogMatch2[1];
+
+    // Try twitter:image
+    const twitterMatch = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+    if (twitterMatch && twitterMatch[1]) return twitterMatch[1];
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const parser = new Parser({
   timeout: 10000, // 10 second timeout
   headers: {
     'User-Agent': 'ProducerTour/1.0 (Music Industry Insights)',
+  },
+  customFields: {
+    item: [
+      ['media:content', 'media:content', { keepArray: true }],
+      ['media:thumbnail', 'media:thumbnail', { keepArray: true }],
+      ['media:group', 'media:group'],
+      ['content:encoded', 'content:encoded'],
+      ['enclosure', 'enclosure'],
+      ['itunes:image', 'itunes:image'],
+    ],
   },
 });
 
@@ -119,15 +168,34 @@ export async function processFeedSource(sourceId: string): Promise<number> {
     if (!item.link || !item.title) continue;
 
     try {
-      // Try to insert, skip if URL already exists
+      // Try to extract image from RSS feed first
+      let imageUrl = extractImageUrl(item);
+
+      // If no image in RSS, try fetching og:image from article page
+      if (!imageUrl && item.link) {
+        console.log(`  🔍 Fetching og:image for "${item.title?.slice(0, 40)}..."...`);
+        imageUrl = await fetchOgImage(item.link);
+      }
+
+      // Log extraction result
+      if (imageUrl) {
+        console.log(`  📷 Found image for "${item.title?.slice(0, 40)}...": ${imageUrl.slice(0, 60)}...`);
+      } else {
+        console.log(`  ⚠️ No image found for "${item.title?.slice(0, 40)}..."`);
+      }
+
+      // Try to insert, or update imageUrl if missing
       await prisma.insightArticle.upsert({
         where: { url: item.link },
-        update: {}, // Don't update existing articles
+        update: {
+          // Update imageUrl if we found one and existing is null
+          ...(imageUrl ? { imageUrl } : {}),
+        },
         create: {
           url: item.link,
           title: item.title,
           description: item.contentSnippet || item.content?.slice(0, 500) || null,
-          imageUrl: extractImageUrl(item),
+          imageUrl,
           source: source.name,
           category: source.category,
           publishedAt: item.pubDate ? new Date(item.pubDate) : null,
@@ -163,22 +231,66 @@ export async function processFeedSource(sourceId: string): Promise<number> {
 
 /**
  * Extract image URL from feed item (various formats)
+ * RSS feeds use many different conventions for images
  */
 function extractImageUrl(item: any): string | null {
-  // Check media:content
-  if (item['media:content']?.['$']?.url) {
-    return item['media:content']['$'].url;
+  try {
+    // 1. Check media:content (single object)
+    if (item['media:content']?.['$']?.url) {
+      return item['media:content']['$'].url;
+    }
+
+    // 2. Check media:content (array - take first image)
+    if (Array.isArray(item['media:content'])) {
+      const mediaItem = item['media:content'].find((m: any) =>
+        m['$']?.medium === 'image' || m['$']?.type?.startsWith('image')
+      ) || item['media:content'][0];
+      if (mediaItem?.['$']?.url) return mediaItem['$'].url;
+    }
+
+    // 3. Check media:thumbnail
+    if (item['media:thumbnail']?.['$']?.url) {
+      return item['media:thumbnail']['$'].url;
+    }
+    if (Array.isArray(item['media:thumbnail']) && item['media:thumbnail'][0]?.['$']?.url) {
+      return item['media:thumbnail'][0]['$'].url;
+    }
+
+    // 4. Check enclosure (common for podcasts/media)
+    if (item.enclosure?.url) {
+      if (!item.enclosure.type || item.enclosure.type.startsWith('image')) {
+        return item.enclosure.url;
+      }
+    }
+
+    // 5. Check itunes:image (podcasts)
+    if (item['itunes:image']?.['$']?.href) {
+      return item['itunes:image']['$'].href;
+    }
+
+    // 6. Check direct image property
+    if (item.image?.url) return item.image.url;
+    if (typeof item.image === 'string') return item.image;
+
+    // 7. Check content:encoded for <img> tags
+    const contentEncoded = item['content:encoded'] || item.content || item.description || '';
+    if (contentEncoded) {
+      // Try to find img src with various quote styles
+      const imgMatch = contentEncoded.match(/<img[^>]+src=["']([^"']+)["']/i);
+      if (imgMatch && imgMatch[1]) return imgMatch[1];
+    }
+
+    // 8. Check for og:image in content (some feeds include meta)
+    if (contentEncoded) {
+      const ogMatch = contentEncoded.match(/og:image[^>]+content=["']([^"']+)["']/i);
+      if (ogMatch && ogMatch[1]) return ogMatch[1];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error extracting image URL:', error);
+    return null;
   }
-  // Check enclosure
-  if (item.enclosure?.url && item.enclosure.type?.startsWith('image')) {
-    return item.enclosure.url;
-  }
-  // Check for image in content
-  if (item.content) {
-    const imgMatch = item.content.match(/<img[^>]+src="([^"]+)"/);
-    if (imgMatch) return imgMatch[1];
-  }
-  return null;
 }
 
 /**
@@ -354,4 +466,44 @@ export async function toggleFeedSource(sourceId: string): Promise<boolean> {
   });
 
   return updated.isActive;
+}
+
+/**
+ * Debug function to see raw feed data
+ */
+export async function debugFeedItem() {
+  // Test with Billboard feed
+  const testUrl = 'https://www.billboard.com/feed/';
+
+  try {
+    const feed = await parser.parseURL(testUrl);
+    const firstItem = feed.items[0];
+
+    if (!firstItem) {
+      return { error: 'No items in feed' };
+    }
+
+    // Get all keys from the item
+    const allKeys = Object.keys(firstItem);
+
+    return {
+      feedTitle: feed.title,
+      itemTitle: firstItem.title,
+      itemLink: firstItem.link,
+      allKeys,
+      // Show specific fields we're looking for
+      mediaContent: firstItem['media:content'],
+      mediaThumbnail: firstItem['media:thumbnail'],
+      mediaGroup: firstItem['media:group'],
+      enclosure: firstItem.enclosure,
+      contentEncoded: firstItem['content:encoded']?.slice(0, 500),
+      content: firstItem.content?.slice(0, 500),
+      description: firstItem.description?.slice(0, 500),
+      image: firstItem.image,
+      // Raw item for inspection
+      rawItem: JSON.stringify(firstItem, null, 2).slice(0, 3000),
+    };
+  } catch (error: any) {
+    return { error: error.message };
+  }
 }

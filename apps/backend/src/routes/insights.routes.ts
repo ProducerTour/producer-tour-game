@@ -76,6 +76,20 @@ router.post('/refresh', authenticate, requireAdmin, async (req: AuthRequest, res
 });
 
 /**
+ * GET /api/insights/debug-feed
+ * Debug endpoint to see raw feed data (Admin only)
+ */
+router.get('/debug-feed', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const debugData = await insightsService.debugFeedItem();
+    res.json(debugData);
+  } catch (error) {
+    console.error('Debug feed error:', error);
+    res.status(500).json({ error: 'Failed to debug feed' });
+  }
+});
+
+/**
  * POST /api/insights/seed
  * Seed default feed sources (Admin only)
  */
