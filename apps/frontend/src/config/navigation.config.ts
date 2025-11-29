@@ -113,6 +113,7 @@ export const adminNavigation: NavSection[] = [
       { id: 'shop', label: 'Shop', icon: 'shopping-cart' },
       { id: 'affiliate-management', label: 'Affiliate Management', icon: 'users', path: '/admin/affiliates' },
       { id: 'contacts', label: 'Contacts', icon: 'user' },
+      { id: 'insights', label: 'Insights', icon: 'trending-up' },
     ],
   },
 ];
