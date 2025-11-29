@@ -360,59 +360,77 @@ const ArticleCard: React.FC<{
     : null;
 
   return (
-    <div className={`group bg-white/5 hover:bg-white/10 border rounded-xl p-4 transition-all ${
+    <div className={`group bg-white/5 hover:bg-white/10 border rounded-xl overflow-hidden transition-all ${
       article.isPinned ? 'border-amber-500/50 bg-amber-500/5' : 'border-white/10 hover:border-white/20'
     }`}>
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            {article.isPinned && <Pin className="w-3.5 h-3.5 text-amber-400" />}
-            <span className="text-xs text-gray-500">{article.source}</span>
-          </div>
-          <a
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-white font-semibold hover:text-blue-400 transition-colors line-clamp-2"
-          >
-            {article.title}
-          </a>
+      {/* Thumbnail */}
+      {article.imageUrl && (
+        <div className="relative w-full h-40 bg-black/20">
+          <img
+            src={article.imageUrl}
+            alt={article.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+          {/* Gradient overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={onPin}
-            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-            title={article.isPinned ? 'Unpin' : 'Pin'}
-          >
-            {article.isPinned ? (
-              <PinOff className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Pin className="w-4 h-4 text-gray-400 hover:text-amber-400" />
-            )}
-          </button>
-          <button
-            onClick={onHide}
-            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-            title="Hide"
-          >
-            <EyeOff className="w-4 h-4 text-gray-400 hover:text-red-400" />
-          </button>
-        </div>
-      </div>
-      {article.description && (
-        <p className="text-sm text-gray-400 line-clamp-2 mb-3">{article.description}</p>
       )}
-      <div className="flex items-center justify-between">
-        <span className={`text-xs ${config.color} bg-white/5 px-2 py-1 rounded-lg flex items-center gap-1`}>
-          {config.icon}
-          {config.label}
-        </span>
-        {publishedDate && (
-          <span className="text-xs text-gray-500 flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {publishedDate}
-          </span>
+
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              {article.isPinned && <Pin className="w-3.5 h-3.5 text-amber-400" />}
+              <span className="text-xs text-gray-500">{article.source}</span>
+            </div>
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white font-semibold hover:text-blue-400 transition-colors line-clamp-2"
+            >
+              {article.title}
+            </a>
+          </div>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={onPin}
+              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+              title={article.isPinned ? 'Unpin' : 'Pin'}
+            >
+              {article.isPinned ? (
+                <PinOff className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Pin className="w-4 h-4 text-gray-400 hover:text-amber-400" />
+              )}
+            </button>
+            <button
+              onClick={onHide}
+              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+              title="Hide"
+            >
+              <EyeOff className="w-4 h-4 text-gray-400 hover:text-red-400" />
+            </button>
+          </div>
+        </div>
+        {article.description && (
+          <p className="text-sm text-gray-400 line-clamp-2 mb-3">{article.description}</p>
         )}
+        <div className="flex items-center justify-between">
+          <span className={`text-xs ${config.color} bg-white/5 px-2 py-1 rounded-lg flex items-center gap-1`}>
+            {config.icon}
+            {config.label}
+          </span>
+          {publishedDate && (
+            <span className="text-xs text-gray-500 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {publishedDate}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
