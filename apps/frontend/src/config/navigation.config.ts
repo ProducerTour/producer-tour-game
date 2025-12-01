@@ -116,8 +116,14 @@ export const adminNavigation: NavSection[] = [
           { id: 'active-placements', label: 'Producer Clearances', icon: 'check-circle' },
         ],
       },
-      { id: 'tools', label: 'Tools Hub', icon: 'tools' },
-      { id: 'tool-permissions', label: 'Tool Permissions', icon: 'lock' },
+      {
+        id: 'tools',
+        label: 'Tools Hub',
+        icon: 'tools',
+        children: [
+          { id: 'tool-permissions', label: 'Tool Permissions', icon: 'lock' },
+        ],
+      },
       { id: 'commission', label: 'Commission Settings', icon: 'briefcase' },
       { id: 'documents', label: 'Documents', icon: 'file' },
     ],
