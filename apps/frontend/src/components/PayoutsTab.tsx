@@ -108,6 +108,8 @@ interface PaymentSummary {
 const PayoutsTab: React.FC = () => {
   const [selectedStatements, setSelectedStatements] = useState<Set<string>>(new Set());
   const [historyFilter, setHistoryFilter] = useState<string>('');
+  const [statementDateFilter, setStatementDateFilter] = useState<string>('all');
+  const [withdrawalDateFilter, setWithdrawalDateFilter] = useState<string>('all');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null);
@@ -291,11 +293,15 @@ const PayoutsTab: React.FC = () => {
   // Payment queue (unpaid statements)
   const paymentQueue = safeStatements.filter(s => s.paymentStatus === 'UNPAID');
 
-  // Payment history (paid statements)
+  // Payment history (paid statements) with text and date filtering
   const paymentHistory = safeStatements.filter(s => s.paymentStatus === 'PAID').filter(s => {
-    if (!historyFilter) return true;
-    return s.filename.toLowerCase().includes(historyFilter.toLowerCase()) ||
-           s.proType.toLowerCase().includes(historyFilter.toLowerCase());
+    // Text filter
+    const matchesText = !historyFilter ||
+      s.filename.toLowerCase().includes(historyFilter.toLowerCase()) ||
+      s.proType.toLowerCase().includes(historyFilter.toLowerCase());
+    // Date filter
+    const matchesDate = filterByDateRange(s.paymentProcessedAt || s.uploadedAt, statementDateFilter);
+    return matchesText && matchesDate;
   });
 
   // Pending statements
@@ -320,7 +326,7 @@ const PayoutsTab: React.FC = () => {
   };
 
   const handleProcessPayment = async (statementId: string) => {
-    if (window.confirm('Process payment for this statement? This will make items visible to writers and send email notifications.')) {
+    if (window.confirm('Credit balances for this statement? This will add earnings to writer balances and send email notifications.')) {
       await processPaymentMutation.mutateAsync(statementId);
     }
   };
@@ -328,7 +334,7 @@ const PayoutsTab: React.FC = () => {
   const handleBulkProcessPayments = async () => {
     if (selectedStatements.size === 0) return;
 
-    if (window.confirm(`Process payments for ${selectedStatements.size} statement(s)? This will make items visible to writers and send email notifications.`)) {
+    if (window.confirm(`Credit balances for ${selectedStatements.size} statement(s)? This will add earnings to writer balances and send email notifications.`)) {
       for (const id of Array.from(selectedStatements)) {
         await processPaymentMutation.mutateAsync(id);
       }
@@ -370,6 +376,24 @@ const PayoutsTab: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const filterByDateRange = (date: string, filterValue: string) => {
+    if (filterValue === 'all') return true;
+    const itemDate = new Date(date);
+    const now = new Date();
+    const daysAgo = (days: number) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - days);
+      return d;
+    };
+    switch (filterValue) {
+      case '7days': return itemDate >= daysAgo(7);
+      case '30days': return itemDate >= daysAgo(30);
+      case '90days': return itemDate >= daysAgo(90);
+      case 'year': return itemDate >= daysAgo(365);
+      default: return true;
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -435,6 +459,9 @@ const PayoutsTab: React.FC = () => {
 
   const totalUnpaidRevenue = paymentQueue.reduce((sum, s) => sum + Number(s.totalNet || 0), 0);
   const totalPaidRevenue = paymentHistory.reduce((sum, s) => sum + Number(s.totalNet || 0), 0);
+  const totalPendingWithdrawals = Array.isArray(withdrawalRequests)
+    ? withdrawalRequests.reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0)
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -442,7 +469,7 @@ const PayoutsTab: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-slate-700/30 rounded-lg p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Unpaid Queue</span>
+            <span className="text-sm text-gray-400">Statement Queue</span>
             <XCircle className="h-5 w-5 text-red-400" />
           </div>
           <div className="text-2xl font-bold text-white">{paymentQueue.length}</div>
@@ -460,7 +487,7 @@ const PayoutsTab: React.FC = () => {
 
         <div className="bg-slate-700/30 rounded-lg p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Paid (All Time)</span>
+            <span className="text-sm text-gray-400">Statements Credited</span>
             <CheckCircle className="h-5 w-5 text-green-400" />
           </div>
           <div className="text-2xl font-bold text-white">{paymentHistory.length}</div>
@@ -469,18 +496,11 @@ const PayoutsTab: React.FC = () => {
 
         <div className="bg-slate-700/30 rounded-lg p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Selected</span>
-            <DollarSign className="h-5 w-5 text-blue-400" />
+            <span className="text-sm text-gray-400">Pending Withdrawals</span>
+            <Wallet className="h-5 w-5 text-amber-400" />
           </div>
-          <div className="text-2xl font-bold text-white">{selectedStatements.size}</div>
-          <div className="text-sm text-gray-400 mt-1">
-            {formatCurrency(
-              Array.from(selectedStatements).reduce((sum, id) => {
-                const stmt = safeStatements.find(s => s.id === id);
-                return sum + Number(stmt?.totalNet || 0);
-              }, 0)
-            )}
-          </div>
+          <div className="text-2xl font-bold text-white">{Array.isArray(withdrawalRequests) ? withdrawalRequests.length : 0}</div>
+          <div className="text-sm text-amber-400 mt-1">{formatCurrency(totalPendingWithdrawals)}</div>
         </div>
       </div>
 
@@ -788,9 +808,9 @@ const PayoutsTab: React.FC = () => {
       <div className="bg-slate-700/30 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-white">Payment Queue</h3>
+            <h3 className="text-lg font-semibold text-white">Statement Queue</h3>
             <p className="text-sm text-gray-400 mt-1">
-              Statements ready for payment processing
+              PRO statements ready to credit writer balances
             </p>
           </div>
           <div className="flex gap-2">
@@ -802,7 +822,7 @@ const PayoutsTab: React.FC = () => {
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="h-4 w-4" />
-                  Process {selectedStatements.size} Selected
+                  Credit Balances ({selectedStatements.size})
                 </button>
                 <button
                   onClick={() => setSelectedStatements(new Set())}
@@ -883,7 +903,7 @@ const PayoutsTab: React.FC = () => {
                           className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
                         >
                           <Send className="h-3.5 w-3.5" />
-                          Process
+                          Credit
                         </button>
                       </div>
                     </td>
@@ -899,12 +919,23 @@ const PayoutsTab: React.FC = () => {
       <div className="bg-slate-700/30 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-white">Payment History</h3>
+            <h3 className="text-lg font-semibold text-white">Statement History</h3>
             <p className="text-sm text-gray-400 mt-1">
-              All processed payments
+              All processed PRO statements (earnings credited to balances)
             </p>
           </div>
           <div className="flex gap-2">
+            <select
+              value={statementDateFilter}
+              onChange={(e) => setStatementDateFilter(e.target.value)}
+              className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Time</option>
+              <option value="7days">Last 7 Days</option>
+              <option value="30days">Last 30 Days</option>
+              <option value="90days">Last 90 Days</option>
+              <option value="year">Last Year</option>
+            </select>
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
@@ -1002,10 +1033,23 @@ const PayoutsTab: React.FC = () => {
       <div className="bg-slate-700/30 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-white">Payout History</h3>
+            <h3 className="text-lg font-semibold text-white">Withdrawal History</h3>
             <p className="text-sm text-gray-400 mt-1">
-              All processed withdrawal requests
+              All Stripe withdrawal transfers
             </p>
+          </div>
+          <div className="flex gap-2">
+            <select
+              value={withdrawalDateFilter}
+              onChange={(e) => setWithdrawalDateFilter(e.target.value)}
+              className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Time</option>
+              <option value="7days">Last 7 Days</option>
+              <option value="30days">Last 30 Days</option>
+              <option value="90days">Last 90 Days</option>
+              <option value="year">Last Year</option>
+            </select>
           </div>
         </div>
 
@@ -1029,7 +1073,9 @@ const PayoutsTab: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {allPayoutsData.payouts.map((payout: any) => (
+                {allPayoutsData.payouts
+                  .filter((payout: any) => filterByDateRange(payout.requestedAt, withdrawalDateFilter))
+                  .map((payout: any) => (
                   <tr
                     key={payout.id}
                     className="border-b border-slate-700/50 hover:bg-slate-600/20 transition-colors"
@@ -1186,11 +1232,11 @@ const PayoutsTab: React.FC = () => {
             className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
           >
             <Download className="h-4 w-4" />
-            Export Payment Queue (CSV)
+            Export Statement Queue (CSV)
           </button>
           <button className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors">
             <Download className="h-4 w-4" />
-            Export Payment History (CSV)
+            Export Statement History (CSV)
           </button>
           <button className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors">
             <Download className="h-4 w-4" />
@@ -1329,7 +1375,7 @@ const PayoutsTab: React.FC = () => {
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <Send className="h-4 w-4" />
-                  Process Payment
+                  Credit Balances
                 </button>
               </div>
             </div>
