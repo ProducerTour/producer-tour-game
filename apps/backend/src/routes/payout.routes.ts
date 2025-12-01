@@ -379,7 +379,6 @@ router.post('/:id/approve', authenticate, requireAdmin, async (req: AuthRequest,
 
     // Create Stripe transfer to writer's Connect account
     let stripeTransferId: string | undefined;
-    let stripeError: string | undefined;
 
     try {
       const amountCents = Math.round(Number(payout.amount) * 100);
@@ -394,7 +393,6 @@ router.post('/:id/approve', authenticate, requireAdmin, async (req: AuthRequest,
       console.log(`✅ Stripe transfer created: ${stripeTransferId}`);
     } catch (error: any) {
       console.error(`❌ Stripe transfer failed:`, error);
-      stripeError = error.message;
 
       // Mark payout as failed
       await prisma.payoutRequest.update({
@@ -411,53 +409,42 @@ router.post('/:id/approve', authenticate, requireAdmin, async (req: AuthRequest,
       });
     }
 
-    // Mark as processing
+    // Stripe Connect transfers are instant - mark as completed immediately
+    // The transfer was successful if we got here (no error thrown above)
     await prisma.payoutRequest.update({
       where: { id: payoutId },
       data: {
-        status: 'PROCESSING',
+        status: 'COMPLETED',
         processedAt: new Date(),
+        completedAt: new Date(),
         stripeTransferId,
       },
     });
 
-    // In test mode, mark as completed immediately
-    // In production, we'd need a webhook to update this when Stripe confirms
-    const isTestMode = process.env.STRIPE_SECRET_KEY?.includes('test');
-    if (isTestMode) {
-      await prisma.payoutRequest.update({
-        where: { id: payoutId },
-        data: {
-          status: 'COMPLETED',
-          completedAt: new Date(),
-        },
-      });
+    // Move from pending to completed (remove from pending balance)
+    await prisma.user.update({
+      where: { id: payout.userId },
+      data: {
+        pendingBalance: { decrement: Number(payout.amount) },
+      },
+    });
 
-      // Move from pending to completed (remove from pending balance)
-      await prisma.user.update({
-        where: { id: payout.userId },
-        data: {
-          pendingBalance: { decrement: Number(payout.amount) },
-        },
-      });
+    console.log(`✅ Payout ${payoutId} completed: $${payout.amount} to ${payout.user.email}`);
 
-      // Award gamification points for payout completion
-      try {
-        await gamificationService.awardPoints(
-          payout.userId,
-          'PAYOUT_COMPLETED',
-          50,
-          `Payout completed: $${Number(payout.amount).toFixed(2)}`
-        );
-      } catch (gamError) {
-        console.error('Gamification award error:', gamError);
-      }
+    // Award gamification points for payout completion
+    try {
+      await gamificationService.awardPoints(
+        payout.userId,
+        'PAYOUT_COMPLETED',
+        50,
+        `Payout completed: $${Number(payout.amount).toFixed(2)}`
+      );
+    } catch (gamError) {
+      console.error('Gamification award error:', gamError);
     }
 
     res.json({
-      message: isTestMode
-        ? 'Payout approved and completed (test mode)'
-        : 'Payout approved and processing',
+      message: 'Payout approved and completed',
       payoutId,
       stripeTransferId,
     });
