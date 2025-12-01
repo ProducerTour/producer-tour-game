@@ -105,7 +105,19 @@ interface PaymentSummary {
   writers: Writer[];
 }
 
+// Sub-tab type definition
+type PayoutsSubTab = 'overview' | 'statements' | 'withdrawals' | 'sessions';
+
+// Sub-tab configuration - using component references (NOT inline JSX)
+const PAYOUTS_SUB_TABS: Array<{ id: PayoutsSubTab; label: string; icon: typeof DollarSign }> = [
+  { id: 'overview', label: 'Overview', icon: DollarSign },
+  { id: 'statements', label: 'Statements', icon: FileText },
+  { id: 'withdrawals', label: 'Withdrawals', icon: Wallet },
+  { id: 'sessions', label: 'Sessions', icon: Headphones },
+];
+
 const PayoutsTab: React.FC = () => {
+  const [activeSubTab, setActiveSubTab] = useState<PayoutsSubTab>('overview');
   const [selectedStatements, setSelectedStatements] = useState<Set<string>>(new Set());
   const [historyFilter, setHistoryFilter] = useState<string>('');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -438,7 +450,32 @@ const PayoutsTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Summary Stats */}
+      {/* Sub-Tab Navigation */}
+      <div className="border-b border-slate-700">
+        <nav className="flex gap-1" aria-label="Payouts sub-navigation">
+          {PAYOUTS_SUB_TABS.map((tab) => {
+            const IconComponent = tab.icon;
+            const isActive = activeSubTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveSubTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  isActive
+                    ? 'border-blue-500 text-blue-400'
+                    : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-slate-600'
+                }`}
+              >
+                <IconComponent className="h-4 w-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Summary Stats - visible on Overview */}
+      {activeSubTab === 'overview' && (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-slate-700/30 rounded-lg p-6">
           <div className="flex items-center justify-between mb-2">
@@ -483,9 +520,10 @@ const PayoutsTab: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
 
-      {/* Withdrawal Requests Section */}
-      {Array.isArray(withdrawalRequests) && withdrawalRequests.length > 0 && (
+      {/* Withdrawal Requests Section - visible on Withdrawals */}
+      {activeSubTab === 'withdrawals' && Array.isArray(withdrawalRequests) && withdrawalRequests.length > 0 && (
         <div className="bg-slate-800 rounded-lg shadow-xl p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -585,8 +623,8 @@ const PayoutsTab: React.FC = () => {
         </div>
       )}
 
-      {/* Session Payout Requests Section */}
-      {(pendingSessionPayouts.length > 0 || approvedSessionPayouts.length > 0) && (
+      {/* Session Payout Requests Section - visible on Sessions */}
+      {activeSubTab === 'sessions' && (pendingSessionPayouts.length > 0 || approvedSessionPayouts.length > 0) && (
         <div className="bg-slate-800 rounded-lg shadow-xl p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -784,11 +822,12 @@ const PayoutsTab: React.FC = () => {
         </div>
       )}
 
-      {/* Payment Queue Section */}
+      {/* Payment Queue Section - visible on Statements */}
+      {activeSubTab === 'statements' && (
       <div className="bg-slate-700/30 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-white">Payment Queue</h3>
+            <h3 className="text-lg font-semibold text-white">Statement Queue</h3>
             <p className="text-sm text-gray-400 mt-1">
               Statements ready for payment processing
             </p>
@@ -894,12 +933,14 @@ const PayoutsTab: React.FC = () => {
           </div>
         )}
       </div>
+      )}
 
-      {/* Payment History Section */}
+      {/* Statement History Section - visible on Statements */}
+      {activeSubTab === 'statements' && (
       <div className="bg-slate-700/30 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-white">Payment History</h3>
+            <h3 className="text-lg font-semibold text-white">Statement History</h3>
             <p className="text-sm text-gray-400 mt-1">
               All processed payments
             </p>
@@ -997,12 +1038,14 @@ const PayoutsTab: React.FC = () => {
           </div>
         )}
       </div>
+      )}
 
-      {/* Payout History Section */}
+      {/* Withdrawal History Section - visible on Withdrawals */}
+      {activeSubTab === 'withdrawals' && (
       <div className="bg-slate-700/30 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-white">Payout History</h3>
+            <h3 className="text-lg font-semibold text-white">Withdrawal History</h3>
             <p className="text-sm text-gray-400 mt-1">
               All processed withdrawal requests
             </p>
@@ -1075,8 +1118,10 @@ const PayoutsTab: React.FC = () => {
           </div>
         )}
       </div>
+      )}
 
-      {/* Session Payout History Section */}
+      {/* Session Payout History Section - visible on Sessions */}
+      {activeSubTab === 'sessions' && (
       <div className="bg-slate-700/30 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -1176,8 +1221,10 @@ const PayoutsTab: React.FC = () => {
           </div>
         )}
       </div>
+      )}
 
-      {/* Export Section */}
+      {/* Export Section - visible on Overview */}
+      {activeSubTab === 'overview' && (
       <div className="bg-slate-700/30 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-white mb-4">Export & Reconciliation</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1201,6 +1248,7 @@ const PayoutsTab: React.FC = () => {
           Export payment data for accounting, reconciliation, or manual processing in external systems.
         </p>
       </div>
+      )}
 
       {/* Writer Breakdown Modal */}
       {showDetailsModal && paymentSummary && (
