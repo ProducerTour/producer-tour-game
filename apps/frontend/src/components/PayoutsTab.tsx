@@ -105,7 +105,10 @@ interface PaymentSummary {
   writers: Writer[];
 }
 
+type PayoutsSubTab = 'overview' | 'statements' | 'withdrawals' | 'sessions';
+
 const PayoutsTab: React.FC = () => {
+  const [activeSubTab, setActiveSubTab] = useState<PayoutsSubTab>('overview');
   const [selectedStatements, setSelectedStatements] = useState<Set<string>>(new Set());
   const [historyFilter, setHistoryFilter] = useState<string>('');
   const [statementDateFilter, setStatementDateFilter] = useState<string>('all');
@@ -463,10 +466,51 @@ const PayoutsTab: React.FC = () => {
     ? withdrawalRequests.reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0)
     : 0;
 
+  // Count items needing attention
+  const pendingWithdrawalCount = Array.isArray(withdrawalRequests) ? withdrawalRequests.length : 0;
+  const pendingSessionCount = pendingSessionPayouts.length + approvedSessionPayouts.length;
+
+  const subTabs = [
+    { id: 'overview' as PayoutsSubTab, label: 'Overview', icon: <DollarSign className="h-4 w-4" /> },
+    { id: 'statements' as PayoutsSubTab, label: 'Statements', icon: <FileText className="h-4 w-4" />, badge: paymentQueue.length > 0 ? paymentQueue.length : undefined },
+    { id: 'withdrawals' as PayoutsSubTab, label: 'Withdrawals', icon: <Wallet className="h-4 w-4" />, badge: pendingWithdrawalCount > 0 ? pendingWithdrawalCount : undefined },
+    { id: 'sessions' as PayoutsSubTab, label: 'Sessions', icon: <Headphones className="h-4 w-4" />, badge: pendingSessionCount > 0 ? pendingSessionCount : undefined },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Sub-Tab Navigation */}
+      <div className="border-b border-slate-700">
+        <nav className="flex gap-1" aria-label="Payouts sub-tabs">
+          {subTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveSubTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeSubTab === tab.id
+                  ? 'border-blue-500 text-blue-400'
+                  : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-slate-600'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+              {tab.badge && (
+                <span className={`ml-1 px-2 py-0.5 text-xs rounded-full ${
+                  activeSubTab === tab.id ? 'bg-blue-500/20 text-blue-300' : 'bg-slate-600 text-gray-300'
+                }`}>
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* OVERVIEW TAB */}
+      {activeSubTab === 'overview' && (
+        <>
+          {/* Summary Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-slate-700/30 rounded-lg p-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">Statement Queue</span>
@@ -502,9 +546,96 @@ const PayoutsTab: React.FC = () => {
           <div className="text-2xl font-bold text-white">{Array.isArray(withdrawalRequests) ? withdrawalRequests.length : 0}</div>
           <div className="text-sm text-amber-400 mt-1">{formatCurrency(totalPendingWithdrawals)}</div>
         </div>
+
+        <div className="bg-slate-700/30 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-400">Session Payouts</span>
+            <Headphones className="h-5 w-5 text-teal-400" />
+          </div>
+          <div className="text-2xl font-bold text-white">{pendingSessionCount}</div>
+          <div className="text-sm text-teal-400 mt-1">{pendingSessionPayouts.length} pending, {approvedSessionPayouts.length} ready</div>
+        </div>
       </div>
 
-      {/* Withdrawal Requests Section */}
+          {/* Quick Actions - Items Needing Attention */}
+          {(paymentQueue.length > 0 || pendingWithdrawalCount > 0 || pendingSessionCount > 0) && (
+            <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-700">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-400" />
+                Items Needing Attention
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {paymentQueue.length > 0 && (
+                  <button
+                    onClick={() => setActiveSubTab('statements')}
+                    className="p-4 bg-slate-700/50 hover:bg-slate-700 rounded-lg border border-slate-600 hover:border-blue-500/50 transition-all text-left group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <FileText className="h-5 w-5 text-blue-400" />
+                      <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full">{paymentQueue.length}</span>
+                    </div>
+                    <p className="text-white font-medium">Statements to Process</p>
+                    <p className="text-sm text-gray-400 mt-1">{formatCurrency(totalUnpaidRevenue)} ready to credit</p>
+                  </button>
+                )}
+                {pendingWithdrawalCount > 0 && (
+                  <button
+                    onClick={() => setActiveSubTab('withdrawals')}
+                    className="p-4 bg-slate-700/50 hover:bg-slate-700 rounded-lg border border-slate-600 hover:border-amber-500/50 transition-all text-left group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <Wallet className="h-5 w-5 text-amber-400" />
+                      <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">{pendingWithdrawalCount}</span>
+                    </div>
+                    <p className="text-white font-medium">Withdrawal Requests</p>
+                    <p className="text-sm text-gray-400 mt-1">{formatCurrency(totalPendingWithdrawals)} pending approval</p>
+                  </button>
+                )}
+                {pendingSessionCount > 0 && (
+                  <button
+                    onClick={() => setActiveSubTab('sessions')}
+                    className="p-4 bg-slate-700/50 hover:bg-slate-700 rounded-lg border border-slate-600 hover:border-teal-500/50 transition-all text-left group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <Headphones className="h-5 w-5 text-teal-400" />
+                      <span className="text-xs bg-teal-500/20 text-teal-300 px-2 py-0.5 rounded-full">{pendingSessionCount}</span>
+                    </div>
+                    <p className="text-white font-medium">Session Payouts</p>
+                    <p className="text-sm text-gray-400 mt-1">{pendingSessionPayouts.length} pending, {approvedSessionPayouts.length} ready to pay</p>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Export Section in Overview */}
+          <div className="bg-slate-700/30 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Export & Reconciliation</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <button
+                onClick={() => statementApi.exportUnpaidSummary()}
+                className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                Export Statement Queue (CSV)
+              </button>
+              <button className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors">
+                <Download className="h-4 w-4" />
+                Export Statement History (CSV)
+              </button>
+              <button className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors">
+                <Download className="h-4 w-4" />
+                QuickBooks Format
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* WITHDRAWALS TAB */}
+      {activeSubTab === 'withdrawals' && (
+        <>
+          {/* Withdrawal Requests Section */}
       {Array.isArray(withdrawalRequests) && withdrawalRequests.length > 0 && (
         <div className="bg-slate-800 rounded-lg shadow-xl p-6">
           <div className="flex items-center justify-between mb-6">
@@ -605,8 +736,14 @@ const PayoutsTab: React.FC = () => {
         </div>
       )}
 
-      {/* Session Payout Requests Section */}
-      {(pendingSessionPayouts.length > 0 || approvedSessionPayouts.length > 0) && (
+        </>
+      )}
+
+      {/* SESSIONS TAB */}
+      {activeSubTab === 'sessions' && (
+        <>
+          {/* Session Payout Requests Section */}
+          {(pendingSessionPayouts.length > 0 || approvedSessionPayouts.length > 0) && (
         <div className="bg-slate-800 rounded-lg shadow-xl p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -802,10 +939,15 @@ const PayoutsTab: React.FC = () => {
             ))}
           </div>
         </div>
+          )}
+        </>
       )}
 
-      {/* Payment Queue Section */}
-      <div className="bg-slate-700/30 rounded-lg p-6">
+      {/* STATEMENTS TAB */}
+      {activeSubTab === 'statements' && (
+        <>
+          {/* Payment Queue Section */}
+          <div className="bg-slate-700/30 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-white">Statement Queue</h3>
@@ -1027,13 +1169,18 @@ const PayoutsTab: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
+          </div>
+        </>
+      )}
 
-      {/* Payout History Section */}
-      <div className="bg-slate-700/30 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-white">Withdrawal History</h3>
+      {/* WITHDRAWALS TAB - History */}
+      {activeSubTab === 'withdrawals' && (
+        <>
+          {/* Payout History Section */}
+          <div className="bg-slate-700/30 rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Withdrawal History</h3>
             <p className="text-sm text-gray-400 mt-1">
               All Stripe withdrawal transfers
             </p>
@@ -1120,9 +1267,14 @@ const PayoutsTab: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
+          </div>
+        </>
+      )}
 
-      {/* Session Payout History Section */}
+      {/* SESSIONS TAB - History */}
+      {activeSubTab === 'sessions' && (
+        <>
+          {/* Session Payout History Section */}
       <div className="bg-slate-700/30 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -1221,32 +1373,9 @@ const PayoutsTab: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
-
-      {/* Export Section */}
-      <div className="bg-slate-700/30 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Export & Reconciliation</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={() => statementApi.exportUnpaidSummary()}
-            className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-          >
-            <Download className="h-4 w-4" />
-            Export Statement Queue (CSV)
-          </button>
-          <button className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors">
-            <Download className="h-4 w-4" />
-            Export Statement History (CSV)
-          </button>
-          <button className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors">
-            <Download className="h-4 w-4" />
-            QuickBooks Format
-          </button>
-        </div>
-        <p className="text-sm text-gray-400 mt-3">
-          Export payment data for accounting, reconciliation, or manual processing in external systems.
-        </p>
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Writer Breakdown Modal */}
       {showDetailsModal && paymentSummary && (
