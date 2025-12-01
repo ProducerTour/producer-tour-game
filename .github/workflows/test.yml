@@ -136,18 +136,11 @@ jobs:
         run: npm ci
         timeout-minutes: 10
 
-      - name: Create Prisma Client symlink for workspace
-        run: |
-          mkdir -p apps/backend/node_modules/@prisma
-          ln -s $(pwd)/node_modules/@prisma/client apps/backend/node_modules/@prisma/client
-        timeout-minutes: 1
-
       - name: Generate Prisma Client
-        run: npm run db:generate --workspace=apps/backend
+        run: cd apps/backend && npx prisma generate
         timeout-minutes: 3
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/producer_tour_test
-          PRISMA_GENERATE_SKIP_AUTOINSTALL: true
 
       - name: Build backend
         run: cd apps/backend && npm run build
