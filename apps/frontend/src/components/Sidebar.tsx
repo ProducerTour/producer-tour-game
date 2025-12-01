@@ -324,54 +324,65 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                           )}
                         </Link>
                       ) : (
-                        <button
-                          onClick={() => {
-                            if (hasChildren && !isCollapsed) {
-                              toggleTab(item.id);
-                            } else if (onTabChange) {
-                              onTabChange(item.id);
-                              setIsMobileMenuOpen(false);
-                            } else {
-                              // If no onTabChange (e.g., from /tour-miles), navigate to dashboard with target tab
-                              const dashboardPath = user?.role === 'ADMIN' ? '/admin' : user?.role === 'CUSTOMER' ? '/customer' : '/dashboard';
-                              navigate(dashboardPath, { state: { activeTab: item.id } });
-                              setIsMobileMenuOpen(false);
-                            }
-                          }}
-                          title={isCollapsed ? item.label : undefined}
-                          className={`w-full ${isCollapsed ? 'px-0 py-3 justify-center' : 'px-6 py-3'} flex items-center gap-3 transition-all ${
-                            isActive
-                              ? `bg-gradient-to-r from-white/[0.12] to-white/[0.06] ${isCollapsed ? 'border-l-2' : 'border-l-4'} border-white text-white`
-                              : `text-text-secondary hover:text-white hover:bg-white/[0.05] ${isCollapsed ? 'border-l-2' : 'border-l-4'} border-transparent`
-                          }`}
-                        >
-                          {renderIcon(item.icon)}
-                          {!isCollapsed && (
-                            <>
-                              <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
-                              {item.badge !== undefined && item.badge > 0 && (
-                                <span className={`
-                                  px-2 py-0.5 rounded-full text-xs font-semibold
-                                  ${item.badgeColor === 'green' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : ''}
-                                  ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
-                                  ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
-                                  ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
-                                  ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
-                                  ${!item.badgeColor ? 'bg-white/10 text-gray-400 border border-white/20' : ''}
-                                `}>
-                                  {item.badge}
-                                </span>
-                              )}
-                              {hasChildren && (
-                                <ChevronDown
-                                  className={`w-4 h-4 transition-transform ${
-                                    isExpanded ? 'rotate-180' : ''
-                                  }`}
-                                />
-                              )}
-                            </>
+                        <div className={`w-full ${isCollapsed ? 'px-0 py-3 justify-center' : 'px-6 py-3'} flex items-center gap-3 transition-all ${
+                          isActive
+                            ? `bg-gradient-to-r from-white/[0.12] to-white/[0.06] ${isCollapsed ? 'border-l-2' : 'border-l-4'} border-white text-white`
+                            : `text-text-secondary hover:text-white hover:bg-white/[0.05] ${isCollapsed ? 'border-l-2' : 'border-l-4'} border-transparent`
+                        }`}>
+                          {/* Main clickable area - always navigates to tab */}
+                          <button
+                            onClick={() => {
+                              if (onTabChange) {
+                                onTabChange(item.id);
+                                setIsMobileMenuOpen(false);
+                              } else {
+                                // If no onTabChange (e.g., from /tour-miles), navigate to dashboard with target tab
+                                const dashboardPath = user?.role === 'ADMIN' ? '/admin' : user?.role === 'CUSTOMER' ? '/customer' : '/dashboard';
+                                navigate(dashboardPath, { state: { activeTab: item.id } });
+                                setIsMobileMenuOpen(false);
+                              }
+                            }}
+                            title={isCollapsed ? item.label : undefined}
+                            className="flex items-center gap-3 flex-1 text-left"
+                          >
+                            {renderIcon(item.icon)}
+                            {!isCollapsed && (
+                              <>
+                                <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
+                                {item.badge !== undefined && item.badge > 0 && (
+                                  <span className={`
+                                    px-2 py-0.5 rounded-full text-xs font-semibold
+                                    ${item.badgeColor === 'green' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : ''}
+                                    ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
+                                    ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
+                                    ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
+                                    ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
+                                    ${!item.badgeColor ? 'bg-white/10 text-gray-400 border border-white/20' : ''}
+                                  `}>
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </button>
+                          {/* Separate chevron button for dropdown toggle */}
+                          {hasChildren && !isCollapsed && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleTab(item.id);
+                              }}
+                              className="p-1 hover:bg-white/10 rounded transition-colors"
+                              title={isExpanded ? 'Collapse' : 'Expand'}
+                            >
+                              <ChevronDown
+                                className={`w-4 h-4 transition-transform ${
+                                  isExpanded ? 'rotate-180' : ''
+                                }`}
+                              />
+                            </button>
                           )}
-                        </button>
+                        </div>
                       )}
 
                       {/* Sub-items - hide when collapsed */}
