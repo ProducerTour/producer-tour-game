@@ -103,7 +103,7 @@ export function Header() {
                   </span>
                 )}
               </Link>
-              <Button to="/login" variant="ghost" size="sm">
+              <Button to="/login" variant="cassette" size="sm">
                 Log In
               </Button>
               <Button to="/apply" variant="primary" size="sm">
@@ -207,7 +207,7 @@ export function Header() {
                 </Link>
                 <Button
                   to="/login"
-                  variant="secondary"
+                  variant="cassette"
                   size="lg"
                   className="w-full"
                   onClick={() => setIsMobileMenuOpen(false)}

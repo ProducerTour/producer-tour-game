@@ -85,7 +85,7 @@ export function SectionHeader({ title, subtitle, centered = true, className = ''
 
 interface ButtonProps {
   children: ReactNode;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'outline';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'cassette';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   href?: string;
   to?: string;
@@ -141,6 +141,19 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
       hover:border-white/40 hover:bg-white/5 hover:-translate-y-0.5
       focus:ring-white/30
       active:translate-y-0
+    `,
+    cassette: `
+      relative border border-[#f0e226] text-[#f0e226] bg-transparent
+      uppercase tracking-wider font-medium
+      hover:bg-[#f0e226] hover:text-black hover:-translate-y-0.5
+      focus:ring-[#f0e226]/50
+      active:translate-y-0
+      before:absolute before:left-2 before:top-1/2 before:-translate-y-1/2
+      before:w-1.5 before:h-1.5 before:rounded-full before:bg-[#f0e226]
+      after:absolute after:right-2 after:top-1/2 after:-translate-y-1/2
+      after:w-1.5 after:h-1.5 after:rounded-full after:bg-[#f0e226]
+      hover:before:bg-black hover:after:bg-black
+      !pl-6 !pr-6
     `
   };
 
