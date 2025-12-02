@@ -1,0 +1,1 @@
+export { LabelLandingPage } from './LabelLandingPage';

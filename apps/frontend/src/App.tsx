@@ -8,7 +8,8 @@ import { ChatWidget } from './components/chat';
 import { BugReportButton } from './components/BugReportButton';
 
 // Pages
-import LandingPage from './pages/LandingPageNew';
+import { PublisherCassetteLandingPage as LandingPage } from './components/landing-page-templates/template-11-publisher-cassette';
+import LandingPreview from './pages/LandingPreview';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -260,6 +261,9 @@ function App() {
         <Route path="/writer/:slug" element={<WriterTourHubPage />} />
 
         <Route path="/" element={<LandingPage />} />
+
+        {/* Landing Page Templates Preview */}
+        <Route path="/landing-preview" element={<LandingPreview />} />
 
         {/* 404 Catch-all - must be last */}
         <Route path="*" element={<NotFoundPage />} />
