@@ -1,6 +1,6 @@
 /**
  * Shop Page - Public product browsing and add to cart
- * Styled with slate grey theme to match the rest of the platform
+ * Styled with cassette theme (black bg, yellow accents)
  */
 
 import { useEffect, useState } from 'react';
@@ -9,7 +9,6 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Search,
-  Filter,
   ShoppingCart,
   Package,
   Download,
@@ -17,21 +16,9 @@ import {
   Check,
   Star,
   Loader2,
-  Sparkles,
   Zap,
 } from 'lucide-react';
 import { Header, Footer } from '../components/landing';
-import { Container, Button as LandingButton } from '../components/landing/ui';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/Select';
 import { useCartStore } from '../store/cart.store';
 import { shopApi } from '../lib/api';
 import toast from 'react-hot-toast';
@@ -73,15 +60,6 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
   SUBSCRIPTION: 'Subscription',
 };
 
-const PRODUCT_TYPE_COLORS: Record<string, string> = {
-  SIMPLE: 'from-slate-500/20 to-slate-600/10',
-  VARIABLE: 'from-slate-500/20 to-slate-600/10',
-  DIGITAL: 'from-slate-500/20 to-slate-600/10',
-  DOWNLOADABLE: 'from-emerald-500/20 to-green-500/10',
-  PHYSICAL: 'from-amber-500/20 to-orange-500/10',
-  SUBSCRIPTION: 'from-slate-600/20 to-slate-700/10',
-};
-
 export default function ShopPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -110,7 +88,6 @@ export default function ShopPage() {
   const handleAddToCart = async (product: Product) => {
     setAddingToCart(product.id);
 
-    // Check if subscription already in cart
     if (product.type === 'SUBSCRIPTION') {
       const existingSubscription = cartItems.find(
         (item) => item.productId === product.id && item.type === 'SUBSCRIPTION'
@@ -122,7 +99,6 @@ export default function ShopPage() {
       }
     }
 
-    // Simulate a slight delay for better UX
     await new Promise((resolve) => setTimeout(resolve, 300));
 
     addItem({
@@ -147,305 +123,281 @@ export default function ShopPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface text-white">
+    <div className="min-h-screen bg-black text-white">
       <Header />
 
       <main className="pt-28 pb-20">
-        {/* Background Effects - Slate Grey Theme */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-radial from-slate-700/20 via-slate-800/10 to-transparent rounded-full opacity-50" />
-          <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-slate-600/10 rounded-full opacity-30" />
-          <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-slate-700/10 rounded-full opacity-40" />
-          {/* Subtle grid pattern */}
-          <div
-            className="absolute inset-0 opacity-[0.015]"
-            style={{
-              backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px),
-                                linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
-              backgroundSize: '60px 60px'
-            }}
-          />
-        </div>
+        {/* Noise texture overlay */}
+        <div
+          className="pointer-events-none fixed inset-0 z-10 opacity-[0.03]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          }}
+        />
 
-        <Container>
-          <div className="relative">
-            {/* Page Header */}
+        <div className="max-w-6xl mx-auto px-4 relative z-20">
+          {/* Page Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <span className="inline-flex items-center gap-2 px-4 py-2 border border-[#f0e226]/30 text-[#f0e226] text-sm font-medium uppercase tracking-wider mb-6">
+              <Zap className="w-4 h-4" />
+              Producer Tools & Resources
+            </span>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 uppercase tracking-wide">
+              Shop
+            </h1>
+            <p className="text-xl text-white/60 max-w-2xl mx-auto">
+              Tools, resources, and subscriptions to help you grow your music career
+            </p>
+          </motion.div>
+
+          {/* Search and Filters */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="flex flex-col md:flex-row gap-4 mb-12 max-w-2xl mx-auto"
+          >
+            {/* Search */}
+            <div className="relative flex-1 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-[#f0e226] transition-colors z-10" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products..."
+                className="w-full pl-12 pr-4 h-12 bg-[#19181a] border border-white/10 text-white placeholder:text-white/40 focus:border-[#f0e226]/50 focus:outline-none transition-colors"
+              />
+            </div>
+
+            {/* Type Filter */}
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="h-12 px-4 bg-[#19181a] border border-white/10 text-white focus:border-[#f0e226]/50 focus:outline-none transition-colors appearance-none cursor-pointer"
+            >
+              <option value="all">All Types</option>
+              <option value="SUBSCRIPTION">Subscriptions</option>
+              <option value="DIGITAL">Digital</option>
+              <option value="DOWNLOADABLE">Downloads</option>
+              <option value="PHYSICAL">Physical</option>
+            </select>
+          </motion.div>
+
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="relative">
+                <div className="w-16 h-16 border border-[#f0e226]/30 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-[#f0e226]" />
+                </div>
+              </div>
+              <p className="text-white/40 mt-4 uppercase tracking-wider text-sm">Loading products...</p>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!isLoading && products.length === 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-16"
+              transition={{ duration: 0.5 }}
+              className="text-center py-20"
             >
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700/50 text-slate-300 text-sm font-medium mb-6">
-                <Sparkles className="w-4 h-4 text-slate-400" />
-                Producer Tools & Resources
-              </span>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-                Shop
-              </h1>
-              <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-                Tools, resources, and subscriptions to help you grow your music career
+              <div className="w-28 h-28 border border-[#f0e226]/30 flex items-center justify-center mx-auto mb-6">
+                <Package className="w-14 h-14 text-[#f0e226]/50" />
+              </div>
+              <h2 className="text-2xl font-semibold text-white mb-4 uppercase tracking-wide">No products found</h2>
+              <p className="text-white/60 mb-8 max-w-md mx-auto">
+                {searchQuery || typeFilter
+                  ? 'Try adjusting your search or filter criteria'
+                  : 'Check back soon for new products and tools'}
               </p>
+              {(searchQuery || (typeFilter && typeFilter !== 'all')) && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setTypeFilter('all');
+                  }}
+                  className="px-6 py-3 border border-[#f0e226] text-[#f0e226] uppercase tracking-wider text-sm font-medium hover:bg-[#f0e226] hover:text-black transition-all"
+                >
+                  Clear filters
+                </button>
+              )}
             </motion.div>
+          )}
 
-            {/* Search and Filters */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="flex flex-col md:flex-row gap-4 mb-12 max-w-2xl mx-auto"
-            >
-              {/* Search */}
-              <div className="relative flex-1 group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-foreground transition-colors z-10" />
-                <Input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search products..."
-                  className="pl-12 h-12 rounded-xl bg-slate-900/60 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-slate-600 focus:bg-slate-900/80"
-                />
-              </div>
+          {/* Products Grid */}
+          {!isLoading && products.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map((product, index) => {
+                const TypeIcon = PRODUCT_TYPE_ICONS[product.type] || Package;
+                const inCart = isInCart(product.id);
+                const isAdding = addingToCart === product.id;
+                const price = Number(product.price);
+                const salePrice = product.salePrice ? Number(product.salePrice) : null;
+                const hasDiscount = salePrice && salePrice < price;
 
-              {/* Type Filter */}
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full md:w-[180px] h-12 rounded-xl bg-slate-900/60 border-slate-700/50 text-white focus:border-slate-600">
-                  <Filter className="w-5 h-5 text-muted-foreground mr-2" />
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="SUBSCRIPTION">Subscriptions</SelectItem>
-                  <SelectItem value="DIGITAL">Digital</SelectItem>
-                  <SelectItem value="DOWNLOADABLE">Downloads</SelectItem>
-                  <SelectItem value="PHYSICAL">Physical</SelectItem>
-                </SelectContent>
-              </Select>
-            </motion.div>
-
-            {/* Loading State */}
-            {isLoading && (
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-                  </div>
-                  <div className="absolute inset-0 w-16 h-16 rounded-full border-2 border-slate-500/20 animate-ping" />
-                </div>
-                <p className="text-slate-500 mt-4">Loading products...</p>
-              </div>
-            )}
-
-            {/* Empty State */}
-            {!isLoading && products.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="text-center py-20"
-              >
-                <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700/50 flex items-center justify-center mx-auto mb-6 shadow-xl">
-                  <Package className="w-14 h-14 text-slate-600" />
-                </div>
-                <h2 className="text-2xl font-semibold text-white mb-4">No products found</h2>
-                <p className="text-slate-400 mb-8 max-w-md mx-auto">
-                  {searchQuery || typeFilter
-                    ? 'Try adjusting your search or filter criteria'
-                    : 'Check back soon for new products and tools'}
-                </p>
-                {(searchQuery || (typeFilter && typeFilter !== 'all')) && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSearchQuery('');
-                      setTypeFilter('all');
-                    }}
-                    className="bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 hover:text-white"
+                return (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.05 }}
+                    whileHover={{ y: -6, boxShadow: '0 25px 50px -12px rgba(240, 226, 38, 0.15)' }}
+                    className="group relative bg-[#19181a] border border-white/10 overflow-hidden hover:border-[#f0e226]/30 transition-all duration-300"
                   >
-                    Clear filters
-                  </Button>
-                )}
-              </motion.div>
-            )}
-
-            {/* Products Grid */}
-            {!isLoading && products.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product, index) => {
-                  const TypeIcon = PRODUCT_TYPE_ICONS[product.type] || Package;
-                  const inCart = isInCart(product.id);
-                  const isAdding = addingToCart === product.id;
-                  const price = Number(product.price);
-                  const salePrice = product.salePrice ? Number(product.salePrice) : null;
-                  const hasDiscount = salePrice && salePrice < price;
-                  const typeGradient = PRODUCT_TYPE_COLORS[product.type] || PRODUCT_TYPE_COLORS.SIMPLE;
-
-                  return (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.05 }}
-                      whileHover={{ y: -6, transition: { duration: 0.2 } }}
-                      className="group relative rounded-2xl bg-gradient-to-b from-slate-800/40 to-slate-900/60 border border-slate-700/40 overflow-hidden hover:border-slate-600/60 hover:shadow-2xl hover:shadow-slate-900/50 transition-all duration-300"
-                    >
-                      {/* Subtle glow effect on hover */}
-                      <div className="absolute inset-0 bg-gradient-to-b from-slate-700/0 to-slate-700/0 group-hover:from-slate-700/10 group-hover:to-transparent transition-all duration-500 pointer-events-none" />
-
-                      {/* Clickable Link to Product Page */}
-                      <Link to={`/shop/${product.slug}`} className="block">
-                        {/* Product Image */}
-                        <div className={`relative h-52 bg-gradient-to-br ${typeGradient} overflow-hidden`}>
-                          {product.featuredImageUrl ? (
-                            <img
-                              src={product.featuredImageUrl}
-                              alt={product.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <div className="w-20 h-20 rounded-2xl bg-slate-800/50 flex items-center justify-center border border-slate-700/30">
-                                <TypeIcon className="w-10 h-10 text-slate-500" />
-                              </div>
+                    {/* Clickable Link to Product Page */}
+                    <Link to={`/shop/${product.slug}`} className="block">
+                      {/* Product Image */}
+                      <div className="relative h-52 bg-[#0f0f0f] overflow-hidden">
+                        {product.featuredImageUrl ? (
+                          <img
+                            src={product.featuredImageUrl}
+                            alt={product.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-20 h-20 border border-[#f0e226]/30 flex items-center justify-center">
+                              <TypeIcon className="w-10 h-10 text-[#f0e226]/50" />
                             </div>
-                          )}
+                          </div>
+                        )}
 
-                          {/* Featured Badge */}
-                          {product.isFeatured && (
-                            <Badge className="absolute top-4 left-4 bg-slate-600/90 text-white border-0 shadow-lg">
-                              <Star className="w-3 h-3 mr-1 fill-current" />
-                              Featured
-                            </Badge>
-                          )}
+                        {/* Featured Badge */}
+                        {product.isFeatured && (
+                          <span className="absolute top-4 left-4 px-3 py-1 bg-[#f0e226] text-black text-xs font-semibold uppercase tracking-wider">
+                            <Star className="w-3 h-3 mr-1 inline fill-current" />
+                            Featured
+                          </span>
+                        )}
 
-                          {/* Sale Badge */}
-                          {hasDiscount && (
-                            <Badge className="absolute top-4 right-4 bg-emerald-500/90 text-white border-0 shadow-lg">
-                              Sale
-                            </Badge>
-                          )}
+                        {/* Sale Badge */}
+                        {hasDiscount && (
+                          <span className="absolute top-4 right-4 px-3 py-1 bg-[#f0e226] text-black text-xs font-semibold uppercase tracking-wider">
+                            Sale
+                          </span>
+                        )}
 
-                          {/* Type Badge */}
-                          <Badge variant="outline" className="absolute bottom-4 left-4 bg-slate-900/80 text-slate-300 border-slate-700/50">
-                            <TypeIcon className="w-3 h-3 mr-1" />
-                            {PRODUCT_TYPE_LABELS[product.type]}
-                          </Badge>
-                        </div>
+                        {/* Type Badge */}
+                        <span className="absolute bottom-4 left-4 px-3 py-1 bg-black/80 border border-white/20 text-white/80 text-xs uppercase tracking-wider">
+                          <TypeIcon className="w-3 h-3 mr-1 inline" />
+                          {PRODUCT_TYPE_LABELS[product.type]}
+                        </span>
+                      </div>
 
-                        {/* Product Info */}
-                        <div className="relative p-6 pb-0">
-                          <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-slate-100 transition-colors">
-                            {product.name}
-                          </h3>
-                          <p className="text-slate-400 text-sm mb-5 line-clamp-2 leading-relaxed">
-                            {product.shortDescription || product.description}
-                          </p>
+                      {/* Product Info */}
+                      <div className="relative p-6 pb-0">
+                        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-[#f0e226] transition-colors">
+                          {product.name}
+                        </h3>
+                        <p className="text-white/60 text-sm mb-5 line-clamp-2 leading-relaxed">
+                          {product.shortDescription || product.description}
+                        </p>
 
-                          {/* Price */}
-                          <div className="flex items-baseline gap-2 mb-5">
-                            {hasDiscount ? (
-                              <>
-                                <span className="text-2xl font-bold text-white">
-                                  ${salePrice!.toFixed(2)}
-                                </span>
-                                <span className="text-slate-500 line-through text-sm">
-                                  ${price.toFixed(2)}
-                                </span>
-                              </>
-                            ) : (
+                        {/* Price */}
+                        <div className="flex items-baseline gap-2 mb-5">
+                          {hasDiscount ? (
+                            <>
                               <span className="text-2xl font-bold text-white">
+                                ${salePrice!.toFixed(2)}
+                              </span>
+                              <span className="text-white/40 line-through text-sm">
                                 ${price.toFixed(2)}
                               </span>
-                            )}
-                            {product.type === 'SUBSCRIPTION' && product.subscriptionInterval && (
-                              <span className="text-slate-500 text-sm">
-                                /{product.subscriptionInterval.toLowerCase()}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Trial Days */}
-                          {product.type === 'SUBSCRIPTION' && product.trialDays && product.trialDays > 0 && (
-                            <div className="flex items-center gap-2 mb-5">
-                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                              <span className="text-emerald-400 text-sm font-medium">
-                                {product.trialDays}-day free trial
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </Link>
-
-                      {/* Add to Cart Button */}
-                      <div className="px-6 pb-6">
-                        <Button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleAddToCart(product);
-                          }}
-                          disabled={isAdding || (product.type === 'SUBSCRIPTION' && inCart)}
-                          variant={inCart && product.type === 'SUBSCRIPTION' ? 'outline' : 'default'}
-                          className={`w-full h-12 rounded-xl font-semibold transition-all duration-300 ${
-                            inCart && product.type === 'SUBSCRIPTION'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                              : 'bg-white text-slate-900 hover:bg-slate-100 hover:shadow-lg hover:shadow-white/10'
-                          }`}
-                        >
-                          {isAdding ? (
-                            <>
-                              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                              Adding...
-                            </>
-                          ) : inCart && product.type === 'SUBSCRIPTION' ? (
-                            <>
-                              <Check className="w-5 h-5 mr-2" />
-                              In Cart
                             </>
                           ) : (
-                            <>
-                              <ShoppingCart className="w-5 h-5 mr-2" />
-                              Add to Cart
-                            </>
+                            <span className="text-2xl font-bold text-white">
+                              ${price.toFixed(2)}
+                            </span>
                           )}
-                        </Button>
+                          {product.type === 'SUBSCRIPTION' && product.subscriptionInterval && (
+                            <span className="text-white/40 text-sm">
+                              /{product.subscriptionInterval.toLowerCase()}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Trial Days */}
+                        {product.type === 'SUBSCRIPTION' && product.trialDays && product.trialDays > 0 && (
+                          <div className="flex items-center gap-2 mb-5">
+                            <div className="w-1.5 h-1.5 bg-[#f0e226]" />
+                            <span className="text-[#f0e226] text-sm font-medium">
+                              {product.trialDays}-day free trial
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
+                    </Link>
 
-            {/* CTA Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="mt-24 text-center"
-            >
-              <div className="relative rounded-2xl bg-gradient-to-b from-slate-800/50 to-slate-900/70 border border-slate-700/40 p-10 md:p-14 max-w-2xl mx-auto overflow-hidden">
-                {/* Background decoration */}
-                <div className="absolute inset-0 pointer-events-none">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-slate-600/10 rounded-full opacity-50" />
-                  <div className="absolute bottom-0 left-0 w-48 h-48 bg-slate-700/20 rounded-full opacity-40" />
-                </div>
+                    {/* Add to Cart Button */}
+                    <div className="px-6 pb-6">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleAddToCart(product);
+                        }}
+                        disabled={isAdding || (product.type === 'SUBSCRIPTION' && inCart)}
+                        className={`w-full h-12 font-semibold uppercase tracking-wider text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
+                          inCart && product.type === 'SUBSCRIPTION'
+                            ? 'bg-[#f0e226]/10 text-[#f0e226] border border-[#f0e226]/30'
+                            : 'bg-[#f0e226] text-black hover:bg-white'
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {isAdding ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Adding...
+                          </>
+                        ) : inCart && product.type === 'SUBSCRIPTION' ? (
+                          <>
+                            <Check className="w-5 h-5" />
+                            In Cart
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart className="w-5 h-5" />
+                            Add to Cart
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
 
-                <div className="relative">
-                  <div className="w-14 h-14 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center mx-auto mb-6">
-                    <Zap className="w-7 h-7 text-slate-400" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-4">Looking for something specific?</h3>
-                  <p className="text-slate-400 mb-8 max-w-md mx-auto">
-                    Check out our pricing page for subscription bundles and tool packages designed for producers.
-                  </p>
-                  <LandingButton to="/pricing" variant="primary" size="lg">
-                    View Pricing Plans
-                  </LandingButton>
-                </div>
+          {/* CTA Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="mt-24 text-center"
+          >
+            <div className="bg-[#19181a] border border-white/10 p-10 md:p-14 max-w-2xl mx-auto">
+              <div className="w-14 h-14 border border-[#f0e226]/30 flex items-center justify-center mx-auto mb-6">
+                <Zap className="w-7 h-7 text-[#f0e226]" />
               </div>
-            </motion.div>
-          </div>
-        </Container>
+              <h3 className="text-2xl font-bold text-white mb-4 uppercase tracking-wide">Looking for something specific?</h3>
+              <p className="text-white/60 mb-8 max-w-md mx-auto">
+                Check out our pricing page for subscription bundles and tool packages designed for producers.
+              </p>
+              <Link
+                to="/pricing"
+                className="inline-block px-8 py-4 bg-[#f0e226] text-black font-semibold uppercase tracking-wider hover:bg-white transition-all"
+              >
+                View Pricing Plans
+              </Link>
+            </div>
+          </motion.div>
+        </div>
       </main>
 
       <Footer />
