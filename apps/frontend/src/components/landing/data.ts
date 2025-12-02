@@ -225,8 +225,8 @@ export const processSteps: ProcessStep[] = [
 // ============================================
 
 export const navLinks = [
-  { name: 'Features', href: '#features' },
-  { name: 'How It Works', href: '#process' },
+  { name: 'About', href: '#about' },
+  { name: 'Services', href: '#services' },
   { name: 'Pricing', href: '/pricing' },
   { name: 'Shop', href: '/shop' },
   { name: 'FAQ', href: '#faq' },
@@ -238,14 +238,13 @@ export const navLinks = [
 
 export const footerLinks = {
   product: [
-    { name: 'Features', href: '#features' },
-    { name: 'How It Works', href: '#process' },
+    { name: 'About', href: '#about' },
+    { name: 'Services', href: '#services' },
     { name: 'FAQ', href: '#faq' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'Shop', href: '/shop' },
   ],
   company: [
-    { name: 'About', href: '#about' },
     { name: 'Blog', href: 'https://blog.producertour.com' },
     { name: 'Careers', href: '#careers' },
     { name: 'Contact', href: '#contact' },

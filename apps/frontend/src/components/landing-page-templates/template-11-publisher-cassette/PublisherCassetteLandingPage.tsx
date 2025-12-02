@@ -529,10 +529,9 @@ function HeroSection() {
             {[
               { label: 'About', href: '#about' },
               { label: 'Services', href: '#services' },
-              { label: 'Tools', href: '/tools' },
+              { label: 'Pricing', href: '/pricing' },
               { label: 'Shop', href: '/shop' },
-              { label: 'Team', href: '#team' },
-              { label: 'Contact', href: '#contact' },
+              { label: 'FAQ', href: '#faq' },
             ].map((link) => (
               <motion.a
                 key={link.label}
