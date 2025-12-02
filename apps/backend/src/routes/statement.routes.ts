@@ -1673,8 +1673,9 @@ router.post(
 
 /**
  * POST /api/statements/:id/smart-assign
- * Smart match writers for statement using fuzzy logic (Admin only)
- * Returns suggestions categorized by confidence level
+ * Smart match writers for statement using Manage Placements as source of truth (Admin only)
+ * Matches songs to Placement records and calculates splits based on PlacementCredit records
+ * Falls back to legacy writer matching for songs not in Manage Placements
  */
 router.post(
   '/:id/smart-assign',
@@ -1683,6 +1684,7 @@ router.post(
   async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
+      // All allocation is done via Manage Placements - no legacy IPI matching
 
       const statement = await prisma.statement.findUnique({
         where: { id },
@@ -1711,26 +1713,24 @@ router.post(
         });
       }
 
-      // Import the smart matcher utility
-      const { smartMatchStatement } = await import('../utils/writer-matcher');
+      // Import smart matcher utility for Manage Placements
+      const { smartMatchStatementWithPlacementTracker } = await import('../utils/writer-matcher');
 
-      // Run fuzzy matching on all songs
-      // Returns ALL publisher rows (for MLC, same song can appear multiple times with different publishers)
-      // Pass proType so BMI/ASCAP/etc. statements only match writers with that PRO affiliation
-      const matchResults = await smartMatchStatement(parsedItems, {
-        proType: statement.proType as 'BMI' | 'ASCAP' | 'SESAC' | 'GMR' | 'MLC' | 'SOCAN' | 'PRS' | 'OTHER'
-      });
+      const proType = statement.proType as 'BMI' | 'ASCAP' | 'SESAC' | 'GMR' | 'MLC' | 'SOCAN' | 'PRS' | 'OTHER';
 
-      // Categorize matches by confidence
-      const autoAssigned: any[] = []; // >90% confidence - can auto-assign
-      const suggested: any[] = [];    // 70-90% confidence - needs review
-      const unmatched: any[] = [];    // <70% or no match - needs manual assignment
+      // Result arrays
+      const trackedSongs: any[] = []; // Songs matched via Manage Placements (with calculated splits)
+      const unmatched: any[] = [];    // Songs NOT in Manage Placements (needs to be added first)
 
-      // Process each publisher row (preserves all rows, even duplicate song titles with different publishers)
-      matchResults.forEach((row) => {
-        const { workTitle, revenue, performances, metadata, matches } = row;
+      // Match songs via Manage Placements (Placement Tracker)
+      // This matches song titles to Placement records and calculates splits
+      const placementResults = await smartMatchStatementWithPlacementTracker(parsedItems, { proType });
 
-        // Extract publisher and platform info for display
+      // Process matched songs from Manage Placements
+      for (const match of placementResults.matched) {
+        const { workTitle, revenue, performances, metadata, placementMatch, writerShares, excludedCredits } = match;
+
+        // Extract publisher info for display
         const publisherInfo = {
           originalPublisherName: metadata.originalPublisherName || null,
           originalPublisherIpi: metadata.originalPublisherIpi || null,
@@ -1740,83 +1740,73 @@ router.post(
           workWriterList: metadata.workWriterList || []
         };
 
-        if (!matches || matches.length === 0) {
-          // No matches found
-          unmatched.push({
-            workTitle,
-            revenue,
-            performances,
-            reason: 'No matching writers found in database',
-            publisherInfo
-          });
-          return;
-        }
+        // Add songs found in Manage Placements with calculated splits
+        trackedSongs.push({
+          workTitle,
+          revenue,
+          performances,
+          publisherInfo,
+          placement: {
+            id: placementMatch.placement.id,
+            title: placementMatch.placement.title,
+            artist: placementMatch.placement.artist,
+            caseNumber: placementMatch.placement.caseNumber,
+            matchConfidence: placementMatch.confidence,
+            matchedBy: placementMatch.matchedBy
+          },
+          writers: writerShares.map(share => ({
+            writer: {
+              id: share.userId,
+              name: `${share.firstName || ''} ${share.lastName || ''}`.trim() || share.email,
+              email: share.email || '',
+              writerIpiNumber: share.writerIpiNumber,
+              publisherIpiNumber: share.publisherIpiNumber
+            },
+            splitPercentage: share.relativeSplitPercent,
+            originalSplit: share.originalSplitPercent,
+            calculatedRevenue: share.revenueAmount,
+            confidence: 100, // Placement match = 100% confidence
+            reason: `Manage Placements match: "${placementMatch.placement.title}" (${placementMatch.matchedBy === 'exact_title' ? 'exact' : `${placementMatch.confidence}% fuzzy`})`
+          })),
+          excludedCredits: excludedCredits.map(ec => ({
+            name: `${ec.firstName} ${ec.lastName}`,
+            reason: ec.reason
+          }))
+        });
+      }
 
-        // Get high and medium confidence matches
-        const highConfidenceMatches = matches.filter(m => m.confidence >= 90);
-        const mediumConfidenceMatches = matches.filter(m => m.confidence >= 70 && m.confidence < 90);
+      // Process untracked songs - add to unmatched (must be added to Manage Placements first)
+      for (const untracked of placementResults.untracked) {
+        const parsedItem = parsedItems.find((p: any) => p.workTitle === untracked.workTitle);
+        if (!parsedItem) continue;
 
-        if (highConfidenceMatches.length > 0) {
-          // High confidence - auto-assign
-          autoAssigned.push({
-            workTitle,
-            revenue,
-            performances,
-            publisherInfo,
-            writers: highConfidenceMatches.map(match => ({
-              writer: {
-                id: match.writer.id,
-                name: `${match.writer.firstName || ''} ${match.writer.middleName || ''} ${match.writer.lastName || ''}`.trim().replace(/\s+/g, ' ') || match.writer.email,
-                email: match.writer.email,
-                writerIpiNumber: match.writer.writerIpiNumber,
-                publisherIpiNumber: match.writer.publisherIpiNumber
-              },
-              confidence: match.confidence,
-              reason: match.reason
-            }))
-          });
-        } else if (mediumConfidenceMatches.length > 0) {
-          // Medium confidence - suggest for review
-          suggested.push({
-            workTitle,
-            revenue,
-            performances,
-            publisherInfo,
-            matches: mediumConfidenceMatches.slice(0, 3).map(m => ({ // Top 3 matches
-              writer: {
-                id: m.writer.id,
-                name: `${m.writer.firstName || ''} ${m.writer.middleName || ''} ${m.writer.lastName || ''}`.trim().replace(/\s+/g, ' ') || m.writer.email,
-                email: m.writer.email,
-                writerIpiNumber: m.writer.writerIpiNumber,
-                publisherIpiNumber: m.writer.publisherIpiNumber
-              },
-              confidence: m.confidence,
-              reason: m.reason
-            }))
-          });
-        } else {
-          // Low confidence - manual assignment needed
-          const topMatch = matches[0];
-          unmatched.push({
-            workTitle,
-            revenue,
-            performances,
-            publisherInfo,
-            reason: `Low confidence match (${topMatch.confidence}%) - manual review required`
-          });
-        }
-      });
+        const publisherInfo = {
+          originalPublisherName: parsedItem.metadata?.originalPublisherName || null,
+          originalPublisherIpi: parsedItem.metadata?.originalPublisherIpi || null,
+          dspName: parsedItem.metadata?.dspName || null,
+          consumerOffering: parsedItem.metadata?.consumerOffering || null,
+          territory: parsedItem.metadata?.territory || null,
+          workWriterList: parsedItem.metadata?.workWriterList || []
+        };
+
+        unmatched.push({
+          workTitle: untracked.workTitle,
+          revenue: parsedItem.revenue,
+          performances: parsedItem.performances,
+          publisherInfo,
+          notInManagePlacements: true,
+          reason: untracked.reason || 'Song not found in Manage Placements. Add it to Manage Placements first to allocate royalties.'
+        });
+      }
 
       res.json({
         summary: {
-          totalRows: parsedItems.length, // For MLC: publisher rows, not unique songs
-          autoAssignedCount: autoAssigned.length,
-          suggestedCount: suggested.length,
-          unmatchedCount: unmatched.length
+          totalRows: parsedItems.length,
+          trackedSongsCount: trackedSongs.length,    // Songs matched via Manage Placements
+          unmatchedCount: unmatched.length           // Songs NOT in Manage Placements
         },
-        autoAssigned,
-        suggested,
-        unmatched
+        trackedSongs,   // Songs matched from Manage Placements with calculated splits
+        unmatched       // Songs not found in Manage Placements (needs to be added first)
       });
     } catch (error) {
       console.error('Smart assign error:', error);

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Clock, CheckCircle2, XCircle, AlertCircle, Music, Filter, ArrowLeft, Upload, Eye, Pencil, Plus, Trash2 } from 'lucide-react';
+import { FileText, Clock, CheckCircle2, XCircle, AlertCircle, Music, Filter, ArrowLeft, Upload, Eye, Pencil, Plus, Trash2, Search, Link2, UserCheck, UserX, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { workRegistrationApi, WorkSubmission } from '@/lib/workRegistrationApi';
+import { userApi } from '@/lib/api';
 import { SubmissionStatusBadge } from '@/components/SubmissionStatusBadge';
 
 type StatusFilter = 'ALL' | 'PENDING' | 'DOCUMENTS_REQUESTED' | 'APPROVED' | 'DENIED' | 'TRACKING' | 'COMPLETED';
@@ -572,6 +573,20 @@ interface CreditForm {
   splitPercentage: number;
   pro?: string;
   ipiNumber?: string;
+  // User linking fields
+  userId?: string;
+  publisherIpiNumber?: string;
+  isExternalWriter?: boolean;
+}
+
+interface LinkedUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  writerIpiNumber?: string;
+  publisherIpiNumber?: string;
+  proAffiliation?: string;
 }
 
 function EditSubmissionModal({ submission, onClose, onSubmit }: EditSubmissionModalProps) {
@@ -586,9 +601,24 @@ function EditSubmissionModal({ submission, onClose, onSubmit }: EditSubmissionMo
       splitPercentage: c.splitPercentage,
       pro: c.pro || '',
       ipiNumber: c.ipiNumber || '',
+      userId: c.userId || undefined,
+      publisherIpiNumber: c.publisherIpiNumber || undefined,
+      isExternalWriter: c.isExternalWriter || false,
     })) || []
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // User search state
+  const [showUserSearch, setShowUserSearch] = useState(false);
+  const [userSearchIndex, setUserSearchIndex] = useState<number | null>(null);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState<LinkedUser[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+
+  // Calculate total split
+  const totalSplit = credits.reduce((sum, c) => sum + (c.splitPercentage || 0), 0);
+  const splitDifference = 100 - totalSplit;
+  const isValidSplit = Math.abs(splitDifference) < 0.01;
 
   const addCredit = () => {
     setCredits([...credits, {
@@ -601,14 +631,90 @@ function EditSubmissionModal({ submission, onClose, onSubmit }: EditSubmissionMo
     }]);
   };
 
+  // Add external writer (non-PT member)
+  const addExternalWriter = () => {
+    setCredits([...credits, {
+      firstName: '',
+      lastName: '',
+      role: 'WRITER',
+      splitPercentage: 0,
+      pro: '',
+      ipiNumber: '',
+      isExternalWriter: true,
+    }]);
+  };
+
   const removeCredit = (index: number) => {
     setCredits(credits.filter((_, i) => i !== index));
   };
 
-  const updateCredit = (index: number, field: keyof CreditForm, value: string | number) => {
+  const updateCredit = (index: number, field: keyof CreditForm, value: string | number | boolean | undefined) => {
     const newCredits = [...credits];
     newCredits[index] = { ...newCredits[index], [field]: value };
     setCredits(newCredits);
+  };
+
+  // Open user search modal
+  const openUserSearch = (index: number) => {
+    const credit = credits[index];
+    setUserSearchIndex(index);
+    setUserSearchQuery(`${credit.firstName} ${credit.lastName}`.trim());
+    setUserSearchResults([]);
+    setShowUserSearch(true);
+  };
+
+  // Search for PT users
+  const searchUsers = async () => {
+    if (userSearchQuery.length < 2) return;
+    setIsSearchingUsers(true);
+    try {
+      const response = await userApi.searchWriters(userSearchQuery);
+      setUserSearchResults(response.data.results || []);
+    } catch (error) {
+      console.error('User search error:', error);
+      setUserSearchResults([]);
+    }
+    setIsSearchingUsers(false);
+  };
+
+  // Link credit to PT user
+  const linkUser = (user: LinkedUser) => {
+    if (userSearchIndex === null) return;
+    const newCredits = [...credits];
+    newCredits[userSearchIndex] = {
+      ...newCredits[userSearchIndex],
+      userId: user.id,
+      publisherIpiNumber: user.publisherIpiNumber || undefined,
+      isExternalWriter: false,
+      ipiNumber: newCredits[userSearchIndex].ipiNumber || user.writerIpiNumber || '',
+      pro: newCredits[userSearchIndex].pro || user.proAffiliation || '',
+    };
+    setCredits(newCredits);
+    setShowUserSearch(false);
+  };
+
+  // Unlink credit from PT user
+  const unlinkUser = (index: number) => {
+    const newCredits = [...credits];
+    newCredits[index] = {
+      ...newCredits[index],
+      userId: undefined,
+      publisherIpiNumber: undefined,
+      isExternalWriter: true,
+    };
+    setCredits(newCredits);
+  };
+
+  // Mark as external writer
+  const markAsExternal = (index: number) => {
+    const newCredits = [...credits];
+    newCredits[index] = {
+      ...newCredits[index],
+      userId: undefined,
+      isExternalWriter: true,
+    };
+    setCredits(newCredits);
+    setShowUserSearch(false);
   };
 
   const handleSubmit = async () => {
@@ -701,16 +807,46 @@ function EditSubmissionModal({ submission, onClose, onSubmit }: EditSubmissionMo
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <label className="text-slate-300 font-semibold">Collaborators / Split Sheet</label>
-              <motion.button
-                type="button"
-                onClick={addCredit}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center gap-1"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Plus className="w-4 h-4" />
-                Add Collaborator
-              </motion.button>
+              <div className="flex gap-2">
+                <motion.button
+                  type="button"
+                  onClick={addExternalWriter}
+                  className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm flex items-center gap-1"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <UserX className="w-4 h-4" />
+                  Add External Writer
+                </motion.button>
+                <motion.button
+                  type="button"
+                  onClick={addCredit}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center gap-1"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Plus className="w-4 h-4" />
+                  Add PT Collaborator
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Split Total Indicator */}
+            <div className={`mb-4 p-3 rounded-lg border ${
+              isValidSplit
+                ? 'bg-green-500/10 border-green-500/30'
+                : 'bg-amber-500/10 border-amber-500/30'
+            }`}>
+              <div className="flex items-center justify-between">
+                <span className={`text-sm font-medium ${isValidSplit ? 'text-green-400' : 'text-amber-400'}`}>
+                  Total Split: {totalSplit.toFixed(2)}%
+                </span>
+                {!isValidSplit && (
+                  <span className="text-sm text-amber-400">
+                    {splitDifference > 0 ? `${splitDifference.toFixed(2)}% remaining` : `${Math.abs(splitDifference).toFixed(2)}% over`}
+                  </span>
+                )}
+              </div>
             </div>
 
             {credits.length === 0 ? (
@@ -780,6 +916,68 @@ function EditSubmissionModal({ submission, onClose, onSubmit }: EditSubmissionMo
                         className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
+
+                    {/* PT Account Link Status */}
+                    <div className="mt-3 pt-3 border-t border-slate-700">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-500">PT Account Link Status:</span>
+                        <div className="flex items-center gap-2">
+                          {credit.userId ? (
+                            <>
+                              <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs flex items-center gap-1">
+                                <UserCheck className="w-3 h-3" />
+                                Linked to PT
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => unlinkUser(index)}
+                                className="p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                                title="Unlink from PT account"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </>
+                          ) : credit.isExternalWriter ? (
+                            <>
+                              <span className="px-2 py-1 bg-slate-600/50 text-slate-400 rounded text-xs flex items-center gap-1">
+                                <UserX className="w-3 h-3" />
+                                External Writer
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => openUserSearch(index)}
+                                className="px-2 py-1 text-blue-400 hover:text-blue-300 text-xs flex items-center gap-1 hover:bg-blue-500/10 rounded transition-colors"
+                              >
+                                <Search className="w-3 h-3" />
+                                Link to PT
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs">
+                                Not Linked
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => openUserSearch(index)}
+                                className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs flex items-center gap-1 transition-colors"
+                              >
+                                <Link2 className="w-3 h-3" />
+                                Link User
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => markAsExternal(index)}
+                                className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded text-xs flex items-center gap-1 transition-colors"
+                              >
+                                <UserX className="w-3 h-3" />
+                                External
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -825,6 +1023,114 @@ function EditSubmissionModal({ submission, onClose, onSubmit }: EditSubmissionMo
           </div>
         </div>
       </motion.div>
+
+      {/* User Search Modal */}
+      <AnimatePresence>
+        {showUserSearch && (
+          <motion.div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowUserSearch(false)}
+          >
+            <motion.div
+              className="bg-slate-800 rounded-2xl w-full max-w-md border border-slate-700 overflow-hidden"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 border-b border-slate-700">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Search className="w-5 h-5 text-blue-400" />
+                    Search PT Users
+                  </h3>
+                  <button
+                    onClick={() => setShowUserSearch(false)}
+                    className="p-1 text-slate-400 hover:text-white rounded"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && searchUsers()}
+                    placeholder="Search by name, email, or IPI..."
+                    className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoFocus
+                  />
+                  <motion.button
+                    onClick={searchUsers}
+                    disabled={isSearchingUsers || userSearchQuery.length < 2}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white rounded-lg text-sm"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {isSearchingUsers ? '...' : 'Search'}
+                  </motion.button>
+                </div>
+              </div>
+
+              <div className="max-h-64 overflow-y-auto">
+                {userSearchResults.length > 0 ? (
+                  <div className="divide-y divide-slate-700">
+                    {userSearchResults.map((user) => (
+                      <button
+                        key={user.id}
+                        onClick={() => linkUser(user)}
+                        className="w-full p-3 text-left hover:bg-slate-700/50 transition-colors"
+                      >
+                        <div className="font-medium text-white">
+                          {user.firstName} {user.lastName}
+                        </div>
+                        <div className="text-sm text-slate-400">{user.email}</div>
+                        <div className="flex gap-2 mt-1">
+                          {user.proAffiliation && (
+                            <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs">
+                              {user.proAffiliation}
+                            </span>
+                          )}
+                          {user.writerIpiNumber && (
+                            <span className="px-1.5 py-0.5 bg-slate-600 text-slate-300 rounded text-xs">
+                              IPI: {user.writerIpiNumber}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : userSearchQuery.length >= 2 && !isSearchingUsers ? (
+                  <div className="p-6 text-center text-slate-400">
+                    <p className="mb-2">No PT users found for "{userSearchQuery}"</p>
+                    <p className="text-sm text-slate-500">Try a different search or mark as external writer</p>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-500">
+                    <p className="text-sm">Enter at least 2 characters to search</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 border-t border-slate-700 bg-slate-800/50">
+                {userSearchIndex !== null && (
+                  <button
+                    onClick={() => markAsExternal(userSearchIndex)}
+                    className="w-full px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <UserX className="w-4 h-4" />
+                    Mark as External Writer (Non-PT)
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

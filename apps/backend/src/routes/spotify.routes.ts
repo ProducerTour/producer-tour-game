@@ -175,6 +175,110 @@ router.get('/track/:id', async (req: Request, res: Response) => {
   }
 });
 
+// Artist data for landing page hero section
+const HERO_ARTISTS = [
+  { name: 'Icewear Vezzo', spotifyId: '1ZbmerOthZbxz5eR3c9Mn1' },
+  { name: 'Rob49', spotifyId: '1jBoSSrbz9n4ehQWA4cZgB' },
+  { name: 'BossMan Dlow', spotifyId: '23xFbA9rYgRX8mreqysWPc' },
+  { name: 'Bhad Bhabie', spotifyId: '7DuTB6wdzqFJGFLSH17k8e' },
+  { name: 'BLP Kosher', spotifyId: '6w60ExNMjs0gd4ioh7GMRI' },
+];
+
+/**
+ * GET /api/spotify/hero-artists
+ * Get artist images for the landing page hero section
+ */
+router.get('/hero-artists', async (req: Request, res: Response) => {
+  try {
+    if (!spotifyService.isEnabled()) {
+      // Return static fallback data if Spotify is not configured
+      return res.json({
+        success: true,
+        source: 'static',
+        artists: HERO_ARTISTS.map((artist) => ({
+          id: artist.spotifyId,
+          name: artist.name,
+          image: null,
+          imageLarge: null,
+        })),
+      });
+    }
+
+    // Fetch artist data from Spotify
+    const artistsWithImages = await Promise.all(
+      HERO_ARTISTS.map(async (artist) => {
+        try {
+          if (artist.spotifyId) {
+            const spotifyArtist = await spotifyService.getArtistById(artist.spotifyId);
+            return spotifyService.formatArtistData(spotifyArtist);
+          } else {
+            // Search for artist if no ID
+            const results = await spotifyService.searchArtists(artist.name, 1);
+            if (results.length > 0) {
+              return spotifyService.formatArtistData(results[0]);
+            }
+          }
+          return {
+            id: null,
+            name: artist.name,
+            image: null,
+            imageLarge: null,
+          };
+        } catch (error) {
+          console.error(`Failed to fetch artist ${artist.name}:`, error);
+          return {
+            id: null,
+            name: artist.name,
+            image: null,
+            imageLarge: null,
+          };
+        }
+      })
+    );
+
+    res.json({
+      success: true,
+      source: 'spotify',
+      artists: artistsWithImages,
+    });
+  } catch (error) {
+    console.error('Error fetching hero artists:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch hero artists',
+    });
+  }
+});
+
+/**
+ * GET /api/spotify/artist/search
+ * Search for artists by name
+ */
+router.get('/artist/search', async (req: Request, res: Response) => {
+  try {
+    const { q, limit = '5' } = req.query;
+
+    if (!q || typeof q !== 'string') {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+
+    if (!spotifyService.isEnabled()) {
+      return res.status(503).json({ error: 'Spotify integration is not configured' });
+    }
+
+    const artists = await spotifyService.searchArtists(q, parseInt(limit as string, 10));
+    const formattedArtists = artists.map((artist) => spotifyService.formatArtistData(artist));
+
+    res.json({
+      success: true,
+      artists: formattedArtists,
+    });
+  } catch (error) {
+    console.error('Spotify artist search error:', error);
+    res.status(500).json({ error: 'Artist search failed' });
+  }
+});
+
 // Helper function to assign gradients
 function getGradient(index: number): string {
   const gradients = [

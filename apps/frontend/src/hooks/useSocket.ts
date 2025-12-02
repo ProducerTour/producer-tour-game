@@ -45,6 +45,13 @@ interface ReadReceipt {
   messageId: string;
 }
 
+interface ConversationRenamed {
+  conversationId: string;
+  name: string;
+  oldName: string | null;
+  renamedBy: string;
+}
+
 interface UseSocketReturn {
   socket: Socket | null;
   isConnected: boolean;
@@ -71,6 +78,7 @@ interface UseSocketReturn {
   onReadReceipt: (callback: (data: ReadReceipt) => void) => () => void;
   onUserOnline: (callback: (userId: string) => void) => () => void;
   onUserOffline: (callback: (userId: string) => void) => () => void;
+  onConversationRenamed: (callback: (data: ConversationRenamed) => void) => () => void;
 }
 
 export function useSocket(): UseSocketReturn {
@@ -86,6 +94,7 @@ export function useSocket(): UseSocketReturn {
   const readCallbacks = useRef<Set<(data: ReadReceipt) => void>>(new Set());
   const onlineCallbacks = useRef<Set<(userId: string) => void>>(new Set());
   const offlineCallbacks = useRef<Set<(userId: string) => void>>(new Set());
+  const renameCallbacks = useRef<Set<(data: ConversationRenamed) => void>>(new Set());
 
   useEffect(() => {
     if (!user || !token) {
@@ -187,6 +196,12 @@ export function useSocket(): UseSocketReturn {
       console.log('Participant left:', data);
     });
 
+    // Handle conversation renamed
+    socket.on('conversation:renamed', (data: ConversationRenamed) => {
+      console.log('Conversation renamed:', data);
+      renameCallbacks.current.forEach((cb) => cb(data));
+    });
+
     // Handle errors
     socket.on('error', (error: { message: string }) => {
       console.error('Socket error:', error.message);
@@ -271,6 +286,13 @@ export function useSocket(): UseSocketReturn {
     };
   }, []);
 
+  const onConversationRenamed = useCallback((callback: (data: ConversationRenamed) => void) => {
+    renameCallbacks.current.add(callback);
+    return () => {
+      renameCallbacks.current.delete(callback);
+    };
+  }, []);
+
   return {
     socket: socketRef.current,
     isConnected,
@@ -288,5 +310,6 @@ export function useSocket(): UseSocketReturn {
     onReadReceipt,
     onUserOnline,
     onUserOffline,
+    onConversationRenamed,
   };
 }

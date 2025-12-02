@@ -40,6 +40,50 @@ router.get('/my-submissions', async (req: AuthRequest, res: Response) => {
 });
 
 /**
+ * GET /api/work-registration/approved
+ * Get all approved submissions (ADMIN only) - for Manage Placements tab
+ */
+router.get('/approved', async (req: AuthRequest, res: Response) => {
+  try {
+    const userRole = req.user?.role;
+
+    if (userRole !== 'ADMIN') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const approved = await prisma.placement.findMany({
+      where: {
+        status: {
+          in: ['APPROVED', 'TRACKING', 'COMPLETED'],
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        credits: true,
+        documents: true,
+      },
+      orderBy: { reviewedAt: 'desc' },
+    });
+
+    res.json({
+      success: true,
+      placements: approved,
+      count: approved.length,
+    });
+  } catch (error) {
+    console.error('Get approved submissions error:', error);
+    res.status(500).json({ error: 'Failed to fetch approved submissions' });
+  }
+});
+
+/**
  * GET /api/work-registration/pending
  * Get all pending submissions (ADMIN only)
  */
@@ -374,8 +418,16 @@ router.put('/:id/edit', async (req: AuthRequest, res: Response) => {
       data: updateData,
     });
 
-    // If credits are provided, update them
+    // If credits are provided, validate and update them
     if (credits && Array.isArray(credits)) {
+      // Validate that splits sum to exactly 100%
+      const totalSplit = credits.reduce((sum: number, c: any) => sum + (Number(c.splitPercentage) || 0), 0);
+      if (Math.abs(totalSplit - 100) > 0.01) {
+        return res.status(400).json({
+          error: `Split percentages must equal exactly 100%. Current total: ${totalSplit.toFixed(2)}%`
+        });
+      }
+
       // Delete existing credits
       await prisma.placementCredit.deleteMany({
         where: { placementId: id },
@@ -394,6 +446,10 @@ router.put('/:id/edit', async (req: AuthRequest, res: Response) => {
             ipiNumber: credit.ipiNumber || null,
             isPrimary: index === 0,
             notes: credit.notes || null,
+            // NEW: Link to user if userId provided
+            userId: credit.userId || null,
+            publisherIpiNumber: credit.publisherIpiNumber || null,
+            isExternalWriter: credit.isExternalWriter || false,
           })),
         });
       }

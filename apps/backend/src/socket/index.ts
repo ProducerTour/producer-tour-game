@@ -2,6 +2,7 @@ import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
+import { emailService } from '../services/email.service';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -203,15 +204,41 @@ export function initializeSocket(httpServer: HttpServer): Server {
             leftAt: null,
             isMuted: false,
           },
-          select: { userId: true },
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
         });
 
-        participants.forEach((p) => {
-          if (!onlineUsers.has(p.userId)) {
-            // User is offline - could trigger push notification here
-            console.log(`User ${p.userId} is offline, should receive notification`);
+        // Get sender info for notification
+        const sender = message.sender;
+        const senderName = `${sender.firstName || ''} ${sender.lastName || ''}`.trim() || sender.email;
+
+        // Send email notifications to offline users
+        for (const p of participants) {
+          if (!onlineUsers.has(p.userId) && p.user) {
+            const recipientName = `${p.user.firstName || ''} ${p.user.lastName || ''}`.trim() || p.user.email;
+
+            // Send email notification asynchronously (don't await to avoid blocking)
+            emailService.sendNewMessageNotification({
+              recipientUserId: p.user.id,
+              recipientName,
+              recipientEmail: p.user.email,
+              senderName,
+              messagePreview: content || '[File attachment]',
+              conversationId,
+              timestamp: new Date(),
+            }).catch((err) => {
+              console.error(`Failed to send message notification to ${p.user?.email}:`, err);
+            });
           }
-        });
+        }
       } catch (error) {
         console.error('Error sending message:', error);
         socket.emit('error', { message: 'Failed to send message' });

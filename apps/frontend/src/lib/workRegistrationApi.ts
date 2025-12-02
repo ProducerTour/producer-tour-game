@@ -13,6 +13,9 @@ export interface PlacementCredit {
   ipiNumber?: string;
   isPrimary: boolean;
   notes?: string;
+  userId?: string;
+  publisherIpiNumber?: string;
+  isExternalWriter?: boolean;
 }
 
 export interface PlacementDocument {
@@ -56,6 +59,9 @@ export interface WorkSubmission {
   audioDbData?: any;
   metadata?: any;
   notes?: string;
+  dealTerms?: string;
+  advanceAmount?: number;
+  royaltyPercentage?: number;
   credits?: PlacementCredit[];
   documents?: PlacementDocument[];
 }
@@ -97,6 +103,18 @@ class WorkRegistrationAPI {
       return { data: { submissions: response.data.pending || [] } };
     } catch (error) {
       console.error('Get pending submissions error:', error);
+      throw error;
+    }
+  }
+
+  async getApprovedPlacements(): Promise<{ data: { placements: PendingSubmission[] } }> {
+    try {
+      const response = await axios.get(`${API_URL}/api/work-registration/approved`, {
+        headers: this.getAuthHeaders(),
+      });
+      return { data: { placements: response.data.placements || [] } };
+    } catch (error) {
+      console.error('Get approved placements error:', error);
       throw error;
     }
   }

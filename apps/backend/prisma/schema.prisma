@@ -198,6 +198,7 @@ model User {
   processedPayments     Statement[]       @relation("PaymentProcessedBy")
   applications          Application[]
   placements            Placement[]
+  placementCredits      PlacementCredit[] // Collaborator credits linking user to placements
   credits               Credit[]
   proSubmissions        ProSubmission[]
   advanceScenarios      AdvanceScenario[]
@@ -496,17 +497,27 @@ model PlacementCredit {
   role            String   // Producer, Writer, Composer, etc.
   splitPercentage Decimal  @db.Decimal(5, 2) // 0.00 to 100.00
   pro             String?  // Performing Rights Organization (BMI, ASCAP, SESAC)
-  ipiNumber       String?  // IPI/CAE number if available
+  ipiNumber       String?  // IPI/CAE number if available (writer IPI)
   isPrimary       Boolean  @default(false) // Is this the submitting user
   notes           String?  @db.Text
+
+  // NEW: Link collaborator to User (for PT clients)
+  userId             String?  // FK to User (optional, for PT-registered writers)
+  publisherIpiNumber String?  // Collaborator's publisher IPI (determines PT representation)
+  isExternalWriter   Boolean  @default(false) // True if not a PT client (external collaborator)
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   // Relations
   placement Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([placementId])
   @@index([firstName, lastName])
+  @@index([userId])
+  @@index([ipiNumber])
+  @@index([publisherIpiNumber])
   @@map("placement_credits")
 }
 

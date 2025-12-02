@@ -14,6 +14,7 @@ import DocumentsTab from '../components/DocumentsTab';
 import PayoutsTab from '../components/PayoutsTab';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import PendingPlacementsQueue from './PendingPlacementsQueue';
+import ManagePlacements from './ManagePlacements';
 import TourMilesConfig from '../components/admin/TourMilesConfig';
 import DashboardOverviewTremor from '../components/admin/DashboardOverviewTremor';
 
@@ -45,7 +46,7 @@ import {
   AlertDialogTrigger,
 } from '../components/ui';
 
-type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'bmi-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'billing-hub' | 'recording-sessions' | 'active-placements' | 'pending-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config' | 'shop' | 'contacts' | 'insights';
+type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'bmi-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'billing-hub' | 'recording-sessions' | 'active-placements' | 'pending-placements' | 'manage-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config' | 'shop' | 'contacts' | 'insights';
 
 // Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
 const formatChartCurrency = (value: any): string => {
@@ -137,6 +138,7 @@ export default function AdminDashboard() {
               <Suspense fallback={<TabSkeleton />}><RecordingSessionsTab /></Suspense>
             )}
             {activeTab === 'pending-placements' && <PendingPlacementsQueue />}
+            {activeTab === 'manage-placements' && <ManagePlacements />}
             {activeTab === 'active-placements' && (
               <Suspense fallback={<TabSkeleton />}><PlacementTracker /></Suspense>
             )}
@@ -734,7 +736,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   const [smartAssignResults, setSmartAssignResults] = useState<any>(null);
 
   // Filter/Search/Sort state
-  const [statusFilter, setStatusFilter] = useState<'all' | 'auto' | 'suggested' | 'manual'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'tracked' | 'untracked'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'revenue-desc' | 'revenue-asc' | 'title-asc' | 'title-desc'>('revenue-desc');
 
@@ -792,27 +794,25 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   const badgeLookupMap = useMemo(() => {
     if (!smartAssignResults) return new Map();
 
-    const map = new Map<string, { badge: string; class: string; level: string }>();
+    const map = new Map<string, { badge: string; class: string; level: string; source?: string; placementTitle?: string }>();
 
-    // Index auto-assigned
-    smartAssignResults.autoAssigned?.forEach((m: any) => {
+    // Index tracked songs from Manage Placements (with calculated splits)
+    smartAssignResults.trackedSongs?.forEach((m: any) => {
       const key = getRowKey(m);
-      map.set(key, { badge: '✓ Auto-assigned', class: 'bg-green-500/20 text-green-400 border-green-500/30', level: 'high' });
+      map.set(key, {
+        badge: '✓ Tracked',
+        class: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        level: 'tracked',
+        source: 'placement',
+        placementTitle: m.placement?.title
+      });
     });
 
-    // Index suggested
-    smartAssignResults.suggested?.forEach((s: any) => {
-      const key = getRowKey(s);
-      if (!map.has(key)) {
-        map.set(key, { badge: '⚠ Review Suggested', class: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', level: 'medium' });
-      }
-    });
-
-    // Index unmatched
+    // Index unmatched (not in Manage Placements - needs to be added first)
     smartAssignResults.unmatched?.forEach((u: any) => {
       const key = getRowKey(u);
       if (!map.has(key)) {
-        map.set(key, { badge: '✗ Manual Required', class: 'bg-red-500/20 text-red-400 border-red-500/30', level: 'low' });
+        map.set(key, { badge: '✗ Not Tracked', class: 'bg-red-500/20 text-red-400 border-red-500/30', level: 'untracked' });
       }
     });
 
@@ -843,9 +843,8 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
       rows = rows.filter((row: any) => {
         const rowKey = getRowKey(row);
         const badge = getConfidenceBadge(rowKey);
-        if (statusFilter === 'auto') return badge?.level === 'high';
-        if (statusFilter === 'suggested') return badge?.level === 'medium';
-        if (statusFilter === 'manual') return badge?.level === 'low' || !badge;
+        if (statusFilter === 'tracked') return badge?.level === 'tracked';
+        if (statusFilter === 'untracked') return badge?.level === 'untracked' || !badge;
         return true;
       });
     }
@@ -896,39 +895,32 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
       const newAssignments: WriterAssignmentsPayload = {};
 
-      // Process auto-assigned matches (>=90% confidence)
-      results.autoAssigned?.forEach((match: any) => {
+      // Process tracked songs from Manage Placements (with calculated splits)
+      results.trackedSongs?.forEach((match: any) => {
         if (!match.writers || match.writers.length === 0) return;
 
-        const numWriters = match.writers.length;
-        const equalSplit = parseFloat((100 / numWriters).toFixed(2));
-        const key = getRowKey(match); // Uses isMLC to generate correct key
+        const key = getRowKey(match);
 
+        // Use the splits from Manage Placements
         newAssignments[key] = match.writers.map((w: any) => ({
           userId: w.writer.id,
           writerIpiNumber: w.writer.writerIpiNumber || '',
           publisherIpiNumber: w.writer.publisherIpiNumber || '',
-          splitPercentage: equalSplit
+          splitPercentage: w.splitPercentage || 0,
+          calculatedRevenue: w.calculatedRevenue
         }));
       });
 
-      // Process suggested matches (70-90% confidence) - use top match
-      results.suggested?.forEach((suggestion: any) => {
-        if (suggestion.matches && suggestion.matches.length > 0) {
-          const topMatch = suggestion.matches[0];
-          const key = getRowKey(suggestion);
-
-          newAssignments[key] = [{
-            userId: topMatch.writer.id,
-            writerIpiNumber: topMatch.writer.writerIpiNumber || '',
-            publisherIpiNumber: topMatch.writer.publisherIpiNumber || '',
-            splitPercentage: 100
-          }];
-        }
-      });
-
       setAssignments(newAssignments);
-      alert(`Smart Assign Complete!\n\n✓ Auto-assigned: ${results.summary.autoAssignedCount} rows\n⚠ Suggested: ${results.summary.suggestedCount} rows\n✗ Unmatched: ${results.summary.unmatchedCount} rows`);
+
+      const trackedCount = results.summary.trackedSongsCount || 0;
+      const unmatchedCount = results.summary.unmatchedCount || 0;
+
+      if (unmatchedCount > 0) {
+        alert(`Smart Assign Complete!\n\n✓ Tracked: ${trackedCount} songs (with calculated splits)\n✗ Not Tracked: ${unmatchedCount} songs\n\nUntracked songs need to be added to Manage Placements first before royalties can be allocated.`);
+      } else {
+        alert(`Smart Assign Complete!\n\n✓ All ${trackedCount} songs matched from Manage Placements with calculated splits!`);
+      }
     } catch (error: any) {
       console.error('Smart assign error:', error);
       alert(error.response?.data?.error || 'Failed to smart assign writers');
@@ -1007,17 +999,15 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   // Calculate summary stats
   const summaryStats = useMemo(() => {
     const totalRevenue = displayRows.reduce((sum: number, row: any) => sum + (row.revenue || 0), 0);
-    const autoCount = smartAssignResults?.summary?.autoAssignedCount || 0;
-    const suggestedCount = smartAssignResults?.summary?.suggestedCount || 0;
-    const manualCount = smartAssignResults?.summary?.unmatchedCount || 0;
+    const trackedCount = smartAssignResults?.summary?.trackedSongsCount || 0;
+    const untrackedCount = smartAssignResults?.summary?.unmatchedCount || 0;
 
     return {
       totalRows: displayRows.length,
       filteredRows: filteredAndSortedRows.length,
       totalRevenue,
-      autoCount,
-      suggestedCount,
-      manualCount
+      trackedCount,
+      untrackedCount
     };
   }, [displayRows, filteredAndSortedRows.length, smartAssignResults]);
 
@@ -1076,24 +1066,20 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
         {/* Summary Stats Bar */}
         <div className="px-6 pt-4 pb-2 bg-white/[0.02] border-b border-white/[0.06]">
-          <div className="grid grid-cols-4 gap-3 text-sm">
+          <div className="grid grid-cols-3 gap-3 text-sm">
             <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-3">
               <div className="text-text-muted text-xs mb-1">Total Revenue</div>
               <div className="text-white font-semibold">${formatCurrency(summaryStats.totalRevenue)}</div>
             </div>
             {smartAssignResults && (
               <>
-                <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3">
-                  <div className="text-green-400 text-xs mb-1">✓ Auto-assigned</div>
-                  <div className="text-white font-semibold">{summaryStats.autoCount}</div>
-                </div>
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
-                  <div className="text-yellow-400 text-xs mb-1">⚠ Review Suggested</div>
-                  <div className="text-white font-semibold">{summaryStats.suggestedCount}</div>
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+                  <div className="text-emerald-400 text-xs mb-1">✓ Tracked (Manage Placements)</div>
+                  <div className="text-white font-semibold">{summaryStats.trackedCount}</div>
                 </div>
                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
-                  <div className="text-red-400 text-xs mb-1">✗ Manual Required</div>
-                  <div className="text-white font-semibold">{summaryStats.manualCount}</div>
+                  <div className="text-red-400 text-xs mb-1">✗ Not Tracked</div>
+                  <div className="text-white font-semibold">{summaryStats.untrackedCount}</div>
                 </div>
               </>
             )}
@@ -1130,9 +1116,8 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                 className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
               >
                 <option value="all">All Rows</option>
-                <option value="auto">Auto-assigned</option>
-                <option value="suggested">Review Suggested</option>
-                <option value="manual">Manual Required</option>
+                <option value="tracked">Tracked (Manage Placements)</option>
+                <option value="untracked">Not Tracked</option>
               </select>
             )}
 
@@ -1163,16 +1148,16 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
           <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4 space-y-4">
             {/* Smart Assign */}
             <div>
-              <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2"><Brain className="w-4 h-4" /> Smart Assign (AI Matching)</h4>
+              <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2"><Brain className="w-4 h-4" /> Smart Assign (Manage Placements)</h4>
               <p className="text-xs text-text-muted mb-3">
-                Automatically match writers using IPI numbers, name similarity, and historical assignments
+                Matches songs to Manage Placements and applies registered split percentages. Falls back to IPI matching for untracked songs.
               </p>
               <button
                 onClick={handleSmartAssign}
                 disabled={smartAssigning}
                 className="w-full px-4 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:bg-white/10 disabled:text-text-muted disabled:cursor-not-allowed transition-colors"
               >
-                {smartAssigning ? <><Loader2 className="w-4 h-4 mr-2 animate-spin inline" />Analyzing...</> : <><Sparkles className="w-4 h-4 mr-2 inline" />Smart Assign Writers</>}
+                {smartAssigning ? <><Loader2 className="w-4 h-4 mr-2 animate-spin inline" />Analyzing...</> : <><Sparkles className="w-4 h-4 mr-2 inline" />Smart Assign</>}
               </button>
             </div>
 
@@ -1253,11 +1238,16 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       {/* Title + Badge */}
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <p className="font-medium text-white">{row.workTitle}</p>
                         {badgeInfo && (
                           <span className={`px-2 py-0.5 text-xs border rounded-lg ${badgeInfo.class}`}>
                             {badgeInfo.badge}
+                          </span>
+                        )}
+                        {badgeInfo?.source === 'placement' && badgeInfo?.placementTitle && (
+                          <span className="px-2 py-0.5 text-xs bg-white/[0.04] border border-white/[0.08] rounded-lg text-gray-400">
+                            Matched: {badgeInfo.placementTitle}
                           </span>
                         )}
                       </div>

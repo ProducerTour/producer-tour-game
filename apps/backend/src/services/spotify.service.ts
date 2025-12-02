@@ -30,9 +30,34 @@ interface SpotifyTrack {
   popularity: number;
 }
 
+interface SpotifyArtist {
+  id: string;
+  name: string;
+  images: Array<{
+    url: string;
+    height: number;
+    width: number;
+  }>;
+  genres: string[];
+  popularity: number;
+  followers: {
+    total: number;
+  };
+  external_urls: {
+    spotify: string;
+  };
+}
+
 interface SpotifySearchResponse {
   tracks: {
     items: SpotifyTrack[];
+    total: number;
+  };
+}
+
+interface SpotifyArtistSearchResponse {
+  artists: {
+    items: SpotifyArtist[];
     total: number;
   };
 }
@@ -185,6 +210,69 @@ class SpotifyService {
       console.error('Spotify multiple tracks lookup error:', error);
       throw new Error('Failed to get track details');
     }
+  }
+
+  /**
+   * Search for artists by name
+   */
+  async searchArtists(query: string, limit: number = 10): Promise<SpotifyArtist[]> {
+    try {
+      const token = await this.getAccessToken();
+
+      const response = await this.axiosInstance.get<SpotifyArtistSearchResponse>('/search', {
+        params: {
+          q: query,
+          type: 'artist',
+          limit: Math.min(limit, 50),
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.data.artists.items;
+    } catch (error) {
+      console.error('Spotify artist search error:', error);
+      throw new Error('Failed to search Spotify artists');
+    }
+  }
+
+  /**
+   * Get artist by Spotify ID
+   */
+  async getArtistById(artistId: string): Promise<SpotifyArtist> {
+    try {
+      const token = await this.getAccessToken();
+
+      const response = await this.axiosInstance.get<SpotifyArtist>(`/artists/${artistId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Spotify artist lookup error:', error);
+      throw new Error('Failed to get artist details');
+    }
+  }
+
+  /**
+   * Format artist data for frontend
+   */
+  formatArtistData(artist: SpotifyArtist) {
+    return {
+      id: artist.id,
+      name: artist.name,
+      image: artist.images[0]?.url || null,
+      imageLarge: artist.images[0]?.url || null,
+      imageMedium: artist.images[1]?.url || null,
+      imageSmall: artist.images[2]?.url || null,
+      genres: artist.genres,
+      popularity: artist.popularity,
+      followers: artist.followers.total,
+      spotifyUrl: artist.external_urls.spotify,
+    };
   }
 
   /**

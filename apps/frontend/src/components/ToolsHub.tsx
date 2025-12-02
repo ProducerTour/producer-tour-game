@@ -71,8 +71,8 @@ const TOOLS: Tool[] = [
     roles: ['ADMIN'] // Admin only
   },
   {
-    id: 'placement-tracker',
-    name: 'Placement Tracker',
+    id: 'producer-clearances',
+    name: 'Producer Clearances',
     description: 'Track music placements, manage contracts, and generate invoices with AI-powered tools. Complete deal tracking with billing automation.',
     icon: Music,
     color: 'from-cyan-500 to-cyan-600',

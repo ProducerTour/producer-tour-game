@@ -204,6 +204,10 @@ export const userApi = {
 
   delete: (id: string) =>
     api.delete(`/users/${id}`),
+
+  // Search for writers by name, IPI, or email - used for collaborator linking
+  searchWriters: (query: string) =>
+    api.get('/users/search-writers', { params: { q: query } }),
 };
 
 export const opportunityApi = {
@@ -264,6 +268,10 @@ export const placementApi = {
 
   getAnalytics: () =>
     api.get('/placements/analytics'),
+
+  // Check if a song title already exists in Manage Placements
+  checkDuplicate: (title: string) =>
+    api.get('/placements/check-duplicate', { params: { title } }),
 };
 
 export const creditApi = {

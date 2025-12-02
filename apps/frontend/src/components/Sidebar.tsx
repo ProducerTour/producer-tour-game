@@ -390,7 +390,24 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                         <div className="ml-6 mt-1 space-y-1">
                           {item.children?.map((child) => {
                             const isChildActive = activeTab === child.id;
-                            return (
+                            const childClassName = `w-full px-6 py-2 flex items-center gap-3 transition-all ${
+                              isChildActive
+                                ? 'bg-gradient-to-r from-white/[0.10] to-white/[0.05] border-l-4 border-white/60 text-white'
+                                : 'text-text-muted hover:text-white hover:bg-white/[0.03] border-l-4 border-transparent'
+                            }`;
+
+                            // Use Link for children with paths, button for tab changes
+                            return child.path ? (
+                              <Link
+                                key={child.id}
+                                to={child.path}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={childClassName}
+                              >
+                                {renderIcon(child.icon, 'sm')}
+                                <span className="text-sm font-medium">{child.label}</span>
+                              </Link>
+                            ) : (
                               <button
                                 key={child.id}
                                 onClick={() => {
@@ -400,15 +417,11 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                                   } else {
                                     // If no onTabChange (e.g., from /tour-miles), navigate to dashboard
                                     const dashboardPath = user?.role === 'ADMIN' ? '/admin' : '/dashboard';
-                                    navigate(dashboardPath);
+                                    navigate(dashboardPath, { state: { activeTab: child.id } });
                                     setIsMobileMenuOpen(false);
                                   }
                                 }}
-                                className={`w-full px-6 py-2 flex items-center gap-3 transition-all ${
-                                  isChildActive
-                                    ? 'bg-gradient-to-r from-white/[0.10] to-white/[0.05] border-l-4 border-white/60 text-white'
-                                    : 'text-text-muted hover:text-white hover:bg-white/[0.03] border-l-4 border-transparent'
-                                }`}
+                                className={childClassName}
                               >
                                 {renderIcon(child.icon, 'sm')}
                                 <span className="text-sm font-medium">{child.label}</span>

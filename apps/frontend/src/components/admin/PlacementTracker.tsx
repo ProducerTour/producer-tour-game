@@ -542,7 +542,7 @@ const PlacementTracker: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
           <h1 className="text-3xl font-bold tracking-tight text-white">
-            Placement Tracker
+            Producer Clearances
           </h1>
           <div className="flex flex-col sm:flex-row gap-4">
             <div>

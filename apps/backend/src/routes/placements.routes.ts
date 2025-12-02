@@ -140,6 +140,63 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 /**
+ * GET /api/placements/check-duplicate
+ * Check if a song title already exists in the Placement Tracker
+ * Query: { title: string }
+ */
+router.get('/check-duplicate', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { title } = req.query;
+
+    if (!title || typeof title !== 'string') {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    // Check for existing placement with same title (case-insensitive)
+    // Only check songs that are in the tracker (APPROVED, TRACKING, or COMPLETED)
+    const existingPlacement = await prisma.placement.findFirst({
+      where: {
+        title: {
+          equals: title.trim(),
+          mode: 'insensitive',
+        },
+        status: {
+          in: ['APPROVED', 'TRACKING', 'COMPLETED'],
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        artist: true,
+        caseNumber: true,
+        status: true,
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      isDuplicate: !!existingPlacement,
+      existingPlacement,
+    });
+  } catch (error) {
+    console.error('Check duplicate error:', error);
+    res.status(500).json({ error: 'Failed to check for duplicates' });
+  }
+});
+
+/**
  * POST /api/placements
  * Create a new placement
  * Body: { title, artist, platform, releaseDate, isrc?, spotifyTrackId?, streams?, status?, metadata?,
@@ -182,11 +239,43 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       audioDbData,
       // Credits/Collaborators
       credits,
+      // Skip duplicate check (for admin overrides)
+      skipDuplicateCheck = false,
     } = req.body;
 
     // Validation
     if (!title || !artist || !releaseDate) {
       return res.status(400).json({ error: 'Title, artist, and release date are required' });
+    }
+
+    // Check for duplicate titles in the Placement Tracker
+    // Only check songs that are already approved/tracking/completed
+    if (!skipDuplicateCheck) {
+      const existingPlacement = await prisma.placement.findFirst({
+        where: {
+          title: {
+            equals: title.trim(),
+            mode: 'insensitive',
+          },
+          status: {
+            in: ['APPROVED', 'TRACKING', 'COMPLETED'],
+          },
+        },
+        select: {
+          id: true,
+          title: true,
+          artist: true,
+          caseNumber: true,
+        },
+      });
+
+      if (existingPlacement) {
+        return res.status(409).json({
+          error: 'Duplicate song detected',
+          message: `A song with the title "${existingPlacement.title}" already exists in the Placement Tracker${existingPlacement.caseNumber ? ` (Case: ${existingPlacement.caseNumber})` : ''}.`,
+          existingPlacement,
+        });
+      }
     }
 
     // Validate credits if provided
@@ -202,6 +291,14 @@ router.post('/', async (req: AuthRequest, res: Response) => {
             error: 'Split percentage must be between 0 and 100'
           });
         }
+      }
+
+      // Validate that splits sum to exactly 100%
+      const totalSplit = credits.reduce((sum: number, c: any) => sum + (Number(c.splitPercentage) || 0), 0);
+      if (Math.abs(totalSplit - 100) > 0.01) {
+        return res.status(400).json({
+          error: `Split percentages must equal exactly 100%. Current total: ${totalSplit.toFixed(2)}%`
+        });
       }
     }
 
@@ -246,6 +343,10 @@ router.post('/', async (req: AuthRequest, res: Response) => {
               ipiNumber: credit.ipiNumber || null,
               isPrimary: credit.isPrimary || false,
               notes: credit.notes || null,
+              // NEW: Link to user for statement processing
+              userId: credit.userId || null,
+              publisherIpiNumber: credit.publisherIpiNumber || null,
+              isExternalWriter: credit.isExternalWriter || false,
             })),
           },
         }),

@@ -378,6 +378,108 @@ router.patch('/conversations/:id/settings', authenticate, async (req: AuthReques
   }
 });
 
+// Rename a group conversation
+router.patch('/conversations/:id/rename', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id: conversationId } = req.params;
+    const { name } = req.body;
+
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    if (name.trim().length > 100) {
+      return res.status(400).json({ error: 'Name must be 100 characters or less' });
+    }
+
+    // Get the conversation
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { type: true, name: true },
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
+    // Only group conversations can be renamed
+    if (conversation.type !== 'GROUP') {
+      return res.status(400).json({ error: 'Only group conversations can be renamed' });
+    }
+
+    // Check if user is a participant and is admin
+    const participant = await prisma.conversationParticipant.findUnique({
+      where: {
+        conversationId_userId: { conversationId, userId },
+      },
+    });
+
+    if (!participant || participant.leftAt) {
+      return res.status(403).json({ error: 'Not a member of this conversation' });
+    }
+
+    if (!participant.isAdmin) {
+      return res.status(403).json({ error: 'Only admins can rename the conversation' });
+    }
+
+    const trimmedName = name.trim();
+    const oldName = conversation.name;
+
+    // Update the conversation name
+    const updated = await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { name: trimmedName },
+      include: {
+        participants: {
+          where: { leftAt: null },
+          include: {
+            user: {
+              select: { id: true, firstName: true, lastName: true, email: true, role: true, profilePhotoUrl: true },
+            },
+          },
+        },
+      },
+    });
+
+    // Get user info for system message
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true },
+    });
+
+    // Create system message about the rename
+    const systemMessage = await prisma.message.create({
+      data: {
+        conversationId,
+        senderId: userId,
+        type: 'SYSTEM',
+        content: `${user?.firstName} ${user?.lastName} renamed the group to "${trimmedName}"`,
+      },
+      include: {
+        sender: {
+          select: { id: true, firstName: true, lastName: true, email: true, role: true },
+        },
+      },
+    });
+
+    // Emit events to all participants
+    emitToConversation(conversationId, 'conversation:renamed', {
+      conversationId,
+      name: trimmedName,
+      oldName,
+      renamedBy: userId,
+    });
+
+    emitToConversation(conversationId, 'message:new', systemMessage);
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Error renaming conversation:', error);
+    res.status(500).json({ error: 'Failed to rename conversation' });
+  }
+});
+
 // Leave a conversation
 router.post('/conversations/:id/leave', authenticate, async (req: AuthRequest, res: Response) => {
   try {

@@ -1,5 +1,17 @@
 import { useState, useEffect } from 'react';
 import { creditSuggestionsApi, CollaboratorSuggestion } from '../lib/creditSuggestionsApi';
+import { userApi } from '../lib/api';
+import { Search, X, UserCheck, UserX } from 'lucide-react';
+
+interface LinkedUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  writerIpiNumber?: string;
+  publisherIpiNumber?: string;
+  proAffiliation?: string;
+}
 
 export interface Collaborator {
   id?: string; // temp ID for frontend
@@ -11,6 +23,10 @@ export interface Collaborator {
   ipiNumber?: string;
   isPrimary?: boolean;
   notes?: string;
+  // New fields for user linking and statement processing
+  userId?: string;             // Links to PT User account (for statement processing)
+  publisherIpiNumber?: string; // Determines PT representation
+  isExternalWriter?: boolean;  // True if not a PT client
 }
 
 interface CollaboratorFormProps {
@@ -27,9 +43,18 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeInputIndex, setActiveInputIndex] = useState<number | null>(null);
 
+  // User linking state
+  const [showUserSearch, setShowUserSearch] = useState(false);
+  const [userSearchIndex, setUserSearchIndex] = useState<number | null>(null);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState<LinkedUser[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+
   // Calculate total split percentage
   const totalSplit = collaborators.reduce((sum, c) => sum + (c.splitPercentage || 0), 0);
-  const isValidSplit = totalSplit <= 100;
+  const splitDifference = 100 - totalSplit;
+  const isExactly100 = Math.abs(splitDifference) < 0.01;
+  const isValidSplit = isExactly100; // Must equal exactly 100%
 
   // Add collaborator
   const addCollaborator = () => {
@@ -87,6 +112,76 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
     setShowSuggestions(false);
   };
 
+  // Open user search modal
+  const openUserSearch = (index: number) => {
+    const collab = collaborators[index];
+    setUserSearchIndex(index);
+    setUserSearchQuery(`${collab.firstName} ${collab.lastName}`.trim());
+    setUserSearchResults([]);
+    setShowUserSearch(true);
+  };
+
+  // Search for PT users
+  const searchUsers = async () => {
+    if (userSearchQuery.length < 2) return;
+
+    setIsSearchingUsers(true);
+    try {
+      const response = await userApi.searchWriters(userSearchQuery);
+      // Backend returns 'results' not 'users'
+      setUserSearchResults(response.data.results || []);
+    } catch (error) {
+      console.error('User search error:', error);
+      setUserSearchResults([]);
+    }
+    setIsSearchingUsers(false);
+  };
+
+  // Link collaborator to PT user and autofill their info
+  const linkUser = (user: LinkedUser) => {
+    if (userSearchIndex === null) return;
+
+    const updated = [...collaborators];
+    updated[userSearchIndex] = {
+      ...updated[userSearchIndex],
+      // Autofill name, IPI, and PRO from user profile
+      firstName: user.firstName || updated[userSearchIndex].firstName,
+      lastName: user.lastName || updated[userSearchIndex].lastName,
+      ipiNumber: user.writerIpiNumber || updated[userSearchIndex].ipiNumber || undefined,
+      pro: user.proAffiliation || updated[userSearchIndex].pro || undefined,
+      // Link to PT account
+      userId: user.id,
+      publisherIpiNumber: user.publisherIpiNumber || undefined,
+      isExternalWriter: false,
+    };
+    onChange(updated);
+    setShowUserSearch(false);
+  };
+
+  // Unlink collaborator from PT user
+  const unlinkUser = (index: number) => {
+    const updated = [...collaborators];
+    updated[index] = {
+      ...updated[index],
+      userId: undefined,
+      publisherIpiNumber: undefined,
+      isExternalWriter: true, // Mark as external when unlinked
+    };
+    onChange(updated);
+  };
+
+  // Mark as external writer (not a PT client)
+  const markAsExternal = (index: number) => {
+    const updated = [...collaborators];
+    updated[index] = {
+      ...updated[index],
+      userId: undefined,
+      isExternalWriter: true,
+    };
+    onChange(updated);
+    setShowUserSearch(false);
+  };
+
   // Load frequent collaborators on mount
   useEffect(() => {
     const loadFrequent = async () => {
@@ -124,18 +219,75 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
           <span className={`font-medium ${isValidSplit ? 'text-emerald-400' : 'text-red-400'}`}>
             Total: {totalSplit.toFixed(2)}%
           </span>
-          {!isValidSplit && <span className="ml-2 text-red-400">Cannot exceed 100%</span>}
+          {!isValidSplit && (
+            <span className="ml-2 text-red-400">
+              {splitDifference > 0
+                ? `(${splitDifference.toFixed(2)}% remaining)`
+                : `(${Math.abs(splitDifference).toFixed(2)}% over)`}
+            </span>
+          )}
+          {isValidSplit && <span className="ml-2 text-emerald-400">✓</span>}
         </div>
       </div>
 
       <div className="space-y-3">
         {collaborators.map((collab, index) => (
-          <div key={collab.id || index} className="bg-white/[0.04] rounded-xl p-4 border border-white/[0.08] relative">
-            {collab.isPrimary && (
-              <div className="absolute top-2 right-2">
-                <span className="px-2 py-1 bg-white/[0.12] text-white text-xs rounded-lg border border-white/[0.08]">Primary</span>
+          <div key={collab.id || index} className="bg-white/[0.04] rounded-xl p-4 border border-white/[0.08]">
+            {/* Header Row with Autofill Button */}
+            <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/[0.08]">
+              <div className="flex items-center gap-2">
+                {collab.isPrimary && (
+                  <span className="px-2 py-1 bg-white/[0.12] text-white text-xs rounded-lg border border-white/[0.08]">Primary</span>
+                )}
+                {collab.userId && (
+                  <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs rounded-lg border border-emerald-500/30 flex items-center gap-1">
+                    <UserCheck className="w-3 h-3" />
+                    Linked to PT
+                  </span>
+                )}
+                {collab.isExternalWriter && !collab.userId && (
+                  <span className="px-2 py-1 bg-amber-500/20 text-amber-400 text-xs rounded-lg border border-amber-500/30 flex items-center gap-1">
+                    <UserX className="w-3 h-3" />
+                    External Writer
+                  </span>
+                )}
               </div>
-            )}
+              <div className="flex items-center gap-2">
+                {/* Autofill from PT User button */}
+                {!collab.isPrimary && (
+                  <button
+                    type="button"
+                    onClick={() => openUserSearch(index)}
+                    className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors"
+                  >
+                    <Search className="w-3 h-3" />
+                    Autofill from PT User
+                  </button>
+                )}
+                {/* Unlink button if linked */}
+                {collab.userId && !collab.isPrimary && (
+                  <button
+                    type="button"
+                    onClick={() => unlinkUser(index)}
+                    className="p-1.5 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-gray-400 hover:text-white rounded-lg transition-colors"
+                    title="Unlink from PT account"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {/* Remove button */}
+                {!collab.isPrimary && (
+                  <button
+                    type="button"
+                    onClick={() => removeCollaborator(index)}
+                    className="p-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 rounded-lg transition-colors"
+                    title="Remove collaborator"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* First Name */}
@@ -255,7 +407,7 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
               </div>
 
               {/* Notes (optional) */}
-              <div className="md:col-span-2">
+              <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-400 mb-1">
                   Notes (optional)
                 </label>
@@ -267,19 +419,6 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
                   placeholder="Additional notes"
                 />
               </div>
-
-              {/* Remove button */}
-              {!collab.isPrimary && (
-                <div className="flex items-end">
-                  <button
-                    type="button"
-                    onClick={() => removeCollaborator(index)}
-                    className="w-full px-3 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 rounded-lg font-medium transition-colors"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         ))}
@@ -296,7 +435,116 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
 
       {!isValidSplit && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm">
-          Total split percentage cannot exceed 100%. Please adjust the values.
+          {splitDifference > 0
+            ? `Split percentages must equal exactly 100%. You have ${splitDifference.toFixed(2)}% remaining to allocate.`
+            : `Split percentages must equal exactly 100%. You are ${Math.abs(splitDifference).toFixed(2)}% over the limit.`}
+        </div>
+      )}
+
+      {/* User Search Modal */}
+      {showUserSearch && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-elevated rounded-2xl w-full max-w-lg border border-white/[0.08] shadow-2xl">
+            <div className="p-4 border-b border-white/[0.08] flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">Autofill from PT User</h3>
+              <button
+                type="button"
+                onClick={() => setShowUserSearch(false)}
+                className="p-2 hover:bg-white/[0.08] rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Search Input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && searchUsers()}
+                  className="flex-1 px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
+                  placeholder="Search by name, IPI, or email..."
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={searchUsers}
+                  disabled={isSearchingUsers}
+                  className="px-4 py-2 bg-white text-surface rounded-lg font-medium hover:bg-white/90 disabled:bg-gray-600 transition-colors"
+                >
+                  {isSearchingUsers ? '...' : 'Search'}
+                </button>
+              </div>
+
+              {/* Search Results */}
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {userSearchResults.length > 0 ? (
+                  userSearchResults.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => linkUser(user)}
+                      className="w-full p-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-left transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-white font-medium">
+                            {user.firstName} {user.lastName}
+                          </div>
+                          <div className="text-gray-400 text-sm">{user.email}</div>
+                        </div>
+                        <div className="text-right text-sm">
+                          {user.proAffiliation && (
+                            <span className="px-2 py-0.5 bg-white/[0.08] rounded text-gray-300">
+                              {user.proAffiliation}
+                            </span>
+                          )}
+                          {user.writerIpiNumber && (
+                            <div className="text-gray-500 text-xs mt-1">
+                              IPI: {user.writerIpiNumber}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                ) : userSearchQuery.length >= 2 && !isSearchingUsers ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <p>No PT accounts found for "{userSearchQuery}"</p>
+                    <p className="text-sm mt-2">
+                      This collaborator may be an external writer not registered with Producer Tour.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>Search for a PT user to autofill</p>
+                    <p className="text-sm mt-1">
+                      Name, IPI, and PRO will be filled automatically
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Mark as External Button */}
+              {userSearchIndex !== null && (
+                <div className="pt-2 border-t border-white/[0.08]">
+                  <button
+                    type="button"
+                    onClick={() => markAsExternal(userSearchIndex)}
+                    className="w-full px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-400 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Mark as External Writer (Not a PT Client)
+                  </button>
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    External writers won't receive royalty distributions through Producer Tour
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

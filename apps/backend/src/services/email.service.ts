@@ -33,6 +33,16 @@ interface PaymentNotificationData {
   paymentDate: string;
 }
 
+interface NewMessageNotificationData {
+  recipientUserId: string;
+  recipientName: string;
+  recipientEmail: string;
+  senderName: string;
+  messagePreview: string;
+  conversationId: string;
+  timestamp: Date;
+}
+
 class EmailService {
   private transporter: Transporter | null = null;
   private fromEmail: string;
@@ -1754,6 +1764,244 @@ Questions about this payment? Contact us at support@producertour.com
     }
 
     return sent;
+  }
+
+  /**
+   * Send new message notification to offline user
+   */
+  async sendNewMessageNotification(data: NewMessageNotificationData): Promise<boolean> {
+    if (!this.isConfigured || !this.transporter) {
+      console.warn('Email service not configured - skipping message notification');
+      return false;
+    }
+
+    // Check if user has email notifications enabled
+    const user = await prisma.user.findUnique({
+      where: { id: data.recipientUserId },
+      select: {
+        emailNotificationsEnabled: true,
+        chatDesktopNotifications: true,
+      }
+    });
+
+    // Skip if notifications are disabled
+    if (user && (!user.emailNotificationsEnabled || !user.chatDesktopNotifications)) {
+      console.log(`⏭️  Skipping message notification to ${data.recipientEmail} (notifications disabled)`);
+      return false;
+    }
+
+    const formatTimestamp = (date: Date) => {
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      }).format(date);
+    };
+
+    // Truncate message preview if too long
+    const preview = data.messagePreview.length > 200
+      ? data.messagePreview.substring(0, 200) + '...'
+      : data.messagePreview;
+
+    const conversationUrl = `${process.env.FRONTEND_URL || 'https://producertour.com'}/dashboard/messages?conversation=${data.conversationId}`;
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: data.recipientEmail,
+      replyTo: this.fromEmail,
+      subject: `New message from ${data.senderName}`,
+      html: this.generateNewMessageEmailHTML({
+        ...data,
+        messagePreview: preview,
+        conversationUrl,
+        formattedTimestamp: formatTimestamp(data.timestamp),
+      }),
+      text: this.generateNewMessageEmailText({
+        ...data,
+        messagePreview: preview,
+        conversationUrl,
+        formattedTimestamp: formatTimestamp(data.timestamp),
+      }),
+      envelope: {
+        from: this.fromEmail,
+        to: data.recipientEmail,
+      },
+    };
+
+    const sent = await this.sendEmailWithRetry(mailOptions, data.recipientEmail);
+
+    if (sent) {
+      console.log(`✅ Message notification sent to ${data.recipientEmail}`);
+    }
+
+    return sent;
+  }
+
+  /**
+   * Generate HTML email for new message notification
+   */
+  private generateNewMessageEmailHTML(data: {
+    recipientName: string;
+    senderName: string;
+    messagePreview: string;
+    conversationUrl: string;
+    formattedTimestamp: string;
+  }): string {
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>New Message</title>
+  <!--[if mso]>
+  <style type="text/css">
+    table { border-collapse: collapse; }
+    .button-link { padding: 14px 32px !important; }
+  </style>
+  <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f4f5;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
+
+          <!-- Logo -->
+          <tr>
+            <td align="center" style="padding-bottom: 32px;">
+              <a href="https://producertour.com" target="_blank" style="text-decoration: none;">
+                <img src="https://producertour.com/images/logo-black.png" alt="Producer Tour" width="180" height="auto" style="display: block; max-width: 180px; height: auto;" />
+              </a>
+            </td>
+          </tr>
+
+          <!-- Main Card -->
+          <tr>
+            <td>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);">
+
+                <!-- Banner -->
+                <tr>
+                  <td style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 32px 40px; text-align: center;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td align="center">
+                          <div style="width: 56px; height: 56px; background-color: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 16px; line-height: 56px; font-size: 28px;">&#9993;</div>
+                          <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600; letter-spacing: -0.5px;">New Message</h1>
+                          <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 400;">You have an unread message</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Content -->
+                <tr>
+                  <td style="padding: 40px;">
+
+                    <p style="margin: 0 0 24px; color: #3f3f46; font-size: 16px; line-height: 1.6;">
+                      Hi <strong style="color: #18181b;">${data.recipientName}</strong>,
+                    </p>
+
+                    <p style="margin: 0 0 32px; color: #52525b; font-size: 15px; line-height: 1.7;">
+                      You have a new message from <strong style="color: #18181b;">${data.senderName}</strong>.
+                    </p>
+
+                    <!-- Message Preview -->
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #fafafa; border-radius: 12px; overflow: hidden; margin-bottom: 32px; border-left: 4px solid #6366f1;">
+                      <tr>
+                        <td style="padding: 20px 24px; border-bottom: 1px solid #e4e4e7;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td>
+                                <span style="font-size: 14px; font-weight: 600; color: #18181b;">${data.senderName}</span>
+                                <span style="font-size: 13px; color: #a1a1aa; margin-left: 8px;">${data.formattedTimestamp}</span>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 20px 24px;">
+                          <p style="margin: 0; font-size: 15px; color: #3f3f46; line-height: 1.6;">${data.messagePreview}</p>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Button -->
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td align="center" style="padding-bottom: 32px;">
+                          <a href="${data.conversationUrl}" class="button-link" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px;">View Conversation</a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <p style="margin: 0; color: #a1a1aa; font-size: 13px; line-height: 1.6; text-align: center;">
+                      You can manage your notification preferences in your account settings.
+                    </p>
+
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 32px 40px; text-align: center;">
+              <p style="margin: 0 0 8px; color: #71717a; font-size: 13px;">© 2024 Producer Tour. All rights reserved.</p>
+              <p style="margin: 0; color: #a1a1aa; font-size: 12px;">
+                <a href="https://producertour.com/settings/notifications" style="color: #71717a; text-decoration: underline;">Manage notification settings</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+    `;
+  }
+
+  /**
+   * Generate plain text email for new message notification
+   */
+  private generateNewMessageEmailText(data: {
+    recipientName: string;
+    senderName: string;
+    messagePreview: string;
+    conversationUrl: string;
+    formattedTimestamp: string;
+  }): string {
+    return `
+New Message from ${data.senderName}
+
+Hi ${data.recipientName},
+
+You have a new message from ${data.senderName}:
+
+"${data.messagePreview}"
+
+Sent at ${data.formattedTimestamp}
+
+View the conversation: ${data.conversationUrl}
+
+---
+© 2024 Producer Tour. All rights reserved.
+Manage your notification settings: https://producertour.com/settings/notifications
+    `.trim();
   }
 
   /**

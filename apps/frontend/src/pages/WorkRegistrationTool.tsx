@@ -45,15 +45,44 @@ export default function WorkRegistrationTool() {
   const submitPlacement = async () => {
     if (!selectedTrack) return null;
 
-    // Validate collaborators
+    // Check for duplicate titles in Manage Placements
+    try {
+      const duplicateCheck = await placementApi.checkDuplicate(selectedTrack.title);
+      if (duplicateCheck.data.isDuplicate) {
+        const existing = duplicateCheck.data.existingPlacement;
+        toast.error(
+          <div>
+            <div className="font-semibold">Duplicate Song Detected</div>
+            <div className="text-sm text-gray-400 mt-1">
+              "{existing.title}" already exists in Manage Placements
+              {existing.caseNumber && ` (Case: ${existing.caseNumber})`}
+            </div>
+          </div>,
+          { duration: 5000, icon: '⚠️' }
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error('Duplicate check error:', error);
+      // Continue with submission if duplicate check fails
+    }
+
+    // Validate collaborators - splits must equal exactly 100%
     const totalSplit = collaborators.reduce((sum, c) => sum + (c.splitPercentage || 0), 0);
-    if (totalSplit > 100) {
-      toast.error('Total split percentage cannot exceed 100%');
+    const splitDifference = 100 - totalSplit;
+    const isExactly100 = Math.abs(splitDifference) < 0.01;
+
+    if (!isExactly100) {
+      if (splitDifference > 0) {
+        toast.error(`Split percentages must equal exactly 100%. You have ${splitDifference.toFixed(2)}% remaining.`);
+      } else {
+        toast.error(`Split percentages must equal exactly 100%. You are ${Math.abs(splitDifference).toFixed(2)}% over.`);
+      }
       return null;
     }
 
-    if (collaborators.length > 0 && totalSplit === 0) {
-      toast.error('Please add at least one collaborator with a split percentage');
+    if (collaborators.length === 0) {
+      toast.error('Please add at least one collaborator with split percentages');
       return null;
     }
 
@@ -83,7 +112,7 @@ export default function WorkRegistrationTool() {
       audioDbArtistId: selectedTrack.enriched?.artist?.id,
       audioDbAlbumId: selectedTrack.enriched?.album?.id,
       audioDbData: selectedTrack.enriched,
-      // Credits/Collaborators
+      // Credits/Collaborators with user linking for statement processing
       credits: collaborators.map(c => ({
         firstName: c.firstName,
         lastName: c.lastName,
@@ -93,6 +122,10 @@ export default function WorkRegistrationTool() {
         ipiNumber: c.ipiNumber || undefined,
         isPrimary: c.isPrimary || false,
         notes: c.notes || undefined,
+        // User linking fields for Manage Placements integration
+        userId: c.userId || undefined,
+        publisherIpiNumber: c.publisherIpiNumber || undefined,
+        isExternalWriter: c.isExternalWriter || false,
       })),
     };
 

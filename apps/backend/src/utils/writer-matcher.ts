@@ -465,3 +465,192 @@ export async function smartMatchStatement(
 
   return results;
 }
+
+// ============================================================================
+// PLACEMENT TRACKER INTEGRATION (NEW)
+// ============================================================================
+
+import {
+  matchSongToPlacement,
+  getPtPublisherIpis,
+  PlacementMatch,
+  clearPlacementCache
+} from './placement-matcher';
+
+import {
+  calculateMlcShares,
+  calculateBmiShares,
+  calculateAscapShares,
+  calculateWriterShares,
+  WriterShare,
+  SplitCalculationResult,
+  SplitCalculationFilters
+} from './split-calculator';
+
+// Extended match result with Placement Tracker info
+export interface PlacementBasedMatch {
+  writer: WriterMatch['writer'];
+  confidence: number;
+  splitPercentage: number;       // Calculated relative split from Placement Tracker
+  originalSplitPercent: number;  // Original split from PlacementCredit
+  reason: string;
+  placementId: string;
+  placementTitle: string;
+}
+
+// Result for untracked songs
+export interface UntrackedSong {
+  workTitle: string;
+  revenue: number;
+  metadata: any;
+  reason: string;
+}
+
+// Enhanced smart assign result
+export interface EnhancedSmartAssignResult {
+  matched: EnhancedMatchedSong[];
+  untracked: UntrackedSong[];
+}
+
+export interface EnhancedMatchedSong {
+  workTitle: string;
+  revenue: number;
+  performances: number;
+  metadata: any;
+  placementMatch: PlacementMatch;
+  writerShares: WriterShare[];
+  excludedCredits: Array<{ creditId: string; firstName: string; lastName: string; reason: string }>;
+}
+
+/**
+ * Smart match using Placement Tracker as source of truth
+ *
+ * This is the NEW primary matching function that:
+ * 1. Matches song to Placement Tracker by title
+ * 2. Calculates splits from PlacementCredit records
+ * 3. Filters by PRO affiliation and PT representation
+ *
+ * @param song - Parsed song from statement
+ * @param options - Matching options including proType
+ * @returns Placement-based matches or untracked flag
+ */
+export async function smartMatchWithPlacementTracker(
+  song: ParsedSong,
+  options: MatcherOptions = {}
+): Promise<{ placementMatch: PlacementMatch | null; shares: SplitCalculationResult | null; untracked: boolean }> {
+  const { proType } = options;
+
+  // Try to match song to Placement Tracker
+  const placementMatch = await matchSongToPlacement(song.workTitle);
+
+  if (!placementMatch) {
+    return {
+      placementMatch: null,
+      shares: null,
+      untracked: true
+    };
+  }
+
+  // Get PT publisher IPIs for filtering
+  const ptPublisherIpis = await getPtPublisherIpis();
+
+  // Calculate shares based on PRO type
+  let shares: SplitCalculationResult;
+  const revenue = song.revenue || 0;
+
+  switch (proType) {
+    case 'MLC':
+      shares = calculateMlcShares(revenue, placementMatch.credits, ptPublisherIpis);
+      break;
+    case 'BMI':
+      shares = calculateBmiShares(revenue, placementMatch.credits, ptPublisherIpis);
+      break;
+    case 'ASCAP':
+      shares = calculateAscapShares(revenue, placementMatch.credits, ptPublisherIpis);
+      break;
+    default:
+      // For other PROs, include all PT-represented writers
+      shares = calculateWriterShares(revenue, placementMatch.credits, {
+        proAffiliation: null,
+        ptPublisherIpis,
+        includeOnlyPtWriters: true
+      });
+  }
+
+  return {
+    placementMatch,
+    shares,
+    untracked: false
+  };
+}
+
+/**
+ * Enhanced smart match for entire statement using Placement Tracker
+ *
+ * @param parsedSongs - Array of parsed songs from the statement
+ * @param options - Matching options including proType
+ * @returns Categorized results: matched (with splits) and untracked
+ */
+export async function smartMatchStatementWithPlacementTracker(
+  parsedSongs: ParsedSong[],
+  options: MatcherOptions = {}
+): Promise<EnhancedSmartAssignResult> {
+  // Clear cache at start of batch operation
+  clearPlacementCache();
+
+  const matched: EnhancedMatchedSong[] = [];
+  const untracked: UntrackedSong[] = [];
+
+  for (const song of parsedSongs) {
+    const result = await smartMatchWithPlacementTracker(song, options);
+
+    if (result.untracked || !result.placementMatch || !result.shares) {
+      untracked.push({
+        workTitle: song.workTitle,
+        revenue: song.revenue || 0,
+        metadata: song.metadata || {},
+        reason: 'Song not found in Placement Tracker'
+      });
+    } else if (result.shares.shares.length === 0) {
+      // Placement found but no eligible writers (e.g., wrong PRO)
+      untracked.push({
+        workTitle: song.workTitle,
+        revenue: song.revenue || 0,
+        metadata: song.metadata || {},
+        reason: `No eligible writers for ${options.proType || 'this PRO'} (${result.shares.excludedCredits.length} excluded)`
+      });
+    } else {
+      matched.push({
+        workTitle: song.workTitle,
+        revenue: song.revenue || 0,
+        performances: song.performances || 0,
+        metadata: song.metadata || {},
+        placementMatch: result.placementMatch,
+        writerShares: result.shares.shares,
+        excludedCredits: result.shares.excludedCredits
+      });
+    }
+  }
+
+  return { matched, untracked };
+}
+
+/**
+ * Convert Placement Tracker shares to assignment format
+ * Used when preparing data for statement publishing
+ */
+export function convertSharesToAssignments(
+  shares: WriterShare[]
+): Array<{
+  userId: string;
+  splitPercentage: number;
+  writerIpiNumber: string | null;
+  publisherIpiNumber: string | null;
+}> {
+  return shares.map(share => ({
+    userId: share.userId,
+    splitPercentage: share.relativeSplitPercent,
+    writerIpiNumber: share.writerIpiNumber,
+    publisherIpiNumber: share.publisherIpiNumber
+  }));
+}

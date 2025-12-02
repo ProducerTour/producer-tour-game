@@ -759,7 +759,7 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
           {/* Info */}
           <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
             <p className="text-green-300 text-sm flex items-center gap-2">
-              <Check className="w-4 h-4" /> This will create a case in the Placement Tracker and notify the writer
+              <Check className="w-4 h-4" /> This will create a case in Manage Placements and notify the writer
             </p>
           </div>
 

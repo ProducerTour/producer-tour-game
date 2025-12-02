@@ -471,4 +471,92 @@ router.patch('/chat-settings', async (req: AuthRequest, res: Response) => {
   }
 });
 
+/**
+ * GET /api/users/search-writers
+ * Search for writers to link as collaborators in work registration
+ * Searches by name, IPI number, or email
+ */
+router.get('/search-writers', async (req: AuthRequest, res: Response) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || typeof q !== 'string' || q.length < 2) {
+      return res.status(400).json({ error: 'Search query must be at least 2 characters' });
+    }
+
+    const searchTerm = q.trim();
+
+    // Search users with WRITER role by name, IPI, or email
+    // Split search term for multi-word name searches (e.g., "nolan griffis")
+    const searchParts = searchTerm.split(/\s+/).filter(p => p.length >= 2);
+
+    // Build search conditions
+    const searchConditions: any[] = [
+      { email: { contains: searchTerm, mode: 'insensitive' } },
+      { firstName: { contains: searchTerm, mode: 'insensitive' } },
+      { lastName: { contains: searchTerm, mode: 'insensitive' } },
+      { writerIpiNumber: { contains: searchTerm, mode: 'insensitive' } },
+      { publisherIpiNumber: { contains: searchTerm, mode: 'insensitive' } },
+    ];
+
+    // If multiple words, also search for each part individually
+    if (searchParts.length > 1) {
+      searchParts.forEach(part => {
+        searchConditions.push({ firstName: { contains: part, mode: 'insensitive' } });
+        searchConditions.push({ lastName: { contains: part, mode: 'insensitive' } });
+      });
+    }
+
+    const users = await prisma.user.findMany({
+      where: {
+        role: 'WRITER',
+        OR: searchConditions,
+      },
+      take: 10,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        writerIpiNumber: true,
+        publisherIpiNumber: true,
+        producer: {
+          select: {
+            proAffiliation: true,
+            producerName: true,
+          }
+        }
+      },
+      orderBy: [
+        { firstName: 'asc' },
+        { lastName: 'asc' },
+      ],
+    });
+
+    // Format results for collaborator linking
+    const results = users.map(user => ({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName || '',
+      middleName: user.middleName || '',
+      lastName: user.lastName || '',
+      fullName: `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.replace(/\s+/g, ' ').trim(),
+      writerIpiNumber: user.writerIpiNumber || null,
+      publisherIpiNumber: user.publisherIpiNumber || null,
+      proAffiliation: user.producer?.proAffiliation || null,
+      producerName: user.producer?.producerName || null,
+    }));
+
+    res.json({
+      success: true,
+      results,
+      count: results.length,
+    });
+  } catch (error) {
+    console.error('Search writers error:', error);
+    res.status(500).json({ error: 'Failed to search writers' });
+  }
+});
+
 export default router;

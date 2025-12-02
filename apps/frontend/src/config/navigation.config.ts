@@ -113,6 +113,7 @@ export const adminNavigation: NavSection[] = [
         icon: 'music',
         children: [
           { id: 'pending-placements', label: 'Pending Placements', icon: 'hourglass' },
+          { id: 'manage-placements', label: 'Manage Placements', icon: 'list' },
           { id: 'active-placements', label: 'Producer Clearances', icon: 'check-circle' },
         ],
       },

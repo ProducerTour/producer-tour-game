@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Paperclip, Search, ChevronLeft, Circle, Users, UserPlus, Check, XIcon, Download, FileText, Loader2, UsersRound, Plus } from 'lucide-react';
+import { MessageCircle, X, Send, Paperclip, Search, ChevronLeft, Circle, Users, UserPlus, Check, XIcon, Download, FileText, Loader2, UsersRound, Plus, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSocket } from '../../hooks/useSocket';
 import { useAuthStore } from '../../store/auth.store';
@@ -136,6 +136,7 @@ export function ChatWidget() {
     stopTyping,
     markAsRead,
     onNewMessage,
+    onConversationRenamed,
   } = useSocket();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -162,6 +163,11 @@ export function ChatWidget() {
   const [isGroupMode, setIsGroupMode] = useState(false);
   const [selectedParticipants, setSelectedParticipants] = useState<User[]>([]);
   const [groupName, setGroupName] = useState('');
+
+  // Rename group chat state
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -291,6 +297,23 @@ export function ChatWidget() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Listen for conversation rename events
+  useEffect(() => {
+    const unsubscribe = onConversationRenamed((data) => {
+      // Update conversations list
+      setConversations((prev) =>
+        prev.map((c) => (c.id === data.conversationId ? { ...c, name: data.name } : c))
+      );
+
+      // Update active conversation if it's the one being renamed
+      if (activeConversation?.id === data.conversationId) {
+        setActiveConversation((prev) => (prev ? { ...prev, name: data.name } : prev));
+      }
+    });
+
+    return unsubscribe;
+  }, [activeConversation, onConversationRenamed]);
 
   const fetchMessages = async (conversationId: string) => {
     setIsLoading(true);
@@ -588,6 +611,60 @@ export function ChatWidget() {
     }
   };
 
+  const startRenaming = () => {
+    if (activeConversation) {
+      setRenameValue(activeConversation.name || '');
+      setIsRenaming(true);
+      setTimeout(() => renameInputRef.current?.focus(), 100);
+    }
+  };
+
+  const cancelRenaming = () => {
+    setIsRenaming(false);
+    setRenameValue('');
+  };
+
+  const handleRenameSubmit = async () => {
+    if (!activeConversation || !renameValue.trim()) {
+      cancelRenaming();
+      return;
+    }
+
+    try {
+      const { data } = await api.patch(`/chat/conversations/${activeConversation.id}/rename`, {
+        name: renameValue.trim(),
+      });
+
+      // Update active conversation
+      setActiveConversation(data);
+
+      // Update conversations list
+      setConversations((prev) =>
+        prev.map((c) => (c.id === data.id ? { ...c, name: data.name } : c))
+      );
+
+      toast.success('Group renamed!');
+      cancelRenaming();
+    } catch (error: any) {
+      console.error('Failed to rename conversation:', error);
+      toast.error(error.response?.data?.error || 'Failed to rename group');
+    }
+  };
+
+  const handleRenameKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleRenameSubmit();
+    } else if (e.key === 'Escape') {
+      cancelRenaming();
+    }
+  };
+
+  // Check if current user is admin of the conversation
+  const isConversationAdmin = (conv: Conversation) => {
+    return conv.participants.some((p) => p.userId === user?.id && p.isAdmin);
+  };
+
   const isContact = (userId: string) => {
     return contacts.some((c) => c.contactId === userId && c.status === 'ACCEPTED');
   };
@@ -630,21 +707,68 @@ export function ChatWidget() {
               {activeConversation ? (
                 <>
                   <button
-                    onClick={handleBack}
+                    onClick={() => {
+                      cancelRenaming();
+                      handleBack();
+                    }}
                     className="p-1 hover:bg-slate-700 rounded-lg transition"
                   >
                     <ChevronLeft className="w-5 h-5 text-slate-400" />
                   </button>
                   <div className="flex-1 ml-2">
-                    <h3 className="font-semibold text-white text-sm">
-                      {getConversationName(activeConversation)}
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      {getTypingIndicator(activeConversation.id) ||
-                        (onlineUsers.has(getOtherParticipant(activeConversation)?.id || '')
-                          ? 'Online'
-                          : 'Offline')}
-                    </p>
+                    {isRenaming && activeConversation.type === 'GROUP' ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          ref={renameInputRef}
+                          type="text"
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={handleRenameKeyPress}
+                          onBlur={() => setTimeout(cancelRenaming, 200)}
+                          className="flex-1 bg-slate-700 border border-slate-600 rounded px-2 py-1 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                          placeholder="Group name..."
+                          maxLength={100}
+                        />
+                        <button
+                          onClick={handleRenameSubmit}
+                          className="p-1 hover:bg-green-500/20 rounded transition"
+                        >
+                          <Check className="w-4 h-4 text-green-400" />
+                        </button>
+                        <button
+                          onClick={cancelRenaming}
+                          className="p-1 hover:bg-red-500/20 rounded transition"
+                        >
+                          <XIcon className="w-4 h-4 text-red-400" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <h3 className="font-semibold text-white text-sm">
+                            {getConversationName(activeConversation)}
+                          </h3>
+                          <p className="text-xs text-slate-400">
+                            {getTypingIndicator(activeConversation.id) ||
+                              (activeConversation.type === 'GROUP'
+                                ? `${activeConversation.participants.length} members`
+                                : onlineUsers.has(getOtherParticipant(activeConversation)?.id || '')
+                                  ? 'Online'
+                                  : 'Offline')}
+                          </p>
+                        </div>
+                        {/* Rename button for group chats (admin only) */}
+                        {activeConversation.type === 'GROUP' && isConversationAdmin(activeConversation) && (
+                          <button
+                            onClick={startRenaming}
+                            className="p-1 hover:bg-slate-700 rounded-lg transition"
+                            title="Rename group"
+                          >
+                            <Pencil className="w-3.5 h-3.5 text-slate-400 hover:text-white" />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {/* Add as friend button */}
                   {activeConversation.type === 'DIRECT' && (() => {
