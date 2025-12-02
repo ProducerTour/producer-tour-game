@@ -1,1 +1,0 @@
-export { PublisherTealLandingPage } from './PublisherTealLandingPage';
