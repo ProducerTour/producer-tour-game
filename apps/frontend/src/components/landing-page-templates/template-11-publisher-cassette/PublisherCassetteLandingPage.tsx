@@ -234,44 +234,6 @@ function MagneticButton({
   );
 }
 
-// Spinning vinyl record (reserved for future use)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _VinylRecord({ imageUrl, isPlaying = false }: { imageUrl?: string; isPlaying?: boolean }) {
-  return (
-    <motion.div
-      className="relative w-full aspect-square"
-      animate={{ rotate: isPlaying ? 360 : 0 }}
-      transition={{
-        duration: 3,
-        repeat: isPlaying ? Infinity : 0,
-        ease: 'linear',
-      }}
-    >
-      {/* Outer ring */}
-      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-white/10" />
-
-      {/* Grooves */}
-      <div className="absolute inset-[5%] rounded-full border border-white/5" />
-      <div className="absolute inset-[15%] rounded-full border border-white/5" />
-      <div className="absolute inset-[25%] rounded-full border border-white/5" />
-
-      {/* Label */}
-      <div className="absolute inset-[30%] rounded-full overflow-hidden bg-[#f0e226]">
-        {imageUrl ? (
-          <img src={imageUrl} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="w-2 h-2 rounded-full bg-black" />
-          </div>
-        )}
-      </div>
-
-      {/* Center hole */}
-      <div className="absolute inset-[48%] rounded-full bg-black" />
-    </motion.div>
-  );
-}
-
 // Audio waveform visualization
 function AudioWaveform({ isPlaying = false }: { isPlaying?: boolean }) {
   const bars = 40;
