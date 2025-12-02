@@ -30,7 +30,8 @@ import {
   useMotionValue,
   useMotionTemplate,
 } from 'framer-motion';
-import { ArrowRight, Check, Play, ChevronDown, ArrowUpRight, Plus, Pause, Music2, BarChart3, Wallet, FileText, Users2, Globe2, Shield } from 'lucide-react';
+import { ArrowRight, Check, Play, ChevronDown, ArrowUpRight, Plus, Pause, Music2, BarChart3, Wallet, FileText, Users2, Globe2, Shield, ShoppingCart } from 'lucide-react';
+import { useCartStore } from '../../../store/cart.store';
 import { faqData, processSteps } from '../../landing/data';
 import ptLogo from '../../../assets/images/logos/whitetransparentpt.png';
 
@@ -386,6 +387,7 @@ function HeroSection() {
   const [artists, setArtists] = useState<HeroArtist[]>([]);
   const [artistsLoaded, setArtistsLoaded] = useState(false);
   const [currentArtistIndex, setCurrentArtistIndex] = useState(0);
+  const cartItemCount = useCartStore((state) => state.getItemCount());
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -528,6 +530,7 @@ function HeroSection() {
               { label: 'About', href: '#about' },
               { label: 'Services', href: '#services' },
               { label: 'Tools', href: '/tools' },
+              { label: 'Shop', href: '/shop' },
               { label: 'Team', href: '#team' },
               { label: 'Contact', href: '#contact' },
             ].map((link) => (
@@ -543,6 +546,21 @@ function HeroSection() {
           </motion.div>
 
           <div className="flex items-center gap-3">
+            {/* Cart Icon */}
+            <motion.a
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: BEAT * 4 }}
+              href="/cart"
+              className="relative p-2.5 text-white/60 hover:text-[#f0e226] transition-colors"
+            >
+              <ShoppingCart className="w-5 h-5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#f0e226] text-black text-xs font-bold flex items-center justify-center">
+                  {cartItemCount > 9 ? '9+' : cartItemCount}
+                </span>
+              )}
+            </motion.a>
             <motion.a
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
