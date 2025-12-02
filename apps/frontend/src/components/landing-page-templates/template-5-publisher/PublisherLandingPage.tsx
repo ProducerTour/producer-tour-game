@@ -14,8 +14,6 @@ import {
   useTransform,
   useInView,
   AnimatePresence,
-  useMotionValue,
-  useSpring,
 } from 'framer-motion';
 import {
   ArrowRight,
@@ -31,9 +29,7 @@ import {
   Users,
   BarChart3,
   DollarSign,
-  TrendingUp,
   Headphones,
-  FileText,
   MessageCircle,
   Mail,
   Plus,

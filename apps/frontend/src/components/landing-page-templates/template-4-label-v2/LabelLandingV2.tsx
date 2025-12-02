@@ -12,15 +12,12 @@ import {
   useTransform,
   useInView,
   useMotionValue,
-  useSpring,
   AnimatePresence,
-  useAnimation,
 } from 'framer-motion';
 import {
   ArrowRight,
   ArrowUpRight,
   Play,
-  Pause,
   Check,
   Star,
   Zap,
@@ -127,14 +124,15 @@ function GradientOrb({ className = '' }: { className?: string }) {
 // NAVIGATION
 // ============================================
 
-function Navigation() {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _Navigation() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [scrolled]);
 
   return (
     <motion.nav

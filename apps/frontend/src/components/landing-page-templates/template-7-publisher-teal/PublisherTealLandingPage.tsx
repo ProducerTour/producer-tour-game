@@ -17,8 +17,6 @@ import {
   useTransform,
   useInView,
   AnimatePresence,
-  useMotionValue,
-  useSpring,
 } from 'framer-motion';
 import {
   ArrowRight,
@@ -38,7 +36,6 @@ import {
   DollarSign,
   TrendingUp,
   Headphones,
-  MessageCircle,
   Plus,
   Star,
   Sparkles,
@@ -52,20 +49,6 @@ import {
   Verified,
 } from 'lucide-react';
 
-// ============================================
-// ANIMATED GRADIENT BORDER
-// ============================================
-
-// GradientBorder reserved for future use
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _GradientBorder({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`relative p-[1px] overflow-hidden ${className}`}>
-      <div className="absolute inset-0 bg-gradient-to-r from-[#516973] via-[#92A4A6] to-[#516973] animate-gradient-x" />
-      <div className="relative bg-[#0D0D0D] h-full">{children}</div>
-    </div>
-  );
-}
 
 // ============================================
 // GLASS CARD
