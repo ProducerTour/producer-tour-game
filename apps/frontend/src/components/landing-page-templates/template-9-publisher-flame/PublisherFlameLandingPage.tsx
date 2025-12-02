@@ -204,7 +204,7 @@ function HeroSection() {
               { value: '$2.5M+', label: 'Paid to Creators', delay: 0.6 },
               { value: '500+', label: 'Active Members', delay: 0.7 },
               { value: '30+', label: 'Countries Worldwide', delay: 0.8 },
-            ].map((stat, i) => (
+            ].map((stat) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, x: 30 }}

@@ -39,25 +39,16 @@ import {
   TrendingUp,
   Headphones,
   MessageCircle,
-  Mail,
   Plus,
-  Minus,
   Star,
   Sparkles,
   Disc3,
   Radio,
   Waves,
   Activity,
-  CircleDot,
-  ArrowDown,
-  Volume2,
-  SkipBack,
-  SkipForward,
   Heart,
   Share2,
-  MoreHorizontal,
   Crown,
-  Award,
   Verified,
 } from 'lucide-react';
 
@@ -65,7 +56,9 @@ import {
 // ANIMATED GRADIENT BORDER
 // ============================================
 
-function GradientBorder({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+// GradientBorder reserved for future use
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _GradientBorder({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`relative p-[1px] overflow-hidden ${className}`}>
       <div className="absolute inset-0 bg-gradient-to-r from-[#516973] via-[#92A4A6] to-[#516973] animate-gradient-x" />
@@ -498,7 +491,7 @@ function NowPlayingSection() {
             transition={{ delay: 0.3 }}
             className="space-y-4"
           >
-            {recentPlacements.map((placement, i) => (
+            {recentPlacements.map((placement) => (
               <GlassCard key={placement.song} className="p-6 rounded-xl">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-[#253840] to-[#152026] flex items-center justify-center">
