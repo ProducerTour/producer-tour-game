@@ -31,7 +31,7 @@ import {
   useMotionTemplate,
 } from 'framer-motion';
 import { ArrowRight, Check, Play, ChevronDown, ArrowUpRight, Plus, Pause, Music2, BarChart3, Wallet, FileText, Users2, Globe2, Shield } from 'lucide-react';
-import { featuresData, faqData, processSteps } from '../../landing/data';
+import { faqData, processSteps } from '../../landing/data';
 import ptLogo from '../../../assets/images/logos/whitetransparentpt.png';
 
 // ============================================
@@ -234,8 +234,9 @@ function MagneticButton({
   );
 }
 
-// Spinning vinyl record
-function VinylRecord({ imageUrl, isPlaying = false }: { imageUrl?: string; isPlaying?: boolean }) {
+// Spinning vinyl record (reserved for future use)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _VinylRecord({ imageUrl, isPlaying = false }: { imageUrl?: string; isPlaying?: boolean }) {
   return (
     <motion.div
       className="relative w-full aspect-square"
