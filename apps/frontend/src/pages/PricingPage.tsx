@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Sparkles, Zap, Music2, FileText, Calculator, Users, Video, Target, Award, MessageSquare } from 'lucide-react';
+import { Check, Zap, Music2, FileText, Calculator, Users, Video, Target, Award, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Header, Footer } from '../components/landing';
+
+const BEAT = 0.15;
 
 const mainPlans = [
   {
@@ -22,7 +24,6 @@ const mainPlans = [
     ctaLink: '/apply',
     featured: false,
     icon: FileText,
-    gradient: 'from-brand-blue/20 to-purple-500/20',
   },
   {
     name: 'For Creators',
@@ -44,7 +45,6 @@ const mainPlans = [
     ctaLink: '/login',
     featured: true,
     icon: Music2,
-    gradient: 'from-green-500/20 to-brand-blue/20',
   },
 ];
 
@@ -107,17 +107,15 @@ const freeTools = [
   {
     name: 'Advance Estimator',
     description: 'Estimate potential publishing advances based on your catalog',
-    icon: Sparkles,
+    icon: Zap,
     features: ['Catalog valuation', 'Market comparisons', 'Deal insights'],
   },
 ];
 
 export default function PricingPage() {
   useEffect(() => {
-    // Set page title
     document.title = 'Pricing - Producer Tour';
 
-    // Helper to set or create meta tags
     const setMetaTag = (property: string, content: string) => {
       let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
       if (!meta) {
@@ -128,14 +126,12 @@ export default function PricingPage() {
       meta.setAttribute('content', content);
     };
 
-    // Set Open Graph meta tags
     setMetaTag('og:title', 'Pricing - Producer Tour');
     setMetaTag('og:description', 'Simple, transparent pricing for music producers. Choose the plan that fits your needs - from free tools to full publishing admin solutions.');
-    setMetaTag('og:image', '/og-pricing.png');
+    setMetaTag('og:image', '/og-image.png');
     setMetaTag('og:type', 'website');
     setMetaTag('og:url', window.location.href);
 
-    // Set Twitter card meta tags
     const setTwitterMeta = (name: string, content: string) => {
       let meta = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement;
       if (!meta) {
@@ -149,45 +145,44 @@ export default function PricingPage() {
     setTwitterMeta('twitter:card', 'summary_large_image');
     setTwitterMeta('twitter:title', 'Pricing - Producer Tour');
     setTwitterMeta('twitter:description', 'Simple, transparent pricing for music producers. Choose the plan that fits your needs.');
-    setTwitterMeta('twitter:image', '/og-pricing.png');
+    setTwitterMeta('twitter:image', '/og-image.png');
 
-    // Cleanup function to reset title
     return () => {
       document.title = 'Producer Tour';
     };
   }, []);
 
   return (
-    <div className="min-h-screen bg-surface text-white">
+    <div className="min-h-screen bg-black text-white">
       <Header />
 
       <main className="pt-0 pb-20">
         {/* Hero Section */}
         <section className="relative overflow-hidden pt-28">
-          {/* Background Effects */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-brand-blue/10 rounded-full blur-[120px]" />
-            <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-green-500/10 rounded-full blur-[100px]" />
-          </div>
+          {/* Noise texture overlay */}
+          <div
+            className="pointer-events-none fixed inset-0 z-10 opacity-[0.03]"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+            }}
+          />
 
-          <div className="max-w-6xl mx-auto px-4 relative">
+          <div className="max-w-6xl mx-auto px-4 relative z-20">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="text-center mb-16"
             >
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-blue/10 border border-brand-blue/20 text-brand-blue text-sm font-medium mb-6">
+              <span className="inline-flex items-center gap-2 px-4 py-2 border border-[#f0e226]/30 text-[#f0e226] text-sm font-medium uppercase tracking-wider mb-6">
                 <Zap className="w-4 h-4" />
-                Simple, Transparent Pricing
+                Simple Pricing
               </span>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
                 Choose the plan that{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-green-400">
-                  fits your needs
-                </span>
+                <span className="text-[#f0e226]">fits your needs</span>
               </h1>
-              <p className="text-xl text-text-secondary max-w-2xl mx-auto">
+              <p className="text-xl text-white/60 max-w-2xl mx-auto">
                 Whether you're a creator looking to grow or a publishing admin managing catalogs,
                 we have the tools to help you succeed.
               </p>
@@ -200,42 +195,39 @@ export default function PricingPage() {
                   key={plan.name}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  whileHover={{ y: -8 }}
+                  transition={{ duration: 0.5, delay: index * BEAT }}
+                  whileHover={{ y: -8, boxShadow: '0 25px 50px -12px rgba(240, 226, 38, 0.15)' }}
                   className="relative"
                 >
                   <div
-                    className={`h-full rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border ${
-                      plan.featured ? 'border-green-500/50 ring-1 ring-green-500/20' : 'border-white/[0.08]'
-                    } backdrop-blur-sm p-8 relative overflow-hidden`}
+                    className={`h-full bg-[#19181a] border ${
+                      plan.featured ? 'border-[#f0e226]' : 'border-white/10'
+                    } p-8 relative overflow-hidden transition-all duration-300`}
                   >
                     {/* Featured badge */}
                     {plan.featured && (
                       <div className="absolute top-4 right-4">
-                        <span className="px-3 py-1 text-xs font-semibold bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
+                        <span className="px-3 py-1 text-xs font-semibold bg-[#f0e226] text-black uppercase tracking-wider">
                           Most Popular
                         </span>
                       </div>
                     )}
 
-                    {/* Gradient overlay */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${plan.gradient} opacity-30`} />
-
                     <div className="relative">
                       {/* Icon */}
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-blue to-green-500 flex items-center justify-center mb-6">
-                        <plan.icon className="w-6 h-6 text-white" />
+                      <div className="w-12 h-12 border border-[#f0e226]/30 flex items-center justify-center mb-6">
+                        <plan.icon className="w-6 h-6 text-[#f0e226]" />
                       </div>
 
                       {/* Plan name & description */}
-                      <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
-                      <p className="text-text-secondary text-sm mb-6">{plan.description}</p>
+                      <h3 className="text-2xl font-bold text-white mb-2 uppercase tracking-wide">{plan.name}</h3>
+                      <p className="text-white/60 text-sm mb-6">{plan.description}</p>
 
                       {/* Price */}
                       <div className="mb-8">
                         <span className="text-4xl font-bold text-white">{plan.price}</span>
                         {plan.priceSubtext && (
-                          <span className="text-text-muted ml-1">{plan.priceSubtext}</span>
+                          <span className="text-white/40 ml-1">{plan.priceSubtext}</span>
                         )}
                       </div>
 
@@ -243,10 +235,10 @@ export default function PricingPage() {
                       <ul className="space-y-3 mb-8">
                         {plan.features.map((feature) => (
                           <li key={feature} className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center mt-0.5">
-                              <Check className="w-3 h-3 text-green-400" />
+                            <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center mt-0.5">
+                              <Check className="w-4 h-4 text-[#f0e226]" />
                             </div>
-                            <span className="text-text-secondary text-sm">{feature}</span>
+                            <span className="text-white/70 text-sm">{feature}</span>
                           </li>
                         ))}
                       </ul>
@@ -254,10 +246,10 @@ export default function PricingPage() {
                       {/* CTA Button */}
                       <Link
                         to={plan.ctaLink}
-                        className={`block w-full text-center py-3.5 px-6 rounded-xl font-semibold transition-all duration-300 ${
+                        className={`block w-full text-center py-3.5 px-6 font-semibold uppercase tracking-wider transition-all duration-300 ${
                           plan.featured
-                            ? 'bg-white text-surface hover:bg-white/90 hover:shadow-glow-sm'
-                            : 'bg-white/10 text-white border border-white/20 hover:bg-white/20 hover:border-white/30'
+                            ? 'bg-[#f0e226] text-black hover:bg-white'
+                            : 'border border-[#f0e226] text-[#f0e226] hover:bg-[#f0e226] hover:text-black'
                         }`}
                       >
                         {plan.cta}
@@ -276,8 +268,8 @@ export default function PricingPage() {
               className="mb-24"
             >
               <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-white mb-4">Individual Tools</h2>
-                <p className="text-text-secondary max-w-xl mx-auto">
+                <h2 className="text-3xl font-bold text-white mb-4 uppercase tracking-wide">Individual Tools</h2>
+                <p className="text-white/60 max-w-xl mx-auto">
                   Pick and choose the tools you need. Mix and match to build your perfect toolkit.
                 </p>
               </div>
@@ -289,24 +281,24 @@ export default function PricingPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.4 + index * 0.05 }}
-                    whileHover={{ y: -4 }}
-                    className="rounded-xl bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/[0.08] p-6 hover:border-brand-blue/30 transition-all duration-300"
+                    whileHover={{ y: -4, boxShadow: '0 20px 40px -12px rgba(240, 226, 38, 0.1)' }}
+                    className="bg-[#19181a] border border-white/10 p-6 hover:border-[#f0e226]/30 transition-all duration-300"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-brand-blue/10 flex items-center justify-center mb-4">
-                      <tool.icon className="w-5 h-5 text-brand-blue" />
+                    <div className="w-10 h-10 border border-[#f0e226]/30 flex items-center justify-center mb-4">
+                      <tool.icon className="w-5 h-5 text-[#f0e226]" />
                     </div>
                     <h3 className="text-lg font-semibold text-white mb-2">{tool.name}</h3>
-                    <p className="text-text-secondary text-sm mb-4">{tool.description}</p>
+                    <p className="text-white/60 text-sm mb-4">{tool.description}</p>
 
                     <div className="flex items-baseline gap-1 mb-4">
                       <span className="text-2xl font-bold text-white">{tool.price}</span>
-                      <span className="text-text-muted text-sm">{tool.period}</span>
+                      <span className="text-white/40 text-sm">{tool.period}</span>
                     </div>
 
                     <ul className="space-y-2 mb-6">
                       {tool.features.map((feature) => (
-                        <li key={feature} className="flex items-center gap-2 text-sm text-text-secondary">
-                          <Check className="w-4 h-4 text-green-400" />
+                        <li key={feature} className="flex items-center gap-2 text-sm text-white/60">
+                          <Check className="w-4 h-4 text-[#f0e226]" />
                           {feature}
                         </li>
                       ))}
@@ -314,7 +306,7 @@ export default function PricingPage() {
 
                     <Link
                       to="/login"
-                      className="block w-full text-center py-2.5 px-4 rounded-lg bg-white/5 text-white text-sm font-medium border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+                      className="block w-full text-center py-2.5 px-4 border border-white/20 text-white text-sm font-medium uppercase tracking-wider hover:border-[#f0e226] hover:text-[#f0e226] transition-all duration-300"
                     >
                       Get Started
                     </Link>
@@ -330,12 +322,12 @@ export default function PricingPage() {
               transition={{ duration: 0.6, delay: 0.5 }}
             >
               <div className="text-center mb-12">
-                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium mb-4">
+                <span className="inline-flex items-center gap-2 px-3 py-1 border border-[#f0e226]/30 text-[#f0e226] text-sm font-medium uppercase tracking-wider mb-4">
                   <Award className="w-4 h-4" />
                   Always Free
                 </span>
-                <h2 className="text-3xl font-bold text-white mb-4">Free Tools</h2>
-                <p className="text-text-secondary max-w-xl mx-auto">
+                <h2 className="text-3xl font-bold text-white mb-4 uppercase tracking-wide">Free Tools</h2>
+                <p className="text-white/60 max-w-xl mx-auto">
                   Get started with our free tools. No credit card required.
                 </p>
               </div>
@@ -347,23 +339,23 @@ export default function PricingPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.6 + index * 0.05 }}
-                    whileHover={{ y: -4 }}
-                    className="rounded-xl bg-gradient-to-b from-green-500/[0.08] to-green-500/[0.02] border border-green-500/20 p-6 hover:border-green-500/40 transition-all duration-300"
+                    whileHover={{ y: -4, boxShadow: '0 20px 40px -12px rgba(240, 226, 38, 0.1)' }}
+                    className="bg-[#19181a] border border-[#f0e226]/20 p-6 hover:border-[#f0e226]/50 transition-all duration-300"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center mb-4">
-                      <tool.icon className="w-5 h-5 text-green-400" />
+                    <div className="w-10 h-10 border border-[#f0e226]/30 flex items-center justify-center mb-4">
+                      <tool.icon className="w-5 h-5 text-[#f0e226]" />
                     </div>
                     <h3 className="text-lg font-semibold text-white mb-2">{tool.name}</h3>
-                    <p className="text-text-secondary text-sm mb-4">{tool.description}</p>
+                    <p className="text-white/60 text-sm mb-4">{tool.description}</p>
 
                     <div className="flex items-baseline gap-1 mb-4">
-                      <span className="text-2xl font-bold text-green-400">Free</span>
+                      <span className="text-2xl font-bold text-[#f0e226]">Free</span>
                     </div>
 
                     <ul className="space-y-2 mb-6">
                       {tool.features.map((feature) => (
-                        <li key={feature} className="flex items-center gap-2 text-sm text-text-secondary">
-                          <Check className="w-4 h-4 text-green-400" />
+                        <li key={feature} className="flex items-center gap-2 text-sm text-white/60">
+                          <Check className="w-4 h-4 text-[#f0e226]" />
                           {feature}
                         </li>
                       ))}
@@ -371,7 +363,7 @@ export default function PricingPage() {
 
                     <Link
                       to="/login"
-                      className="block w-full text-center py-2.5 px-4 rounded-lg bg-green-500/10 text-green-400 text-sm font-medium border border-green-500/20 hover:bg-green-500/20 hover:border-green-500/30 transition-all duration-300"
+                      className="block w-full text-center py-2.5 px-4 bg-[#f0e226]/10 border border-[#f0e226]/30 text-[#f0e226] text-sm font-medium uppercase tracking-wider hover:bg-[#f0e226] hover:text-black transition-all duration-300"
                     >
                       Try Free
                     </Link>
@@ -387,21 +379,21 @@ export default function PricingPage() {
               transition={{ duration: 0.6, delay: 0.7 }}
               className="mt-24 text-center"
             >
-              <div className="rounded-2xl bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/[0.08] p-8 md:p-12 max-w-2xl mx-auto">
-                <h3 className="text-2xl font-bold text-white mb-4">Have questions?</h3>
-                <p className="text-text-secondary mb-6">
+              <div className="bg-[#19181a] border border-white/10 p-8 md:p-12 max-w-2xl mx-auto">
+                <h3 className="text-2xl font-bold text-white mb-4 uppercase tracking-wide">Have questions?</h3>
+                <p className="text-white/60 mb-6">
                   Check out our FAQ or get in touch with our team for personalized assistance.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link
                     to="/#faq"
-                    className="px-6 py-3 rounded-xl bg-white/10 text-white font-medium border border-white/20 hover:bg-white/20 hover:border-white/30 transition-all duration-300"
+                    className="px-6 py-3 border border-white/20 text-white font-medium uppercase tracking-wider hover:border-[#f0e226] hover:text-[#f0e226] transition-all duration-300"
                   >
                     View FAQ
                   </Link>
                   <Link
                     to="/apply"
-                    className="px-6 py-3 rounded-xl bg-white text-surface font-semibold hover:bg-white/90 hover:shadow-glow-sm transition-all duration-300"
+                    className="px-6 py-3 bg-[#f0e226] text-black font-semibold uppercase tracking-wider hover:bg-white transition-all duration-300"
                   >
                     Contact Us
                   </Link>
