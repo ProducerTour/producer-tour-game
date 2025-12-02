@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Producer Tour | Road to $500M</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/framer-motion@11.0.8/dist/framer-motion.umd.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+    }
+    body {
+      background: #000;
+      color: #fff;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .gradient-text-blue {
+      background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .gradient-text-green {
+      background: linear-gradient(135deg, #34d399 0%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px);
+    }
+    .card:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .glow {
+      box-shadow: 0 0 60px rgba(96, 165, 250, 0.15);
+    }
+    .timeline-line {
+      background: linear-gradient(180deg, rgba(96, 165, 250, 0.5) 0%, rgba(167, 139, 250, 0.5) 50%, rgba(52, 211, 153, 0.5) 100%);
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    .float {
+      animation: float 6s ease-in-out infinite;
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(96, 165, 250, 0.3); }
+      50% { box-shadow: 0 0 40px rgba(96, 165, 250, 0.6); }
+    }
+    .pulse-glow {
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+    .fade-in {
+      animation: fadeIn 1s ease-out forwards;
+      opacity: 0;
+    }
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+    .slide-up {
+      animation: slideUp 0.8s ease-out forwards;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    @keyframes slideUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .stagger-1 { animation-delay: 0.1s; }
+    .stagger-2 { animation-delay: 0.2s; }
+    .stagger-3 { animation-delay: 0.3s; }
+    .stagger-4 { animation-delay: 0.4s; }
+    .stagger-5 { animation-delay: 0.5s; }
+    .stagger-6 { animation-delay: 0.6s; }
+  </style>
+</head>
+<body class="antialiased">
+
+  <!-- Hero Section -->
+  <section class="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-blue-500/5 via-transparent to-transparent"></div>
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl float"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl float" style="animation-delay: -3s;"></div>
+
+    <div class="text-center z-10 max-w-4xl">
+      <p class="text-blue-400 font-medium tracking-widest uppercase text-sm mb-6 fade-in">Producer Tour</p>
+      <h1 class="text-6xl md:text-8xl font-bold gradient-text mb-6 slide-up">
+        Road to $500M
+      </h1>
+      <p class="text-xl md:text-2xl text-zinc-400 font-light max-w-2xl mx-auto slide-up stagger-1">
+        From royalty management platform to industry-defining infrastructure
+      </p>
+      <div class="mt-12 slide-up stagger-2">
+        <a href="#precedents" class="inline-flex items-center gap-2 text-zinc-400 hover:text-white transition-colors">
+          <span>Explore the vision</span>
+          <svg class="w-5 h-5 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Precedents Section -->
+  <section id="precedents" class="py-32 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <p class="text-blue-400 font-medium tracking-widest uppercase text-sm mb-4">Market Context</p>
+        <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-6">Precedents at Scale</h2>
+        <p class="text-zinc-400 text-lg max-w-2xl mx-auto">Companies that have achieved $500M+ valuations in music tech</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Kobalt -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.02] slide-up">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+              <span class="text-xl font-bold">K</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold">Kobalt</h3>
+              <p class="text-emerald-400 font-medium">$800M+ (2021)</p>
+            </div>
+          </div>
+          <p class="text-zinc-400">Rights management, publishing administration, and collection services</p>
+        </div>
+
+        <!-- DistroKid -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.02] slide-up stagger-1">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+              <span class="text-xl font-bold">D</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold">DistroKid</h3>
+              <p class="text-emerald-400 font-medium">$1.3B (2021)</p>
+            </div>
+          </div>
+          <p class="text-zinc-400">Music distribution platform with royalty tracking and splits</p>
+        </div>
+
+        <!-- Splice -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.02] slide-up stagger-2">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
+              <span class="text-xl font-bold">S</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold">Splice</h3>
+              <p class="text-emerald-400 font-medium">$500M (2021)</p>
+            </div>
+          </div>
+          <p class="text-zinc-400">Creator tools, sample marketplace, and collaboration platform</p>
+        </div>
+
+        <!-- LANDR -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.02] slide-up stagger-3">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+              <span class="text-xl font-bold">L</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold">LANDR</h3>
+              <p class="text-amber-400 font-medium">~$100M raised</p>
+            </div>
+          </div>
+          <p class="text-zinc-400">AI-powered mastering, distribution, and music creation tools</p>
+        </div>
+
+        <!-- Royalty Exchange -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.02] slide-up stagger-4">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+              <span class="text-xl font-bold">R</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold">Royalty Exchange</h3>
+              <p class="text-cyan-400 font-medium">Growing</p>
+            </div>
+          </div>
+          <p class="text-zinc-400">Marketplace for buying and selling music royalties</p>
+        </div>
+
+        <!-- Producer Tour -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.02] border-blue-500/30 glow slide-up stagger-5">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-400 to-purple-600 flex items-center justify-center pulse-glow">
+              <span class="text-xl font-bold">PT</span>
+            </div>
+            <div>
+              <h3 class="text-xl font-semibold">Producer Tour</h3>
+              <p class="text-blue-400 font-medium">Building → $500M</p>
+            </div>
+          </div>
+          <p class="text-zinc-400">Full-stack royalty management with AI-powered automation</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Path to $500M Section -->
+  <section class="py-32 px-6 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <p class="text-purple-400 font-medium tracking-widest uppercase text-sm mb-4">Strategy</p>
+        <h2 class="text-4xl md:text-5xl font-bold gradient-text-blue mb-6">Path to $500M</h2>
+        <p class="text-zinc-400 text-lg max-w-2xl mx-auto">Three strategic scenarios to reach unicorn status</p>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Scenario A -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.02]">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/30 flex items-center justify-center mb-6">
+            <span class="text-2xl font-bold text-blue-400">A</span>
+          </div>
+          <h3 class="text-2xl font-semibold mb-4">Market Leader</h3>
+          <p class="text-zinc-500 text-sm uppercase tracking-wider mb-6">Publishing Admin</p>
+          <ul class="space-y-4 text-zinc-400">
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>10,000+ publishers/labels</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>$50M+ ARR at 10x multiple</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Billions in royalty flows</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Global presence (EU, UK, Asia)</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Scenario B -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.02] border-purple-500/20">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/20 border border-purple-500/30 flex items-center justify-center mb-6">
+            <span class="text-2xl font-bold text-purple-400">B</span>
+          </div>
+          <h3 class="text-2xl font-semibold mb-4">Strategic Acquisition</h3>
+          <p class="text-zinc-500 text-sm uppercase tracking-wider mb-6">Major Label Exit</p>
+          <ul class="space-y-4 text-zinc-400">
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Buyer: UMG, Sony, WMG, Spotify</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Internal royalty infrastructure</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Strategic value &gt; revenue</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Saves $100M+/year in ops</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Scenario C -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.02] border-emerald-500/20">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 border border-emerald-500/30 flex items-center justify-center mb-6">
+            <span class="text-2xl font-bold text-emerald-400">C</span>
+          </div>
+          <h3 class="text-2xl font-semibold mb-4">Music Finance</h3>
+          <p class="text-zinc-500 text-sm uppercase tracking-wider mb-6">Full-Stack Platform</p>
+          <ul class="space-y-4 text-zinc-400">
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Royalties + advances + investing</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>"Stripe for music royalties"</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>$1B+ annual transactions</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>1-3% of flow = $10-30M rev</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What You Need to Build -->
+  <section class="py-32 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <p class="text-emerald-400 font-medium tracking-widest uppercase text-sm mb-4">Infrastructure</p>
+        <h2 class="text-4xl md:text-5xl font-bold gradient-text-green mb-6">What You'd Need to Build</h2>
+        <p class="text-zinc-400 text-lg max-w-2xl mx-auto">Core capabilities required for $500M enterprise value</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="card rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02]">
+          <div class="text-3xl mb-4">⚡</div>
+          <h3 class="text-lg font-semibold mb-2">Scale Infrastructure</h3>
+          <p class="text-zinc-400 text-sm">Handle millions of songs and billions of transactions</p>
+        </div>
+        <div class="card rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02]">
+          <div class="text-3xl mb-4">🌍</div>
+          <h3 class="text-lg font-semibold mb-2">Global PRO Integration</h3>
+          <p class="text-zinc-400 text-sm">ASCAP, BMI, PRS, GEMA, JASRAC, and more</p>
+        </div>
+        <div class="card rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02]">
+          <div class="text-3xl mb-4">📋</div>
+          <h3 class="text-lg font-semibold mb-2">MLC Integration</h3>
+          <p class="text-zinc-400 text-sm">Mechanical licensing (massive post-MMA opportunity)</p>
+        </div>
+        <div class="card rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02]">
+          <div class="text-3xl mb-4">💰</div>
+          <h3 class="text-lg font-semibold mb-2">Advance Marketplace</h3>
+          <p class="text-zinc-400 text-sm">Catalog financing and royalty factoring</p>
+        </div>
+        <div class="card rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02]">
+          <div class="text-3xl mb-4">🏢</div>
+          <h3 class="text-lg font-semibold mb-2">White-Label Enterprise</h3>
+          <p class="text-zinc-400 text-sm">Let majors run their own branded instance</p>
+        </div>
+        <div class="card rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02]">
+          <div class="text-3xl mb-4">📊</div>
+          <h3 class="text-lg font-semibold mb-2">Data & Analytics</h3>
+          <p class="text-zinc-400 text-sm">Predictive royalty forecasting</p>
+        </div>
+        <div class="card rounded-2xl p-6 transition-all duration-300 hover:scale-[1.02] md:col-span-2 lg:col-span-3">
+          <div class="text-3xl mb-4">🔒</div>
+          <h3 class="text-lg font-semibold mb-2">Compliance Suite</h3>
+          <p class="text-zinc-400 text-sm">SOC 2 Type II, GDPR, complete audit trails, enterprise security</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI Features Section -->
+  <section class="py-32 px-6 bg-gradient-to-b from-transparent via-purple-500/5 to-transparent">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-16">
+        <p class="text-purple-400 font-medium tracking-widest uppercase text-sm mb-4">Competitive Moat</p>
+        <h2 class="text-4xl md:text-5xl font-bold mb-6">
+          <span class="gradient-text-blue">AI-Powered</span> Differentiation
+        </h2>
+        <p class="text-zinc-400 text-lg max-w-2xl mx-auto">The untapped opportunity that creates defensible value</p>
+      </div>
+
+      <div class="space-y-6">
+        <!-- AI Feature 1 -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.01]">
+          <div class="flex flex-col lg:flex-row lg:items-center gap-6">
+            <div class="flex-shrink-0">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-2xl">
+                📄
+              </div>
+            </div>
+            <div class="flex-grow">
+              <div class="flex items-center gap-3 mb-2">
+                <h3 class="text-xl font-semibold">AI Statement Parser</h3>
+                <span class="px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-medium rounded-full">Huge Differentiator</span>
+              </div>
+              <p class="text-zinc-400 mb-4">Drop ANY PRO statement (PDF/Excel) and AI extracts it. No more manual format mappings. Works with international formats (PRS, GEMA, JASRAC).</p>
+              <p class="text-emerald-400 text-sm font-medium">Value: Eliminates months of integration work per PRO</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Feature 2 -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.01]">
+          <div class="flex flex-col lg:flex-row lg:items-center gap-6">
+            <div class="flex-shrink-0">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl">
+                🎯
+              </div>
+            </div>
+            <div class="flex-grow">
+              <h3 class="text-xl font-semibold mb-2">Smart Matching Engine</h3>
+              <p class="text-zinc-400 mb-4">Fuzzy matching: "Nolan Griffis" = "N. Griffis" = "Griffis, Nolan". Title variations: "Can't Stop" = "Cant Stop". Learns from corrections over time.</p>
+              <p class="text-emerald-400 text-sm font-medium">Value: 95%+ auto-match rate vs industry standard 60-70%</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Feature 3 -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.01]">
+          <div class="flex flex-col lg:flex-row lg:items-center gap-6">
+            <div class="flex-shrink-0">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-2xl">
+                📈
+              </div>
+            </div>
+            <div class="flex-grow">
+              <h3 class="text-xl font-semibold mb-2">Catalog Valuation AI</h3>
+              <p class="text-zinc-400 mb-4">Predict future royalty streams from historical data. Factor in streaming trends, genre performance, seasonal patterns. Enable instant advance offers.</p>
+              <p class="text-emerald-400 text-sm font-medium">Value: Opens catalog financing market ($B opportunity)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Feature 4 -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.01]">
+          <div class="flex flex-col lg:flex-row lg:items-center gap-6">
+            <div class="flex-shrink-0">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-2xl">
+                🚨
+              </div>
+            </div>
+            <div class="flex-grow">
+              <h3 class="text-xl font-semibold mb-2">Anomaly Detection</h3>
+              <p class="text-zinc-400 mb-4">Flag potential underpayments automatically. "This song usually earns $X from ASCAP, but this quarter it's $0." Audit assistant for writers.</p>
+              <p class="text-emerald-400 text-sm font-medium">Value: Recovers lost revenue = immediate ROI for users</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Feature 5 -->
+        <div class="card rounded-3xl p-8 transition-all duration-500 hover:scale-[1.01]">
+          <div class="flex flex-col lg:flex-row lg:items-center gap-6">
+            <div class="flex-shrink-0">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-2xl">
+                ✨
+              </div>
+            </div>
+            <div class="flex-grow">
+              <h3 class="text-xl font-semibold mb-2">Auto-Registration</h3>
+              <p class="text-zinc-400 mb-4">AI fills out MLC, PRO, and publisher registrations. Extract splits from contracts using document AI. One-click work registration across all territories.</p>
+              <p class="text-emerald-400 text-sm font-medium">Value: Saves hours per song</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comparison Table -->
+      <div class="mt-16">
+        <h3 class="text-2xl font-semibold text-center mb-8">The AI Advantage</h3>
+        <div class="card rounded-3xl overflow-hidden">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-white/10">
+                <th class="text-left p-6 text-zinc-400 font-medium">Capability</th>
+                <th class="text-center p-6 text-zinc-400 font-medium">Without AI</th>
+                <th class="text-center p-6 text-zinc-400 font-medium">With AI</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-white/5">
+                <td class="p-6">Data Entry</td>
+                <td class="p-6 text-center text-red-400">Manual</td>
+                <td class="p-6 text-center text-emerald-400">Auto-parse any document</td>
+              </tr>
+              <tr class="border-b border-white/5">
+                <td class="p-6">Match Rate</td>
+                <td class="p-6 text-center text-red-400">60%</td>
+                <td class="p-6 text-center text-emerald-400">95%+</td>
+              </tr>
+              <tr class="border-b border-white/5">
+                <td class="p-6">Reporting</td>
+                <td class="p-6 text-center text-red-400">Reactive</td>
+                <td class="p-6 text-center text-emerald-400">Predictive insights</td>
+              </tr>
+              <tr class="border-b border-white/5">
+                <td class="p-6">PRO Integration</td>
+                <td class="p-6 text-center text-red-400">Per-PRO mapping</td>
+                <td class="p-6 text-center text-emerald-400">Universal parser</td>
+              </tr>
+              <tr>
+                <td class="p-6">Auditing</td>
+                <td class="p-6 text-center text-red-400">Human auditors</td>
+                <td class="p-6 text-center text-emerald-400">AI anomaly detection</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-center text-zinc-500 mt-6 text-sm">Once you train models on music royalty data, that becomes proprietary intelligence competitors can't easily replicate.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Roadmap Timeline -->
+  <section class="py-32 px-6">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-16">
+        <p class="text-cyan-400 font-medium tracking-widest uppercase text-sm mb-4">Execution</p>
+        <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-6">The Roadmap</h2>
+        <p class="text-zinc-400 text-lg max-w-2xl mx-auto">From where you are now to $500M valuation</p>
+      </div>
+
+      <div class="relative">
+        <!-- Timeline Line -->
+        <div class="absolute left-8 top-0 bottom-0 w-0.5 timeline-line hidden md:block"></div>
+
+        <!-- Phase 1 -->
+        <div class="relative pl-0 md:pl-20 mb-16">
+          <div class="absolute left-0 top-0 w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-xl font-bold hidden md:flex">
+            1
+          </div>
+          <div class="card rounded-3xl p-8">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="md:hidden w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-lg font-bold">1</div>
+              <div>
+                <span class="text-blue-400 text-sm font-medium">NOW → 6 MONTHS</span>
+                <h3 class="text-2xl font-semibold">Foundation & AI Quick Wins</h3>
+              </div>
+            </div>
+            <p class="text-zinc-400 mb-6">Ship AI features that create immediate differentiation</p>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div class="bg-white/5 rounded-xl p-4">
+                <p class="text-sm text-zinc-400">GPT Statement Parser</p>
+                <p class="text-xs text-zinc-500 mt-1">2-3 days to prototype</p>
+              </div>
+              <div class="bg-white/5 rounded-xl p-4">
+                <p class="text-sm text-zinc-400">Fuzzy Name Matching</p>
+                <p class="text-xs text-zinc-500 mt-1">1 day implementation</p>
+              </div>
+              <div class="bg-white/5 rounded-xl p-4">
+                <p class="text-sm text-zinc-400">Royalty Forecasting</p>
+                <p class="text-xs text-zinc-500 mt-1">1 week with historical data</p>
+              </div>
+              <div class="bg-white/5 rounded-xl p-4">
+                <p class="text-sm text-zinc-400">First 10 Paying Clients</p>
+                <p class="text-xs text-zinc-500 mt-1">Validate product-market fit</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="relative pl-0 md:pl-20 mb-16">
+          <div class="absolute left-0 top-0 w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-xl font-bold hidden md:flex">
+            2
+          </div>
+          <div class="card rounded-3xl p-8">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="md:hidden w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-lg font-bold">2</div>
+              <div>
+                <span class="text-purple-400 text-sm font-medium">6-18 MONTHS</span>
+                <h3 class="text-2xl font-semibold">Seed Round & Scale</h3>
+              </div>
+            </div>
+            <p class="text-zinc-400 mb-6">Raise $2-5M, build team, expand market</p>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div class="bg-white/5 rounded-xl p-4">
+                <p class="text-sm text-zinc-400">Hire Engineering Team</p>
+                <p class="text-xs text-zinc-500 mt-1">5-10 engineers</p>
+              </div>
+              <div class="bg-white/5 rounded-xl p-4">
+                <p class="text-sm text-zinc-400">Global PRO Integration</p>
+                <p class="text-xs text-zinc-500 mt-1">PRS, GEMA, JASRAC</p>
+              </div>
+              <div class="bg-white/5 rounded-xl p-4">
+                <p class="text-sm text-zinc-400">100+ Active Publishers</p>
+                <p class="text-xs text-zinc-500 mt-1">Mid-tier label clients</p>
+              </div>
+              <div class="bg-white/5 rounded-xl p-4">
+                <p class="text-sm text-zinc-400">SOC 2 Certification</p>
+                <p class="text-xs text-zinc-500 mt-1">Enterprise readiness</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 3 -->
+        <div class="relative pl-0 md:pl-20 mb-16">
+          <div class="absolute left-0 top-0 w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center text-xl font-bold hidden md:flex">
+            3
+          </div>
+          <div class="card rounded-3xl p-8">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="md:hidden w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center text-lg font-bold">3</div>
+              <div>
+                <span class="text-cyan-400 text-sm font-medium">18-36 MONTHS</span>
+                <h3 class="text-2xl font-semibold">Series A & Enterprise</h3>
+              </div>
+            </div>
+            <p class="text-zinc-400 mb-6">Raise $15-25M, land enterprise deals, launch financing</p>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div class="bg-white/5 rounded-xl p-4">
+                <p class="text-sm text-zinc-400">White-Label Platform</p>
+                <p class="text-xs text-zinc-500 mt-1">Major label deployments</p>
+              </div>
+              <div class="bg-white/5 rounded-xl p-4">
+                <p class="text-sm text-zinc-400">Advance Marketplace</p>
+                <p class="text-xs text-zinc-500 mt-1">Catalog financing launch</p>
+              </div>
+              <div class="bg-white/5 rounded-xl p-4">
+                <p class="text-sm text-zinc-400">$10M+ ARR</p>
+                <p class="text-xs text-zinc-500 mt-1">Proven revenue model</p>
+              </div>
+              <div class="bg-white/5 rounded-xl p-4">
+                <p class="text-sm text-zinc-400">Team of 30-50</p>
+                <p class="text-xs text-zinc-500 mt-1">Full departments</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 4 -->
+        <div class="relative pl-0 md:pl-20">
+          <div class="absolute left-0 top-0 w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center text-xl font-bold hidden md:flex pulse-glow">
+            4
+          </div>
+          <div class="card rounded-3xl p-8 border-emerald-500/30 glow">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="md:hidden w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center text-lg font-bold">4</div>
+              <div>
+                <span class="text-emerald-400 text-sm font-medium">36-60 MONTHS</span>
+                <h3 class="text-2xl font-semibold">$500M Valuation</h3>
+              </div>
+            </div>
+            <p class="text-zinc-400 mb-6">Series B/C or strategic acquisition</p>
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+                <p class="text-sm text-emerald-300">$50M+ ARR</p>
+                <p class="text-xs text-zinc-500 mt-1">10x revenue multiple</p>
+              </div>
+              <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+                <p class="text-sm text-emerald-300">10,000+ Publishers</p>
+                <p class="text-xs text-zinc-500 mt-1">Market leadership</p>
+              </div>
+              <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+                <p class="text-sm text-emerald-300">$1B+ Transaction Volume</p>
+                <p class="text-xs text-zinc-500 mt-1">Industry infrastructure</p>
+              </div>
+              <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+                <p class="text-sm text-emerald-300">Global Operations</p>
+                <p class="text-xs text-zinc-500 mt-1">US, EU, UK, Asia</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-32 px-6">
+    <div class="max-w-4xl mx-auto text-center">
+      <h2 class="text-4xl md:text-6xl font-bold gradient-text mb-6">
+        The vision is clear.
+      </h2>
+      <p class="text-xl text-zinc-400 mb-12">
+        You've built the foundation. Now it's about execution, AI differentiation, and scale.
+      </p>
+      <div class="inline-flex flex-col sm:flex-row gap-4">
+        <a href="/" class="px-8 py-4 bg-white text-black font-semibold rounded-full hover:bg-zinc-200 transition-all hover:scale-105">
+          Back to Platform
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-12 px-6 border-t border-white/10">
+    <div class="max-w-6xl mx-auto text-center">
+      <p class="text-zinc-500 text-sm">Producer Tour © 2024. Road to $500M.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Intersection Observer for scroll animations
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.animationPlayState = 'running';
+          entry.target.classList.add('fade-in');
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('.slide-up').forEach(el => {
+      el.style.animationPlayState = 'paused';
+      observer.observe(el);
+    });
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

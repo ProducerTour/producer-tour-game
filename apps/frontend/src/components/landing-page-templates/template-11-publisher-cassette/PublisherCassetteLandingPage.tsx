@@ -56,7 +56,7 @@ const fadeUpItem = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] },
+    transition: { duration: 0.6, ease: 'easeOut' as const },
   },
 };
 
@@ -64,7 +64,7 @@ const fadeInItem = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] },
+    transition: { duration: 0.6, ease: 'easeOut' as const },
   },
 };
 
@@ -361,11 +361,11 @@ function LiftCard({
       initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.6, delay, ease: [0.25, 0.1, 0.25, 1] }}
+      transition={{ duration: 0.6, delay, ease: "easeOut" }}
       whileHover={{
         y: -25,
         boxShadow: '0 25px 50px -12px rgba(240, 226, 38, 0.15)',
-        transition: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] },
+        transition: { duration: 0.4, ease: "backOut" },
       }}
       className={`bg-[#19181a] border border-white/5 ${className}`}
     >
@@ -746,7 +746,7 @@ function AboutSection() {
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
             whileHover={{ y: -8, transition: { duration: 0.3 } }}
             className="relative group cursor-pointer"
           >
@@ -809,7 +809,7 @@ function ServicesSection() {
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, ease: [0.21, 0.47, 0.32, 0.98] }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
             className="lg:sticky lg:top-32 lg:self-start"
           >
             <motion.div
@@ -857,7 +857,7 @@ function ServicesSection() {
                   initial={{ opacity: 0, x: 30 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.1, duration: 0.5, ease: [0.21, 0.47, 0.32, 0.98] }}
+                  transition={{ delay: i * 0.1, duration: 0.5, ease: "easeOut" }}
                   className="group relative"
                 >
                   {/* Divider line */}
@@ -1346,7 +1346,7 @@ function ProcessSection() {
               initial={{ x: '-100%' }}
               whileInView={{ x: '0%' }}
               viewport={{ once: true }}
-              transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
             />
             {/* Shimmer effect */}
             <motion.div
@@ -1367,7 +1367,7 @@ function ProcessSection() {
                   initial={{ opacity: 0, y: 40 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: 0.3 + i * 0.2, duration: 0.6, ease: [0.21, 0.47, 0.32, 0.98] }}
+                  transition={{ delay: 0.3 + i * 0.2, duration: 0.6, ease: "easeOut" }}
                   className="relative group cursor-pointer"
                   onMouseEnter={() => setHoveredStep(i)}
                   onMouseLeave={() => setHoveredStep(null)}
@@ -1493,7 +1493,7 @@ function ProcessSection() {
           initial={{ opacity: 0, y: 60 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.8, ease: [0.21, 0.47, 0.32, 0.98] }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
         >
           {/* Section header */}
           <div className="text-center mb-12">
@@ -1588,7 +1588,7 @@ function ProcessSection() {
                         initial={{ height: 0 }}
                         whileInView={{ height: `${height}%` }}
                         viewport={{ once: true }}
-                        transition={{ delay: 0.7 + i * 0.1, duration: 0.6, ease: [0.21, 0.47, 0.32, 0.98] }}
+                        transition={{ delay: 0.7 + i * 0.1, duration: 0.6, ease: "easeOut" }}
                       />
                     ))}
                   </div>
@@ -1894,7 +1894,7 @@ function FAQSection() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
                     className="overflow-hidden"
                   >
                     <div className="px-6 pb-5 text-white/50 text-sm leading-relaxed">
