@@ -542,15 +542,26 @@ function HeroSection() {
             ))}
           </motion.div>
 
-          <motion.a
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: BEAT * 6 }}
-            href="/apply"
-            className="px-5 py-2.5 border border-[#f0e226] text-[#f0e226] text-sm uppercase tracking-wider hover:bg-[#f0e226] hover:text-black transition-all"
-          >
-            Apply
-          </motion.a>
+          <div className="flex items-center gap-3">
+            <motion.a
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: BEAT * 5 }}
+              href="/login"
+              className="relative px-6 py-2.5 border border-[#f0e226] text-[#f0e226] text-sm uppercase tracking-wider hover:bg-[#f0e226] hover:text-black transition-all before:absolute before:left-2 before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:bg-[#f0e226] after:absolute after:right-2 after:top-1/2 after:-translate-y-1/2 after:w-1.5 after:h-1.5 after:rounded-full after:bg-[#f0e226] hover:before:bg-black hover:after:bg-black"
+            >
+              Log In
+            </motion.a>
+            <motion.a
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: BEAT * 6 }}
+              href="/apply"
+              className="px-5 py-2.5 bg-[#f0e226] text-black text-sm uppercase tracking-wider hover:bg-white transition-all"
+            >
+              Apply
+            </motion.a>
+          </div>
         </div>
       </motion.nav>
 
