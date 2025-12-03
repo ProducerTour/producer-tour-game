@@ -1758,12 +1758,13 @@ function PricingSection() {
       href: '#',
     },
     {
-      name: 'Publishing Tracker',
-      description: 'Monitor placements & credits',
-      price: 'Contact',
-      status: 'contact' as const,
+      name: 'Pub Deal Simulator',
+      description: 'Simulate publishing deal scenarios',
+      price: 'Free',
+      note: 'Free for all users',
+      status: 'available' as const,
       icon: BarChart3,
-      href: '/contact',
+      href: '/tools/pub-deal-simulator',
     },
     {
       name: 'Advance Estimator',
