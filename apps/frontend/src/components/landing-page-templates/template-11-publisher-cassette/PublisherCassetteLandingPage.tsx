@@ -1723,9 +1723,9 @@ function PricingSection() {
   // Publishing Administration features
   const publishingFeatures = [
     'Global royalty collection',
-    'Monthly statements & analytics',
+    'Quarterly statements & analytics',
     'Work registration & song submission',
-    'Tour Profile (public portfolio)',
+    'Tour Profile (public portfolio with Rewards)',
     'Sync licensing opportunities',
     'Dedicated support',
   ];
