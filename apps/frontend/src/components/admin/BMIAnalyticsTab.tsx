@@ -31,26 +31,26 @@ import {
 import { dashboardApi } from '../../lib/api';
 import { TrendingUp, Music, DollarSign, Globe, MapPin, Radio } from 'lucide-react';
 
-// Color palettes
-const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16'];
+// Color palettes - Cassette theme with yellow accent
+const COLORS = ['#f0e226', '#c4c41c', '#a3a311', '#d9d920', '#e6e623', '#f5f54a', '#f7f76e', '#fafa8f'];
 
-// Enhanced custom tooltip component
+// Enhanced custom tooltip component - Cassette themed
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-gray-900/95 backdrop-blur-xl border border-white/20 rounded-xl p-4 shadow-2xl shadow-black/50">
-        <p className="text-white font-semibold text-sm mb-3 pb-2 border-b border-white/10">{label}</p>
+      <div className="bg-[#19181a] border border-white/10 p-4 shadow-2xl">
+        <p className="text-[#f0e226] font-light text-sm mb-3 pb-2 border-b border-white/10">{label}</p>
         <div className="space-y-2">
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <div
-                  className="w-3 h-3 rounded-full shadow-lg"
-                  style={{ backgroundColor: entry.color, boxShadow: `0 0 8px ${entry.color}50` }}
+                  className="w-3 h-3"
+                  style={{ backgroundColor: entry.color }}
                 />
-                <span className="text-gray-400 text-sm">{entry.name}</span>
+                <span className="text-white/40 text-sm">{entry.name}</span>
               </div>
-              <span className="text-white font-medium text-sm">
+              <span className="text-white font-light text-sm">
                 ${entry.value?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -62,25 +62,25 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-// Custom pie chart legend
+// Custom pie chart legend - Cassette themed
 const CustomPieLegend = ({ data }: { data: any[] }) => {
   const total = data.reduce((sum, item) => sum + item.value, 0);
   return (
     <div className="space-y-2 mt-4">
       {data.map((entry: any, index: number) => (
-        <div key={index} className="flex items-center justify-between px-3 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+        <div key={index} className="flex items-center justify-between px-3 py-2 bg-black/30 hover:bg-black/50 border border-white/5 transition-colors">
           <div className="flex items-center gap-2">
             <div
-              className="w-3 h-3 rounded-sm"
+              className="w-3 h-3"
               style={{ backgroundColor: entry.fill }}
             />
-            <span className="text-gray-300 text-sm">{entry.name}</span>
+            <span className="text-white/60 text-sm">{entry.name}</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-white font-medium text-sm">
+            <span className="text-white font-light text-sm">
               ${entry.value.toLocaleString('en-US', { minimumFractionDigits: 0 })}
             </span>
-            <span className="text-gray-500 text-xs w-12 text-right">
+            <span className="text-white/30 text-xs w-12 text-right">
               {total > 0 ? ((entry.value / total) * 100).toFixed(1) : 0}%
             </span>
           </div>
@@ -101,23 +101,15 @@ export default function BMIAnalyticsTab() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-white/10 rounded w-1/4 mb-4"></div>
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 bg-white/10 rounded-xl"></div>
-            ))}
-          </div>
-          <div className="h-80 bg-white/10 rounded-xl"></div>
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
+      <div className="bg-red-500/10 border border-red-500/30 p-6 text-center">
         <Text className="text-red-400">Failed to load BMI Analytics. Make sure you have BMI statements uploaded and processed.</Text>
       </div>
     );
@@ -169,119 +161,127 @@ export default function BMIAnalyticsTab() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <Flex justifyContent="between" alignItems="start">
+        <div className="flex justify-between items-start">
           <div>
-            <Title className="text-white text-2xl flex items-center gap-2">
-              <Radio className="w-6 h-6 text-blue-400" />
+            <h2 className="text-white text-2xl font-light flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center">
+                <Radio className="w-5 h-5 text-[#f0e226]" />
+              </div>
               BMI Analytics
-            </Title>
-            <Text className="text-gray-400">Broadcast Music Inc. statement analysis</Text>
+            </h2>
+            <p className="text-white/40">Broadcast Music Inc. statement analysis</p>
           </div>
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+          <div className={`flex items-center gap-2 px-4 py-2 text-sm transition-all ${
             (kpis?.totalStatements || 0) > 0
-              ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
-              : 'bg-gray-500/15 text-gray-400 border border-gray-500/30'
+              ? 'bg-[#f0e226]/15 text-[#f0e226] border border-[#f0e226]/30'
+              : 'bg-white/5 text-white/40 border border-white/10'
           }`}>
             <div className={`w-2 h-2 rounded-full ${
-              (kpis?.totalStatements || 0) > 0 ? 'bg-blue-400 animate-pulse' : 'bg-gray-500'
+              (kpis?.totalStatements || 0) > 0 ? 'bg-[#f0e226] animate-pulse' : 'bg-white/30'
             }`} />
-            <span className="font-semibold">{kpis?.totalStatements || 0}</span>
-            <span className="text-gray-400">Statements Processed</span>
+            <span className="font-light">{kpis?.totalStatements || 0}</span>
+            <span className="text-white/40">Statements Processed</span>
           </div>
-        </Flex>
+        </div>
       </div>
 
-      {/* KPI Cards */}
-      <Grid numItemsSm={2} numItemsMd={4} numItemsLg={6} className="gap-4">
-        <Card className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 ring-0">
-          <Flex alignItems="start" justifyContent="between">
+      {/* KPI Cards - Cassette Theme */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300 border-t-2 border-t-[#f0e226]">
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400 text-sm">Total Revenue</Text>
-              <Metric className="text-white text-2xl mt-1">{currencyFormat(kpis?.totalRevenue || 0)}</Metric>
+              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Total Revenue</p>
+              <p className="text-[#f0e226] text-2xl font-light mt-1">{currencyFormat(kpis?.totalRevenue || 0)}</p>
             </div>
-            <div className="p-2 bg-emerald-500/20 rounded-lg">
-              <DollarSign className="w-5 h-5 text-emerald-400" />
+            <div className="p-2 bg-[#f0e226]/10">
+              <DollarSign className="w-5 h-5 text-[#f0e226]" />
             </div>
-          </Flex>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 border-blue-500/30 ring-0">
-          <Flex alignItems="start" justifyContent="between">
+        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400 text-sm">Net Revenue</Text>
-              <Metric className="text-white text-2xl mt-1">{currencyFormat(kpis?.totalNetRevenue || 0)}</Metric>
+              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Net Revenue</p>
+              <p className="text-white text-2xl font-light mt-1">{currencyFormat(kpis?.totalNetRevenue || 0)}</p>
             </div>
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-blue-400" />
+            <div className="p-2 bg-[#f0e226]/10">
+              <TrendingUp className="w-5 h-5 text-[#f0e226]" />
             </div>
-          </Flex>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border-purple-500/30 ring-0">
-          <Flex alignItems="start" justifyContent="between">
+        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400 text-sm">Unique Songs</Text>
-              <Metric className="text-white text-2xl mt-1">{(kpis?.uniqueSongs || 0).toLocaleString()}</Metric>
+              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Unique Songs</p>
+              <p className="text-white text-2xl font-light mt-1">{(kpis?.uniqueSongs || 0).toLocaleString()}</p>
             </div>
-            <div className="p-2 bg-purple-500/20 rounded-lg">
-              <Music className="w-5 h-5 text-purple-400" />
+            <div className="p-2 bg-[#f0e226]/10">
+              <Music className="w-5 h-5 text-[#f0e226]" />
             </div>
-          </Flex>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-orange-500/20 to-orange-600/10 border-orange-500/30 ring-0">
-          <Flex alignItems="start" justifyContent="between">
+        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400 text-sm">Territories</Text>
-              <Metric className="text-white text-2xl mt-1">{kpis?.uniqueTerritories || 0}</Metric>
+              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Territories</p>
+              <p className="text-white text-2xl font-light mt-1">{kpis?.uniqueTerritories || 0}</p>
             </div>
-            <div className="p-2 bg-orange-500/20 rounded-lg">
-              <Globe className="w-5 h-5 text-orange-400" />
+            <div className="p-2 bg-[#f0e226]/10">
+              <Globe className="w-5 h-5 text-[#f0e226]" />
             </div>
-          </Flex>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 ring-0">
-          <Flex alignItems="start" justifyContent="between">
+        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400 text-sm">Countries</Text>
-              <Metric className="text-white text-2xl mt-1">{kpis?.uniqueCountries || 0}</Metric>
+              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Countries</p>
+              <p className="text-white text-2xl font-light mt-1">{kpis?.uniqueCountries || 0}</p>
             </div>
-            <div className="p-2 bg-cyan-500/20 rounded-lg">
-              <MapPin className="w-5 h-5 text-cyan-400" />
+            <div className="p-2 bg-[#f0e226]/10">
+              <MapPin className="w-5 h-5 text-[#f0e226]" />
             </div>
-          </Flex>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-pink-500/20 to-pink-600/10 border-pink-500/30 ring-0">
-          <Flex alignItems="start" justifyContent="between">
+        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400 text-sm">Perf. Sources</Text>
-              <Metric className="text-white text-2xl mt-1">{kpis?.uniquePerfSources || 0}</Metric>
+              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Perf. Sources</p>
+              <p className="text-white text-2xl font-light mt-1">{kpis?.uniquePerfSources || 0}</p>
             </div>
-            <div className="p-2 bg-pink-500/20 rounded-lg">
-              <Radio className="w-5 h-5 text-pink-400" />
+            <div className="p-2 bg-[#f0e226]/10">
+              <Radio className="w-5 h-5 text-[#f0e226]" />
             </div>
-          </Flex>
-        </Card>
-      </Grid>
+          </div>
+        </div>
+      </div>
 
-      {/* Revenue Timeline */}
+      {/* Revenue Timeline - Cassette Theme */}
       {timelineAreaData.length > 0 && (
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0 overflow-hidden">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
           <div className="flex items-center justify-between mb-6">
             <div>
-              <Title className="text-white mb-1">Revenue by Quarter/Period</Title>
-              <Text className="text-gray-500 text-sm">Gross and net revenue over time</Text>
+              <h3 className="text-lg font-light text-white mb-1">Revenue by Quarter/Period</h3>
+              <p className="text-white/40 text-sm">Gross and net revenue over time</p>
             </div>
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/30" />
-                <span className="text-gray-400 text-xs">Gross</span>
+                <div className="w-3 h-3 bg-[#f0e226]" />
+                <span className="text-white/40 text-xs">Gross</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/30" />
-                <span className="text-gray-400 text-xs">Net</span>
+                <div className="w-3 h-3 bg-white/60" />
+                <span className="text-white/40 text-xs">Net</span>
               </div>
             </div>
           </div>
@@ -290,14 +290,14 @@ export default function BMIAnalyticsTab() {
               <AreaChart data={timelineAreaData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRevenueBmi" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.5}/>
-                    <stop offset="50%" stopColor="#10b981" stopOpacity={0.15}/>
-                    <stop offset="100%" stopColor="#10b981" stopOpacity={0}/>
+                    <stop offset="0%" stopColor="#f0e226" stopOpacity={0.5}/>
+                    <stop offset="50%" stopColor="#f0e226" stopOpacity={0.15}/>
+                    <stop offset="100%" stopColor="#f0e226" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="colorNetBmi" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.5}/>
-                    <stop offset="50%" stopColor="#3b82f6" stopOpacity={0.15}/>
-                    <stop offset="100%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity={0.3}/>
+                    <stop offset="50%" stopColor="#ffffff" stopOpacity={0.1}/>
+                    <stop offset="100%" stopColor="#ffffff" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} vertical={false} />
@@ -322,37 +322,38 @@ export default function BMIAnalyticsTab() {
                   type="monotone"
                   dataKey="revenue"
                   name="Gross Revenue"
-                  stroke="#10b981"
+                  stroke="#f0e226"
                   strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#colorRevenueBmi)"
                   dot={false}
-                  activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: '#f0e226', stroke: '#000', strokeWidth: 2 }}
                 />
                 <Area
                   type="monotone"
                   dataKey="netRevenue"
                   name="Net Revenue"
-                  stroke="#3b82f6"
+                  stroke="#ffffff"
                   strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#colorNetBmi)"
                   dot={false}
-                  activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: '#ffffff', stroke: '#000', strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </Card>
+        </div>
       )}
 
-      {/* Territory and Performance Source Breakdown */}
-      <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
+      {/* Territory and Performance Source Breakdown - Cassette Theme */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Territory Pie Chart */}
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
           <div className="mb-4">
-            <Title className="text-white mb-1">Revenue by Territory</Title>
-            <Text className="text-gray-500 text-sm">Geographic distribution of earnings</Text>
+            <h3 className="text-lg font-light text-white mb-1">Revenue by Territory</h3>
+            <p className="text-white/40 text-sm">Geographic distribution of earnings</p>
           </div>
           {territoryPieData.length > 0 ? (
             <div className="flex flex-col lg:flex-row gap-4">
@@ -387,9 +388,8 @@ export default function BMIAnalyticsTab() {
                     <Tooltip
                       formatter={(value: number) => currencyFormat(value)}
                       contentStyle={{
-                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        backgroundColor: '#19181a',
                         border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: '12px',
                         padding: '12px',
                       }}
                       itemStyle={{ color: '#fff' }}
@@ -404,17 +404,18 @@ export default function BMIAnalyticsTab() {
             </div>
           ) : (
             <div className="h-56 flex items-center justify-center">
-              <Text className="text-gray-500">No territory data available</Text>
+              <p className="text-white/40">No territory data available</p>
             </div>
           )}
-        </Card>
+        </div>
 
         {/* Performance Source Bar Chart */}
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
           <div className="flex items-center justify-between mb-6">
             <div>
-              <Title className="text-white mb-1">Performance Source Breakdown</Title>
-              <Text className="text-gray-500 text-sm">Revenue by source (Radio, TV, Streaming, etc.)</Text>
+              <h3 className="text-lg font-light text-white mb-1">Performance Source Breakdown</h3>
+              <p className="text-white/40 text-sm">Revenue by source (Radio, TV, Streaming, etc.)</p>
             </div>
           </div>
           {perfSourceBarData.length > 0 ? (
@@ -423,8 +424,8 @@ export default function BMIAnalyticsTab() {
                 <BarChart data={perfSourceBarData} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
                   <defs>
                     <linearGradient id="bmiBarGrad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.9}/>
-                      <stop offset="100%" stopColor="#60a5fa" stopOpacity={1}/>
+                      <stop offset="0%" stopColor="#f0e226" stopOpacity={0.9}/>
+                      <stop offset="100%" stopColor="#f5f54a" stopOpacity={1}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} horizontal={false} />
@@ -445,12 +446,12 @@ export default function BMIAnalyticsTab() {
                     tickLine={false}
                     axisLine={false}
                   />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(240,226,38,0.05)' }} />
                   <Bar
                     dataKey="revenue"
                     name="Revenue"
                     fill="url(#bmiBarGrad)"
-                    radius={[0, 6, 6, 0]}
+                    radius={[0, 4, 4, 0]}
                     barSize={16}
                   />
                 </BarChart>
@@ -458,27 +459,28 @@ export default function BMIAnalyticsTab() {
             </div>
           ) : (
             <div className="h-80 flex items-center justify-center">
-              <Text className="text-gray-500">No performance source data available</Text>
+              <p className="text-white/40">No performance source data available</p>
             </div>
           )}
-        </Card>
-      </Grid>
+        </div>
+      </div>
 
-      {/* Top Songs */}
-      <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+      {/* Top Songs - Cassette Theme */}
+      <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
         <div className="flex items-center justify-between mb-6">
           <div>
-            <Title className="text-white mb-1">Top Performing Songs</Title>
-            <Text className="text-gray-500 text-sm">Revenue and territory distribution (top 10)</Text>
+            <h3 className="text-lg font-light text-white mb-1">Top Performing Songs</h3>
+            <p className="text-white/40 text-sm">Revenue and territory distribution (top 10)</p>
           </div>
           <div className="flex gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-violet-500" />
-              <span className="text-gray-400 text-xs">Revenue</span>
+              <div className="w-3 h-3 bg-[#f0e226]" />
+              <span className="text-white/40 text-xs">Revenue</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-0.5 bg-amber-500" />
-              <span className="text-gray-400 text-xs">Territories</span>
+              <div className="w-3 h-0.5 bg-white/60" />
+              <span className="text-white/40 text-xs">Territories</span>
             </div>
           </div>
         </div>
@@ -488,8 +490,8 @@ export default function BMIAnalyticsTab() {
               <ComposedChart data={topSongsBarData} layout="vertical" margin={{ left: 20, right: 30, top: 10, bottom: 10 }}>
                 <defs>
                   <linearGradient id="bmiTopSongsGrad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.9}/>
-                    <stop offset="100%" stopColor="#a78bfa" stopOpacity={1}/>
+                    <stop offset="0%" stopColor="#f0e226" stopOpacity={0.9}/>
+                    <stop offset="100%" stopColor="#f5f54a" stopOpacity={1}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} horizontal={false} />
@@ -511,40 +513,41 @@ export default function BMIAnalyticsTab() {
                   axisLine={false}
                   tick={{ fill: '#d1d5db' }}
                 />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(139, 92, 246, 0.05)' }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(240,226,38,0.05)' }} />
                 <Bar
                   dataKey="revenue"
                   name="Revenue"
                   fill="url(#bmiTopSongsGrad)"
-                  radius={[0, 8, 8, 0]}
+                  radius={[0, 4, 4, 0]}
                   barSize={16}
                 />
                 <Line
                   type="monotone"
                   dataKey="territories"
                   name="Territories"
-                  stroke="#f59e0b"
+                  stroke="#ffffff"
                   strokeWidth={3}
-                  dot={{ fill: '#f59e0b', r: 5, stroke: '#fff', strokeWidth: 2 }}
-                  activeDot={{ r: 7, fill: '#f59e0b', stroke: '#fff', strokeWidth: 2 }}
+                  dot={{ fill: '#ffffff', r: 5, stroke: '#000', strokeWidth: 2 }}
+                  activeDot={{ r: 7, fill: '#ffffff', stroke: '#000', strokeWidth: 2 }}
                 />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         ) : (
           <div className="h-96 flex items-center justify-center">
-            <Text className="text-gray-500">No song data available</Text>
+            <p className="text-white/40">No song data available</p>
           </div>
         )}
-      </Card>
+      </div>
 
-      {/* Country Breakdown */}
+      {/* Country Breakdown - Cassette Theme */}
       {countryBarData.length > 0 && (
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
           <div className="flex items-center justify-between mb-6">
             <div>
-              <Title className="text-white mb-1">Revenue by Country of Performance</Title>
-              <Text className="text-gray-500 text-sm">Detailed country-level breakdown</Text>
+              <h3 className="text-lg font-light text-white mb-1">Revenue by Country of Performance</h3>
+              <p className="text-white/40 text-sm">Detailed country-level breakdown</p>
             </div>
           </div>
           <div className="h-80">
@@ -552,8 +555,8 @@ export default function BMIAnalyticsTab() {
               <BarChart data={countryBarData} margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
                 <defs>
                   <linearGradient id="bmiCountryGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.9}/>
-                    <stop offset="100%" stopColor="#22d3ee" stopOpacity={1}/>
+                    <stop offset="0%" stopColor="#f0e226" stopOpacity={0.9}/>
+                    <stop offset="100%" stopColor="#f5f54a" stopOpacity={1}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} />
@@ -574,41 +577,42 @@ export default function BMIAnalyticsTab() {
                   tickLine={false}
                   axisLine={false}
                 />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(240,226,38,0.05)' }} />
                 <Bar
                   dataKey="revenue"
                   name="Revenue"
                   fill="url(#bmiCountryGrad)"
-                  radius={[6, 6, 0, 0]}
+                  radius={[4, 4, 0, 0]}
                   barSize={30}
                 />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Commission Summary */}
-      <Card className="bg-gradient-to-br from-blue-500/10 via-white/[0.05] to-blue-600/5 border-blue-500/20 ring-0 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <Flex justifyContent="between" alignItems="center" className="relative z-10">
+      <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#f0e226]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="flex justify-between items-center relative z-10">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-              <Title className="text-white">Commission Summary</Title>
+              <div className="w-2 h-2 rounded-full bg-[#f0e226] animate-pulse" />
+              <h3 className="text-white font-light text-lg">Commission Summary</h3>
             </div>
-            <Text className="text-gray-400">Total commission earned from BMI statements</Text>
+            <p className="text-white/40">Total commission earned from BMI statements</p>
           </div>
           <div className="text-right">
-            <Metric className="text-blue-400 text-3xl font-bold">{currencyFormat(kpis?.totalCommission || 0)}</Metric>
+            <div className="text-[#f0e226] text-3xl font-light">{currencyFormat(kpis?.totalCommission || 0)}</div>
             <div className="flex items-center justify-end gap-2 mt-1">
-              <span className="px-2 py-0.5 bg-blue-500/20 rounded-full text-blue-400 text-xs font-medium">
+              <span className="px-2 py-0.5 bg-[#f0e226]/15 text-[#f0e226] text-xs border border-[#f0e226]/30">
                 {kpis?.marginPercentage || 0}% margin
               </span>
             </div>
           </div>
-        </Flex>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

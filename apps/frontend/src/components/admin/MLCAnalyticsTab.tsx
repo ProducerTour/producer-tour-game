@@ -9,8 +9,6 @@ import {
   Card,
   Title,
   Text,
-  Metric,
-  Flex,
   Grid,
 } from '@tremor/react';
 import {
@@ -36,8 +34,8 @@ import {
 import { dashboardApi } from '../../lib/api';
 import { TrendingUp, Music, DollarSign, BarChart3, Globe, Disc, Maximize2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
-// Color palettes
-const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16'];
+// Cassette theme color palette
+const COLORS = ['#f0e226', '#a3a311', '#c4c41c', '#d9d920', '#e6e623', '#f5f54a', '#f7f76e', '#fafa8f'];
 
 // Check if we're in development mode
 const isDev = import.meta.env.DEV;
@@ -115,23 +113,23 @@ const MOCK_MLC_DATA = {
   ],
 };
 
-// Enhanced custom tooltip component with glassmorphism
+// Cassette-themed custom tooltip
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-gray-900/95 backdrop-blur-xl border border-white/20 rounded-xl p-4 shadow-2xl shadow-black/50">
-        <p className="text-white font-semibold text-sm mb-3 pb-2 border-b border-white/10">{label}</p>
+      <div className="bg-[#19181a] border border-white/10 p-4 shadow-2xl">
+        <p className="text-white font-medium text-sm mb-3 pb-2 border-b border-white/5">{label}</p>
         <div className="space-y-2">
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <div
-                  className="w-3 h-3 rounded-full shadow-lg"
-                  style={{ backgroundColor: entry.color, boxShadow: `0 0 8px ${entry.color}50` }}
+                  className="w-3 h-3"
+                  style={{ backgroundColor: entry.color }}
                 />
-                <span className="text-gray-400 text-sm">{entry.name}</span>
+                <span className="text-white/40 text-sm">{entry.name}</span>
               </div>
-              <span className="text-white font-medium text-sm">
+              <span className="text-[#f0e226] font-light text-sm">
                 ${entry.value?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -143,25 +141,25 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-// Custom pie chart legend
+// Cassette-themed pie chart legend
 const CustomPieLegend = ({ data }: { data: any[] }) => {
   const total = data.reduce((sum, item) => sum + item.value, 0);
   return (
     <div className="space-y-2 mt-4">
       {data.map((entry: any, index: number) => (
-        <div key={index} className="flex items-center justify-between px-3 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+        <div key={index} className="flex items-center justify-between px-3 py-2 bg-black/30 hover:bg-black/50 transition-colors border border-white/5">
           <div className="flex items-center gap-2">
             <div
-              className="w-3 h-3 rounded-sm"
+              className="w-3 h-3"
               style={{ backgroundColor: entry.fill }}
             />
-            <span className="text-gray-300 text-sm">{entry.name}</span>
+            <span className="text-white/60 text-sm">{entry.name}</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-white font-medium text-sm">
+            <span className="text-[#f0e226] font-light text-sm">
               ${entry.value.toLocaleString('en-US', { minimumFractionDigits: 0 })}
             </span>
-            <span className="text-gray-500 text-xs w-12 text-right">
+            <span className="text-white/30 text-xs w-12 text-right">
               {((entry.value / total) * 100).toFixed(1)}%
             </span>
           </div>
@@ -238,7 +236,7 @@ const CustomTreemapContent = ({ depth, x, y, width, height, index, name, revenue
   return null;
 };
 
-// Theater Mode Overlay Component
+// Cassette-themed Theater Mode Overlay
 const TheaterMode = ({
   isOpen,
   onClose,
@@ -262,15 +260,18 @@ const TheaterMode = ({
 
       {/* Content container */}
       <div
-        className="relative z-10 w-[95vw] max-w-7xl h-[85vh] bg-gray-900/95 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+        className="relative z-10 w-[95vw] max-w-7xl h-[85vh] bg-[#19181a] border border-white/5 shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Top accent line */}
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.02]">
-          <h2 className="text-white text-xl font-semibold">{title}</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+          <h2 className="text-white text-xl font-light">{title}</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+            className="p-2 hover:bg-white/10 transition-colors text-white/40 hover:text-[#f0e226]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -285,11 +286,11 @@ const TheaterMode = ({
   );
 };
 
-// Chart expand button component
+// Cassette-themed expand button
 const ExpandButton = ({ onClick }: { onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+    className="p-2 hover:bg-[#f0e226]/10 transition-colors text-white/40 hover:text-[#f0e226]"
     title="Open in theater mode"
   >
     <Maximize2 className="w-4 h-4" />
@@ -314,16 +315,8 @@ export default function MLCAnalyticsTab() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-white/10 rounded w-1/4 mb-4"></div>
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-24 bg-white/10 rounded-xl"></div>
-            ))}
-          </div>
-          <div className="h-80 bg-white/10 rounded-xl"></div>
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
       </div>
     );
   }
@@ -333,17 +326,17 @@ export default function MLCAnalyticsTab() {
       <div className="space-y-4">
         {/* Dev Mode Toggle - show even on error in dev */}
         {isDev && (
-          <Flex justifyContent="end">
+          <div className="flex justify-end">
             <button
               onClick={() => setUseMockData(true)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30"
+              className="px-3 py-1.5 text-xs font-medium transition-all bg-[#f0e226]/20 text-[#f0e226] border border-[#f0e226]/40 hover:bg-[#f0e226]/30"
             >
-              🧪 Enable Mock Data
+              Enable Mock Data
             </button>
-          </Flex>
+          </div>
         )}
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
-          <Text className="text-red-400">Failed to load MLC Analytics. Make sure you have MLC statements uploaded.</Text>
+        <div className="bg-white/5 border border-white/10 p-6 text-center">
+          <p className="text-white/40">Failed to load MLC Analytics. Make sure you have MLC statements uploaded.</p>
         </div>
       </div>
     );
@@ -479,121 +472,126 @@ export default function MLCAnalyticsTab() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <Flex justifyContent="between" alignItems="start">
+        <div className="flex justify-between items-start">
           <div>
-            <Title className="text-white text-2xl flex items-center gap-2">
-              <Disc className="w-6 h-6 text-emerald-400" />
+            <h2 className="text-white text-2xl font-light flex items-center gap-2">
+              <Disc className="w-6 h-6 text-[#f0e226]" />
               MLC Analytics
-            </Title>
-            <Text className="text-gray-400">Mechanical Licensing Collective statement analysis</Text>
+            </h2>
+            <p className="text-white/40">Mechanical Licensing Collective statement analysis</p>
           </div>
-          <Flex className="gap-3" alignItems="center">
+          <div className="flex items-center gap-3">
             {/* Dev Mode Mock Data Toggle - only visible in development */}
             {isDev && (
               <button
                 onClick={() => setUseMockData(!useMockData)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                className={`px-3 py-1.5 text-xs font-medium transition-all ${
                   useMockData
-                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                    : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                    ? 'bg-[#f0e226]/20 text-[#f0e226] border border-[#f0e226]/40'
+                    : 'bg-black text-white/40 border border-white/10 hover:border-[#f0e226]/50'
                 }`}
               >
-                {useMockData ? '🧪 Mock Data ON' : '🔌 Live Data'}
+                {useMockData ? 'Mock Data ON' : 'Live Data'}
               </button>
             )}
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            <div className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all ${
               (kpis?.totalStatements || 0) > 0
-                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                : 'bg-gray-500/15 text-gray-400 border border-gray-500/30'
+                ? 'bg-[#f0e226]/10 text-[#f0e226] border border-[#f0e226]/30'
+                : 'bg-white/5 text-white/40 border border-white/10'
             }`}>
               <div className={`w-2 h-2 rounded-full ${
-                (kpis?.totalStatements || 0) > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'
+                (kpis?.totalStatements || 0) > 0 ? 'bg-[#f0e226] animate-pulse' : 'bg-white/30'
               }`} />
-              <span className="font-semibold">{kpis?.totalStatements || 0}</span>
-              <span className="text-gray-400">Statements Processed</span>
+              <span className="font-medium">{kpis?.totalStatements || 0}</span>
+              <span className="text-white/40">Statements Processed</span>
             </div>
-          </Flex>
-        </Flex>
+          </div>
+        </div>
       </div>
 
       {/* Mock Data Warning Banner */}
       {useMockData && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-2">
-          <Text className="text-amber-400 text-sm">
+        <div className="bg-[#f0e226]/10 border border-[#f0e226]/30 px-4 py-2">
+          <p className="text-[#f0e226] text-sm">
             Dev Mode: Displaying mock data for testing. Toggle off to see real data.
-          </Text>
+          </p>
         </div>
       )}
 
       {/* KPI Cards */}
-      <Grid numItemsSm={2} numItemsMd={4} numItemsLg={5} className="gap-4">
-        <Card className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 ring-0">
-          <Flex alignItems="start" justifyContent="between">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300 border-t-2 border-t-[#f0e226]">
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400 text-sm">Total Revenue</Text>
-              <Metric className="text-white text-2xl mt-1">{currencyFormat(kpis?.totalRevenue || 0)}</Metric>
+              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Total Revenue</p>
+              <p className="text-[#f0e226] text-2xl font-light mt-1">{currencyFormat(kpis?.totalRevenue || 0)}</p>
             </div>
-            <div className="p-2 bg-emerald-500/20 rounded-lg">
-              <DollarSign className="w-5 h-5 text-emerald-400" />
+            <div className="p-2 bg-[#f0e226]/10">
+              <DollarSign className="w-5 h-5 text-[#f0e226]" />
             </div>
-          </Flex>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 border-blue-500/30 ring-0">
-          <Flex alignItems="start" justifyContent="between">
+        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400 text-sm">Net Revenue</Text>
-              <Metric className="text-white text-2xl mt-1">{currencyFormat(kpis?.totalNetRevenue || 0)}</Metric>
+              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Net Revenue</p>
+              <p className="text-white text-2xl font-light mt-1">{currencyFormat(kpis?.totalNetRevenue || 0)}</p>
             </div>
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-blue-400" />
+            <div className="p-2 bg-[#f0e226]/10">
+              <TrendingUp className="w-5 h-5 text-[#f0e226]" />
             </div>
-          </Flex>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border-purple-500/30 ring-0">
-          <Flex alignItems="start" justifyContent="between">
+        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400 text-sm">Unique Songs</Text>
-              <Metric className="text-white text-2xl mt-1">{(kpis?.uniqueSongs || 0).toLocaleString()}</Metric>
+              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Unique Songs</p>
+              <p className="text-white text-2xl font-light mt-1">{(kpis?.uniqueSongs || 0).toLocaleString()}</p>
             </div>
-            <div className="p-2 bg-purple-500/20 rounded-lg">
-              <Music className="w-5 h-5 text-purple-400" />
+            <div className="p-2 bg-[#f0e226]/10">
+              <Music className="w-5 h-5 text-[#f0e226]" />
             </div>
-          </Flex>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-orange-500/20 to-orange-600/10 border-orange-500/30 ring-0">
-          <Flex alignItems="start" justifyContent="between">
+        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400 text-sm">Platforms</Text>
-              <Metric className="text-white text-2xl mt-1">{kpis?.uniquePlatforms || 0}</Metric>
+              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Platforms</p>
+              <p className="text-white text-2xl font-light mt-1">{kpis?.uniquePlatforms || 0}</p>
             </div>
-            <div className="p-2 bg-orange-500/20 rounded-lg">
-              <BarChart3 className="w-5 h-5 text-orange-400" />
+            <div className="p-2 bg-[#f0e226]/10">
+              <BarChart3 className="w-5 h-5 text-[#f0e226]" />
             </div>
-          </Flex>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 ring-0">
-          <Flex alignItems="start" justifyContent="between">
+        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400 text-sm">Avg/Item</Text>
-              <Metric className="text-white text-2xl mt-1">{currencyFormat(kpis?.avgRevenuePerItem || 0)}</Metric>
+              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Avg/Item</p>
+              <p className="text-white text-2xl font-light mt-1">{currencyFormat(kpis?.avgRevenuePerItem || 0)}</p>
             </div>
-            <div className="p-2 bg-cyan-500/20 rounded-lg">
-              <Globe className="w-5 h-5 text-cyan-400" />
+            <div className="p-2 bg-[#f0e226]/10">
+              <Globe className="w-5 h-5 text-[#f0e226]" />
             </div>
-          </Flex>
-        </Card>
-      </Grid>
+          </div>
+        </div>
+      </div>
 
       {/* Revenue Timeline Area Chart */}
-      <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0 overflow-hidden">
+      <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
         <div className="flex items-center justify-between mb-6">
           <div>
-            <Title className="text-white mb-1">Revenue Timeline</Title>
-            <Text className="text-gray-500 text-sm">Monthly gross and net revenue</Text>
+            <h3 className="text-lg font-light text-white mb-1">Revenue Timeline</h3>
+            <p className="text-white/40 text-sm">Monthly gross and net revenue</p>
           </div>
           <div className="flex items-center gap-4">
             {/* Month Navigation */}
@@ -601,25 +599,25 @@ export default function MLCAnalyticsTab() {
               <button
                 onClick={goToPreviousMonths}
                 disabled={!canGoBack}
-                className={`p-1.5 rounded-lg transition-colors ${
+                className={`p-1.5 transition-colors ${
                   canGoBack
-                    ? 'hover:bg-white/10 text-gray-400 hover:text-white'
-                    : 'text-gray-600 cursor-not-allowed'
+                    ? 'hover:bg-[#f0e226]/10 text-white/40 hover:text-[#f0e226]'
+                    : 'text-white/20 cursor-not-allowed'
                 }`}
                 title="Previous months"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-gray-400 text-xs px-2 min-w-[100px] text-center">
+              <span className="text-white/40 text-xs px-2 min-w-[100px] text-center">
                 {getMonthRangeLabel()}
               </span>
               <button
                 onClick={goToNextMonths}
                 disabled={!canGoForward}
-                className={`p-1.5 rounded-lg transition-colors ${
+                className={`p-1.5 transition-colors ${
                   canGoForward
-                    ? 'hover:bg-white/10 text-gray-400 hover:text-white'
-                    : 'text-gray-600 cursor-not-allowed'
+                    ? 'hover:bg-[#f0e226]/10 text-white/40 hover:text-[#f0e226]'
+                    : 'text-white/20 cursor-not-allowed'
                 }`}
                 title="Next months"
               >
@@ -629,12 +627,12 @@ export default function MLCAnalyticsTab() {
             {/* Legend */}
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/30" />
-                <span className="text-gray-400 text-xs">Gross</span>
+                <div className="w-3 h-3 bg-[#f0e226]" />
+                <span className="text-white/40 text-xs">Gross</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/30" />
-                <span className="text-gray-400 text-xs">Net</span>
+                <div className="w-3 h-3 bg-white/60" />
+                <span className="text-white/40 text-xs">Net</span>
               </div>
             </div>
             {/* Theater mode button */}
@@ -646,22 +644,15 @@ export default function MLCAnalyticsTab() {
             <AreaChart data={timelineAreaData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.5}/>
-                  <stop offset="50%" stopColor="#10b981" stopOpacity={0.15}/>
-                  <stop offset="100%" stopColor="#10b981" stopOpacity={0}/>
+                  <stop offset="0%" stopColor="#f0e226" stopOpacity={0.5}/>
+                  <stop offset="50%" stopColor="#f0e226" stopOpacity={0.15}/>
+                  <stop offset="100%" stopColor="#f0e226" stopOpacity={0}/>
                 </linearGradient>
                 <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.5}/>
-                  <stop offset="50%" stopColor="#3b82f6" stopOpacity={0.15}/>
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0}/>
+                  <stop offset="0%" stopColor="#ffffff" stopOpacity={0.3}/>
+                  <stop offset="50%" stopColor="#ffffff" stopOpacity={0.1}/>
+                  <stop offset="100%" stopColor="#ffffff" stopOpacity={0}/>
                 </linearGradient>
-                <filter id="glow">
-                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                  <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
-                </filter>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} vertical={false} />
               <XAxis
@@ -685,48 +676,47 @@ export default function MLCAnalyticsTab() {
                 type="monotone"
                 dataKey="revenue"
                 name="Gross Revenue"
-                stroke="#10b981"
+                stroke="#f0e226"
                 strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#colorRevenue)"
-                filter="url(#glow)"
                 dot={false}
-                activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: '#f0e226', stroke: '#000', strokeWidth: 2 }}
               />
               <Area
                 type="monotone"
                 dataKey="netRevenue"
                 name="Net Revenue"
-                stroke="#3b82f6"
+                stroke="#ffffff"
                 strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#colorNet)"
-                filter="url(#glow)"
                 dot={false}
-                activeDot={{ r: 6, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: '#ffffff', stroke: '#000', strokeWidth: 2 }}
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
-      </Card>
+      </div>
 
       {/* Platform Breakdown - Custom Shape Bar Chart */}
-      <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
           <div className="flex items-center justify-between mb-6">
             <div>
-              <Title className="text-white mb-1">Top Platforms by Revenue</Title>
-              <Text className="text-gray-500 text-sm">Gross vs Net comparison (top 10)</Text>
+              <h3 className="text-lg font-light text-white mb-1">Top Platforms by Revenue</h3>
+              <p className="text-white/40 text-sm">Gross vs Net comparison (top 10)</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-sm bg-emerald-500" />
-                  <span className="text-gray-400 text-xs">Gross</span>
+                  <div className="w-3 h-3 bg-[#f0e226]" />
+                  <span className="text-white/40 text-xs">Gross</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-sm bg-emerald-300" />
-                  <span className="text-gray-400 text-xs">Net</span>
+                  <div className="w-3 h-3 bg-[#f0e226]/50" />
+                  <span className="text-white/40 text-xs">Net</span>
                 </div>
               </div>
               <ExpandButton onClick={() => setTheaterChart('platforms')} />
@@ -737,12 +727,12 @@ export default function MLCAnalyticsTab() {
               <BarChart data={platformBarData} layout="vertical" margin={{ left: 10, right: 20, top: 5, bottom: 5 }}>
                 <defs>
                   <linearGradient id="barGrossGrad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.9}/>
-                    <stop offset="100%" stopColor="#34d399" stopOpacity={1}/>
+                    <stop offset="0%" stopColor="#f0e226" stopOpacity={0.9}/>
+                    <stop offset="100%" stopColor="#f5f54a" stopOpacity={1}/>
                   </linearGradient>
                   <linearGradient id="barNetGrad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#6ee7b7" stopOpacity={0.8}/>
-                    <stop offset="100%" stopColor="#a7f3d0" stopOpacity={1}/>
+                    <stop offset="0%" stopColor="#f0e226" stopOpacity={0.5}/>
+                    <stop offset="100%" stopColor="#f5f54a" stopOpacity={0.6}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} horizontal={false} />
@@ -781,14 +771,15 @@ export default function MLCAnalyticsTab() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </Card>
+        </div>
 
-        {/* Service Type Pie Chart */}
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+        {/* Service Type Pie Chart - Cassette Theme */}
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
           <div className="flex items-center justify-between mb-4">
             <div>
-              <Title className="text-white mb-1">Service Type Distribution</Title>
-              <Text className="text-gray-500 text-sm">Revenue by streaming tier/offering</Text>
+              <h3 className="text-lg font-light text-white mb-1">Service Type Distribution</h3>
+              <p className="text-white/40 text-sm">Revenue by streaming tier/offering</p>
             </div>
             <ExpandButton onClick={() => setTheaterChart('serviceTypes')} />
           </div>
@@ -824,9 +815,8 @@ export default function MLCAnalyticsTab() {
                   <Tooltip
                     formatter={(value: number) => currencyFormat(value)}
                     contentStyle={{
-                      backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                      backgroundColor: '#19181a',
                       border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: '12px',
                       padding: '12px',
                     }}
                     itemStyle={{ color: '#fff' }}
@@ -839,25 +829,26 @@ export default function MLCAnalyticsTab() {
               <CustomPieLegend data={serviceTypePieData} />
             </div>
           </div>
-        </Card>
-      </Grid>
+        </div>
+      </div>
 
-      {/* Top Songs - Composed Chart */}
-      <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+      {/* Top Songs - Composed Chart - Cassette Theme */}
+      <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
         <div className="flex items-center justify-between mb-6">
           <div>
-            <Title className="text-white mb-1">Top Performing Songs</Title>
-            <Text className="text-gray-500 text-sm">Revenue and platform distribution (top 10)</Text>
+            <h3 className="text-lg font-light text-white mb-1">Top Performing Songs</h3>
+            <p className="text-white/40 text-sm">Revenue and platform distribution (top 10)</p>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-sm bg-violet-500" />
-                <span className="text-gray-400 text-xs">Revenue</span>
+                <div className="w-3 h-3 bg-[#f0e226]" />
+                <span className="text-white/40 text-xs">Revenue</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-0.5 bg-amber-500" />
-                <span className="text-gray-400 text-xs">Platforms</span>
+                <div className="w-3 h-0.5 bg-white/60" />
+                <span className="text-white/40 text-xs">Platforms</span>
               </div>
             </div>
             <ExpandButton onClick={() => setTheaterChart('topSongs')} />
@@ -868,12 +859,9 @@ export default function MLCAnalyticsTab() {
             <ComposedChart data={topSongsBarData} layout="vertical" margin={{ left: 20, right: 30, top: 10, bottom: 10 }}>
               <defs>
                 <linearGradient id="topSongsGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.9}/>
-                  <stop offset="100%" stopColor="#a78bfa" stopOpacity={1}/>
+                  <stop offset="0%" stopColor="#f0e226" stopOpacity={0.9}/>
+                  <stop offset="100%" stopColor="#f5f54a" stopOpacity={1}/>
                 </linearGradient>
-                <filter id="songGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#8b5cf6" floodOpacity="0.4"/>
-                </filter>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} horizontal={false} />
               <XAxis
@@ -894,28 +882,27 @@ export default function MLCAnalyticsTab() {
                 axisLine={false}
                 tick={{ fill: '#d1d5db' }}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(139, 92, 246, 0.05)' }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(240,226,38,0.05)' }} />
               <Bar
                 dataKey="revenue"
                 name="Revenue"
                 fill="url(#topSongsGrad)"
-                radius={[0, 8, 8, 0]}
+                radius={[0, 4, 4, 0]}
                 barSize={16}
-                filter="url(#songGlow)"
               />
               <Line
                 type="monotone"
                 dataKey="platforms"
                 name="Platforms"
-                stroke="#f59e0b"
+                stroke="#ffffff"
                 strokeWidth={3}
-                dot={{ fill: '#f59e0b', r: 5, stroke: '#fff', strokeWidth: 2 }}
-                activeDot={{ r: 7, fill: '#f59e0b', stroke: '#fff', strokeWidth: 2 }}
+                dot={{ fill: '#ffffff', r: 5, stroke: '#000', strokeWidth: 2 }}
+                activeDot={{ r: 7, fill: '#ffffff', stroke: '#000', strokeWidth: 2 }}
               />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
-      </Card>
+      </div>
 
       {/* Territory Treemap & Use Type Radial */}
       <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
@@ -1177,27 +1164,27 @@ export default function MLCAnalyticsTab() {
       </Grid>
 
       {/* Commission Summary */}
-      <Card className="bg-gradient-to-br from-emerald-500/10 via-white/[0.05] to-emerald-600/5 border-emerald-500/20 ring-0 relative overflow-hidden">
+      <div className="relative overflow-hidden bg-[#19181a] border border-[#f0e226]/30 p-6 border-t-2 border-t-[#f0e226]">
         {/* Subtle glow effect */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <Flex justifyContent="between" alignItems="center" className="relative z-10">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#f0e226]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="relative z-10 flex justify-between items-center">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <Title className="text-white">Commission Summary</Title>
+              <div className="w-2 h-2 rounded-full bg-[#f0e226] animate-pulse" />
+              <h3 className="text-lg font-light text-white">Commission Summary</h3>
             </div>
-            <Text className="text-gray-400">Total commission earned from MLC statements</Text>
+            <p className="text-white/40">Total commission earned from MLC statements</p>
           </div>
           <div className="text-right">
-            <Metric className="text-emerald-400 text-3xl font-bold">{currencyFormat(kpis?.totalCommission || 0)}</Metric>
+            <p className="text-[#f0e226] text-3xl font-light">{currencyFormat(kpis?.totalCommission || 0)}</p>
             <div className="flex items-center justify-end gap-2 mt-1">
-              <span className="px-2 py-0.5 bg-emerald-500/20 rounded-full text-emerald-400 text-xs font-medium">
+              <span className="px-2 py-0.5 bg-[#f0e226]/20 text-[#f0e226] text-xs font-medium">
                 {kpis?.marginPercentage || 0}% margin
               </span>
             </div>
           </div>
-        </Flex>
-      </Card>
+        </div>
+      </div>
 
       {/* Theater Mode Overlays */}
       {/* Revenue Timeline Theater */}

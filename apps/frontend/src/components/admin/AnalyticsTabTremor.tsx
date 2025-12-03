@@ -6,14 +6,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Card,
-  Title,
-  Text,
-  Metric,
-  Flex,
-  Grid,
-  List,
-  ListItem,
   Table,
   TableHead,
   TableHeaderCell,
@@ -22,7 +14,6 @@ import {
   TableCell,
   TableFoot,
   TableFooterCell,
-  Badge,
 } from '@tremor/react';
 import { ChevronDown, ChevronUp, Maximize2, X } from 'lucide-react';
 import { dashboardApi } from '../../lib/api';
@@ -137,14 +128,16 @@ const TheaterMode = ({
     >
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-[95vw] max-w-7xl h-[85vh] bg-gray-900/95 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+        className="relative z-10 w-[95vw] max-w-7xl h-[85vh] bg-[#19181a] border border-white/5 shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.02]">
-          <h2 className="text-white text-xl font-semibold">{title}</h2>
+        {/* Yellow top accent */}
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+          <h2 className="text-white text-xl font-light">{title}</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+            className="p-2 hover:bg-[#f0e226]/10 transition-colors text-white/40 hover:text-[#f0e226]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -161,7 +154,7 @@ const TheaterMode = ({
 const ExpandButton = ({ onClick }: { onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
+    className="p-2 hover:bg-[#f0e226]/10 transition-colors text-white/40 hover:text-[#f0e226]"
     title="Open in theater mode"
   >
     <Maximize2 className="w-4 h-4" />
@@ -326,170 +319,151 @@ export default function AnalyticsTabTremor() {
   };
 
   if (isLoading) {
-    return <div className="text-center text-text-secondary py-8">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-8">
-      <Flex justifyContent="between" alignItems="start">
+      <div className="flex justify-between items-start">
         <div>
-          <Title className="text-white text-2xl">Platform Analytics</Title>
-          <Text className="text-gray-400">Comprehensive overview of platform performance</Text>
+          <h1 className="text-2xl font-light text-white">Platform Analytics</h1>
+          <p className="text-white/40 mt-1">Comprehensive overview of platform performance</p>
         </div>
         {/* Dev Mode Mock Data Toggle - only visible in development */}
         {isDev && (
           <button
             onClick={() => setUseMockData(!useMockData)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`px-3 py-1.5 text-xs font-medium uppercase tracking-wider transition-all ${
               useMockData
-                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+                ? 'bg-[#f0e226]/15 text-[#f0e226] border border-[#f0e226]/30'
+                : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'
             }`}
           >
-            {useMockData ? '🧪 Mock Data ON' : '🔌 Live Data'}
+            {useMockData ? 'Mock Data ON' : 'Live Data'}
           </button>
         )}
-      </Flex>
+      </div>
       {useMockData && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-2">
-          <Text className="text-amber-400 text-sm">
+        <div className="bg-[#f0e226]/10 border border-[#f0e226]/30 px-4 py-2">
+          <p className="text-[#f0e226] text-sm">
             Dev Mode: Displaying mock data for testing. Toggle off to see real data.
-          </Text>
+          </p>
         </div>
       )}
 
       {/* Financial Summary - Revenue, Net, Commission */}
-      <Grid numItemsSm={1} numItemsLg={3} className="gap-6">
-        <Card
-          className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
-          decoration="top"
-          decorationColor="blue"
-        >
-          <Flex alignItems="start">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/30 transition-all duration-300 border-t-2 border-t-[#f0e226]">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#f0e226]/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative flex items-start justify-between">
             <div>
-              <Text className="text-gray-400">Gross Revenue</Text>
-              <Metric className="text-white mt-1">
-                {currencyFormatter(Number(stats?.totalRevenue || 0))}
-              </Metric>
+              <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2">Gross Revenue</p>
+              <p className="text-3xl font-light text-white">{currencyFormatter(Number(stats?.totalRevenue || 0))}</p>
             </div>
-            <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center text-2xl">💰</div>
-          </Flex>
-        </Card>
-        <Card
-          className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
-          decoration="top"
-          decorationColor="cyan"
-        >
-          <Flex alignItems="start">
+            <div className="w-14 h-14 bg-[#f0e226]/10 flex items-center justify-center">
+              <span className="text-2xl">💰</span>
+            </div>
+          </div>
+        </div>
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/30 transition-all duration-300 border-t-2 border-t-[#f0e226]">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#f0e226]/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative flex items-start justify-between">
             <div>
-              <Text className="text-gray-400">Net to Writers</Text>
-              <Metric className="text-white mt-1">
-                {currencyFormatter(Number(stats?.totalNet || 0))}
-              </Metric>
+              <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2">Net to Writers</p>
+              <p className="text-3xl font-light text-white">{currencyFormatter(Number(stats?.totalNet || 0))}</p>
             </div>
-            <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center text-2xl">💵</div>
-          </Flex>
-        </Card>
-        <Card
-          className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
-          decoration="top"
-          decorationColor="amber"
-        >
-          <Flex alignItems="start">
+            <div className="w-14 h-14 bg-[#f0e226]/10 flex items-center justify-center">
+              <span className="text-2xl">💵</span>
+            </div>
+          </div>
+        </div>
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/30 transition-all duration-300 border-t-2 border-t-[#f0e226]">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#f0e226]/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative flex items-start justify-between">
             <div>
-              <Text className="text-gray-400">Commission</Text>
-              <Metric className="text-white mt-1">
-                {currencyFormatter(Number(stats?.totalCommission || 0))}
-              </Metric>
+              <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2">Commission</p>
+              <p className="text-3xl font-light text-white">{currencyFormatter(Number(stats?.totalCommission || 0))}</p>
             </div>
-            <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center text-2xl">📈</div>
-          </Flex>
-        </Card>
-      </Grid>
+            <div className="w-14 h-14 bg-[#f0e226]/10 flex items-center justify-center">
+              <span className="text-2xl">📈</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Other Stats - KPI Cards Grid */}
-      <Grid numItemsSm={2} numItemsMd={3} numItemsLg={5} className="gap-4">
-        <Card
-          className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
-          decoration="top"
-          decorationColor="blue"
-        >
-          <Flex alignItems="start">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-4 group hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400">Total Writers</Text>
-              <Metric className="text-white mt-1">{stats?.totalWriters || 0}</Metric>
+              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Total Writers</p>
+              <p className="text-2xl font-light text-white">{stats?.totalWriters || 0}</p>
             </div>
-            <div className="text-2xl">👥</div>
-          </Flex>
-        </Card>
+            <div className="w-8 h-8 bg-[#f0e226]/10 flex items-center justify-center text-lg">👥</div>
+          </div>
+        </div>
 
-        <Card
-          className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
-          decoration="top"
-          decorationColor="emerald"
-        >
-          <Flex alignItems="start">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-4 group hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400">Total Statements</Text>
-              <Metric className="text-white mt-1">{stats?.totalStatements || 0}</Metric>
+              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Total Statements</p>
+              <p className="text-2xl font-light text-white">{stats?.totalStatements || 0}</p>
             </div>
-            <div className="text-2xl">📊</div>
-          </Flex>
-        </Card>
+            <div className="w-8 h-8 bg-[#f0e226]/10 flex items-center justify-center text-lg">📊</div>
+          </div>
+        </div>
 
-        <Card
-          className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
-          decoration="top"
-          decorationColor="violet"
-        >
-          <Flex alignItems="start">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-4 group hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400">Processed</Text>
-              <Metric className="text-white mt-1">{stats?.processedStatements || 0}</Metric>
+              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Processed</p>
+              <p className="text-2xl font-light text-white">{stats?.processedStatements || 0}</p>
             </div>
-            <div className="text-2xl">✅</div>
-          </Flex>
-        </Card>
+            <div className="w-8 h-8 bg-[#f0e226]/10 flex items-center justify-center text-lg">✅</div>
+          </div>
+        </div>
 
-        <Card
-          className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
-          decoration="top"
-          decorationColor="amber"
-        >
-          <Flex alignItems="start">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-4 group hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400">Unique Works</Text>
-              <Metric className="text-white mt-1">{stats?.uniqueWorks || 0}</Metric>
+              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Unique Works</p>
+              <p className="text-2xl font-light text-white">{stats?.uniqueWorks || 0}</p>
             </div>
-            <div className="text-2xl">🎵</div>
-          </Flex>
-        </Card>
+            <div className="w-8 h-8 bg-[#f0e226]/10 flex items-center justify-center text-lg">🎵</div>
+          </div>
+        </div>
 
-        <Card
-          className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0"
-          decoration="top"
-          decorationColor="cyan"
-        >
-          <Flex alignItems="start">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-4 group hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <Text className="text-gray-400">Total Revenue</Text>
-              <Metric className="text-white mt-1 text-lg">
+              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Total Revenue</p>
+              <p className="text-xl font-light text-white">
                 ${Number(stats?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </Metric>
+              </p>
             </div>
-            <div className="text-2xl">💰</div>
-          </Flex>
-        </Card>
-      </Grid>
+            <div className="w-8 h-8 bg-[#f0e226]/10 flex items-center justify-center text-lg">💰</div>
+          </div>
+        </div>
+      </div>
 
       {/* Revenue & PRO Charts Row */}
-      <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Revenue Timeline - Previous Quarter */}
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
           <div className="flex items-center justify-between mb-4">
             <div>
-              <Title className="text-white">Revenue Over Time</Title>
-              <Text className="text-gray-400">{getQuarterLabel()}</Text>
+              <h3 className="text-lg font-normal text-white">Revenue Over Time</h3>
+              <p className="text-sm text-white/40">{getQuarterLabel()}</p>
             </div>
             <ExpandButton onClick={() => setTheaterChart('revenue')} />
           </div>
@@ -498,22 +472,23 @@ export default function AnalyticsTabTremor() {
               data={getRevenueTimelineData()}
               height={288}
               enableArea={true}
-              colors={['#10b981']}
+              colors={['#f0e226']}
               valueFormat={currencyFormatter}
             />
           ) : (
-            <div className="h-72 flex items-center justify-center text-gray-400">
+            <div className="h-72 flex items-center justify-center text-white/30">
               No revenue data available
             </div>
           )}
-        </Card>
+        </div>
 
         {/* PRO Breakdown Pie */}
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
           <div className="flex items-center justify-between mb-4">
             <div>
-              <Title className="text-white">Revenue by PRO</Title>
-              <Text className="text-gray-400">Distribution across PROs</Text>
+              <h3 className="text-lg font-normal text-white">Revenue by PRO</h3>
+              <p className="text-sm text-white/40">Distribution across PROs</p>
             </div>
             <ExpandButton onClick={() => setTheaterChart('pro')} />
           </div>
@@ -526,47 +501,49 @@ export default function AnalyticsTabTremor() {
               valueFormat={currencyFormatter}
             />
           ) : (
-            <div className="h-52 flex items-center justify-center text-gray-400">
+            <div className="h-52 flex items-center justify-center text-white/30">
               No PRO data available
             </div>
           )}
-        </Card>
-      </Grid>
+        </div>
+      </div>
 
       {/* PRO Statistics Bar Chart */}
       {getProBarChartData().length > 0 && (
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
           <div className="mb-4">
-            <Title className="text-white">PRO Statistics</Title>
-            <Text className="text-gray-400">Revenue and statement count by PRO</Text>
+            <h3 className="text-lg font-normal text-white">PRO Statistics</h3>
+            <p className="text-sm text-white/40">Revenue and statement count by PRO</p>
           </div>
           <NivoBarChart
             data={getProBarChartData()}
             keys={['Revenue']}
             indexBy="proType"
             height={288}
-            colors={['#10b981']}
+            colors={['#f0e226']}
             valueFormat={currencyFormatter}
           />
-        </Card>
+        </div>
       )}
 
       {/* Platform Breakdown Section - Redesigned */}
       {!platformLoading && platformData?.platforms?.length > 0 && (
         <div className="space-y-6">
           <div>
-            <Title className="text-white text-xl">Platform & Service Analytics</Title>
-            <Text className="text-gray-400">Revenue breakdown by streaming platform and service type</Text>
+            <h2 className="text-xl font-light text-white">Platform & Service Analytics</h2>
+            <p className="text-white/40">Revenue breakdown by streaming platform and service type</p>
           </div>
 
           {/* Distribution Charts Row */}
-          <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Platform Distribution Pie */}
-            <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+            <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <Title className="text-white">Platform Distribution</Title>
-                  <Text className="text-gray-400 text-sm">Revenue share by streaming service</Text>
+                  <h3 className="text-lg font-normal text-white">Platform Distribution</h3>
+                  <p className="text-sm text-white/40">Revenue share by streaming service</p>
                 </div>
                 <ExpandButton onClick={() => setTheaterChart('platform')} />
               </div>
@@ -577,14 +554,15 @@ export default function AnalyticsTabTremor() {
                 enableArcLinkLabels={getPlatformPieData().length <= 6}
                 valueFormat={currencyFormatter}
               />
-            </Card>
+            </div>
 
             {/* Service Type Distribution Pie */}
-            <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+            <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <Title className="text-white">Service Type Mix</Title>
-                  <Text className="text-gray-400 text-sm">Premium vs Ad-Supported vs other tiers</Text>
+                  <h3 className="text-lg font-normal text-white">Service Type Mix</h3>
+                  <p className="text-sm text-white/40">Premium vs Ad-Supported vs other tiers</p>
                 </div>
                 <ExpandButton onClick={() => setTheaterChart('serviceType')} />
               </div>
@@ -597,17 +575,18 @@ export default function AnalyticsTabTremor() {
                   valueFormat={currencyFormatter}
                 />
               ) : (
-                <div className="h-52 flex items-center justify-center text-gray-400">
+                <div className="h-52 flex items-center justify-center text-white/30">
                   No service type data available
                 </div>
               )}
-            </Card>
-          </Grid>
+            </div>
+          </div>
 
           {/* Platform Comparison Bar Chart - Gross vs Net */}
-          <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
-            <Title className="text-white mb-2">Platform Revenue Comparison</Title>
-            <Text className="text-gray-400 text-sm mb-4">Gross vs Net revenue by platform (top 8)</Text>
+          <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+            <h3 className="text-lg font-normal text-white mb-2">Platform Revenue Comparison</h3>
+            <p className="text-sm text-white/40 mb-4">Gross vs Net revenue by platform (top 8)</p>
             <NivoBarChart
               data={getPlatformComparisonData()}
               keys={['Gross Revenue', 'Net Revenue']}
@@ -615,88 +594,88 @@ export default function AnalyticsTabTremor() {
               height={280}
               layout="vertical"
               groupMode="grouped"
-              colors={['#10b981', '#6ee7b7']}
+              colors={['#f0e226', '#f0e226aa']}
               valueFormat={currencyFormatter}
             />
-          </Card>
+          </div>
 
           {/* Top Platforms Metric Cards */}
           <div>
-            <Title className="text-white mb-4">Top Platforms</Title>
-            <Grid numItemsSm={2} numItemsMd={3} numItemsLg={4} className="gap-4">
+            <h3 className="text-lg font-normal text-white mb-4">Top Platforms</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {platformData.platforms.slice(0, 8).map((platform: any, index: number) => {
                 const marginPct = getMarginPercent(platform.revenue, platform.netRevenue);
                 const isTopPlatform = index < 3;
                 return (
-                  <Card
+                  <div
                     key={platform.platform}
-                    className={`bg-gradient-to-b ${isTopPlatform ? 'from-emerald-500/10 to-emerald-500/5 border-emerald-500/20' : 'from-white/[0.08] to-white/[0.02] border-white/[0.08]'} ring-0`}
+                    className={`relative overflow-hidden bg-[#19181a] border p-4 group hover:border-[#f0e226]/30 transition-all duration-300 ${isTopPlatform ? 'border-[#f0e226]/30' : 'border-white/5'}`}
                   >
-                    <Flex justifyContent="between" alignItems="start">
+                    <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+                    <div className="flex justify-between items-start">
                       <div className="min-w-0 flex-1">
-                        <Text className="text-gray-400 text-xs uppercase tracking-wide truncate">
+                        <p className="text-xs text-white/40 uppercase tracking-wider truncate">
                           {platform.platform}
-                        </Text>
-                        <Metric className="text-white mt-1 text-lg">
+                        </p>
+                        <p className="text-lg font-light text-white mt-1">
                           ${Number(platform.revenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                        </Metric>
+                        </p>
                       </div>
                       {isTopPlatform && (
-                        <Badge color="emerald" size="xs">#{index + 1}</Badge>
+                        <span className="px-2 py-0.5 bg-[#f0e226]/15 text-[#f0e226] text-xs font-medium">#{index + 1}</span>
                       )}
-                    </Flex>
-                    <Flex justifyContent="between" className="mt-3">
-                      <Text className="text-gray-500 text-xs">
+                    </div>
+                    <div className="flex justify-between mt-3">
+                      <span className="text-xs text-white/30">
                         {platform.count.toLocaleString()} items
-                      </Text>
-                      <Flex justifyContent="end" className="gap-1">
-                        <Text className="text-gray-500 text-xs">
-                          {marginPct}% margin
-                        </Text>
-                      </Flex>
-                    </Flex>
+                      </span>
+                      <span className="text-xs text-white/30">
+                        {marginPct}% margin
+                      </span>
+                    </div>
                     {/* Service Type Tags */}
                     {platform.offerings?.length > 0 && (
-                      <Flex justifyContent="start" className="gap-1 mt-2 flex-wrap">
+                      <div className="flex flex-wrap gap-1 mt-2">
                         {platform.offerings.slice(0, 2).map((offering: string, i: number) => (
-                          <span key={i} className="px-1.5 py-0.5 bg-white/[0.08] rounded text-[10px] text-gray-400">
+                          <span key={i} className="px-1.5 py-0.5 bg-white/[0.08] text-[10px] text-white/40">
                             {offering.length > 15 ? offering.slice(0, 15) + '...' : offering}
                           </span>
                         ))}
                         {platform.offerings.length > 2 && (
-                          <span className="px-1.5 py-0.5 bg-white/[0.06] rounded text-[10px] text-gray-500">
+                          <span className="px-1.5 py-0.5 bg-white/[0.06] text-[10px] text-white/30">
                             +{platform.offerings.length - 2}
                           </span>
                         )}
-                      </Flex>
+                      </div>
                     )}
-                  </Card>
+                  </div>
                 );
               })}
-            </Grid>
+            </div>
           </div>
 
           {/* Collapsible Platform Details Table */}
-          <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+          <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
             <button
               onClick={() => setPlatformTableExpanded(!platformTableExpanded)}
               className="w-full"
             >
-              <Flex justifyContent="between" alignItems="center">
+              <div className="flex justify-between items-center">
                 <div>
-                  <Title className="text-white text-left">Detailed Breakdown</Title>
-                  <Text className="text-gray-400 text-left">
+                  <h3 className="text-lg font-normal text-white text-left">Detailed Breakdown</h3>
+                  <p className="text-sm text-white/40 text-left">
                     {platformData.platforms.length} platform{platformData.platforms.length !== 1 ? 's' : ''} • Click to {platformTableExpanded ? 'collapse' : 'expand'}
-                  </Text>
+                  </p>
                 </div>
-                <div className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                <div className="p-2 hover:bg-[#f0e226]/10 transition-colors">
                   {platformTableExpanded ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
+                    <ChevronUp className="w-5 h-5 text-white/40" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                    <ChevronDown className="w-5 h-5 text-white/40" />
                   )}
                 </div>
-              </Flex>
+              </div>
             </button>
 
             {platformTableExpanded && (
@@ -704,12 +683,12 @@ export default function AnalyticsTabTremor() {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableHeaderCell className="text-gray-400">Platform</TableHeaderCell>
-                      <TableHeaderCell className="text-gray-400">Service Types</TableHeaderCell>
-                      <TableHeaderCell className="text-right text-gray-400">Items</TableHeaderCell>
-                      <TableHeaderCell className="text-right text-gray-400">Gross</TableHeaderCell>
-                      <TableHeaderCell className="text-right text-gray-400">Net</TableHeaderCell>
-                      <TableHeaderCell className="text-right text-gray-400">Margin</TableHeaderCell>
+                      <TableHeaderCell className="text-white/40 uppercase tracking-wider text-xs">Platform</TableHeaderCell>
+                      <TableHeaderCell className="text-white/40 uppercase tracking-wider text-xs">Service Types</TableHeaderCell>
+                      <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Items</TableHeaderCell>
+                      <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Gross</TableHeaderCell>
+                      <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Net</TableHeaderCell>
+                      <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Margin</TableHeaderCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -717,34 +696,34 @@ export default function AnalyticsTabTremor() {
                       const marginPct = getMarginPercent(platform.revenue, platform.netRevenue);
                       return (
                         <TableRow key={platform.platform}>
-                          <TableCell className="text-white font-semibold">{platform.platform}</TableCell>
+                          <TableCell className="text-white font-medium">{platform.platform}</TableCell>
                           <TableCell>
-                            <Flex justifyContent="start" className="gap-1 flex-wrap">
+                            <div className="flex flex-wrap gap-1">
                               {platform.offerings?.length > 0 ? (
                                 platform.offerings.slice(0, 3).map((offering: string, i: number) => (
-                                  <span key={i} className="px-2 py-0.5 bg-white/[0.08] rounded-lg text-xs text-gray-300">
+                                  <span key={i} className="px-2 py-0.5 bg-white/[0.08] text-xs text-white/60">
                                     {offering}
                                   </span>
                                 ))
                               ) : (
-                                <span className="text-gray-500">-</span>
+                                <span className="text-white/30">-</span>
                               )}
                               {platform.offerings?.length > 3 && (
-                                <span className="px-2 py-0.5 bg-white/[0.06] rounded-lg text-xs text-gray-500">
+                                <span className="px-2 py-0.5 bg-white/[0.06] text-xs text-white/30">
                                   +{platform.offerings.length - 3}
                                 </span>
                               )}
-                            </Flex>
+                            </div>
                           </TableCell>
-                          <TableCell className="text-right text-gray-300">{platform.count.toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-emerald-400 font-semibold">
+                          <TableCell className="text-right text-white/60">{platform.count.toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-[#f0e226] font-medium">
                             ${Number(platform.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </TableCell>
-                          <TableCell className="text-right text-emerald-300">
+                          <TableCell className="text-right text-[#f0e226]/70">
                             ${Number(platform.netRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell className="text-right">
-                            <span className={`text-xs ${Number(marginPct) > 15 ? 'text-amber-400' : 'text-gray-400'}`}>
+                            <span className={`text-xs ${Number(marginPct) > 15 ? 'text-[#f0e226]' : 'text-white/40'}`}>
                               {marginPct}%
                             </span>
                           </TableCell>
@@ -754,18 +733,18 @@ export default function AnalyticsTabTremor() {
                   </TableBody>
                   <TableFoot>
                     <TableRow>
-                      <TableFooterCell className="text-white font-bold">TOTAL</TableFooterCell>
+                      <TableFooterCell className="text-white font-bold uppercase tracking-wider">TOTAL</TableFooterCell>
                       <TableFooterCell></TableFooterCell>
                       <TableFooterCell className="text-right text-white font-bold">
                         {platformData.totalCount.toLocaleString()}
                       </TableFooterCell>
-                      <TableFooterCell className="text-right text-emerald-400 font-bold">
+                      <TableFooterCell className="text-right text-[#f0e226] font-bold">
                         ${Number(platformData.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </TableFooterCell>
-                      <TableFooterCell className="text-right text-emerald-300 font-bold">
+                      <TableFooterCell className="text-right text-[#f0e226]/70 font-bold">
                         ${Number(platformData.totalNetRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </TableFooterCell>
-                      <TableFooterCell className="text-right text-gray-400 font-bold">
+                      <TableFooterCell className="text-right text-white/40 font-bold">
                         {getMarginPercent(platformData.totalRevenue, platformData.totalNetRevenue || 0)}%
                       </TableFooterCell>
                     </TableRow>
@@ -773,7 +752,7 @@ export default function AnalyticsTabTremor() {
                 </Table>
               </div>
             )}
-          </Card>
+          </div>
         </div>
       )}
 
@@ -781,14 +760,15 @@ export default function AnalyticsTabTremor() {
       {!organizationLoading && organizationData?.organizations?.length > 0 && (
         <div className="space-y-6">
           <div>
-            <Title className="text-white">Revenue by Organization</Title>
-            <Text className="text-gray-400">Breakdown by collecting organization</Text>
+            <h2 className="text-xl font-light text-white">Revenue by Organization</h2>
+            <p className="text-white/40">Breakdown by collecting organization</p>
           </div>
 
-          <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Organization Pie */}
-            <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
-              <Title className="text-white mb-4">Organization Distribution</Title>
+            <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+              <h3 className="text-lg font-normal text-white mb-4">Organization Distribution</h3>
               <NivoPieChart
                 data={getOrganizationPieData()}
                 height={208}
@@ -796,47 +776,49 @@ export default function AnalyticsTabTremor() {
                 enableArcLinkLabels={getOrganizationPieData().length <= 6}
                 valueFormat={currencyFormatter}
               />
-            </Card>
+            </div>
 
             {/* Organization Bar Chart */}
-            <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
-              <Title className="text-white mb-4">Organization Revenue</Title>
+            <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+              <h3 className="text-lg font-normal text-white mb-4">Organization Revenue</h3>
               <NivoBarChart
                 data={getOrganizationBarData()}
                 keys={['Revenue']}
                 indexBy="organization"
                 height={208}
-                colors={['#8b5cf6']}
+                colors={['#f0e226']}
                 valueFormat={currencyFormatter}
               />
-            </Card>
-          </Grid>
+            </div>
+          </div>
 
           {/* Organization Details Table */}
-          <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
-            <Title className="text-white mb-4">Organization Details</Title>
+          <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+            <h3 className="text-lg font-normal text-white mb-4">Organization Details</h3>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableHeaderCell className="text-gray-400">Organization</TableHeaderCell>
-                  <TableHeaderCell className="text-right text-gray-400">Statements</TableHeaderCell>
-                  <TableHeaderCell className="text-right text-gray-400">Revenue</TableHeaderCell>
-                  <TableHeaderCell className="text-right text-gray-400">Net</TableHeaderCell>
-                  <TableHeaderCell className="text-right text-gray-400">Commission</TableHeaderCell>
+                  <TableHeaderCell className="text-white/40 uppercase tracking-wider text-xs">Organization</TableHeaderCell>
+                  <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Statements</TableHeaderCell>
+                  <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Revenue</TableHeaderCell>
+                  <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Net</TableHeaderCell>
+                  <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Commission</TableHeaderCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {organizationData.organizations.map((org: any) => (
                   <TableRow key={org.organization}>
                     <TableCell className="text-white font-medium">{org.organization}</TableCell>
-                    <TableCell className="text-right text-gray-300">{org.count}</TableCell>
-                    <TableCell className="text-right text-emerald-400 font-medium">
+                    <TableCell className="text-right text-white/60">{org.count}</TableCell>
+                    <TableCell className="text-right text-[#f0e226] font-medium">
                       ${Number(org.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </TableCell>
-                    <TableCell className="text-right text-emerald-300">
+                    <TableCell className="text-right text-[#f0e226]/70">
                       ${Number(org.netRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </TableCell>
-                    <TableCell className="text-right text-blue-400">
+                    <TableCell className="text-right text-white/50">
                       ${Number(org.commissionAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </TableCell>
                   </TableRow>
@@ -844,11 +826,11 @@ export default function AnalyticsTabTremor() {
               </TableBody>
               <TableFoot>
                 <TableRow>
-                  <TableFooterCell className="text-white font-bold">Total</TableFooterCell>
+                  <TableFooterCell className="text-white font-bold uppercase tracking-wider">Total</TableFooterCell>
                   <TableFooterCell className="text-right text-white font-bold">
                     {organizationData.totalCount}
                   </TableFooterCell>
-                  <TableFooterCell className="text-right text-emerald-400 font-bold">
+                  <TableFooterCell className="text-right text-[#f0e226] font-bold">
                     ${Number(organizationData.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </TableFooterCell>
                   <TableFooterCell></TableFooterCell>
@@ -856,14 +838,14 @@ export default function AnalyticsTabTremor() {
                 </TableRow>
               </TableFoot>
             </Table>
-          </Card>
+          </div>
         </div>
       )}
 
       {/* Territory Revenue Heatmap */}
       <div>
-        <Title className="text-white mb-2">Revenue by Territory</Title>
-        <Text className="text-gray-400 mb-4">Global distribution of earnings</Text>
+        <h2 className="text-xl font-light text-white mb-2">Revenue by Territory</h2>
+        <p className="text-white/40 mb-4">Global distribution of earnings</p>
         <ChartCard
           title="Global Revenue Heatmap"
           chartId="territory-heatmap"
@@ -871,13 +853,13 @@ export default function AnalyticsTabTremor() {
           onToggleExpand={toggleChartExpansion}
         >
           {territoryLoading ? (
-            <div className="h-full flex items-center justify-center text-gray-400">
-              Loading territory data...
+            <div className="h-full flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
             </div>
           ) : territoryData?.territories?.length > 0 ? (
             <TerritoryHeatmap territories={territoryData.territories} />
           ) : (
-            <div className="h-full flex items-center justify-center text-gray-400">
+            <div className="h-full flex items-center justify-center text-white/30">
               No territory data available yet
             </div>
           )}
@@ -886,38 +868,39 @@ export default function AnalyticsTabTremor() {
 
       {/* Recent Statements */}
       {stats?.recentStatements?.length > 0 && (
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
           <div className="mb-4">
-            <Title className="text-white">Recent Statements</Title>
-            <Text className="text-gray-400">Latest processed statements</Text>
+            <h3 className="text-lg font-normal text-white">Recent Statements</h3>
+            <p className="text-sm text-white/40">Latest processed statements</p>
           </div>
-          <List className="mt-4">
+          <div className="space-y-3 mt-4">
             {stats.recentStatements.map((statement: any) => (
-              <ListItem key={statement.id}>
-                <Flex justifyContent="start" className="truncate space-x-4">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    statement.proType === 'BMI' ? 'bg-blue-500/20 text-blue-400' :
-                    statement.proType === 'ASCAP' ? 'bg-emerald-500/20 text-emerald-400' :
-                    'bg-violet-500/20 text-violet-400'
+              <div key={statement.id} className="flex items-center justify-between p-3 bg-black/30 hover:bg-black/50 transition-colors">
+                <div className="flex items-center gap-3 truncate">
+                  <span className={`px-2 py-1 text-xs font-medium ${
+                    statement.proType === 'BMI' ? 'bg-white/10 text-white/70' :
+                    statement.proType === 'ASCAP' ? 'bg-white/10 text-white/70' :
+                    'bg-white/10 text-white/70'
                   }`}>
                     {statement.proType}
                   </span>
-                  <Text className="text-white truncate">{statement.filename}</Text>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    statement.status === 'PUBLISHED' ? 'bg-emerald-500/20 text-emerald-400' :
-                    statement.status === 'PROCESSED' ? 'bg-amber-500/20 text-amber-400' :
-                    'bg-blue-500/20 text-blue-400'
+                  <span className="text-white truncate">{statement.filename}</span>
+                  <span className={`px-2 py-1 text-xs font-medium ${
+                    statement.status === 'PUBLISHED' ? 'bg-[#f0e226]/15 text-[#f0e226]' :
+                    statement.status === 'PROCESSED' ? 'bg-[#f0e226]/10 text-[#f0e226]/70' :
+                    'bg-white/10 text-white/50'
                   }`}>
                     {statement.status}
                   </span>
-                </Flex>
-                <Text className="text-emerald-400 font-semibold">
+                </div>
+                <span className="text-[#f0e226] font-light text-lg">
                   ${Number(statement.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </Text>
-              </ListItem>
+                </span>
+              </div>
             ))}
-          </List>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Theater Mode Overlays */}
@@ -939,11 +922,11 @@ export default function AnalyticsTabTremor() {
               }]}
               height={600}
               enableArea={true}
-              colors={['#10b981']}
+              colors={['#f0e226']}
               valueFormat={currencyFormatter}
             />
           ) : (
-            <div className="h-full flex items-center justify-center text-gray-400">
+            <div className="h-full flex items-center justify-center text-white/30">
               No revenue data available
             </div>
           )}
@@ -968,7 +951,7 @@ export default function AnalyticsTabTremor() {
               />
             </div>
           ) : (
-            <div className="text-gray-400">No PRO data available</div>
+            <div className="text-white/30">No PRO data available</div>
           )}
         </div>
       </TheaterMode>
@@ -991,7 +974,7 @@ export default function AnalyticsTabTremor() {
               />
             </div>
           ) : (
-            <div className="text-gray-400">No platform data available</div>
+            <div className="text-white/30">No platform data available</div>
           )}
         </div>
       </TheaterMode>
@@ -1014,7 +997,7 @@ export default function AnalyticsTabTremor() {
               />
             </div>
           ) : (
-            <div className="text-gray-400">No service type data available</div>
+            <div className="text-white/30">No service type data available</div>
           )}
         </div>
       </TheaterMode>

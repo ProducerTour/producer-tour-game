@@ -202,29 +202,29 @@ const ContactsTab: React.FC = () => {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'label': return 'bg-blue-500/20 text-blue-400 border-blue-500/40';
-      case 'publisher': return 'bg-purple-500/20 text-purple-400 border-purple-500/40';
-      case 'distributor': return 'bg-green-500/20 text-green-400 border-green-500/40';
-      case 'attorney': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40';
-      case 'manager': return 'bg-pink-500/20 text-pink-400 border-pink-500/40';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/40';
+      case 'label': return 'bg-[#f0e226]/15 text-[#f0e226] border-[#f0e226]/30';
+      case 'publisher': return 'bg-[#f0e226]/15 text-[#f0e226] border-[#f0e226]/30';
+      case 'distributor': return 'bg-[#f0e226]/15 text-[#f0e226] border-[#f0e226]/30';
+      case 'attorney': return 'bg-[#f0e226]/15 text-[#f0e226] border-[#f0e226]/30';
+      case 'manager': return 'bg-[#f0e226]/15 text-[#f0e226] border-[#f0e226]/30';
+      default: return 'bg-white/10 text-white/60 border-white/10';
     }
   };
 
-  const inputClass = "block w-full py-2.5 px-3 bg-white/10 border border-white/[0.08] rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent";
-  const labelClass = "block mb-1 text-xs font-medium text-gray-300 uppercase tracking-wide";
+  const inputClass = "block w-full py-2.5 px-3 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50";
+  const labelClass = "block mb-1 text-xs font-medium text-white/40 uppercase tracking-[0.2em]";
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Contacts</h1>
-          <p className="text-sm text-gray-400 mt-1">Manage label contacts, publishers, and billing recipients</p>
+          <h1 className="text-2xl font-light text-white">Contacts</h1>
+          <p className="text-sm text-white/40 mt-1">Manage label contacts, publishers, and billing recipients</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black text-sm font-medium hover:bg-[#f0e226]/90 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Contact
@@ -262,14 +262,14 @@ const ContactsTab: React.FC = () => {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 bg-white/5 rounded-xl animate-pulse" />
+            <div key={i} className="h-48 bg-[#19181a] border border-white/5 animate-pulse" />
           ))}
         </div>
       ) : filteredContacts.length === 0 ? (
-        <div className="text-center py-12 bg-white/[0.02] rounded-xl border border-white/[0.08]">
-          <Building2 className="w-12 h-12 mx-auto text-gray-500 mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No contacts found</h3>
-          <p className="text-sm text-gray-400 mb-4">
+        <div className="text-center py-12 bg-[#19181a] border border-white/5">
+          <Building2 className="w-12 h-12 mx-auto text-[#f0e226]/30 mb-4" />
+          <h3 className="text-lg font-normal text-white mb-2">No contacts found</h3>
+          <p className="text-sm text-white/40 mb-4">
             {searchQuery || categoryFilter !== 'all'
               ? 'Try adjusting your search or filters'
               : 'Add your first contact to get started'}
@@ -277,7 +277,7 @@ const ContactsTab: React.FC = () => {
           {!searchQuery && categoryFilter === 'all' && (
             <button
               onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black text-sm font-medium hover:bg-[#f0e226]/90"
             >
               <Plus className="w-4 h-4" />
               Add Contact
@@ -289,45 +289,46 @@ const ContactsTab: React.FC = () => {
           {filteredContacts.map((contact) => (
             <div
               key={contact.id}
-              className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-5 hover:bg-white/[0.06] transition-colors"
+              className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-5 hover:border-[#f0e226]/30 transition-all duration-300"
             >
+              <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-white truncate">
+                  <h3 className="text-lg font-medium text-white truncate">
                     {contact.companyName || contact.contactName}
                   </h3>
                   {contact.companyName && contact.contactName && (
-                    <p className="text-sm text-gray-400 flex items-center gap-1 mt-1">
+                    <p className="text-sm text-white/40 flex items-center gap-1 mt-1">
                       <User className="w-3 h-3" />
                       {contact.contactName}
                     </p>
                   )}
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getCategoryColor(contact.category)}`}>
+                <span className={`px-2 py-0.5 text-xs font-medium border ${getCategoryColor(contact.category)}`}>
                   {contact.category}
                 </span>
               </div>
 
               <div className="space-y-2 text-sm">
                 {contact.email && (
-                  <div className="flex items-center gap-2 text-gray-300">
-                    <Mail className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                    <a href={`mailto:${contact.email}`} className="truncate hover:text-blue-400">
+                  <div className="flex items-center gap-2 text-white/60">
+                    <Mail className="w-4 h-4 text-white/30 flex-shrink-0" />
+                    <a href={`mailto:${contact.email}`} className="truncate hover:text-[#f0e226]">
                       {contact.email}
                     </a>
                   </div>
                 )}
                 {contact.phone && (
-                  <div className="flex items-center gap-2 text-gray-300">
-                    <Phone className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                    <a href={`tel:${contact.phone}`} className="hover:text-blue-400">
+                  <div className="flex items-center gap-2 text-white/60">
+                    <Phone className="w-4 h-4 text-white/30 flex-shrink-0" />
+                    <a href={`tel:${contact.phone}`} className="hover:text-[#f0e226]">
                       {contact.phone}
                     </a>
                   </div>
                 )}
                 {(contact.address || contact.city) && (
-                  <div className="flex items-start gap-2 text-gray-300">
-                    <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-2 text-white/60">
+                    <MapPin className="w-4 h-4 text-white/30 flex-shrink-0 mt-0.5" />
                     <span className="truncate">
                       {[contact.address, contact.city, contact.state, contact.zipCode]
                         .filter(Boolean)
@@ -338,20 +339,20 @@ const ContactsTab: React.FC = () => {
               </div>
 
               {contact.notes && (
-                <p className="mt-3 text-xs text-gray-500 line-clamp-2">{contact.notes}</p>
+                <p className="mt-3 text-xs text-white/30 line-clamp-2">{contact.notes}</p>
               )}
 
-              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/[0.08]">
+              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
                 <button
                   onClick={() => handleEdit(contact)}
-                  className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 text-sm text-white/60 hover:text-[#f0e226] hover:bg-[#f0e226]/10 transition-colors"
                 >
                   <Edit className="w-3.5 h-3.5" />
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(contact.id)}
-                  className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                  className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 text-sm text-white/40 hover:text-white hover:bg-white/10 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Delete
@@ -364,9 +365,10 @@ const ContactsTab: React.FC = () => {
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-surface p-6 rounded-2xl shadow-xl border border-white/[0.08] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-semibold text-white mb-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="relative bg-[#19181a] p-6 shadow-xl border border-white/5 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+            <h2 className="text-xl font-light text-white mb-6">
               {editingContact ? 'Edit Contact' : 'Add New Contact'}
             </h2>
 
@@ -498,18 +500,18 @@ const ContactsTab: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-white/[0.08]">
+              <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-white/40 hover:text-white hover:bg-white/10 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 bg-[#f0e226] text-black text-sm font-medium hover:bg-[#f0e226]/90 disabled:opacity-50 transition-colors"
                 >
                   {createMutation.isPending || updateMutation.isPending
                     ? 'Saving...'

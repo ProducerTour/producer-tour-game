@@ -90,20 +90,20 @@ export default function TourMilesConfig() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-white">Tour Miles Configuration</h2>
-        <p className="text-text-muted text-sm">Manage gamification settings, users, rewards, and achievements</p>
+        <h2 className="text-2xl font-light text-white">Tour Miles Configuration</h2>
+        <p className="text-white/40">Manage gamification settings, users, rewards, and achievements</p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex space-x-1 bg-white/[0.04] p-1 rounded-lg">
+      <div className="flex space-x-1 bg-black p-1 border border-white/5">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 transition-colors ${
               activeTab === tab.id
-                ? 'bg-blue-600 text-white'
-                : 'text-text-muted hover:text-white hover:bg-white/10'
+                ? 'bg-[#f0e226] text-black'
+                : 'text-white/40 hover:text-white hover:bg-white/10'
             }`}
           >
             <tab.icon className="w-4 h-4" />
@@ -113,7 +113,8 @@ export default function TourMilesConfig() {
       </div>
 
       {/* Tab Content */}
-      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
+      <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'rewards' && <RewardManagement />}
         {activeTab === 'achievements' && <AchievementManagement />}
@@ -151,18 +152,18 @@ function UserManagement() {
       {/* Search & Actions */}
       <div className="flex items-center justify-between">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
           <input
             type="text"
             placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-blue-500"
+            className="pl-10 pr-4 py-2 bg-black border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-[#f0e226]/50"
           />
         </div>
         <button
           onClick={() => refetch()}
-          className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10"
+          className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           Refresh
@@ -172,12 +173,13 @@ function UserManagement() {
       {/* Users List */}
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+          <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
         </div>
       ) : (
         <div className="space-y-2">
           {filteredUsers?.map((user) => (
-            <div key={user.id} className="bg-white/[0.06] rounded-lg border border-white/[0.08]">
+            <div key={user.id} className="group relative overflow-hidden bg-black border border-white/5 hover:border-[#f0e226]/30 transition-all duration-300">
+              <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
               <div
                 className="flex items-center justify-between p-4 cursor-pointer"
                 onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
@@ -187,11 +189,11 @@ function UserManagement() {
                     <p className="text-white font-medium">
                       {user.name}
                     </p>
-                    <p className="text-text-muted text-sm">{user.email}</p>
+                    <p className="text-white/40 text-sm">{user.email}</p>
                   </div>
                   <span
-                    className={`px-2 py-1 rounded text-xs ${
-                      user.role === 'ADMIN' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
+                    className={`px-2 py-1 text-xs uppercase tracking-wider ${
+                      user.role === 'ADMIN' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-[#f0e226]/10 text-[#f0e226] border border-[#f0e226]/30'
                     }`}
                   >
                     {user.role}
@@ -199,40 +201,40 @@ function UserManagement() {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="text-yellow-400 font-bold">
+                    <p className="text-[#f0e226] font-light text-lg">
                       {user.points?.toLocaleString() || 0} TP
                     </p>
-                    <p className="text-text-muted text-xs">
+                    <p className="text-white/40 text-xs">
                       {user.tier || 'BRONZE'} • {user.achievementCount} achievements
                     </p>
                   </div>
                   {expandedUser === user.id ? (
-                    <ChevronUp className="w-5 h-5 text-text-muted" />
+                    <ChevronUp className="w-5 h-5 text-white/40" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-text-muted" />
+                    <ChevronDown className="w-5 h-5 text-white/40" />
                   )}
                 </div>
               </div>
 
               {/* Expanded Details */}
               {expandedUser === user.id && (
-                <div className="border-t border-white/[0.08] p-4 space-y-4">
+                <div className="border-t border-white/5 p-4 space-y-4 bg-[#19181a]">
                   <div className="grid grid-cols-4 gap-4">
-                    <div className="bg-white/[0.06] rounded p-3">
-                      <p className="text-text-muted text-xs">Total Points</p>
-                      <p className="text-white font-bold">{user.points?.toLocaleString() || 0}</p>
+                    <div className="bg-black/50 p-3 border border-white/5">
+                      <p className="text-white/40 text-xs uppercase tracking-wider">Total Points</p>
+                      <p className="text-[#f0e226] font-light text-lg">{user.points?.toLocaleString() || 0}</p>
                     </div>
-                    <div className="bg-white/[0.06] rounded p-3">
-                      <p className="text-text-muted text-xs">Lifetime Points</p>
-                      <p className="text-white font-bold">{user.totalEarned?.toLocaleString() || 0}</p>
+                    <div className="bg-black/50 p-3 border border-white/5">
+                      <p className="text-white/40 text-xs uppercase tracking-wider">Lifetime Points</p>
+                      <p className="text-white font-light text-lg">{user.totalEarned?.toLocaleString() || 0}</p>
                     </div>
-                    <div className="bg-white/[0.06] rounded p-3">
-                      <p className="text-text-muted text-xs">Current Streak</p>
-                      <p className="text-white font-bold">{user.currentStreak || 0} days</p>
+                    <div className="bg-black/50 p-3 border border-white/5">
+                      <p className="text-white/40 text-xs uppercase tracking-wider">Current Streak</p>
+                      <p className="text-white font-light text-lg">{user.currentStreak || 0} days</p>
                     </div>
-                    <div className="bg-white/[0.06] rounded p-3">
-                      <p className="text-text-muted text-xs">Redemptions</p>
-                      <p className="text-white font-bold">{user.redemptionCount}</p>
+                    <div className="bg-black/50 p-3 border border-white/5">
+                      <p className="text-white/40 text-xs uppercase tracking-wider">Redemptions</p>
+                      <p className="text-white font-light text-lg">{user.redemptionCount}</p>
                     </div>
                   </div>
 
@@ -240,14 +242,14 @@ function UserManagement() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setPointsModal({ userId: user.id, name: user.name, action: 'award' })}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors"
                       >
                         <Plus className="w-4 h-4" />
                         Award Points
                       </button>
                       <button
                         onClick={() => setPointsModal({ userId: user.id, name: user.name, action: 'deduct' })}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500"
+                        className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white hover:bg-white/20 border border-white/10 transition-colors"
                       >
                         <Minus className="w-4 h-4" />
                         Deduct Points
@@ -319,39 +321,40 @@ function PointsModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface rounded-xl p-6 w-full max-w-md border border-white/[0.08]">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+      <div className="relative overflow-hidden bg-[#19181a] p-6 w-full max-w-md border border-white/10">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-white">
+          <h3 className="text-lg font-light text-white">
             {action === 'award' ? 'Award Points' : 'Deduct Points'}
           </h3>
-          <button onClick={onClose} className="text-text-muted hover:text-white">
+          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <p className="text-text-muted mb-4">
-          {action === 'award' ? 'Award points to' : 'Deduct points from'} <span className="text-white">{userName}</span>
+        <p className="text-white/40 mb-4">
+          {action === 'award' ? 'Award points to' : 'Deduct points from'} <span className="text-[#f0e226]">{userName}</span>
         </p>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-text-muted mb-1">Points</label>
+            <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Points</label>
             <input
               type="number"
               min="1"
               value={points}
               onChange={(e) => setPoints(parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+              className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
             />
           </div>
           <div>
-            <label className="block text-sm text-text-muted mb-1">Reason</label>
+            <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Reason</label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Enter reason for this adjustment..."
-              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white resize-none"
+              className="w-full px-4 py-2 bg-black border border-white/10 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#f0e226]/50"
               rows={3}
             />
           </div>
@@ -360,16 +363,16 @@ function PointsModal({
         <div className="flex justify-end gap-2 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-text-muted hover:text-white"
+            className="px-4 py-2 text-white/40 hover:text-white transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={points <= 0 || !reason.trim() || isSubmitting}
-            className={`px-4 py-2 rounded-lg text-white ${
-              action === 'award' ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`px-4 py-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              action === 'award' ? 'bg-[#f0e226] text-black hover:bg-[#d9cc22]' : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+            }`}
           >
             {isSubmitting ? 'Processing...' : action === 'award' ? 'Award Points' : 'Deduct Points'}
           </button>
@@ -419,17 +422,17 @@ function RewardManagement() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Rewards Management</h3>
+        <h3 className="text-lg font-light text-white">Rewards Management</h3>
         <div className="flex gap-2">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10"
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
             onClick={() => setIsCreating(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+            className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Reward
@@ -440,26 +443,27 @@ function RewardManagement() {
       {/* Rewards Grid */}
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+          <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {rewards?.map((reward) => (
             <div
               key={reward.id}
-              className={`bg-white/[0.06] rounded-lg border p-4 ${
-                reward.isActive ? 'border-white/[0.08]' : 'border-red-500/30 opacity-60'
+              className={`group relative overflow-hidden bg-black border p-4 hover:border-[#f0e226]/30 transition-all duration-300 ${
+                reward.isActive ? 'border-white/5' : 'border-red-500/30 opacity-60'
               }`}
             >
+              <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="text-white font-medium">{reward.name}</h4>
-                  <p className="text-text-muted text-sm line-clamp-2">{reward.description}</p>
+                  <p className="text-white/40 text-sm line-clamp-2">{reward.description}</p>
                 </div>
                 <div className="flex gap-1">
                   <button
                     onClick={() => setEditingReward(reward)}
-                    className="p-1 text-text-muted hover:text-white"
+                    className="p-1 text-white/40 hover:text-[#f0e226] transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -469,31 +473,31 @@ function RewardManagement() {
                         deleteMutation.mutate(reward.id);
                       }
                     }}
-                    className="p-1 text-text-muted hover:text-red-400"
+                    className="p-1 text-white/40 hover:text-red-400 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
               <div className="mt-3 flex items-center gap-2 flex-wrap">
-                <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs">
+                <span className="px-2 py-1 bg-[#f0e226]/15 text-[#f0e226] text-xs border border-[#f0e226]/30">
                   {reward.cost} TP
                 </span>
-                <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs">
+                <span className="px-2 py-1 bg-white/5 text-white/60 text-xs border border-white/10">
                   {reward.category}
                 </span>
                 {reward.tierRestriction && (
-                  <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">
+                  <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs border border-purple-500/30">
                     {reward.tierRestriction}+
                   </span>
                 )}
                 {reward.roleRestriction && (
-                  <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
+                  <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs border border-green-500/30">
                     {reward.roleRestriction}
                   </span>
                 )}
                 {reward.inventory !== null && (
-                  <span className="px-2 py-1 bg-white/10 text-text-secondary rounded text-xs">
+                  <span className="px-2 py-1 bg-white/5 text-white/40 text-xs border border-white/10">
                     {reward.inventory} left
                   </span>
                 )}
@@ -582,55 +586,56 @@ function RewardModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto py-8">
-      <div className="bg-surface rounded-xl p-6 w-full max-w-lg border border-white/[0.08]">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 overflow-y-auto py-8">
+      <div className="relative overflow-hidden bg-[#19181a] p-6 w-full max-w-lg border border-white/10">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-white">
+          <h3 className="text-lg font-light text-white">
             {reward ? 'Edit Reward' : 'Create Reward'}
           </h3>
-          <button onClick={onClose} className="text-text-muted hover:text-white">
+          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-text-muted mb-1">Name</label>
+            <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+              className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-text-muted mb-1">Description</label>
+            <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white resize-none"
+              className="w-full px-4 py-2 bg-black border border-white/10 text-white resize-none focus:outline-none focus:border-[#f0e226]/50"
               rows={3}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-text-muted mb-1">Cost (TP)</label>
+              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Cost (TP)</label>
               <input
                 type="number"
                 min="0"
                 value={formData.cost}
                 onChange={(e) => setFormData({ ...formData, cost: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
               />
             </div>
             <div>
-              <label className="block text-sm text-text-muted mb-1">Category</label>
+              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
               >
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -641,22 +646,22 @@ function RewardModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-text-muted mb-1">Role Restriction</label>
+              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Role Restriction</label>
               <select
                 value={formData.roleRestriction}
                 onChange={(e) => setFormData({ ...formData, roleRestriction: e.target.value })}
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
               >
                 <option value="">All Roles</option>
                 <option value="WRITER">WRITER only</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm text-text-muted mb-1">Tier Restriction</label>
+              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Tier Restriction</label>
               <select
                 value={formData.tierRestriction}
                 onChange={(e) => setFormData({ ...formData, tierRestriction: e.target.value })}
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
               >
                 <option value="">All Tiers</option>
                 {tiers.map((tier) => (
@@ -668,14 +673,14 @@ function RewardModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-text-muted mb-1">Inventory (optional)</label>
+              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Inventory (optional)</label>
               <input
                 type="number"
                 min="0"
                 value={formData.inventory}
                 onChange={(e) => setFormData({ ...formData, inventory: e.target.value })}
                 placeholder="Unlimited"
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50"
               />
             </div>
             <div className="flex items-end">
@@ -684,22 +689,22 @@ function RewardModal({
                   type="checkbox"
                   checked={formData.isActive}
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-4 h-4 rounded border-white/10"
+                  className="w-4 h-4 bg-black border-white/10 accent-[#f0e226]"
                 />
-                <span className="text-text-muted">Active</span>
+                <span className="text-white/40">Active</span>
               </label>
             </div>
           </div>
         </div>
 
         <div className="flex justify-end gap-2 mt-6">
-          <button onClick={onClose} className="px-4 py-2 text-text-muted hover:text-white">
+          <button onClick={onClose} className="px-4 py-2 text-white/40 hover:text-white transition-colors">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!formData.name.trim() || !formData.description.trim() || isSubmitting}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {isSubmitting ? 'Saving...' : 'Save Reward'}
@@ -749,17 +754,17 @@ function AchievementManagement() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Achievements Management</h3>
+        <h3 className="text-lg font-light text-white">Achievements Management</h3>
         <div className="flex gap-2">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10"
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
             onClick={() => setIsCreating(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+            className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Achievement
@@ -770,31 +775,32 @@ function AchievementManagement() {
       {/* Achievements Grid */}
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+          <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {achievements?.map((achievement) => (
             <div
               key={achievement.id}
-              className={`bg-white/[0.06] rounded-lg border p-4 ${
-                achievement.isActive ? 'border-white/[0.08]' : 'border-red-500/30 opacity-60'
+              className={`group relative overflow-hidden bg-black border p-4 hover:border-[#f0e226]/30 transition-all duration-300 ${
+                achievement.isActive ? 'border-white/5' : 'border-red-500/30 opacity-60'
               }`}
             >
+              <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
-                    <Trophy className="w-5 h-5 text-purple-400" />
+                  <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center">
+                    <Trophy className="w-5 h-5 text-[#f0e226]" />
                   </div>
                   <div>
                     <h4 className="text-white font-medium">{achievement.name}</h4>
-                    <p className="text-text-muted text-sm line-clamp-1">{achievement.description}</p>
+                    <p className="text-white/40 text-sm line-clamp-1">{achievement.description}</p>
                   </div>
                 </div>
                 <div className="flex gap-1">
                   <button
                     onClick={() => setEditingAchievement(achievement)}
-                    className="p-1 text-text-muted hover:text-white"
+                    className="p-1 text-white/40 hover:text-[#f0e226] transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -804,20 +810,20 @@ function AchievementManagement() {
                         deleteMutation.mutate(achievement.id);
                       }
                     }}
-                    className="p-1 text-text-muted hover:text-red-400"
+                    className="p-1 text-white/40 hover:text-red-400 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
               <div className="mt-3 flex items-center gap-2 flex-wrap">
-                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
+                <span className="px-2 py-1 bg-[#f0e226]/15 text-[#f0e226] text-xs border border-[#f0e226]/30">
                   +{achievement.points} TP
                 </span>
-                <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">
+                <span className="px-2 py-1 bg-white/5 text-white/60 text-xs border border-white/10">
                   {achievement.category}
                 </span>
-                <span className="px-2 py-1 bg-white/10 text-text-secondary rounded text-xs">
+                <span className="px-2 py-1 bg-white/5 text-white/40 text-xs border border-white/10">
                   {achievement._count.userAchievements} unlocked
                 </span>
               </div>
@@ -893,55 +899,56 @@ function AchievementModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface rounded-xl p-6 w-full max-w-lg border border-white/[0.08]">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+      <div className="relative overflow-hidden bg-[#19181a] p-6 w-full max-w-lg border border-white/10">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-white">
+          <h3 className="text-lg font-light text-white">
             {achievement ? 'Edit Achievement' : 'Create Achievement'}
           </h3>
-          <button onClick={onClose} className="text-text-muted hover:text-white">
+          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-text-muted mb-1">Name</label>
+            <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+              className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-text-muted mb-1">Description</label>
+            <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white resize-none"
+              className="w-full px-4 py-2 bg-black border border-white/10 text-white resize-none focus:outline-none focus:border-[#f0e226]/50"
               rows={3}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-text-muted mb-1">Points Reward</label>
+              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Points Reward</label>
               <input
                 type="number"
                 min="0"
                 value={formData.points}
                 onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
               />
             </div>
             <div>
-              <label className="block text-sm text-text-muted mb-1">Category</label>
+              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
               >
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -955,20 +962,20 @@ function AchievementModal({
               type="checkbox"
               checked={formData.isActive}
               onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className="w-4 h-4 rounded border-white/10"
+              className="w-4 h-4 bg-black border-white/10 accent-[#f0e226]"
             />
-            <span className="text-text-muted">Active</span>
+            <span className="text-white/40">Active</span>
           </div>
         </div>
 
         <div className="flex justify-end gap-2 mt-6">
-          <button onClick={onClose} className="px-4 py-2 text-text-muted hover:text-white">
+          <button onClick={onClose} className="px-4 py-2 text-white/40 hover:text-white transition-colors">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!formData.name.trim() || !formData.description.trim() || isSubmitting}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {isSubmitting ? 'Saving...' : 'Save Achievement'}
@@ -1058,13 +1065,13 @@ function PointConfiguration() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-white">Point Configuration</h3>
-          <p className="text-text-muted text-sm">Configure how many Tour Points are awarded for each action</p>
+          <h3 className="text-lg font-light text-white">Point Configuration</h3>
+          <p className="text-white/40 text-sm">Configure how many Tour Points are awarded for each action</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10"
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -1072,14 +1079,14 @@ function PointConfiguration() {
             <>
               <button
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2 text-text-muted hover:text-white"
+                className="px-4 py-2 text-white/40 hover:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={saveMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500 disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -1088,7 +1095,7 @@ function PointConfiguration() {
           ) : (
             <button
               onClick={handleStartEdit}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+              className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors"
             >
               <Edit2 className="w-4 h-4" />
               Edit Config
@@ -1100,16 +1107,17 @@ function PointConfiguration() {
       {/* Config Grid */}
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+          <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.entries(isEditing ? editedConfig : currentConfig).map(([key, value]) => (
-            <div key={key} className="bg-white/[0.06] rounded-lg border border-white/[0.08] p-4">
+            <div key={key} className="group relative overflow-hidden bg-black border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+              <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white font-medium">{eventLabels[key] || key}</p>
-                  <p className="text-text-muted text-xs">{key}</p>
+                  <p className="text-white/30 text-xs">{key}</p>
                 </div>
                 {isEditing ? (
                   <input
@@ -1119,10 +1127,10 @@ function PointConfiguration() {
                     onChange={(e) =>
                       setEditedConfig({ ...editedConfig, [key]: parseInt(e.target.value) || 0 })
                     }
-                    className="w-24 px-3 py-1 bg-white/5 border border-white/10 rounded text-white text-right"
+                    className="w-24 px-3 py-1 bg-[#19181a] border border-white/10 text-white text-right focus:outline-none focus:border-[#f0e226]/50"
                   />
                 ) : (
-                  <span className="text-yellow-400 font-bold text-lg">{value} TP</span>
+                  <span className="text-[#f0e226] font-light text-lg">{value} TP</span>
                 )}
               </div>
             </div>
@@ -1131,8 +1139,8 @@ function PointConfiguration() {
       )}
 
       {/* Info Box */}
-      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-        <p className="text-blue-400 text-sm">
+      <div className="bg-[#f0e226]/10 border border-[#f0e226]/30 p-4">
+        <p className="text-[#f0e226] text-sm">
           <strong>Note:</strong> Changes to point values only affect future actions. Previously awarded points will not be recalculated.
         </p>
       </div>

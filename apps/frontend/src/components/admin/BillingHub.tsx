@@ -8,7 +8,6 @@ import {
   FileText,
   Eye,
   Filter,
-  Loader2,
   X,
   Printer,
   TrendingUp,
@@ -254,7 +253,7 @@ export default function BillingHub() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-blue" />
+        <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
       </div>
     );
   }
@@ -264,42 +263,46 @@ export default function BillingHub() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white">Billing Hub</h2>
-          <p className="text-text-secondary">Manage all invoices and billing requests</p>
+          <h2 className="text-2xl font-light text-white">Billing Hub</h2>
+          <p className="text-white/40">Manage all invoices and billing requests</p>
         </div>
       </div>
 
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-surface-elevated rounded-xl p-4 border border-border">
-            <div className="text-yellow-400 text-2xl font-bold">{stats.counts?.pending || 0}</div>
-            <div className="text-text-secondary text-sm">Pending</div>
+          <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+            <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+            <div className="text-[#f0e226] text-2xl font-light">{stats.counts?.pending || 0}</div>
+            <div className="text-white/40 text-xs uppercase tracking-[0.2em]">Pending</div>
           </div>
-          <div className="bg-surface-elevated rounded-xl p-4 border border-border">
-            <div className="text-blue-400 text-2xl font-bold">{stats.counts?.approved || 0}</div>
-            <div className="text-text-secondary text-sm">Approved</div>
+          <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+            <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+            <div className="text-white text-2xl font-light">{stats.counts?.approved || 0}</div>
+            <div className="text-white/40 text-xs uppercase tracking-[0.2em]">Approved</div>
           </div>
-          <div className="bg-surface-elevated rounded-xl p-4 border border-border">
-            <div className="text-purple-400 text-2xl font-bold">{stats.counts?.processing || 0}</div>
-            <div className="text-text-secondary text-sm">Processing</div>
+          <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+            <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+            <div className="text-white text-2xl font-light">{stats.counts?.processing || 0}</div>
+            <div className="text-white/40 text-xs uppercase tracking-[0.2em]">Processing</div>
           </div>
-          <div className="bg-surface-elevated rounded-xl p-4 border border-border">
-            <div className="text-green-400 text-2xl font-bold">{stats.counts?.paid || 0}</div>
-            <div className="text-text-secondary text-sm">Paid</div>
+          <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
+            <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+            <div className="text-white text-2xl font-light">{stats.counts?.paid || 0}</div>
+            <div className="text-white/40 text-xs uppercase tracking-[0.2em]">Paid</div>
           </div>
-          <div className="bg-surface-elevated rounded-xl p-4 border border-border">
-            <div className="text-green-400 text-2xl font-bold">{formatCurrency(Number(stats.totals?.netPaid) || 0)}</div>
-            <div className="text-text-secondary text-sm">Total Paid Out</div>
+          <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300 border-t-2 border-t-[#f0e226]">
+            <div className="text-[#f0e226] text-2xl font-light">{formatCurrency(Number(stats.totals?.netPaid) || 0)}</div>
+            <div className="text-white/40 text-xs uppercase tracking-[0.2em]">Total Paid Out</div>
           </div>
         </div>
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 bg-surface-elevated rounded-xl p-4 border border-border">
+      <div className="flex flex-wrap items-center gap-4 bg-[#19181a] p-4 border border-white/5">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-text-secondary" />
-          <span className="text-text-secondary text-sm">Filters:</span>
+          <Filter className="w-4 h-4 text-[#f0e226]" />
+          <span className="text-white/40 text-xs uppercase tracking-[0.2em]">Filters:</span>
         </div>
 
         {/* Status Filter */}
@@ -308,15 +311,15 @@ export default function BillingHub() {
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              className={`px-3 py-1.5 text-sm font-medium transition-all ${
                 statusFilter === status
-                  ? 'bg-brand-blue text-white'
-                  : 'bg-surface text-text-secondary hover:bg-surface-elevated'
+                  ? 'bg-[#f0e226] text-black'
+                  : 'bg-black border border-white/10 text-white/60 hover:border-[#f0e226]/50 hover:text-white'
               }`}
             >
               {status}
               {status === 'PENDING' && stats?.counts?.pending > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.5 bg-yellow-500/30 text-yellow-400 rounded text-xs">
+                <span className="ml-1.5 px-1.5 py-0.5 bg-[#f0e226]/30 text-[#f0e226] text-xs">
                   {stats.counts.pending}
                 </span>
               )}
@@ -325,15 +328,15 @@ export default function BillingHub() {
         </div>
 
         {/* Type Filter */}
-        <div className="border-l border-border pl-4 flex flex-wrap gap-2">
+        <div className="border-l border-white/10 pl-4 flex flex-wrap gap-2">
           {(['ALL', 'SESSION', 'ADVANCE', 'FEE'] as TypeFilter[]).map((type) => (
             <button
               key={type}
               onClick={() => setTypeFilter(type)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              className={`px-3 py-1.5 text-sm font-medium transition-all ${
                 typeFilter === type
-                  ? 'bg-brand-blue text-white'
-                  : 'bg-surface text-text-secondary hover:bg-surface-elevated'
+                  ? 'bg-[#f0e226] text-black'
+                  : 'bg-black border border-white/10 text-white/60 hover:border-[#f0e226]/50 hover:text-white'
               }`}
             >
               {type}
@@ -345,9 +348,11 @@ export default function BillingHub() {
       {/* Invoices List */}
       <div className="space-y-3">
         {invoices.length === 0 ? (
-          <div className="bg-surface-elevated rounded-xl p-8 border border-border text-center">
-            <FileText className="w-12 h-12 text-text-secondary mx-auto mb-3" />
-            <p className="text-text-secondary">No invoices found</p>
+          <div className="bg-[#19181a] p-8 border border-white/5 text-center">
+            <div className="w-12 h-12 bg-[#f0e226]/10 flex items-center justify-center mx-auto mb-3">
+              <FileText className="w-6 h-6 text-[#f0e226]" />
+            </div>
+            <p className="text-white/40">No invoices found</p>
           </div>
         ) : (
           invoices.map((invoice) => {
@@ -355,29 +360,30 @@ export default function BillingHub() {
             return (
               <div
                 key={invoice.id}
-                className="bg-surface-elevated rounded-xl p-4 border border-border hover:border-border-hover transition-all"
+                className="group relative overflow-hidden bg-[#19181a] p-4 border border-white/5 hover:border-[#f0e226]/30 transition-all duration-300"
               >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
                   {/* Left: Invoice Info */}
                   <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-xl ${typeColors[invoice.type]}`}>
-                      <TypeIcon className="w-5 h-5" />
+                    <div className="p-3 bg-[#f0e226]/10">
+                      <TypeIcon className="w-5 h-5 text-[#f0e226]" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-mono text-white font-medium">{invoice.invoiceNumber}</span>
-                        <span className={`px-2 py-0.5 rounded text-xs border ${statusColors[invoice.status]}`}>
+                        <span className={`px-2 py-0.5 text-xs border ${statusColors[invoice.status]}`}>
                           {invoice.status}
                         </span>
-                        <span className={`px-2 py-0.5 rounded text-xs border ${typeColors[invoice.type]}`}>
+                        <span className={`px-2 py-0.5 text-xs border ${typeColors[invoice.type]}`}>
                           {invoice.type}
                         </span>
                       </div>
-                      <p className="text-text-secondary text-sm">
+                      <p className="text-white/40 text-sm">
                         {invoice.submittedByName} • {formatDate(invoice.createdAt)}
                       </p>
                       {invoice.description && (
-                        <p className="text-text-secondary text-sm mt-1 line-clamp-1">{invoice.description}</p>
+                        <p className="text-white/30 text-sm mt-1 line-clamp-1">{invoice.description}</p>
                       )}
                     </div>
                   </div>
@@ -386,11 +392,11 @@ export default function BillingHub() {
                   <div className="flex items-center gap-4">
                     {/* Amount Info */}
                     <div className="text-right">
-                      <div className="text-white font-semibold">{formatCurrency(Number(invoice.grossAmount))}</div>
+                      <div className="text-[#f0e226] font-light text-lg">{formatCurrency(Number(invoice.grossAmount))}</div>
                       {invoice.commissionRate > 0 && (
-                        <div className="text-text-secondary text-sm">
-                          Net: <span className="text-green-400">{formatCurrency(Number(invoice.netAmount))}</span>
-                          <span className="text-red-400 ml-1">(-{invoice.commissionRate}%)</span>
+                        <div className="text-white/40 text-sm">
+                          Net: <span className="text-white">{formatCurrency(Number(invoice.netAmount))}</span>
+                          <span className="text-white/30 ml-1">(-{invoice.commissionRate}%)</span>
                         </div>
                       )}
                     </div>
@@ -402,7 +408,7 @@ export default function BillingHub() {
                           setSelectedInvoice(invoice);
                           setShowDetailModal(true);
                         }}
-                        className="p-2 rounded-lg bg-surface hover:bg-surface-elevated text-text-secondary hover:text-white transition-all"
+                        className="p-2 bg-black border border-white/10 hover:border-[#f0e226]/50 text-white/60 hover:text-[#f0e226] transition-all"
                         title="View Details"
                       >
                         <Eye className="w-4 h-4" />
@@ -412,14 +418,14 @@ export default function BillingHub() {
                         <>
                           <button
                             onClick={() => openActionModal(invoice, 'approve')}
-                            className="p-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-400 transition-all"
+                            className="p-2 bg-[#f0e226]/10 border border-[#f0e226]/30 hover:bg-[#f0e226]/20 text-[#f0e226] transition-all"
                             title="Approve"
                           >
                             <CheckCircle className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => openActionModal(invoice, 'reject')}
-                            className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-all"
+                            className="p-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white/60 transition-all"
                             title="Reject"
                           >
                             <XCircle className="w-4 h-4" />
@@ -431,10 +437,10 @@ export default function BillingHub() {
                         <button
                           onClick={() => processPaymentMutation.mutate(invoice.id)}
                           disabled={processPaymentMutation.isPending}
-                          className="px-3 py-1.5 rounded-lg bg-brand-blue hover:bg-brand-blue/80 text-white text-sm font-medium transition-all flex items-center gap-2 disabled:opacity-50"
+                          className="px-3 py-1.5 bg-[#f0e226] hover:bg-[#f0e226]/90 text-black text-sm font-medium transition-all flex items-center gap-2 disabled:opacity-50"
                         >
                           {processPaymentMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                           ) : (
                             <CreditCard className="w-4 h-4" />
                           )}
@@ -447,7 +453,7 @@ export default function BillingHub() {
 
                 {/* Stripe Status Warning */}
                 {invoice.status === 'APPROVED' && !invoice.submittedBy.stripeOnboardingComplete && (
-                  <div className="mt-3 flex items-center gap-2 text-yellow-400 text-sm bg-yellow-500/10 rounded-lg px-3 py-2">
+                  <div className="mt-3 flex items-center gap-2 text-[#f0e226] text-sm bg-[#f0e226]/10 px-3 py-2 border border-[#f0e226]/20">
                     <AlertCircle className="w-4 h-4" />
                     Submitter has not completed Stripe onboarding
                   </div>
@@ -455,8 +461,8 @@ export default function BillingHub() {
 
                 {/* Rejection Reason */}
                 {invoice.status === 'REJECTED' && invoice.rejectionReason && (
-                  <div className="mt-3 bg-red-500/10 rounded-lg px-3 py-2 text-red-400 text-sm">
-                    <strong>Rejection Reason:</strong> {invoice.rejectionReason}
+                  <div className="mt-3 bg-white/5 px-3 py-2 text-white/60 text-sm border border-white/10">
+                    <strong className="text-white/80">Rejection Reason:</strong> {invoice.rejectionReason}
                   </div>
                 )}
               </div>
@@ -467,24 +473,25 @@ export default function BillingHub() {
 
       {/* Detail Modal */}
       {showDetailModal && selectedInvoice && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-elevated rounded-2xl border border-border max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-surface-elevated border-b border-border p-4 flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="relative bg-[#19181a] border border-white/5 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+            <div className="sticky top-0 bg-[#19181a] border-b border-white/5 p-4 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-white">{selectedInvoice.invoiceNumber}</h3>
-                <p className="text-text-secondary text-sm">Invoice Details</p>
+                <h3 className="text-lg font-light text-white">{selectedInvoice.invoiceNumber}</h3>
+                <p className="text-white/40 text-sm">Invoice Details</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowInvoiceModal(true)}
-                  className="p-2 rounded-lg bg-surface hover:bg-surface-elevated text-text-secondary hover:text-white transition-all"
+                  className="p-2 bg-black border border-white/10 hover:border-[#f0e226]/50 text-white/60 hover:text-[#f0e226] transition-all"
                   title="Print Invoice"
                 >
                   <Printer className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setShowDetailModal(false)}
-                  className="p-2 rounded-lg bg-surface hover:bg-surface-elevated text-text-secondary hover:text-white transition-all"
+                  className="p-2 bg-black border border-white/10 hover:border-white/30 text-white/60 hover:text-white transition-all"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -494,31 +501,31 @@ export default function BillingHub() {
             <div className="p-6 space-y-6">
               {/* Status & Type */}
               <div className="flex items-center gap-3">
-                <span className={`px-3 py-1 rounded-lg text-sm font-medium border ${statusColors[selectedInvoice.status]}`}>
+                <span className={`px-3 py-1 text-sm font-medium border ${statusColors[selectedInvoice.status]}`}>
                   {selectedInvoice.status}
                 </span>
-                <span className={`px-3 py-1 rounded-lg text-sm font-medium border ${typeColors[selectedInvoice.type]}`}>
+                <span className={`px-3 py-1 text-sm font-medium border ${typeColors[selectedInvoice.type]}`}>
                   {selectedInvoice.type}
                 </span>
                 {selectedInvoice.advanceType && (
-                  <span className="px-3 py-1 rounded-lg text-sm font-medium bg-surface text-text-secondary">
+                  <span className="px-3 py-1 text-sm font-medium bg-black text-white/60 border border-white/10">
                     {selectedInvoice.advanceType.replace('_', ' ')}
                   </span>
                 )}
               </div>
 
               {/* Submitter Info */}
-              <div className="bg-surface rounded-xl p-4">
-                <h4 className="text-text-secondary text-sm mb-2">Submitted By</h4>
+              <div className="bg-black p-4 border border-white/10">
+                <h4 className="text-white/40 text-xs uppercase tracking-[0.2em] mb-2">Submitted By</h4>
                 <p className="text-white font-medium">{selectedInvoice.submittedByName}</p>
-                <p className="text-text-secondary text-sm">{selectedInvoice.submittedByEmail || selectedInvoice.submittedBy.email}</p>
+                <p className="text-white/40 text-sm">{selectedInvoice.submittedByEmail || selectedInvoice.submittedBy.email}</p>
                 <div className="mt-2 flex items-center gap-2">
                   {selectedInvoice.submittedBy.stripeOnboardingComplete ? (
-                    <span className="text-green-400 text-sm flex items-center gap-1">
+                    <span className="text-[#f0e226] text-sm flex items-center gap-1">
                       <CheckCircle className="w-3 h-3" /> Stripe Connected
                     </span>
                   ) : (
-                    <span className="text-yellow-400 text-sm flex items-center gap-1">
+                    <span className="text-white/40 text-sm flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" /> Stripe Not Connected
                     </span>
                   )}
@@ -526,42 +533,42 @@ export default function BillingHub() {
               </div>
 
               {/* Financial Details */}
-              <div className="bg-surface rounded-xl p-4">
-                <h4 className="text-text-secondary text-sm mb-3">Financial Details</h4>
+              <div className="bg-black p-4 border border-white/10">
+                <h4 className="text-white/40 text-xs uppercase tracking-[0.2em] mb-3">Financial Details</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-text-secondary">Gross Amount</span>
+                    <span className="text-white/40">Gross Amount</span>
                     <span className="text-white font-medium">{formatCurrency(Number(selectedInvoice.grossAmount))}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-text-secondary">Commission Rate</span>
-                    <span className="text-red-400">{selectedInvoice.commissionRate}%</span>
+                    <span className="text-white/40">Commission Rate</span>
+                    <span className="text-white/60">{selectedInvoice.commissionRate}%</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-text-secondary">Commission Amount</span>
-                    <span className="text-red-400">-{formatCurrency(Number(selectedInvoice.commissionAmount))}</span>
+                    <span className="text-white/40">Commission Amount</span>
+                    <span className="text-white/60">-{formatCurrency(Number(selectedInvoice.commissionAmount))}</span>
                   </div>
-                  <div className="border-t border-border pt-2 flex justify-between">
+                  <div className="border-t border-white/10 pt-2 flex justify-between">
                     <span className="text-white font-medium">Net Amount (Payout)</span>
-                    <span className="text-green-400 font-semibold">{formatCurrency(Number(selectedInvoice.netAmount))}</span>
+                    <span className="text-[#f0e226] font-light text-lg">{formatCurrency(Number(selectedInvoice.netAmount))}</span>
                   </div>
                 </div>
               </div>
 
               {/* Description */}
               {selectedInvoice.description && (
-                <div className="bg-surface rounded-xl p-4">
-                  <h4 className="text-text-secondary text-sm mb-2">Description</h4>
+                <div className="bg-black p-4 border border-white/10">
+                  <h4 className="text-white/40 text-xs uppercase tracking-[0.2em] mb-2">Description</h4>
                   <p className="text-white">{selectedInvoice.description}</p>
                 </div>
               )}
 
               {/* Linked Placement Deal */}
               {selectedInvoice.placementDeal && (
-                <div className="bg-surface rounded-xl p-4">
-                  <h4 className="text-text-secondary text-sm mb-2">Linked Placement Deal</h4>
+                <div className="bg-black p-4 border border-white/10">
+                  <h4 className="text-white/40 text-xs uppercase tracking-[0.2em] mb-2">Linked Placement Deal</h4>
                   <p className="text-white font-medium">{selectedInvoice.placementDeal.songTitle}</p>
-                  <p className="text-text-secondary text-sm">
+                  <p className="text-white/40 text-sm">
                     {selectedInvoice.placementDeal.artistName} • {selectedInvoice.placementDeal.clientFullName}
                   </p>
                 </div>
@@ -569,29 +576,29 @@ export default function BillingHub() {
 
               {/* Admin Notes */}
               {selectedInvoice.adminNotes && (
-                <div className="bg-surface rounded-xl p-4">
-                  <h4 className="text-text-secondary text-sm mb-2">Admin Notes</h4>
+                <div className="bg-black p-4 border border-white/10">
+                  <h4 className="text-white/40 text-xs uppercase tracking-[0.2em] mb-2">Admin Notes</h4>
                   <p className="text-white">{selectedInvoice.adminNotes}</p>
                 </div>
               )}
 
               {/* Rejection Reason */}
               {selectedInvoice.rejectionReason && (
-                <div className="bg-red-500/10 rounded-xl p-4 border border-red-500/30">
-                  <h4 className="text-red-400 text-sm mb-2">Rejection Reason</h4>
-                  <p className="text-red-300">{selectedInvoice.rejectionReason}</p>
+                <div className="bg-white/5 p-4 border border-white/10">
+                  <h4 className="text-white/60 text-xs uppercase tracking-[0.2em] mb-2">Rejection Reason</h4>
+                  <p className="text-white/80">{selectedInvoice.rejectionReason}</p>
                 </div>
               )}
 
               {/* Payment Info */}
               {selectedInvoice.stripeTransferId && (
-                <div className="bg-green-500/10 rounded-xl p-4 border border-green-500/30">
-                  <h4 className="text-green-400 text-sm mb-2">Payment Completed</h4>
-                  <p className="text-green-300 text-sm">
+                <div className="bg-[#f0e226]/10 p-4 border border-[#f0e226]/30">
+                  <h4 className="text-[#f0e226] text-xs uppercase tracking-[0.2em] mb-2">Payment Completed</h4>
+                  <p className="text-white text-sm">
                     Transfer ID: <span className="font-mono">{selectedInvoice.stripeTransferId}</span>
                   </p>
                   {selectedInvoice.paidAt && (
-                    <p className="text-green-300 text-sm mt-1">
+                    <p className="text-white/60 text-sm mt-1">
                       Paid: {formatDate(selectedInvoice.paidAt)}
                     </p>
                   )}
@@ -606,7 +613,7 @@ export default function BillingHub() {
                       setShowDetailModal(false);
                       openActionModal(selectedInvoice, 'approve');
                     }}
-                    className="flex-1 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-2.5 bg-[#f0e226] hover:bg-[#f0e226]/90 text-black font-medium transition-all flex items-center justify-center gap-2"
                   >
                     <CheckCircle className="w-4 h-4" />
                     Approve
@@ -616,7 +623,7 @@ export default function BillingHub() {
                       setShowDetailModal(false);
                       openActionModal(selectedInvoice, 'reject');
                     }}
-                    className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 text-white font-medium transition-all flex items-center justify-center gap-2 border border-white/10"
                   >
                     <XCircle className="w-4 h-4" />
                     Reject
@@ -628,10 +635,10 @@ export default function BillingHub() {
                 <button
                   onClick={() => processPaymentMutation.mutate(selectedInvoice.id)}
                   disabled={processPaymentMutation.isPending || !selectedInvoice.submittedBy.stripeOnboardingComplete}
-                  className="w-full py-2.5 rounded-xl bg-brand-blue hover:bg-brand-blue/80 text-white font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-2.5 bg-[#f0e226] hover:bg-[#f0e226]/90 text-black font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {processPaymentMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                   ) : (
                     <CreditCard className="w-4 h-4" />
                   )}
@@ -645,38 +652,39 @@ export default function BillingHub() {
 
       {/* Action Modal (Approve/Reject) */}
       {showActionModal && selectedInvoice && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-elevated rounded-2xl border border-border max-w-md w-full">
-            <div className="p-4 border-b border-border">
-              <h3 className="text-lg font-semibold text-white">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="relative bg-[#19181a] border border-white/5 max-w-md w-full">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+            <div className="p-4 border-b border-white/5">
+              <h3 className="text-lg font-light text-white">
                 {modalAction === 'approve' ? 'Approve Invoice' : 'Reject Invoice'}
               </h3>
-              <p className="text-text-secondary text-sm">{selectedInvoice.invoiceNumber}</p>
+              <p className="text-white/40 text-sm">{selectedInvoice.invoiceNumber}</p>
             </div>
 
             <div className="p-4 space-y-4">
               {modalAction === 'reject' && (
                 <div>
-                  <label className="block text-text-secondary text-sm mb-2">
-                    Rejection Reason <span className="text-red-400">*</span>
+                  <label className="block text-white/40 text-xs uppercase tracking-[0.2em] mb-2">
+                    Rejection Reason <span className="text-[#f0e226]">*</span>
                   </label>
                   <textarea
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
                     rows={3}
-                    className="w-full px-4 py-3 rounded-xl bg-surface border border-border text-white placeholder-text-secondary focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all resize-none"
+                    className="w-full px-4 py-3 bg-black border border-white/10 text-white placeholder-white/30 focus:border-[#f0e226]/50 focus:outline-none transition-all resize-none"
                     placeholder="Explain why this invoice is being rejected..."
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-text-secondary text-sm mb-2">Admin Notes (optional)</label>
+                <label className="block text-white/40 text-xs uppercase tracking-[0.2em] mb-2">Admin Notes (optional)</label>
                 <textarea
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
                   rows={2}
-                  className="w-full px-4 py-3 rounded-xl bg-surface border border-border text-white placeholder-text-secondary focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all resize-none"
+                  className="w-full px-4 py-3 bg-black border border-white/10 text-white placeholder-white/30 focus:border-[#f0e226]/50 focus:outline-none transition-all resize-none"
                   placeholder="Internal notes..."
                 />
               </div>
@@ -684,21 +692,23 @@ export default function BillingHub() {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={closeActionModal}
-                  className="flex-1 py-2.5 rounded-xl bg-surface hover:bg-surface-elevated text-text-secondary font-medium transition-all"
+                  className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-medium transition-all border border-white/10"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleActionSubmit}
                   disabled={approveMutation.isPending || rejectMutation.isPending}
-                  className={`flex-1 py-2.5 rounded-xl text-white font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
+                  className={`flex-1 py-2.5 font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
                     modalAction === 'approve'
-                      ? 'bg-green-500 hover:bg-green-600'
-                      : 'bg-red-500 hover:bg-red-600'
+                      ? 'bg-[#f0e226] hover:bg-[#f0e226]/90 text-black'
+                      : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
                   }`}
                 >
                   {(approveMutation.isPending || rejectMutation.isPending) && (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <div className={`w-4 h-4 border-2 rounded-full animate-spin ${
+                      modalAction === 'approve' ? 'border-black/20 border-t-black' : 'border-white/20 border-t-white'
+                    }`} />
                   )}
                   {modalAction === 'approve' ? 'Approve' : 'Reject'}
                 </button>
@@ -710,21 +720,21 @@ export default function BillingHub() {
 
       {/* Print Invoice Modal */}
       {showInvoiceModal && selectedInvoice && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">Invoice Preview</h3>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handlePrint}
-                  className="px-4 py-2 rounded-lg bg-brand-blue hover:bg-brand-blue/80 text-white text-sm font-medium transition-all flex items-center gap-2"
+                  className="px-4 py-2 bg-[#f0e226] hover:bg-[#f0e226]/90 text-black text-sm font-medium transition-all flex items-center gap-2"
                 >
                   <Printer className="w-4 h-4" />
                   Print
                 </button>
                 <button
                   onClick={() => setShowInvoiceModal(false)}
-                  className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-all"
+                  className="p-2 hover:bg-gray-100 text-gray-500 transition-all"
                 >
                   <X className="w-4 h-4" />
                 </button>
