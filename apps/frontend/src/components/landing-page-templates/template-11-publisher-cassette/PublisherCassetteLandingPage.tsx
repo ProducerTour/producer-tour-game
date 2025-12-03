@@ -30,7 +30,7 @@ import {
   useMotionValue,
   useMotionTemplate,
 } from 'framer-motion';
-import { ArrowRight, Check, Play, ChevronDown, ArrowUpRight, Plus, Pause, Music2, BarChart3, Wallet, FileText, Users2, Globe2, Shield, ShoppingCart } from 'lucide-react';
+import { ArrowRight, Check, Play, ChevronDown, ArrowUpRight, Plus, Pause, Music2, BarChart3, Wallet, FileText, Users2, Globe2, Shield, ShoppingCart, Video, Search, DollarSign, Clock } from 'lucide-react';
 import { useCartStore } from '../../../store/cart.store';
 import { faqData, processSteps } from '../../landing/data';
 import ptLogo from '../../../assets/images/logos/whitetransparentpt.png';
@@ -1720,42 +1720,58 @@ function PricingSection() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
 
-  const plans = [
+  // Publishing Administration features
+  const publishingFeatures = [
+    'Global royalty collection',
+    'Monthly statements & analytics',
+    'Work registration & song submission',
+    'Tour Profile (public portfolio)',
+    'Sync licensing opportunities',
+    'Dedicated support',
+  ];
+
+  // Writer tools data
+  const writerTools = [
     {
-      name: 'Starter',
-      rate: '15%',
-      description: 'For emerging songwriters',
-      features: [
-        'Global royalty collection',
-        'Monthly statements',
-        'Basic analytics',
-        'Email support',
-      ],
+      name: 'Beat Video Maker',
+      description: 'Create professional type beat videos',
+      price: '$9.99/mo',
+      note: 'Free for Producer Tour writers',
+      status: 'available' as const,
+      icon: Video,
+      href: '/tools/type-beat-video-maker',
     },
     {
-      name: 'Pro',
-      rate: '12%',
-      description: 'For established writers',
-      features: [
-        'Everything in Starter',
-        'Priority collection',
-        'Advanced analytics',
-        'Dedicated support',
-        'Sync licensing',
-      ],
-      featured: true,
+      name: 'Metadata Index',
+      description: 'Search & verify music metadata',
+      price: 'Contact',
+      status: 'contact' as const,
+      icon: Search,
+      href: '/contact',
     },
     {
-      name: 'Enterprise',
-      rate: 'Custom',
-      description: 'For catalogs & labels',
-      features: [
-        'Everything in Pro',
-        'Custom rates',
-        'API access',
-        'White-glove service',
-        'Quarterly reviews',
-      ],
+      name: 'Takedown Tool',
+      description: 'Protect your music from infringement',
+      price: '',
+      status: 'coming-soon' as const,
+      icon: Shield,
+      href: '#',
+    },
+    {
+      name: 'Publishing Tracker',
+      description: 'Monitor placements & credits',
+      price: 'Contact',
+      status: 'contact' as const,
+      icon: BarChart3,
+      href: '/contact',
+    },
+    {
+      name: 'Session Payout',
+      description: 'Calculate & manage session payments',
+      price: 'Contact',
+      status: 'contact' as const,
+      icon: DollarSign,
+      href: '/contact',
     },
   ];
 
@@ -1782,43 +1798,115 @@ function PricingSection() {
           </motion.h2>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-4">
-          {plans.map((plan, i) => (
-            <LiftCard
-              key={plan.name}
-              delay={i * BEAT}
-              className={`p-8 ${plan.featured ? 'border-[#f0e226] relative' : ''}`}
-            >
-              {plan.featured && (
-                <div className="absolute -top-3 left-8 px-3 py-1 bg-[#f0e226] text-black text-xs uppercase tracking-wider">
-                  Most Popular
+        {/* Publishing Administration Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+          transition={{ duration: 0.6, delay: BEAT * 2 }}
+          className="mb-16"
+        >
+          <LiftCard className="p-8 md:p-12 border-[#f0e226] relative max-w-4xl mx-auto">
+            <div className="absolute -top-3 left-8 px-3 py-1 bg-[#f0e226] text-black text-xs uppercase tracking-wider">
+              Publishing
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+              <div>
+                <div className="text-sm uppercase tracking-[0.2em] text-white/40 mb-2">
+                  Music Publishing Administration
                 </div>
-              )}
-              <div className="text-sm uppercase tracking-[0.2em] text-white/40 mb-2">
-                {plan.name}
+                <div className="text-5xl md:text-6xl font-light text-white mb-2">80/20</div>
+                <div className="text-lg text-white/60 mb-6">You keep <YellowText>80%</YellowText> of your royalties</div>
+
+                <MagneticButton
+                  href="/apply"
+                  variant="primary"
+                  className="w-full md:w-auto justify-center"
+                >
+                  Get Started
+                </MagneticButton>
               </div>
-              <div className="text-5xl font-light text-white mb-2">{plan.rate}</div>
-              <div className="text-sm text-white/40 mb-8">{plan.description}</div>
 
-              <ul className="space-y-4 mb-8">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-3 text-sm text-white/60">
-                    <Check className="w-4 h-4 text-[#f0e226]" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
+              <div>
+                <ul className="space-y-4">
+                  {publishingFeatures.map((feature) => (
+                    <li key={feature} className="flex items-center gap-3 text-sm text-white/60">
+                      <Check className="w-4 h-4 text-[#f0e226] flex-shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </LiftCard>
+        </motion.div>
 
-              <MagneticButton
-                href="/apply"
-                variant={plan.featured ? 'primary' : 'secondary'}
-                className="w-full justify-center"
+        {/* Writer Tools Section */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={isInView ? { opacity: 1 } : { opacity: 0 }}
+          transition={{ duration: 0.6, delay: BEAT * 4 }}
+        >
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <div className="w-12 h-px bg-[#f0e226]" />
+            <span className="text-xs uppercase tracking-[0.3em] text-white/40">Writer Tools</span>
+            <div className="w-12 h-px bg-[#f0e226]" />
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {writerTools.map((tool, i) => (
+              <LiftCard
+                key={tool.name}
+                delay={BEAT * 5 + i * BEAT}
+                className={`p-6 relative ${tool.status === 'coming-soon' ? 'opacity-75' : ''}`}
               >
-                Get Started
-              </MagneticButton>
-            </LiftCard>
-          ))}
-        </div>
+                {tool.status === 'coming-soon' && (
+                  <div className="absolute -top-3 right-6 px-3 py-1 bg-white/10 text-white/60 text-xs uppercase tracking-wider flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Coming Soon
+                  </div>
+                )}
+                {tool.note && tool.status === 'available' && (
+                  <div className="absolute -top-3 right-6 px-3 py-1 bg-[#f0e226] text-black text-xs uppercase tracking-wider">
+                    Free for Writers
+                  </div>
+                )}
+
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-[#f0e226]/10 flex items-center justify-center flex-shrink-0">
+                    <tool.icon className="w-5 h-5 text-[#f0e226]" />
+                  </div>
+                  <div>
+                    <div className="text-white font-medium mb-1">{tool.name}</div>
+                    <div className="text-xs text-white/40">{tool.description}</div>
+                  </div>
+                </div>
+
+                {tool.status === 'available' && (
+                  <div className="text-2xl font-light text-white mb-4">{tool.price}</div>
+                )}
+
+                {tool.status === 'contact' && (
+                  <div className="text-lg text-white/60 mb-4">Contact for pricing</div>
+                )}
+
+                {tool.status === 'coming-soon' ? (
+                  <div className="text-sm text-white/40 uppercase tracking-wider">
+                    Notify Me
+                  </div>
+                ) : (
+                  <MagneticButton
+                    href={tool.href}
+                    variant="secondary"
+                    className="w-full justify-center text-sm py-3"
+                  >
+                    {tool.status === 'contact' ? 'Contact Us' : 'Get Started'}
+                  </MagneticButton>
+                )}
+              </LiftCard>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </Section>
   );
