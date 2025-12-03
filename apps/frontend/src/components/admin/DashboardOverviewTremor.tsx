@@ -1,6 +1,6 @@
 /**
  * Dashboard Overview with Tremor Components
- * Modern analytics dashboard using Tremor UI
+ * Cassette theme styling with yellow (#f0e226) accents
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -144,20 +144,20 @@ export default function DashboardOverviewTremor() {
           <Card
             key={kpi.title}
             className={cn(
-              'bg-gradient-to-b from-white/[0.08] to-white/[0.02]',
-              'border-white/[0.08] ring-0'
+              'bg-[#19181a]',
+              'border-white/5 ring-0'
             )}
             decoration="top"
-            decorationColor={kpi.color}
+            decorationColor="yellow"
           >
             <Flex alignItems="start">
               <div className="truncate">
-                <Text className="text-gray-400">{kpi.title}</Text>
-                <Metric className="text-white mt-1 truncate text-2xl">
+                <Text className="text-white/40 text-xs uppercase tracking-[0.2em]">{kpi.title}</Text>
+                <Metric className="text-white mt-1 truncate text-2xl font-light">
                   {typeof kpi.value === 'number' ? kpi.value.toLocaleString() : kpi.value}
                 </Metric>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center text-2xl shrink-0">
+              <div className="w-12 h-12 bg-[#f0e226]/10 flex items-center justify-center text-2xl shrink-0">
                 {kpi.icon}
               </div>
             </Flex>
@@ -166,7 +166,7 @@ export default function DashboardOverviewTremor() {
                 <BadgeDelta deltaType={kpi.deltaType} size="xs">
                   {kpi.delta}
                 </BadgeDelta>
-                <Text className="text-gray-500 text-xs">vs last period</Text>
+                <Text className="text-white/30 text-xs">vs last period</Text>
               </Flex>
             )}
           </Card>
@@ -179,18 +179,18 @@ export default function DashboardOverviewTremor() {
           <Card
             key={kpi.title}
             className={cn(
-              'bg-gradient-to-b from-white/[0.06] to-white/[0.02]',
-              'border-white/[0.06] ring-0'
+              'bg-[#19181a]',
+              'border-white/5 ring-0'
             )}
           >
             <Flex alignItems="start">
               <div className="truncate">
-                <Text className="text-gray-500 text-sm">{kpi.title}</Text>
-                <Metric className="text-white mt-1 truncate text-xl">
+                <Text className="text-white/40 text-xs uppercase tracking-[0.2em]">{kpi.title}</Text>
+                <Metric className="text-white mt-1 truncate text-xl font-light">
                   {typeof kpi.value === 'number' ? kpi.value.toLocaleString() : kpi.value}
                 </Metric>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-lg shrink-0">
+              <div className="w-8 h-8 bg-[#f0e226]/10 flex items-center justify-center text-lg shrink-0">
                 {kpi.icon}
               </div>
             </Flex>
@@ -199,7 +199,7 @@ export default function DashboardOverviewTremor() {
                 <BadgeDelta deltaType={kpi.deltaType} size="xs">
                   {kpi.delta}
                 </BadgeDelta>
-                <Text className="text-gray-500 text-xs">vs last period</Text>
+                <Text className="text-white/30 text-xs">vs last period</Text>
               </Flex>
             )}
           </Card>
@@ -211,25 +211,25 @@ export default function DashboardOverviewTremor() {
         {/* Revenue Area Chart */}
         <Card
           className={cn(
-            'bg-gradient-to-b from-white/[0.08] to-white/[0.02]',
-            'border-white/[0.08] ring-0'
+            'bg-[#19181a]',
+            'border-white/5 ring-0'
           )}
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <Title className="text-white">Revenue Overview</Title>
-              <Text className="text-gray-400">Monthly revenue trend</Text>
+              <Title className="text-white font-normal">Revenue Overview</Title>
+              <Text className="text-white/40">Monthly revenue trend</Text>
             </div>
           </div>
           {revenueChartData.length > 0 ? (
             <RechartsRevenueChart
               data={revenueChartData}
               height={288}
-              color="#3b82f6"
+              color="#f0e226"
               gradientId="adminRevenueGradient"
             />
           ) : (
-            <div className="flex items-center justify-center h-72 text-gray-500">
+            <div className="flex items-center justify-center h-72 text-white/30">
               No revenue data available
             </div>
           )}
@@ -238,12 +238,12 @@ export default function DashboardOverviewTremor() {
         {/* PRO Distribution Donut */}
         <Card
           className={cn(
-            'bg-gradient-to-b from-white/[0.08] to-white/[0.02]',
-            'border-white/[0.08] ring-0'
+            'bg-[#19181a]',
+            'border-white/5 ring-0'
           )}
         >
-          <Title className="text-white">Statement Distribution</Title>
-          <Text className="text-gray-400">By PRO type</Text>
+          <Title className="text-white font-normal">Statement Distribution</Title>
+          <Text className="text-white/40">By PRO type</Text>
           {proDistribution.length > 0 ? (
             <>
               <NivoPieChart
@@ -260,10 +260,10 @@ export default function DashboardOverviewTremor() {
                   return (
                     <ListItem key={item.id}>
                       <Flex justifyContent="start" className="truncate space-x-2.5">
-                        <span className="text-gray-300">{item.label}</span>
+                        <span className="text-white/60">{item.label}</span>
                       </Flex>
-                      <Text className="text-gray-400">
-                        {item.value} <span className="text-gray-500">({percentage}%)</span>
+                      <Text className="text-white/40">
+                        {item.value} <span className="text-white/30">({percentage}%)</span>
                       </Text>
                     </ListItem>
                   );
@@ -271,7 +271,7 @@ export default function DashboardOverviewTremor() {
               </List>
             </>
           ) : (
-            <div className="flex items-center justify-center h-72 text-gray-500">
+            <div className="flex items-center justify-center h-72 text-white/30">
               No statement data available
             </div>
           )}
@@ -281,16 +281,16 @@ export default function DashboardOverviewTremor() {
       {/* Recent Statements */}
       <Card
         className={cn(
-          'bg-gradient-to-b from-white/[0.08] to-white/[0.02]',
-          'border-white/[0.08] ring-0'
+          'bg-[#19181a]',
+          'border-white/5 ring-0'
         )}
       >
         <Flex>
           <div>
-            <Title className="text-white">Recent Statements</Title>
-            <Text className="text-gray-400">Latest processed statements</Text>
+            <Title className="text-white font-normal">Recent Statements</Title>
+            <Text className="text-white/40">Latest processed statements</Text>
           </div>
-          <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+          <button className="text-[#f0e226] hover:text-white text-sm font-medium uppercase tracking-wider">
             View All →
           </button>
         </Flex>
@@ -299,35 +299,30 @@ export default function DashboardOverviewTremor() {
             recentStatements.map((statement: any) => (
               <ListItem key={statement.id}>
                 <Flex justifyContent="start" className="truncate space-x-4">
-                  <div className={cn(
-                    'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-                    statement.proType === 'BMI' ? 'bg-blue-500/20' :
-                    statement.proType === 'ASCAP' ? 'bg-cyan-500/20' :
-                    'bg-violet-500/20'
-                  )}>
+                  <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center shrink-0">
                     <span className="text-lg">📊</span>
                   </div>
                   <div className="truncate">
                     <Text className="text-white truncate">
                       <Bold>{statement.filename}</Bold>
                     </Text>
-                    <Text className="text-gray-500">
+                    <Text className="text-white/40">
                       {statement.proType} • {statement.itemCount || 0} items
                     </Text>
                   </div>
                 </Flex>
                 <div className="text-right">
-                  <Text className="text-emerald-400 font-semibold">
+                  <Text className="text-[#f0e226] font-light text-lg">
                     ${Number(statement.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </Text>
-                  <Text className="text-gray-500 text-xs">
+                  <Text className="text-white/30 text-xs">
                     {new Date(statement.createdAt).toLocaleDateString()}
                   </Text>
                 </div>
               </ListItem>
             ))
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-white/30">
               No recent statements
             </div>
           )}

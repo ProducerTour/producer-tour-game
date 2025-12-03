@@ -98,11 +98,20 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-surface overflow-hidden">
-      {/* Background Effects */}
+    <div className="flex flex-col h-screen bg-black overflow-hidden">
+      {/* Background Effects - Cassette Theme */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-brand-blue/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-green-500/5 rounded-full blur-[100px]" />
+        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-[#f0e226]/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-[#f0e226]/3 rounded-full blur-[100px]" />
+      </div>
+      {/* Noise texture overlay */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.015] z-[1]">
+        <svg className="w-full h-full">
+          <filter id="adminNoise">
+            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#adminNoise)" />
+        </svg>
       </div>
 
       {/* Impersonation Banner */}
