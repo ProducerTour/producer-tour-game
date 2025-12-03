@@ -4,23 +4,11 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import {
-  Card,
-  Title,
-  Text,
-  Metric,
-  Flex,
-  Grid,
-  BadgeDelta,
-  List,
-  ListItem,
-  Bold,
-} from '@tremor/react';
 import type { DeltaType } from '@tremor/react';
 import { dashboardApi, statementApi } from '../../lib/api';
 import { cn } from '../../lib/utils';
 import { NivoPieChart, RechartsRevenueChart } from '../charts';
-import { TrendingUp, Users, FileText, Music, DollarSign, Wallet, Percent } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Users, FileText, Music, DollarSign, Wallet, Percent } from 'lucide-react';
 
 // Smart currency formatter
 const formatCurrency = (value: number) =>
@@ -65,9 +53,17 @@ function CassetteKpiCard({
           </p>
           {delta && deltaType && (
             <div className="mt-3 flex items-center gap-2">
-              <BadgeDelta deltaType={deltaType} size="xs">
+              <span className={cn(
+                "inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium uppercase tracking-wider",
+                deltaType === 'increase' && "bg-[#f0e226]/15 text-[#f0e226] border border-[#f0e226]/30",
+                deltaType === 'decrease' && "bg-white/5 text-white/50 border border-white/10",
+                deltaType === 'unchanged' && "bg-white/5 text-white/40 border border-white/10"
+              )}>
+                {deltaType === 'increase' && <TrendingUp className="w-3 h-3" />}
+                {deltaType === 'decrease' && <TrendingDown className="w-3 h-3" />}
+                {deltaType === 'unchanged' && <Minus className="w-3 h-3" />}
                 {delta}
-              </BadgeDelta>
+              </span>
               <span className="text-xs text-white/30">vs last period</span>
             </div>
           )}
@@ -85,15 +81,6 @@ function CassetteKpiCard({
       </div>
     </div>
   );
-}
-
-interface KpiData {
-  title: string;
-  value: string | number;
-  icon: string;
-  delta?: string;
-  deltaType: DeltaType;
-  color: 'blue' | 'cyan' | 'rose' | 'amber';
 }
 
 export default function DashboardOverviewTremor() {
@@ -122,68 +109,6 @@ export default function DashboardOverviewTremor() {
       </div>
     );
   }
-
-  // Financial summary data (Revenue, Net, Commission)
-  const financialKpis: KpiData[] = [
-    {
-      title: 'Gross Revenue',
-      value: formatCurrency(Number(stats?.totalRevenue || 0)),
-      icon: '💰',
-      delta: stats?.totalRevenueChange !== null && stats?.totalRevenueChange !== undefined
-        ? `${stats.totalRevenueChange > 0 ? '+' : ''}${stats.totalRevenueChange}%`
-        : undefined,
-      deltaType: stats?.totalRevenueTrend === 'up' ? 'increase' : stats?.totalRevenueTrend === 'down' ? 'decrease' : 'unchanged',
-      color: 'blue',
-    },
-    {
-      title: 'Net to Writers',
-      value: formatCurrency(Number(stats?.totalNet || 0)),
-      icon: '💵',
-      deltaType: 'unchanged',
-      color: 'cyan',
-    },
-    {
-      title: 'Commission',
-      value: formatCurrency(Number(stats?.totalCommission || 0)),
-      icon: '📈',
-      deltaType: 'unchanged',
-      color: 'amber',
-    },
-  ];
-
-  // Prepare KPI data (other stats)
-  const kpis: KpiData[] = [
-    {
-      title: 'Total Writers',
-      value: stats?.totalWriters || 0,
-      icon: '👥',
-      delta: stats?.totalWritersChange !== null && stats?.totalWritersChange !== undefined
-        ? `${stats.totalWritersChange > 0 ? '+' : ''}${stats.totalWritersChange}%`
-        : undefined,
-      deltaType: stats?.totalWritersTrend === 'up' ? 'increase' : stats?.totalWritersTrend === 'down' ? 'decrease' : 'unchanged',
-      color: 'cyan',
-    },
-    {
-      title: 'Active Statements',
-      value: stats?.processedStatements || 0,
-      icon: '📊',
-      delta: stats?.processedStatementsChange !== null && stats?.processedStatementsChange !== undefined
-        ? `${stats.processedStatementsChange > 0 ? '+' : ''}${stats.processedStatementsChange}%`
-        : undefined,
-      deltaType: stats?.processedStatementsTrend === 'up' ? 'increase' : stats?.processedStatementsTrend === 'down' ? 'decrease' : 'unchanged',
-      color: 'rose',
-    },
-    {
-      title: 'Unique Works',
-      value: stats?.uniqueWorks || 0,
-      icon: '🎵',
-      delta: stats?.uniqueWorksChange !== null && stats?.uniqueWorksChange !== undefined
-        ? `${stats.uniqueWorksChange > 0 ? '+' : ''}${stats.uniqueWorksChange}%`
-        : undefined,
-      deltaType: stats?.uniqueWorksTrend === 'up' ? 'increase' : stats?.uniqueWorksTrend === 'down' ? 'decrease' : 'unchanged',
-      color: 'amber',
-    },
-  ];
 
   // Prepare Recharts revenue chart data - CUMULATIVE (running total)
   const rawRevenueData = stats?.revenueTimeline?.map((item: any) => ({

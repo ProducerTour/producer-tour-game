@@ -1,6 +1,6 @@
 /**
  * Shop Tab - Admin product and order management
- * Built with shadcn/ui components
+ * Cassette theme styling with yellow (#f0e226) accents
  */
 
 import { useState, useEffect } from 'react';
@@ -25,7 +25,6 @@ import {
 // shadcn components
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import {
   Dialog,
   DialogContent,
@@ -69,9 +68,9 @@ const PRODUCT_TYPES = [
 ];
 
 const PRODUCT_STATUSES = [
-  { value: 'DRAFT', label: 'Draft', variant: 'secondary' as const, color: 'bg-slate-500/20 text-slate-300' },
-  { value: 'ACTIVE', label: 'Active', variant: 'default' as const, color: 'bg-emerald-500/20 text-emerald-400' },
-  { value: 'ARCHIVED', label: 'Archived', variant: 'outline' as const, color: 'bg-amber-500/20 text-amber-400' },
+  { value: 'DRAFT', label: 'Draft', variant: 'secondary' as const, color: 'bg-white/10 text-white/60' },
+  { value: 'ACTIVE', label: 'Active', variant: 'default' as const, color: 'bg-[#f0e226]/20 text-[#f0e226]' },
+  { value: 'ARCHIVED', label: 'Archived', variant: 'outline' as const, color: 'bg-white/5 text-white/40' },
   { value: 'OUT_OF_STOCK', label: 'Out of Stock', variant: 'destructive' as const, color: 'bg-red-500/20 text-red-400' },
 ];
 
@@ -84,11 +83,11 @@ const SUBSCRIPTION_INTERVALS = [
 ];
 
 const ORDER_STATUSES = [
-  { value: 'PENDING', label: 'Pending', variant: 'secondary' as const, color: 'bg-amber-500/20 text-amber-400' },
-  { value: 'PROCESSING', label: 'Processing', variant: 'default' as const, color: 'bg-blue-500/20 text-blue-400' },
-  { value: 'COMPLETED', label: 'Completed', variant: 'default' as const, color: 'bg-emerald-500/20 text-emerald-400' },
+  { value: 'PENDING', label: 'Pending', variant: 'secondary' as const, color: 'bg-white/10 text-white/60' },
+  { value: 'PROCESSING', label: 'Processing', variant: 'default' as const, color: 'bg-[#f0e226]/10 text-[#f0e226]/80' },
+  { value: 'COMPLETED', label: 'Completed', variant: 'default' as const, color: 'bg-[#f0e226]/20 text-[#f0e226]' },
   { value: 'CANCELLED', label: 'Cancelled', variant: 'destructive' as const, color: 'bg-red-500/20 text-red-400' },
-  { value: 'REFUNDED', label: 'Refunded', variant: 'outline' as const, color: 'bg-purple-500/20 text-purple-400' },
+  { value: 'REFUNDED', label: 'Refunded', variant: 'outline' as const, color: 'bg-white/5 text-white/40' },
 ];
 
 // Format currency
@@ -194,9 +193,9 @@ function ProductFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#19181a] border-white/10">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-white">
+          <DialogTitle className="text-xl font-normal text-white">
             {product ? 'Edit Product' : 'Create New Product'}
           </DialogTitle>
         </DialogHeader>
@@ -204,31 +203,31 @@ function ProductFormModal({
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Product Name */}
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-slate-300">Product Name *</Label>
+            <Label htmlFor="name" className="text-xs text-white/40 uppercase tracking-[0.15em]">Product Name *</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Enter product name"
               required
-              className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-slate-600"
+              className="bg-black border-white/10 text-white placeholder:text-white/30 focus:border-[#f0e226]/50"
             />
           </div>
 
           {/* Type and Status Row */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-300">Product Type</Label>
+              <Label className="text-xs text-white/40 uppercase tracking-[0.15em]">Product Type</Label>
               <Select
                 value={formData.type}
                 onValueChange={(value: string) => setFormData({ ...formData, type: value })}
               >
-                <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
+                <SelectTrigger className="bg-black border-white/10 text-white">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-[#19181a] border-white/10">
                   {PRODUCT_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
+                    <SelectItem key={type.value} value={type.value} className="text-white hover:bg-[#f0e226]/10 focus:bg-[#f0e226]/10">
                       {type.label}
                     </SelectItem>
                   ))}
@@ -236,17 +235,17 @@ function ProductFormModal({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300">Status</Label>
+              <Label className="text-xs text-white/40 uppercase tracking-[0.15em]">Status</Label>
               <Select
                 value={formData.status}
                 onValueChange={(value: string) => setFormData({ ...formData, status: value })}
               >
-                <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
+                <SelectTrigger className="bg-black border-white/10 text-white">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-[#19181a] border-white/10">
                   {PRODUCT_STATUSES.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
+                    <SelectItem key={status.value} value={status.value} className="text-white hover:bg-[#f0e226]/10 focus:bg-[#f0e226]/10">
                       {status.label}
                     </SelectItem>
                   ))}
@@ -258,7 +257,7 @@ function ProductFormModal({
           {/* Price Row */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price" className="text-slate-300">Price ($) *</Label>
+              <Label htmlFor="price" className="text-xs text-white/40 uppercase tracking-[0.15em]">Price ($) *</Label>
               <Input
                 id="price"
                 type="number"
@@ -268,11 +267,11 @@ function ProductFormModal({
                 min={0}
                 step={0.01}
                 required
-                className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-slate-600"
+                className="bg-black border-white/10 text-white placeholder:text-white/30 focus:border-[#f0e226]/50"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="salePrice" className="text-slate-300">Sale Price ($)</Label>
+              <Label htmlFor="salePrice" className="text-xs text-white/40 uppercase tracking-[0.15em]">Sale Price ($)</Label>
               <Input
                 id="salePrice"
                 type="number"
@@ -281,27 +280,27 @@ function ProductFormModal({
                 placeholder="Optional"
                 min={0}
                 step={0.01}
-                className="bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-slate-600"
+                className="bg-black border-white/10 text-white placeholder:text-white/30 focus:border-[#f0e226]/50"
               />
             </div>
           </div>
 
           {/* Subscription Fields */}
           {formData.type === 'SUBSCRIPTION' && (
-            <Card className="bg-slate-800/30 border-slate-700/50">
-              <CardContent className="pt-4 grid grid-cols-2 gap-4">
+            <div className="bg-black/50 border border-white/10 p-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Billing Interval</Label>
+                  <Label className="text-xs text-white/40 uppercase tracking-[0.15em]">Billing Interval</Label>
                   <Select
                     value={formData.subscriptionInterval}
                     onValueChange={(value: string) => setFormData({ ...formData, subscriptionInterval: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-black border-white/10 text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-[#19181a] border-white/10">
                       {SUBSCRIPTION_INTERVALS.map((interval) => (
-                        <SelectItem key={interval.value} value={interval.value}>
+                        <SelectItem key={interval.value} value={interval.value} className="text-white hover:bg-[#f0e226]/10">
                           {interval.label}
                         </SelectItem>
                       ))}
@@ -309,7 +308,7 @@ function ProductFormModal({
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="trialDays">Trial Days</Label>
+                  <Label htmlFor="trialDays" className="text-xs text-white/40 uppercase tracking-[0.15em]">Trial Days</Label>
                   <Input
                     id="trialDays"
                     type="number"
@@ -317,67 +316,72 @@ function ProductFormModal({
                     onChange={(e) => setFormData({ ...formData, trialDays: parseInt(e.target.value) || 0 })}
                     placeholder="0"
                     min={0}
+                    className="bg-black border-white/10 text-white placeholder:text-white/30 focus:border-[#f0e226]/50"
                   />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* SKU and Tool ID */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="sku">SKU</Label>
+              <Label htmlFor="sku" className="text-xs text-white/40 uppercase tracking-[0.15em]">SKU</Label>
               <Input
                 id="sku"
                 value={formData.sku}
                 onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                 placeholder="Optional"
+                className="bg-black border-white/10 text-white placeholder:text-white/30 focus:border-[#f0e226]/50"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="toolId">Tool ID</Label>
+              <Label htmlFor="toolId" className="text-xs text-white/40 uppercase tracking-[0.15em]">Tool ID</Label>
               <Input
                 id="toolId"
                 value={formData.toolId}
                 onChange={(e) => setFormData({ ...formData, toolId: e.target.value })}
                 placeholder="e.g., type-beat-video-maker"
+                className="bg-black border-white/10 text-white placeholder:text-white/30 focus:border-[#f0e226]/50"
               />
             </div>
           </div>
 
           {/* Short Description */}
           <div className="space-y-2">
-            <Label htmlFor="shortDescription">Short Description</Label>
+            <Label htmlFor="shortDescription" className="text-xs text-white/40 uppercase tracking-[0.15em]">Short Description</Label>
             <Textarea
               id="shortDescription"
               value={formData.shortDescription}
               onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
               placeholder="Brief product description"
               rows={2}
+              className="bg-black border-white/10 text-white placeholder:text-white/30 focus:border-[#f0e226]/50 resize-none"
             />
           </div>
 
           {/* Full Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Full Description</Label>
+            <Label htmlFor="description" className="text-xs text-white/40 uppercase tracking-[0.15em]">Full Description</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Detailed product description (supports markdown)"
               rows={4}
+              className="bg-black border-white/10 text-white placeholder:text-white/30 focus:border-[#f0e226]/50 resize-none"
             />
           </div>
 
           {/* Featured Image Upload */}
           <div className="space-y-2">
-            <Label htmlFor="featuredImage">Featured Image</Label>
+            <Label htmlFor="featuredImage" className="text-xs text-white/40 uppercase tracking-[0.15em]">Featured Image</Label>
             {imagePreview && (
               <div className="relative w-32 h-32 group">
                 <img
                   src={imagePreview}
                   alt="Product preview"
-                  className="w-full h-full object-cover rounded-lg border border-slate-700"
+                  className="w-full h-full object-cover border border-white/10"
                 />
                 <button
                   type="button"
@@ -385,7 +389,7 @@ function ProductFormModal({
                     setImagePreview(null);
                     setFormData(prev => ({ ...prev, featuredImageUrl: '' }));
                   }}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-sm"
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-sm"
                 >
                   ×
                 </button>
@@ -396,17 +400,17 @@ function ProductFormModal({
               type="file"
               accept="image/jpeg,image/png,image/gif,image/webp"
               onChange={handleImageChange}
-              className="bg-slate-800/50 border-slate-700 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-slate-700 file:text-white hover:file:bg-slate-600"
+              className="bg-black border-white/10 text-white file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-medium file:bg-[#f0e226] file:text-black hover:file:bg-white"
             />
-            <p className="text-xs text-slate-500">JPEG, PNG, GIF, or WebP. Max 2MB.</p>
+            <p className="text-xs text-white/30">JPEG, PNG, GIF, or WebP. Max 2MB.</p>
           </div>
 
           {/* Download Fields */}
           {['DIGITAL', 'DOWNLOADABLE'].includes(formData.type) && (
-            <Card className="bg-slate-800/30 border-slate-700/50">
-              <CardContent className="pt-4 grid grid-cols-2 gap-4">
+            <div className="bg-black/50 border border-white/10 p-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="downloadLimit">Download Limit</Label>
+                  <Label htmlFor="downloadLimit" className="text-xs text-white/40 uppercase tracking-[0.15em]">Download Limit</Label>
                   <Input
                     id="downloadLimit"
                     type="number"
@@ -414,10 +418,11 @@ function ProductFormModal({
                     onChange={(e) => setFormData({ ...formData, downloadLimit: parseInt(e.target.value) || undefined })}
                     placeholder="Unlimited"
                     min={0}
+                    className="bg-black border-white/10 text-white placeholder:text-white/30 focus:border-[#f0e226]/50"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="downloadExpiry">Expiry (days)</Label>
+                  <Label htmlFor="downloadExpiry" className="text-xs text-white/40 uppercase tracking-[0.15em]">Expiry (days)</Label>
                   <Input
                     id="downloadExpiry"
                     type="number"
@@ -425,10 +430,11 @@ function ProductFormModal({
                     onChange={(e) => setFormData({ ...formData, downloadExpiry: parseInt(e.target.value) || undefined })}
                     placeholder="Never"
                     min={0}
+                    className="bg-black border-white/10 text-white placeholder:text-white/30 focus:border-[#f0e226]/50"
                   />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Checkboxes */}
@@ -438,24 +444,26 @@ function ProductFormModal({
                 id="isFeatured"
                 checked={formData.isFeatured}
                 onCheckedChange={(checked: boolean) => setFormData({ ...formData, isFeatured: checked })}
+                className="border-white/20 data-[state=checked]:bg-[#f0e226] data-[state=checked]:border-[#f0e226]"
               />
-              <Label htmlFor="isFeatured" className="cursor-pointer">Featured Product</Label>
+              <Label htmlFor="isFeatured" className="cursor-pointer text-white/60">Featured Product</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="isVirtual"
                 checked={formData.isVirtual}
                 onCheckedChange={(checked: boolean) => setFormData({ ...formData, isVirtual: checked })}
+                className="border-white/20 data-[state=checked]:bg-[#f0e226] data-[state=checked]:border-[#f0e226]"
               />
-              <Label htmlFor="isVirtual" className="cursor-pointer">Virtual (no shipping)</Label>
+              <Label htmlFor="isVirtual" className="cursor-pointer text-white/60">Virtual (no shipping)</Label>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="border-t border-white/5 pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="bg-black border-white/10 text-white hover:bg-white/5 hover:border-[#f0e226]/30">
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} className="bg-[#f0e226] text-black hover:bg-white">
               {isLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               {product ? 'Update Product' : 'Create Product'}
             </Button>
@@ -568,82 +576,89 @@ export default function ShopTab() {
     <div className="space-y-6">
       {/* Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 border-slate-700/50 hover:border-slate-600/50 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Total Products</CardTitle>
-            <div className="p-2 rounded-lg bg-slate-700/50">
-              <Package className="h-4 w-4 text-slate-300" />
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#f0e226]/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="relative flex items-start justify-between">
+            <div>
+              <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2">Total Products</p>
+              <p className="text-2xl font-light text-white">{stats?.totalProducts || 0}</p>
+              <p className="text-xs text-white/30 mt-1">All time</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-white">{stats?.totalProducts || 0}</div>
-            <p className="text-xs text-slate-500 mt-1">All time</p>
-          </CardContent>
-        </Card>
+            <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center group-hover:bg-[#f0e226]/20 transition-colors">
+              <Package className="h-5 w-5 text-[#f0e226]" />
+            </div>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 border-slate-700/50 hover:border-slate-600/50 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Active Products</CardTitle>
-            <div className="p-2 rounded-lg bg-slate-700/50">
-              <Zap className="h-4 w-4 text-slate-300" />
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#f0e226]/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="relative flex items-start justify-between">
+            <div>
+              <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2">Active Products</p>
+              <p className="text-2xl font-light text-white">{stats?.activeProducts || 0}</p>
+              <p className="text-xs text-white/30 mt-1">Available for purchase</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-white">{stats?.activeProducts || 0}</div>
-            <p className="text-xs text-slate-500 mt-1">Available for purchase</p>
-          </CardContent>
-        </Card>
+            <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center group-hover:bg-[#f0e226]/20 transition-colors">
+              <Zap className="h-5 w-5 text-[#f0e226]" />
+            </div>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 border-slate-700/50 hover:border-slate-600/50 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Total Orders</CardTitle>
-            <div className="p-2 rounded-lg bg-slate-700/50">
-              <ShoppingCart className="h-4 w-4 text-slate-300" />
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#f0e226]/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+          <div className="relative flex items-start justify-between">
+            <div>
+              <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2">Total Orders</p>
+              <p className="text-2xl font-light text-white">{stats?.totalOrders || 0}</p>
+              <p className="text-xs text-white/30 mt-1">All time orders</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-white">{stats?.totalOrders || 0}</div>
-            <p className="text-xs text-slate-500 mt-1">All time orders</p>
-          </CardContent>
-        </Card>
+            <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center group-hover:bg-[#f0e226]/20 transition-colors">
+              <ShoppingCart className="h-5 w-5 text-[#f0e226]" />
+            </div>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 border-slate-700/50 hover:border-slate-600/50 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Total Revenue</CardTitle>
-            <div className="p-2 rounded-lg bg-slate-700/50">
-              <span className="text-slate-300 font-bold text-sm">$</span>
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 border-t-2 border-t-[#f0e226] p-6 group hover:border-[#f0e226]/30 transition-all duration-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#f0e226]/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative flex items-start justify-between">
+            <div>
+              <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2">Total Revenue</p>
+              <p className="text-2xl font-light text-[#f0e226]">{formatCurrency(stats?.totalRevenue || 0)}</p>
+              <p className="text-xs text-white/30 mt-1">Lifetime earnings</p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-white">{formatCurrency(stats?.totalRevenue || 0)}</div>
-            <p className="text-xs text-slate-500 mt-1">Lifetime earnings</p>
-          </CardContent>
-        </Card>
+            <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center group-hover:bg-[#f0e226]/20 transition-colors">
+              <span className="text-[#f0e226] font-bold text-lg">$</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="products" className="space-y-6">
         <div className="flex items-center justify-between">
-          <TabsList className="bg-slate-800/50 border border-slate-700/50 p-1">
-            <TabsTrigger value="products" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+          <TabsList className="bg-black border border-white/10 p-1">
+            <TabsTrigger value="products" className="gap-2 text-white/60 data-[state=active]:bg-[#f0e226] data-[state=active]:text-black">
               <Package className="h-4 w-4" />
               Products
               {products.length > 0 && (
-                <Badge className="ml-1 bg-slate-600/50 text-slate-300 hover:bg-slate-600/50">{products.length}</Badge>
+                <Badge className="ml-1 bg-black/20 text-inherit hover:bg-black/20">{products.length}</Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="orders" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+            <TabsTrigger value="orders" className="gap-2 text-white/60 data-[state=active]:bg-[#f0e226] data-[state=active]:text-black">
               <ShoppingCart className="h-4 w-4" />
               Orders
               {orders.length > 0 && (
-                <Badge className="ml-1 bg-slate-600/50 text-slate-300 hover:bg-slate-600/50">{orders.length}</Badge>
+                <Badge className="ml-1 bg-black/20 text-inherit hover:bg-black/20">{orders.length}</Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="subscriptions" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+            <TabsTrigger value="subscriptions" className="gap-2 text-white/60 data-[state=active]:bg-[#f0e226] data-[state=active]:text-black">
               <RefreshCcw className="h-4 w-4" />
               Subscriptions
             </TabsTrigger>
-            <TabsTrigger value="coupons" className="gap-2 data-[state=active]:bg-slate-700 data-[state=active]:text-white">
+            <TabsTrigger value="coupons" className="gap-2 text-white/60 data-[state=active]:bg-[#f0e226] data-[state=active]:text-black">
               <Tag className="h-4 w-4" />
               Coupons
             </TabsTrigger>
@@ -653,297 +668,293 @@ export default function ShopTab() {
         {/* Products Tab */}
         <TabsContent value="products" className="space-y-4">
           {/* Filters & Actions */}
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-800/30 border border-slate-700/30">
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-[#19181a] border border-white/5">
             <div className="flex flex-wrap gap-3">
               <div className="relative group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-slate-300 transition-colors" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-[#f0e226] transition-colors" />
                 <Input
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-64 bg-slate-900/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-slate-600"
+                  className="pl-10 w-64 bg-black border-white/10 text-white placeholder:text-white/30 focus:border-[#f0e226]/50"
                 />
               </div>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-44 bg-slate-800 border-slate-700 text-white">
+                <SelectTrigger className="w-44 bg-black border-white/10 text-white">
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
+                <SelectContent className="bg-[#19181a] border-white/10">
+                  <SelectItem value="all" className="text-white hover:bg-[#f0e226]/10 focus:bg-[#f0e226]/10">All Types</SelectItem>
                   {PRODUCT_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
+                    <SelectItem key={type.value} value={type.value} className="text-white hover:bg-[#f0e226]/10 focus:bg-[#f0e226]/10">
                       {type.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-44 bg-slate-800 border-slate-700 text-white">
+                <SelectTrigger className="w-44 bg-black border-white/10 text-white">
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
+                <SelectContent className="bg-[#19181a] border-white/10">
+                  <SelectItem value="all" className="text-white hover:bg-[#f0e226]/10 focus:bg-[#f0e226]/10">All Statuses</SelectItem>
                   {PRODUCT_STATUSES.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
+                    <SelectItem key={status.value} value={status.value} className="text-white hover:bg-[#f0e226]/10 focus:bg-[#f0e226]/10">
                       {status.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={() => setProductModal({ open: true })} className="bg-white text-slate-900 hover:bg-slate-100">
+            <Button onClick={() => setProductModal({ open: true })} className="bg-[#f0e226] text-black hover:bg-white">
               <Plus className="w-4 h-4 mr-2" />
               Add Product
             </Button>
           </div>
 
           {/* Products Table */}
-          <Card className="bg-slate-800/30 border-slate-700/30 overflow-hidden">
-            <CardContent className="p-0">
-              {productsLoading ? (
-                <div className="flex flex-col items-center justify-center py-20">
-                  <div className="relative">
-                    <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center">
-                      <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-                    </div>
-                  </div>
-                  <p className="text-slate-500 mt-4">Loading products...</p>
+          <div className="bg-[#19181a] border border-white/5 overflow-hidden">
+            {productsLoading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-16 h-16 bg-[#f0e226]/10 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-[#f0e226]" />
                 </div>
-              ) : products.length === 0 ? (
-                <div className="text-center py-20">
-                  <div className="w-20 h-20 rounded-2xl bg-slate-700/30 border border-slate-600/30 flex items-center justify-center mx-auto mb-6">
-                    <Package className="w-10 h-10 text-slate-500" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">No products found</h3>
-                  <p className="text-slate-400 mb-6 max-w-sm mx-auto">
-                    {searchQuery || typeFilter !== 'all' || statusFilter !== 'all'
-                      ? 'Try adjusting your filters'
-                      : 'Get started by creating your first product'}
-                  </p>
-                  <Button onClick={() => setProductModal({ open: true })} className="bg-white text-slate-900 hover:bg-slate-100">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create your first product
-                  </Button>
+                <p className="text-white/30 mt-4">Loading products...</p>
+              </div>
+            ) : products.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="w-20 h-20 bg-[#f0e226]/10 flex items-center justify-center mx-auto mb-6">
+                  <Package className="w-10 h-10 text-[#f0e226]" />
                 </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-slate-700/50 hover:bg-transparent">
-                      <TableHead className="text-slate-400 font-medium">Product</TableHead>
-                      <TableHead className="text-slate-400 font-medium">Type</TableHead>
-                      <TableHead className="text-slate-400 font-medium">Price</TableHead>
-                      <TableHead className="text-slate-400 font-medium">Status</TableHead>
-                      <TableHead className="text-right text-slate-400 font-medium">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {products.map((product: any) => {
-                      const typeConfig = PRODUCT_TYPES.find((t) => t.value === product.type);
-                      const statusConfig = PRODUCT_STATUSES.find((s) => s.value === product.status);
-                      const TypeIcon = typeConfig?.icon || Package;
-                      return (
-                        <TableRow key={product.id} className="border-slate-700/30 hover:bg-slate-700/20">
-                          <TableCell>
-                            <div className="flex items-center gap-4">
-                              {product.featuredImageUrl ? (
-                                <img
-                                  src={product.featuredImageUrl}
-                                  alt={product.name}
-                                  className="w-14 h-14 rounded-xl object-cover border border-slate-700/50"
-                                />
-                              ) : (
-                                <div className="w-14 h-14 rounded-xl bg-slate-700/30 border border-slate-600/30 flex items-center justify-center">
-                                  <TypeIcon className="w-6 h-6 text-slate-500" />
-                                </div>
-                              )}
-                              <div>
-                                <p className="font-semibold text-white">{product.name}</p>
-                                <p className="text-sm text-slate-500 font-mono">{product.slug}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="gap-1.5 bg-slate-700/30 border-slate-600/50 text-slate-300">
-                              <TypeIcon className="w-3.5 h-3.5" />
-                              {typeConfig?.label?.replace(' Product', '') || product.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-semibold text-white">{formatCurrency(Number(product.price))}</div>
-                            {product.salePrice && (
-                              <div className="text-sm text-slate-400 font-medium">
-                                Sale: {formatCurrency(Number(product.salePrice))}
+                <h3 className="text-lg font-normal text-white mb-2">No products found</h3>
+                <p className="text-white/40 mb-6 max-w-sm mx-auto">
+                  {searchQuery || typeFilter !== 'all' || statusFilter !== 'all'
+                    ? 'Try adjusting your filters'
+                    : 'Get started by creating your first product'}
+                </p>
+                <Button onClick={() => setProductModal({ open: true })} className="bg-[#f0e226] text-black hover:bg-white">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create your first product
+                </Button>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-white/5 hover:bg-transparent">
+                    <TableHead className="text-xs text-white/40 uppercase tracking-[0.15em] font-medium">Product</TableHead>
+                    <TableHead className="text-xs text-white/40 uppercase tracking-[0.15em] font-medium">Type</TableHead>
+                    <TableHead className="text-xs text-white/40 uppercase tracking-[0.15em] font-medium">Price</TableHead>
+                    <TableHead className="text-xs text-white/40 uppercase tracking-[0.15em] font-medium">Status</TableHead>
+                    <TableHead className="text-right text-xs text-white/40 uppercase tracking-[0.15em] font-medium">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.map((product: any) => {
+                    const typeConfig = PRODUCT_TYPES.find((t) => t.value === product.type);
+                    const statusConfig = PRODUCT_STATUSES.find((s) => s.value === product.status);
+                    const TypeIcon = typeConfig?.icon || Package;
+                    return (
+                      <TableRow key={product.id} className="border-white/5 hover:bg-black/30">
+                        <TableCell>
+                          <div className="flex items-center gap-4">
+                            {product.featuredImageUrl ? (
+                              <img
+                                src={product.featuredImageUrl}
+                                alt={product.name}
+                                className="w-14 h-14 object-cover border border-white/10"
+                              />
+                            ) : (
+                              <div className="w-14 h-14 bg-[#f0e226]/10 flex items-center justify-center">
+                                <TypeIcon className="w-6 h-6 text-[#f0e226]" />
                               </div>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={`${statusConfig?.color || 'bg-slate-500/20 text-slate-300'} border-0`}>
-                              {statusConfig?.label || product.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setProductModal({ open: true, product })}
-                                className="text-slate-400 hover:text-white hover:bg-slate-700/50"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  if (confirm('Are you sure you want to delete this product?')) {
-                                    deleteProductMutation.mutate(product.id);
-                                  }
-                                }}
-                                className="text-slate-400 hover:text-red-400 hover:bg-red-500/10"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
+                            <div>
+                              <p className="font-medium text-white">{product.name}</p>
+                              <p className="text-sm text-white/30 font-mono">{product.slug}</p>
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="gap-1.5 bg-white/5 border-white/10 text-white/60">
+                            <TypeIcon className="w-3.5 h-3.5" />
+                            {typeConfig?.label?.replace(' Product', '') || product.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium text-white">{formatCurrency(Number(product.price))}</div>
+                          {product.salePrice && (
+                            <div className="text-sm text-[#f0e226] font-medium">
+                              Sale: {formatCurrency(Number(product.salePrice))}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`${statusConfig?.color || 'bg-white/10 text-white/60'} border-0`}>
+                            {statusConfig?.label || product.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setProductModal({ open: true, product })}
+                              className="text-white/40 hover:text-[#f0e226] hover:bg-[#f0e226]/10"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this product?')) {
+                                  deleteProductMutation.mutate(product.id);
+                                }
+                              }}
+                              className="text-white/40 hover:text-red-400 hover:bg-red-500/10"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
         </TabsContent>
 
         {/* Orders Tab */}
         <TabsContent value="orders">
-          <Card className="bg-slate-800/30 border-slate-700/30 overflow-hidden">
-            <CardContent className="p-0">
-              {ordersLoading ? (
-                <div className="flex flex-col items-center justify-center py-20">
-                  <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-                  </div>
-                  <p className="text-slate-500 mt-4">Loading orders...</p>
+          <div className="bg-[#19181a] border border-white/5 overflow-hidden">
+            {ordersLoading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-16 h-16 bg-[#f0e226]/10 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-[#f0e226]" />
                 </div>
-              ) : orders.length === 0 ? (
-                <div className="text-center py-20">
-                  <div className="w-20 h-20 rounded-2xl bg-slate-700/30 border border-slate-600/30 flex items-center justify-center mx-auto mb-6">
-                    <ShoppingCart className="w-10 h-10 text-slate-500" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">No orders yet</h3>
-                  <p className="text-slate-400 max-w-sm mx-auto">
-                    Orders will appear here once customers make purchases
-                  </p>
+                <p className="text-white/30 mt-4">Loading orders...</p>
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-20">
+                <div className="w-20 h-20 bg-[#f0e226]/10 flex items-center justify-center mx-auto mb-6">
+                  <ShoppingCart className="w-10 h-10 text-[#f0e226]" />
                 </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-slate-700/50 hover:bg-transparent">
-                      <TableHead className="text-slate-400 font-medium">Order</TableHead>
-                      <TableHead className="text-slate-400 font-medium">Customer</TableHead>
-                      <TableHead className="text-slate-400 font-medium">Items</TableHead>
-                      <TableHead className="text-slate-400 font-medium">Total</TableHead>
-                      <TableHead className="text-slate-400 font-medium">Status</TableHead>
-                      <TableHead className="text-slate-400 font-medium">Date</TableHead>
-                      <TableHead className="text-right text-slate-400 font-medium">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orders.map((order: any) => {
-                      const statusConfig = ORDER_STATUSES.find((s) => s.value === order.status);
-                      return (
-                        <TableRow key={order.id} className="border-slate-700/30 hover:bg-slate-700/20">
-                          <TableCell className="font-mono text-sm text-slate-300">{order.orderNumber}</TableCell>
-                          <TableCell className="text-white">{order.email}</TableCell>
-                          <TableCell>
-                            <Badge className="bg-slate-700/50 text-slate-300 border-0">
-                              {order.items?.length || 0} item(s)
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-semibold text-white">
-                            {formatCurrency(Number(order.totalAmount))}
-                          </TableCell>
-                          <TableCell>
-                            <Select
-                              value={order.status}
-                              onValueChange={(status: string) =>
-                                updateOrderStatusMutation.mutate({ id: order.id, status })
-                              }
-                            >
-                              <SelectTrigger className={`w-36 border-0 ${statusConfig?.color || 'bg-slate-700/50'}`}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {ORDER_STATUSES.map((status) => (
-                                  <SelectItem key={status.value} value={status.value}>
-                                    {status.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell className="text-slate-400">
-                            {new Date(order.createdAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setReceiptModal({ open: true, order })}
-                              className="text-slate-400 hover:text-white hover:bg-slate-700/50"
-                            >
-                              <Receipt className="w-4 h-4 mr-1" />
-                              Receipt
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                <h3 className="text-lg font-normal text-white mb-2">No orders yet</h3>
+                <p className="text-white/40 max-w-sm mx-auto">
+                  Orders will appear here once customers make purchases
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-white/5 hover:bg-transparent">
+                    <TableHead className="text-xs text-white/40 uppercase tracking-[0.15em] font-medium">Order</TableHead>
+                    <TableHead className="text-xs text-white/40 uppercase tracking-[0.15em] font-medium">Customer</TableHead>
+                    <TableHead className="text-xs text-white/40 uppercase tracking-[0.15em] font-medium">Items</TableHead>
+                    <TableHead className="text-xs text-white/40 uppercase tracking-[0.15em] font-medium">Total</TableHead>
+                    <TableHead className="text-xs text-white/40 uppercase tracking-[0.15em] font-medium">Status</TableHead>
+                    <TableHead className="text-xs text-white/40 uppercase tracking-[0.15em] font-medium">Date</TableHead>
+                    <TableHead className="text-right text-xs text-white/40 uppercase tracking-[0.15em] font-medium">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orders.map((order: any) => {
+                    const statusConfig = ORDER_STATUSES.find((s) => s.value === order.status);
+                    return (
+                      <TableRow key={order.id} className="border-white/5 hover:bg-black/30">
+                        <TableCell className="font-mono text-sm text-white/60">{order.orderNumber}</TableCell>
+                        <TableCell className="text-white">{order.email}</TableCell>
+                        <TableCell>
+                          <Badge className="bg-white/5 text-white/60 border-0">
+                            {order.items?.length || 0} item(s)
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium text-[#f0e226]">
+                          {formatCurrency(Number(order.totalAmount))}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={order.status}
+                            onValueChange={(status: string) =>
+                              updateOrderStatusMutation.mutate({ id: order.id, status })
+                            }
+                          >
+                            <SelectTrigger className={`w-36 border-0 ${statusConfig?.color || 'bg-white/10'}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#19181a] border-white/10">
+                              {ORDER_STATUSES.map((status) => (
+                                <SelectItem key={status.value} value={status.value} className="text-white hover:bg-[#f0e226]/10 focus:bg-[#f0e226]/10">
+                                  {status.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="text-white/40">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setReceiptModal({ open: true, order })}
+                            className="text-white/40 hover:text-[#f0e226] hover:bg-[#f0e226]/10"
+                          >
+                            <Receipt className="w-4 h-4 mr-1" />
+                            Receipt
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
         </TabsContent>
 
         {/* Subscriptions Tab */}
         <TabsContent value="subscriptions">
-          <Card className="bg-slate-800/30 border-slate-700/30">
-            <CardContent className="text-center py-20">
-              <div className="w-20 h-20 rounded-2xl bg-slate-700/30 border border-slate-600/30 flex items-center justify-center mx-auto mb-6">
-                <RefreshCcw className="w-10 h-10 text-slate-400" />
+          <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+            <div className="text-center py-14">
+              <div className="w-20 h-20 bg-[#f0e226]/10 flex items-center justify-center mx-auto mb-6">
+                <RefreshCcw className="w-10 h-10 text-[#f0e226]" />
               </div>
-              <div className="text-5xl font-bold text-white mb-2">
+              <div className="text-5xl font-light text-[#f0e226] mb-2">
                 {stats?.activeSubscriptions || 0}
               </div>
-              <p className="text-lg font-medium text-slate-300 mb-4">
+              <p className="text-lg font-normal text-white mb-4">
                 Active Subscriptions
               </p>
-              <p className="text-slate-400 text-sm max-w-md mx-auto">
+              <p className="text-white/40 text-sm max-w-md mx-auto">
                 Manage subscriptions from the Orders tab or directly in the Stripe Dashboard for detailed billing controls.
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
 
         {/* Coupons Tab */}
         <TabsContent value="coupons">
-          <Card className="bg-slate-800/30 border-slate-700/30">
-            <CardContent className="text-center py-20">
-              <div className="w-20 h-20 rounded-2xl bg-slate-700/30 border border-slate-600/30 flex items-center justify-center mx-auto mb-6">
-                <Tag className="w-10 h-10 text-slate-400" />
+          <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+            <div className="text-center py-14">
+              <div className="w-20 h-20 bg-[#f0e226]/10 flex items-center justify-center mx-auto mb-6">
+                <Tag className="w-10 h-10 text-[#f0e226]" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Coupon Management</h3>
-              <p className="text-slate-400 text-sm max-w-md mx-auto mb-8">
+              <h3 className="text-xl font-normal text-white mb-2">Coupon Management</h3>
+              <p className="text-white/40 text-sm max-w-md mx-auto mb-8">
                 Create and manage discount codes for your products. Coming soon!
               </p>
-              <Button variant="outline" disabled className="border-slate-600 text-slate-400">
+              <Button variant="outline" disabled className="border-white/10 text-white/40 bg-black hover:bg-black">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Coupon
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
 

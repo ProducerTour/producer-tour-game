@@ -47,6 +47,32 @@ body {
   background: #64748b;
 }
 
+/* Cassette theme scrollbar */
+.scrollbar-cassette::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-cassette::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+.scrollbar-cassette::-webkit-scrollbar-thumb {
+  background: #19181a;
+  border: 1px solid rgba(240, 226, 38, 0.1);
+}
+
+.scrollbar-cassette::-webkit-scrollbar-thumb:hover {
+  background: #f0e226;
+  border: 1px solid rgba(240, 226, 38, 0.3);
+}
+
+/* Firefox scrollbar support for cassette theme */
+.scrollbar-cassette {
+  scrollbar-width: thin;
+  scrollbar-color: #19181a #000000;
+}
+
 
 
 @layer base {

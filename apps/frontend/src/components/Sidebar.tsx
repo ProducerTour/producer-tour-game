@@ -268,7 +268,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       </div>
 
       {/* Navigation Sections */}
-      <div className="flex-1 overflow-y-auto py-4">
+      <div className="flex-1 overflow-y-auto py-4 scrollbar-cassette">
         {sections.map((section) => (
           <div key={section.id} className="mb-4">
             {!isCollapsed && (
