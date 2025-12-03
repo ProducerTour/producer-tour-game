@@ -20,10 +20,72 @@ import type { DeltaType } from '@tremor/react';
 import { dashboardApi, statementApi } from '../../lib/api';
 import { cn } from '../../lib/utils';
 import { NivoPieChart, RechartsRevenueChart } from '../charts';
+import { TrendingUp, Users, FileText, Music, DollarSign, Wallet, Percent } from 'lucide-react';
 
 // Smart currency formatter
 const formatCurrency = (value: number) =>
   `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+// Cassette-themed KPI Card component
+function CassetteKpiCard({
+  title,
+  value,
+  icon: Icon,
+  delta,
+  deltaType,
+  large = false
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  delta?: string;
+  deltaType?: DeltaType;
+  large?: boolean;
+}) {
+  return (
+    <div className={cn(
+      "relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group",
+      "hover:border-[#f0e226]/30 transition-all duration-300",
+      large && "border-t-2 border-t-[#f0e226]"
+    )}>
+      {/* Subtle glow on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#f0e226]/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+      {/* Top accent line animation on hover */}
+      <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+
+      <div className="relative flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2">{title}</p>
+          <p className={cn(
+            "font-light text-white",
+            large ? "text-3xl" : "text-2xl"
+          )}>
+            {typeof value === 'number' ? value.toLocaleString() : value}
+          </p>
+          {delta && deltaType && (
+            <div className="mt-3 flex items-center gap-2">
+              <BadgeDelta deltaType={deltaType} size="xs">
+                {delta}
+              </BadgeDelta>
+              <span className="text-xs text-white/30">vs last period</span>
+            </div>
+          )}
+        </div>
+        <div className={cn(
+          "flex items-center justify-center shrink-0",
+          "bg-[#f0e226]/10 group-hover:bg-[#f0e226]/20 transition-colors",
+          large ? "w-14 h-14" : "w-10 h-10"
+        )}>
+          <Icon className={cn(
+            "text-[#f0e226]",
+            large ? "w-7 h-7" : "w-5 h-5"
+          )} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface KpiData {
   title: string;
@@ -123,11 +185,22 @@ export default function DashboardOverviewTremor() {
     },
   ];
 
-  // Prepare Recharts revenue chart data
-  const revenueChartData = stats?.revenueTimeline?.map((item: any) => ({
+  // Prepare Recharts revenue chart data - CUMULATIVE (running total)
+  const rawRevenueData = stats?.revenueTimeline?.map((item: any) => ({
     month: item.month,
     revenue: Number(item.revenue) || 0,
   })) || [];
+
+  // Sort by month and calculate cumulative totals
+  const sortedData = [...rawRevenueData].sort((a, b) => a.month.localeCompare(b.month));
+  let runningTotal = 0;
+  const revenueChartData = sortedData.map((item) => {
+    runningTotal += item.revenue;
+    return {
+      month: item.month,
+      revenue: runningTotal,
+    };
+  });
 
   // Prepare Nivo pie chart data
   const proDistribution = stats?.statementsByPRO?.map((item: any) => ({
@@ -139,86 +212,76 @@ export default function DashboardOverviewTremor() {
   return (
     <div className="space-y-6">
       {/* Financial Summary - Revenue, Net, Commission */}
-      <Grid numItemsSm={1} numItemsLg={3} className="gap-6">
-        {financialKpis.map((kpi) => (
-          <Card
-            key={kpi.title}
-            className={cn(
-              'bg-[#19181a]',
-              'border-white/5 ring-0'
-            )}
-            decoration="top"
-            decorationColor="yellow"
-          >
-            <Flex alignItems="start">
-              <div className="truncate">
-                <Text className="text-white/40 text-xs uppercase tracking-[0.2em]">{kpi.title}</Text>
-                <Metric className="text-white mt-1 truncate text-2xl font-light">
-                  {typeof kpi.value === 'number' ? kpi.value.toLocaleString() : kpi.value}
-                </Metric>
-              </div>
-              <div className="w-12 h-12 bg-[#f0e226]/10 flex items-center justify-center text-2xl shrink-0">
-                {kpi.icon}
-              </div>
-            </Flex>
-            {kpi.delta && (
-              <Flex className="mt-4 space-x-2">
-                <BadgeDelta deltaType={kpi.deltaType} size="xs">
-                  {kpi.delta}
-                </BadgeDelta>
-                <Text className="text-white/30 text-xs">vs last period</Text>
-              </Flex>
-            )}
-          </Card>
-        ))}
-      </Grid>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CassetteKpiCard
+          title="Gross Revenue"
+          value={formatCurrency(Number(stats?.totalRevenue || 0))}
+          icon={DollarSign}
+          delta={stats?.totalRevenueChange !== null && stats?.totalRevenueChange !== undefined
+            ? `${stats.totalRevenueChange > 0 ? '+' : ''}${stats.totalRevenueChange}%`
+            : undefined}
+          deltaType={stats?.totalRevenueTrend === 'up' ? 'increase' : stats?.totalRevenueTrend === 'down' ? 'decrease' : 'unchanged'}
+          large
+        />
+        <CassetteKpiCard
+          title="Net to Writers"
+          value={formatCurrency(Number(stats?.totalNet || 0))}
+          icon={Wallet}
+          large
+        />
+        <CassetteKpiCard
+          title="Commission"
+          value={formatCurrency(Number(stats?.totalCommission || 0))}
+          icon={Percent}
+          large
+        />
+      </div>
 
       {/* Other Stats - Writers, Statements, Works */}
-      <Grid numItemsSm={3} numItemsLg={3} className="gap-6">
-        {kpis.map((kpi) => (
-          <Card
-            key={kpi.title}
-            className={cn(
-              'bg-[#19181a]',
-              'border-white/5 ring-0'
-            )}
-          >
-            <Flex alignItems="start">
-              <div className="truncate">
-                <Text className="text-white/40 text-xs uppercase tracking-[0.2em]">{kpi.title}</Text>
-                <Metric className="text-white mt-1 truncate text-xl font-light">
-                  {typeof kpi.value === 'number' ? kpi.value.toLocaleString() : kpi.value}
-                </Metric>
-              </div>
-              <div className="w-8 h-8 bg-[#f0e226]/10 flex items-center justify-center text-lg shrink-0">
-                {kpi.icon}
-              </div>
-            </Flex>
-            {kpi.delta && (
-              <Flex className="mt-3 space-x-2">
-                <BadgeDelta deltaType={kpi.deltaType} size="xs">
-                  {kpi.delta}
-                </BadgeDelta>
-                <Text className="text-white/30 text-xs">vs last period</Text>
-              </Flex>
-            )}
-          </Card>
-        ))}
-      </Grid>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <CassetteKpiCard
+          title="Total Writers"
+          value={stats?.totalWriters || 0}
+          icon={Users}
+          delta={stats?.totalWritersChange !== null && stats?.totalWritersChange !== undefined
+            ? `${stats.totalWritersChange > 0 ? '+' : ''}${stats.totalWritersChange}%`
+            : undefined}
+          deltaType={stats?.totalWritersTrend === 'up' ? 'increase' : stats?.totalWritersTrend === 'down' ? 'decrease' : 'unchanged'}
+        />
+        <CassetteKpiCard
+          title="Active Statements"
+          value={stats?.processedStatements || 0}
+          icon={FileText}
+          delta={stats?.processedStatementsChange !== null && stats?.processedStatementsChange !== undefined
+            ? `${stats.processedStatementsChange > 0 ? '+' : ''}${stats.processedStatementsChange}%`
+            : undefined}
+          deltaType={stats?.processedStatementsTrend === 'up' ? 'increase' : stats?.processedStatementsTrend === 'down' ? 'decrease' : 'unchanged'}
+        />
+        <CassetteKpiCard
+          title="Unique Works"
+          value={stats?.uniqueWorks || 0}
+          icon={Music}
+          delta={stats?.uniqueWorksChange !== null && stats?.uniqueWorksChange !== undefined
+            ? `${stats.uniqueWorksChange > 0 ? '+' : ''}${stats.uniqueWorksChange}%`
+            : undefined}
+          deltaType={stats?.uniqueWorksTrend === 'up' ? 'increase' : stats?.uniqueWorksTrend === 'down' ? 'decrease' : 'unchanged'}
+        />
+      </div>
 
       {/* Charts Row */}
-      <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Revenue Area Chart */}
-        <Card
-          className={cn(
-            'bg-[#19181a]',
-            'border-white/5 ring-0'
-          )}
-        >
-          <div className="flex items-center justify-between mb-4">
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+          {/* Top accent line */}
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <Title className="text-white font-normal">Revenue Overview</Title>
-              <Text className="text-white/40">Monthly revenue trend</Text>
+              <h3 className="text-lg font-normal text-white">Cumulative Revenue</h3>
+              <p className="text-sm text-white/40">Total revenue over time</p>
+            </div>
+            <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-[#f0e226]" />
             </div>
           </div>
           {revenueChartData.length > 0 ? (
@@ -233,17 +296,15 @@ export default function DashboardOverviewTremor() {
               No revenue data available
             </div>
           )}
-        </Card>
+        </div>
 
         {/* PRO Distribution Donut */}
-        <Card
-          className={cn(
-            'bg-[#19181a]',
-            'border-white/5 ring-0'
-          )}
-        >
-          <Title className="text-white font-normal">Statement Distribution</Title>
-          <Text className="text-white/40">By PRO type</Text>
+        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+          {/* Top accent line */}
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+
+          <h3 className="text-lg font-normal text-white">Statement Distribution</h3>
+          <p className="text-sm text-white/40 mb-4">By PRO type</p>
           {proDistribution.length > 0 ? (
             <>
               <NivoPieChart
@@ -253,81 +314,75 @@ export default function DashboardOverviewTremor() {
                 enableArcLinkLabels={proDistribution.length <= 5}
                 valueFormat={(value) => value.toLocaleString()}
               />
-              <List className="mt-4">
+              <div className="mt-4 space-y-2">
                 {proDistribution.map((item: any) => {
                   const total = proDistribution.reduce((acc: number, curr: any) => acc + curr.value, 0);
                   const percentage = ((item.value / total) * 100).toFixed(1);
                   return (
-                    <ListItem key={item.id}>
-                      <Flex justifyContent="start" className="truncate space-x-2.5">
-                        <span className="text-white/60">{item.label}</span>
-                      </Flex>
-                      <Text className="text-white/40">
+                    <div key={item.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                      <span className="text-white/60 text-sm">{item.label}</span>
+                      <span className="text-white/40 text-sm">
                         {item.value} <span className="text-white/30">({percentage}%)</span>
-                      </Text>
-                    </ListItem>
+                      </span>
+                    </div>
                   );
                 })}
-              </List>
+              </div>
             </>
           ) : (
             <div className="flex items-center justify-center h-72 text-white/30">
               No statement data available
             </div>
           )}
-        </Card>
-      </Grid>
+        </div>
+      </div>
 
       {/* Recent Statements */}
-      <Card
-        className={cn(
-          'bg-[#19181a]',
-          'border-white/5 ring-0'
-        )}
-      >
-        <Flex>
+      <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+        {/* Top accent line */}
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <Title className="text-white font-normal">Recent Statements</Title>
-            <Text className="text-white/40">Latest processed statements</Text>
+            <h3 className="text-lg font-normal text-white">Recent Statements</h3>
+            <p className="text-sm text-white/40">Latest processed statements</p>
           </div>
-          <button className="text-[#f0e226] hover:text-white text-sm font-medium uppercase tracking-wider">
+          <button className="text-[#f0e226] hover:text-white text-sm font-medium uppercase tracking-wider transition-colors">
             View All →
           </button>
-        </Flex>
-        <List className="mt-4">
+        </div>
+        <div className="space-y-3">
           {recentStatements.length > 0 ? (
             recentStatements.map((statement: any) => (
-              <ListItem key={statement.id}>
-                <Flex justifyContent="start" className="truncate space-x-4">
+              <div key={statement.id} className="flex items-center justify-between p-3 bg-black/30 hover:bg-black/50 transition-colors">
+                <div className="flex items-center gap-4">
                   <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center shrink-0">
-                    <span className="text-lg">📊</span>
+                    <FileText className="w-5 h-5 text-[#f0e226]" />
                   </div>
                   <div className="truncate">
-                    <Text className="text-white truncate">
-                      <Bold>{statement.filename}</Bold>
-                    </Text>
-                    <Text className="text-white/40">
+                    <p className="text-white text-sm font-medium truncate">{statement.filename}</p>
+                    <p className="text-white/40 text-xs">
                       {statement.proType} • {statement.itemCount || 0} items
-                    </Text>
+                    </p>
                   </div>
-                </Flex>
-                <div className="text-right">
-                  <Text className="text-[#f0e226] font-light text-lg">
-                    ${Number(statement.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </Text>
-                  <Text className="text-white/30 text-xs">
-                    {new Date(statement.createdAt).toLocaleDateString()}
-                  </Text>
                 </div>
-              </ListItem>
+                <div className="text-right">
+                  <p className="text-[#f0e226] font-light text-lg">
+                    ${Number(statement.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-white/30 text-xs">
+                    {new Date(statement.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
             ))
           ) : (
             <div className="text-center py-8 text-white/30">
               No recent statements
             </div>
           )}
-        </List>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
