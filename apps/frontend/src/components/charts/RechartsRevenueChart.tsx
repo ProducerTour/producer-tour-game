@@ -1,7 +1,7 @@
 /**
  * Recharts Revenue Chart Component
  * Beautiful area chart with gradient fill for revenue trends
- * Matches dashboard dark theme styling
+ * Cassette theme styling with yellow (#f0e226) accents
  */
 
 import {
@@ -29,26 +29,25 @@ interface RechartsRevenueChartProps {
   minMonths?: number;
 }
 
-// Custom tooltip component matching dashboard design
+// Custom tooltip component - Cassette theme
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-gray-900/95 backdrop-blur-xl border border-white/20 rounded-xl p-4 shadow-2xl shadow-black/50">
-        <p className="text-white font-semibold text-sm mb-2 pb-2 border-b border-white/10">
+      <div className="bg-[#19181a] border border-white/10 p-4 shadow-2xl">
+        <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2 pb-2 border-b border-white/5">
           {label}
         </p>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div
-              className="w-3 h-3 rounded-full shadow-lg"
+              className="w-2 h-2"
               style={{
                 backgroundColor: payload[0].color,
-                boxShadow: `0 0 8px ${payload[0].color}50`
               }}
             />
-            <span className="text-gray-400 text-sm">Revenue</span>
+            <span className="text-white/40 text-sm">Revenue</span>
           </div>
-          <span className="text-white font-medium text-sm">
+          <span className="text-[#f0e226] font-light text-lg">
             ${payload[0].value?.toLocaleString('en-US', {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2
@@ -65,7 +64,7 @@ export function RechartsRevenueChart({
   data,
   height = 288,
   showGrid = true,
-  color = '#3b82f6',
+  color = '#f0e226', // Cassette yellow
   gradientId = 'revenueGradient',
   minMonths = 6,
 }: RechartsRevenueChartProps) {
@@ -157,31 +156,31 @@ export function RechartsRevenueChart({
           {showGrid && (
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="#374151"
-              strokeOpacity={0.3}
+              stroke="rgba(255, 255, 255, 0.05)"
+              strokeOpacity={1}
               vertical={false}
             />
           )}
 
           <XAxis
             dataKey="month"
-            stroke="#6b7280"
-            fontSize={11}
+            stroke="rgba(255, 255, 255, 0.1)"
+            fontSize={10}
             tickLine={false}
-            axisLine={{ stroke: '#374151', strokeWidth: 1 }}
+            axisLine={{ stroke: 'rgba(255, 255, 255, 0.1)', strokeWidth: 1 }}
             dy={10}
-            tick={{ fill: '#9ca3af' }}
+            tick={{ fill: 'rgba(255, 255, 255, 0.4)' }}
             tickFormatter={formatMonth}
           />
 
           <YAxis
-            stroke="#6b7280"
-            fontSize={11}
+            stroke="rgba(255, 255, 255, 0.1)"
+            fontSize={10}
             tickLine={false}
             axisLine={false}
             tickFormatter={formatYAxis}
             dx={-5}
-            tick={{ fill: '#9ca3af' }}
+            tick={{ fill: 'rgba(255, 255, 255, 0.4)' }}
             width={55}
           />
 

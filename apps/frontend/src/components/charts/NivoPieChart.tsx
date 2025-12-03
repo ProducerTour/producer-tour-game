@@ -1,6 +1,6 @@
 /**
  * Nivo Pie/Donut Chart Component
- * Beautiful animated pie chart with dark theme
+ * Cassette theme with yellow (#f0e226) accents
  */
 
 import { ResponsivePie } from '@nivo/pie';
@@ -25,7 +25,8 @@ interface PieChartProps {
   valueFormat?: (value: number) => string;
 }
 
-const defaultColors = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#84cc16'];
+// Cassette theme colors - yellow primary with complementary colors
+const defaultColors = ['#f0e226', '#ffffff', '#888888', '#f0e226aa', '#ffffff99', '#666666', '#f0e22666', '#444444'];
 
 export function NivoPieChart({
   data,
@@ -56,27 +57,27 @@ export function NivoPieChart({
         borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
         enableArcLinkLabels={enableArcLinkLabels}
         arcLinkLabelsSkipAngle={10}
-        arcLinkLabelsTextColor="#9ca3af"
-        arcLinkLabelsThickness={2}
+        arcLinkLabelsTextColor="rgba(255, 255, 255, 0.4)"
+        arcLinkLabelsThickness={1}
         arcLinkLabelsColor={{ from: 'color' }}
         enableArcLabels={enableArcLabels}
         arcLabelsSkipAngle={10}
-        arcLabelsTextColor={{ from: 'color', modifiers: [['darker', 3]] }}
+        arcLabelsTextColor="#000000"
         animate={true}
         motionConfig="gentle"
         theme={{
           background: 'transparent',
           text: {
-            fontSize: 11,
-            fill: '#9ca3af',
+            fontSize: 10,
+            fill: 'rgba(255, 255, 255, 0.4)',
           },
           tooltip: {
             container: {
-              background: '#1e293b',
-              color: '#f1f5f9',
+              background: '#19181a',
+              color: '#ffffff',
               fontSize: 12,
-              borderRadius: '8px',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
+              borderRadius: '0px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
             },
           },
@@ -84,27 +85,25 @@ export function NivoPieChart({
         tooltip={({ datum }) => (
           <div
             style={{
-              padding: '8px 12px',
-              background: '#1e293b',
+              padding: '12px 16px',
+              background: '#19181a',
               border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '8px',
-              color: '#f1f5f9',
+              color: '#ffffff',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div
                 style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
+                  width: '8px',
+                  height: '8px',
                   background: datum.color,
                 }}
               />
-              <span style={{ fontWeight: 500 }}>{datum.label}</span>
+              <span style={{ fontWeight: 400, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{datum.label}</span>
             </div>
-            <div style={{ marginTop: '4px', fontWeight: 600 }}>
+            <div style={{ marginTop: '8px', fontWeight: 300, fontSize: '18px', color: '#f0e226' }}>
               {valueFormat ? valueFormat(datum.value) : currencyFormatter(datum.value)}
-              <span style={{ marginLeft: '8px', color: '#9ca3af', fontSize: '11px' }}>
+              <span style={{ marginLeft: '8px', color: 'rgba(255, 255, 255, 0.4)', fontSize: '11px' }}>
                 ({((datum.arc.endAngle - datum.arc.startAngle) / (2 * Math.PI) * 100).toFixed(1)}%)
               </span>
             </div>
@@ -120,11 +119,11 @@ export function NivoPieChart({
             itemsSpacing: 8,
             itemWidth: 80,
             itemHeight: 18,
-            itemTextColor: '#9ca3af',
+            itemTextColor: 'rgba(255, 255, 255, 0.4)',
             itemDirection: 'left-to-right',
             itemOpacity: 1,
-            symbolSize: 12,
-            symbolShape: 'circle',
+            symbolSize: 8,
+            symbolShape: 'square',
           },
         ]}
       />

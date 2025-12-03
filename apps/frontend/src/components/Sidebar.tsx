@@ -13,6 +13,11 @@ import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 // Re-export types for backward compatibility
 export type { NavSection, NavItem };
 
+// Cassette theme colors
+// #000000 - Pure Black (background)
+// #19181a - Soft Black (cards)
+// #f0e226 - Yellow (accent)
+
 interface SidebarProps {
   activeTab?: string;
   onTabChange?: (tab: string) => void;
@@ -134,7 +139,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
           return {
             ...item,
             badge: approvedClaimsCount > 0 ? approvedClaimsCount : undefined,
-            badgeColor: 'green' as const,
+            badgeColor: 'yellow' as const,
           };
         }
         return item;
@@ -150,7 +155,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   return (
     <>
       {/* Mobile Header Bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-surface/95 backdrop-blur-xl border-b border-white/[0.08] z-[70] flex items-center justify-between px-4">
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-black/95 backdrop-blur-xl border-b border-white/5 z-[70] flex items-center justify-between px-4">
         <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
           <img
             src={whiteLogo}
@@ -160,7 +165,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
         </Link>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="w-10 h-10 flex items-center justify-center rounded-lg text-white hover:bg-white/10 transition-colors"
+          className="w-10 h-10 flex items-center justify-center text-white/60 hover:text-[#f0e226] hover:bg-[#f0e226]/10 transition-colors"
           aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
         >
           {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -170,20 +175,20 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[55]"
+          className="md:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[55]"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <div className={`
-        fixed left-0 top-0 flex flex-col h-screen bg-gradient-to-b from-surface to-surface-100 border-r border-white/[0.08] shadow-2xl z-[60] transition-all duration-300
+        fixed left-0 top-0 flex flex-col h-screen bg-black border-r border-white/5 z-[60] transition-all duration-300
         ${isCollapsed ? 'w-20' : 'w-64'}
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         md:translate-x-0
       `}>
         {/* Logo Section */}
-        <div className={`${isCollapsed ? 'p-4' : 'p-6'} border-b border-white/[0.08] relative`}>
+        <div className={`${isCollapsed ? 'p-4' : 'p-6'} border-b border-white/5 relative`}>
           <Link to="/" className="flex items-center justify-center hover:opacity-80 transition-opacity">
             <img
               src={whiteLogo}
@@ -194,7 +199,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
           {/* Collapse Toggle Button - hidden on mobile */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-surface border border-white/[0.15] rounded-full items-center justify-center text-text-muted hover:text-white hover:bg-white/10 transition-all shadow-lg"
+            className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#19181a] border border-[#f0e226]/30 rounded-full items-center justify-center text-[#f0e226]/60 hover:text-[#f0e226] hover:bg-[#f0e226]/10 transition-all"
             title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -202,7 +207,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
         </div>
 
       {/* User Profile Section */}
-      <div className={`${isCollapsed ? 'px-3 py-4' : 'px-6 py-4'} border-b border-white/[0.08]`}>
+      <div className={`${isCollapsed ? 'px-3 py-4' : 'px-6 py-4'} border-b border-white/5 bg-[#19181a]/50`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
           {/* Profile Photo with Animated Border */}
           <div className="relative flex-shrink-0">
@@ -220,7 +225,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                 />
               ) : (
                 <div
-                  className="w-full h-full rounded-full bg-gradient-to-br from-brand-blue to-green-500 flex items-center justify-center text-white font-semibold"
+                  className="w-full h-full rounded-full bg-[#f0e226] flex items-center justify-center text-black font-semibold"
                   title={isCollapsed ? `${user?.firstName} ${user?.lastName}` : undefined}
                 >
                   {user?.firstName?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
@@ -248,11 +253,11 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                     ? `${user.firstName} ${user.lastName}`
                     : user?.email}
                 </p>
-                <p className="text-xs text-text-muted capitalize">{user?.role.toLowerCase()}</p>
+                <p className="text-xs text-[#f0e226]/60 uppercase tracking-wider">{user?.role.toLowerCase()}</p>
               </div>
               <button
                 onClick={logout}
-                className="text-text-muted hover:text-white transition-colors p-2 hover:bg-white/[0.05] rounded-lg"
+                className="text-white/40 hover:text-[#f0e226] transition-colors p-2 hover:bg-[#f0e226]/10"
                 title="Logout"
               >
                 <LogOut className="w-5 h-5" />
@@ -269,9 +274,9 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
             {!isCollapsed && (
               <button
                 onClick={() => toggleSection(section.id)}
-                className="w-full px-6 py-2 flex items-center justify-between text-text-muted hover:text-white transition-colors"
+                className="w-full px-6 py-2 flex items-center justify-between text-white/40 hover:text-[#f0e226] transition-colors"
               >
-                <span className="text-xs font-semibold uppercase tracking-wider">
+                <span className="text-xs font-medium uppercase tracking-[0.2em]">
                   {section.label}
                 </span>
                 <ChevronDown
@@ -299,8 +304,8 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                           title={isCollapsed ? item.label : undefined}
                           className={`w-full ${isCollapsed ? 'px-0 py-3 justify-center' : 'px-6 py-3'} flex items-center gap-3 transition-all ${
                             isActive
-                              ? `bg-gradient-to-r from-white/[0.12] to-white/[0.06] ${isCollapsed ? 'border-l-2' : 'border-l-4'} border-white text-white`
-                              : `text-text-secondary hover:text-white hover:bg-white/[0.05] ${isCollapsed ? 'border-l-2' : 'border-l-4'} border-transparent`
+                              ? `bg-[#f0e226]/10 ${isCollapsed ? 'border-l-2' : 'border-l-2'} border-[#f0e226] text-[#f0e226]`
+                              : `text-white/60 hover:text-white hover:bg-white/5 ${isCollapsed ? 'border-l-2' : 'border-l-2'} border-transparent`
                           }`}
                         >
                           {renderIcon(item.icon)}
@@ -309,13 +314,13 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                               <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
                               {item.badge !== undefined && item.badge > 0 && (
                                 <span className={`
-                                  px-2 py-0.5 rounded-full text-xs font-semibold
+                                  px-2 py-0.5 text-xs font-medium uppercase tracking-wider
                                   ${item.badgeColor === 'green' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : ''}
                                   ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
-                                  ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
+                                  ${item.badgeColor === 'yellow' ? 'bg-[#f0e226]/20 text-[#f0e226] border border-[#f0e226]/40' : ''}
                                   ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
                                   ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
-                                  ${!item.badgeColor ? 'bg-white/10 text-gray-400 border border-white/20' : ''}
+                                  ${!item.badgeColor ? 'bg-white/10 text-white/60 border border-white/20' : ''}
                                 `}>
                                   {item.badge}
                                 </span>
@@ -326,8 +331,8 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                       ) : (
                         <div className={`w-full ${isCollapsed ? 'px-0 py-3 justify-center' : 'px-6 py-3'} flex items-center gap-3 transition-all ${
                           isActive
-                            ? `bg-gradient-to-r from-white/[0.12] to-white/[0.06] ${isCollapsed ? 'border-l-2' : 'border-l-4'} border-white text-white`
-                            : `text-text-secondary hover:text-white hover:bg-white/[0.05] ${isCollapsed ? 'border-l-2' : 'border-l-4'} border-transparent`
+                            ? `bg-[#f0e226]/10 ${isCollapsed ? 'border-l-2' : 'border-l-2'} border-[#f0e226] text-[#f0e226]`
+                            : `text-white/60 hover:text-white hover:bg-white/5 ${isCollapsed ? 'border-l-2' : 'border-l-2'} border-transparent`
                         }`}>
                           {/* Main clickable area - always navigates to tab */}
                           <button
@@ -351,13 +356,13 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                                 <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
                                 {item.badge !== undefined && item.badge > 0 && (
                                   <span className={`
-                                    px-2 py-0.5 rounded-full text-xs font-semibold
+                                    px-2 py-0.5 text-xs font-medium uppercase tracking-wider
                                     ${item.badgeColor === 'green' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : ''}
                                     ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
-                                    ${item.badgeColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : ''}
+                                    ${item.badgeColor === 'yellow' ? 'bg-[#f0e226]/20 text-[#f0e226] border border-[#f0e226]/40' : ''}
                                     ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
                                     ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
-                                    ${!item.badgeColor ? 'bg-white/10 text-gray-400 border border-white/20' : ''}
+                                    ${!item.badgeColor ? 'bg-white/10 text-white/60 border border-white/20' : ''}
                                   `}>
                                     {item.badge}
                                   </span>
@@ -372,7 +377,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                                 e.stopPropagation();
                                 toggleTab(item.id);
                               }}
-                              className="p-1 hover:bg-white/10 rounded transition-colors"
+                              className="p-1 hover:bg-[#f0e226]/10 transition-colors"
                               title={isExpanded ? 'Collapse' : 'Expand'}
                             >
                               <ChevronDown
@@ -392,8 +397,8 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                             const isChildActive = activeTab === child.id;
                             const childClassName = `w-full px-6 py-2 flex items-center gap-3 transition-all ${
                               isChildActive
-                                ? 'bg-gradient-to-r from-white/[0.10] to-white/[0.05] border-l-4 border-white/60 text-white'
-                                : 'text-text-muted hover:text-white hover:bg-white/[0.03] border-l-4 border-transparent'
+                                ? 'bg-[#f0e226]/5 border-l-2 border-[#f0e226]/60 text-[#f0e226]'
+                                : 'text-white/40 hover:text-white hover:bg-white/5 border-l-2 border-transparent'
                             }`;
 
                             // Use Link for children with paths, button for tab changes
@@ -440,12 +445,12 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       </div>
 
         {/* Bottom Actions */}
-        <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t border-white/[0.08] space-y-2`}>
+        <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t border-white/5 space-y-2`}>
           <Link
             to="/settings"
             onClick={() => setIsMobileMenuOpen(false)}
             title={isCollapsed ? 'Settings' : undefined}
-            className={`flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 text-text-secondary hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors`}
+            className={`flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 text-white/40 hover:text-[#f0e226] hover:bg-[#f0e226]/10 transition-colors`}
           >
             <Settings className="w-5 h-5" />
             {!isCollapsed && <span className="text-sm font-medium">Settings</span>}
@@ -454,7 +459,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
             <button
               onClick={logout}
               title="Logout"
-              className="w-full flex items-center justify-center px-2 py-3 text-text-secondary hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors"
+              className="w-full flex items-center justify-center px-2 py-3 text-white/40 hover:text-[#f0e226] hover:bg-[#f0e226]/10 transition-colors"
             >
               <LogOut className="w-5 h-5" />
             </button>
