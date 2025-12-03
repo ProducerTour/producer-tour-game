@@ -1766,12 +1766,13 @@ function PricingSection() {
       href: '/contact',
     },
     {
-      name: 'Session Payout',
-      description: 'Calculate & manage session payments',
-      price: 'Contact',
-      status: 'contact' as const,
+      name: 'Advance Estimator',
+      description: 'Calculate potential catalog funding',
+      price: 'Free',
+      note: 'Free for all users',
+      status: 'available' as const,
       icon: DollarSign,
-      href: '/contact',
+      href: '/tools/advance-estimator',
     },
   ];
 
@@ -1868,7 +1869,7 @@ function PricingSection() {
                 )}
                 {tool.note && tool.status === 'available' && (
                   <div className="absolute -top-3 right-6 px-3 py-1 bg-[#f0e226] text-black text-xs uppercase tracking-wider">
-                    Free for Writers
+                    {tool.price === 'Free' ? 'Free' : 'Free for Writers'}
                   </div>
                 )}
 
