@@ -1,9 +1,78 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Mail, Lock, ArrowRight, Music2, Loader2, User } from 'lucide-react';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
+import { Mail, Lock, ArrowRight, Loader2, User } from 'lucide-react';
 import { authApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
+import ptLogo from '../assets/images/logos/whitetransparentpt.png';
+
+// Cassette theme colors
+// #000000 - Pure Black (background)
+// #19181a - Soft Black (cards)
+// #f0e226 - Yellow (accent)
+
+// Yellow accent text component
+function YellowText({ children }: { children: React.ReactNode }) {
+  return <span className="text-[#f0e226]">{children}</span>;
+}
+
+// Magnetic button component
+function MagneticButton({
+  children,
+  type = 'button',
+  onClick,
+  disabled,
+  variant = 'primary',
+  className = '',
+}: {
+  children: React.ReactNode;
+  type?: 'button' | 'submit';
+  onClick?: () => void;
+  disabled?: boolean;
+  variant?: 'primary' | 'secondary';
+  className?: string;
+}) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const springX = useSpring(x, { stiffness: 300, damping: 20 });
+  const springY = useSpring(y, { stiffness: 300, damping: 20 });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!ref.current || disabled) return;
+    const rect = ref.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    x.set((e.clientX - centerX) * 0.2);
+    y.set((e.clientY - centerY) * 0.2);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  const baseStyles =
+    variant === 'primary'
+      ? 'bg-[#f0e226] text-black hover:bg-white'
+      : 'border border-[#f0e226] text-[#f0e226] hover:bg-[#f0e226] hover:text-black';
+
+  return (
+    <motion.button
+      ref={ref}
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      style={{ x: springX, y: springY }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className={`inline-flex items-center justify-center gap-3 px-8 py-4 font-medium uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${baseStyles} ${className}`}
+    >
+      {children}
+    </motion.button>
+  );
+}
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -76,62 +145,60 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface flex">
-      {/* Background Effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-brand-blue/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-green-500/10 rounded-full blur-[100px]" />
-        <div className="absolute top-1/2 left-0 w-[300px] h-[300px] bg-brand-blue/10 rounded-full blur-[80px]" />
-        {/* Grid overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
-            backgroundSize: '100px 100px'
-          }}
-        />
+    <div className="min-h-screen bg-black flex">
+      {/* Noise texture overlay */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.015] z-50">
+        <svg className="w-full h-full">
+          <filter id="loginNoise">
+            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#loginNoise)" />
+        </svg>
       </div>
 
       {/* Left Side - Branding (hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center p-12">
+      <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center p-12 border-r border-white/5">
+        {/* Subtle yellow glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#f0e226]/5 rounded-full blur-[150px]" />
+
         <div className="relative z-10 max-w-md">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <Link to="/" className="inline-flex items-center gap-3 mb-8 group">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-blue to-green-500 flex items-center justify-center">
-                <Music2 className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-white">Producer Tour</span>
+            <Link to="/" className="inline-flex items-center gap-4 mb-12 group">
+              <img src={ptLogo} alt="Producer Tour" className="h-12 w-auto" />
             </Link>
 
-            <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-px bg-[#f0e226]" />
+              <span className="text-xs uppercase tracking-[0.3em] text-white/40">Welcome</span>
+              <div className="w-12 h-px bg-[#f0e226]" />
+            </div>
+
+            <h1 className="text-4xl lg:text-5xl font-normal text-white mb-6 leading-[1.1]">
               Your royalties,{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-green-400">
-                simplified
-              </span>
+              <YellowText>simplified</YellowText>
             </h1>
 
-            <p className="text-lg text-text-secondary mb-8">
+            <p className="text-lg text-white/60 mb-12 leading-relaxed">
               Join thousands of producers who've taken control of their publishing royalties. Track, manage, and collect what you're owed.
             </p>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-3 gap-8">
               <div>
-                <div className="text-2xl font-bold text-white">500+</div>
-                <div className="text-sm text-text-muted">Active Producers</div>
+                <div className="text-3xl font-light text-white mb-1">500+</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-white/40">Active Producers</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-white">$2M+</div>
-                <div className="text-sm text-text-muted">Royalties Tracked</div>
+                <div className="text-3xl font-light text-white mb-1">$2M+</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-white/40">Royalties Tracked</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-white">98%</div>
-                <div className="text-sm text-text-muted">Satisfaction</div>
+                <div className="text-3xl font-light text-white mb-1">98%</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-white/40">Satisfaction</div>
               </div>
             </div>
           </motion.div>
@@ -139,30 +206,30 @@ export default function LoginPage() {
       </div>
 
       {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative">
+        {/* Subtle yellow glow for mobile */}
+        <div className="lg:hidden absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#f0e226]/5 rounded-full blur-[100px]" />
+
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="w-full max-w-md relative z-10"
         >
           {/* Mobile Logo */}
           <div className="lg:hidden mb-8 text-center">
-            <Link to="/" className="inline-flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-blue to-green-500 flex items-center justify-center">
-                <Music2 className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-white">Producer Tour</span>
+            <Link to="/" className="inline-block">
+              <img src={ptLogo} alt="Producer Tour" className="h-10 w-auto mx-auto" />
             </Link>
           </div>
 
           {/* Login/SignUp Card */}
-          <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-8">
+          <div className="bg-[#19181a] border border-white/5 p-8 sm:p-10">
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-white mb-2">
+              <h2 className="text-2xl font-normal text-white mb-2">
                 {isSignUp ? 'Create your account' : 'Welcome back'}
               </h2>
-              <p className="text-text-secondary">
+              <p className="text-white/40">
                 {isSignUp ? 'Sign up to get started with Producer Tour' : 'Sign in to access your dashboard'}
               </p>
             </div>
@@ -172,7 +239,7 @@ export default function LoginPage() {
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="rounded-xl bg-red-500/10 border border-red-500/20 p-4"
+                  className="bg-red-500/10 border border-red-500/20 p-4"
                 >
                   <p className="text-sm text-red-400">{error}</p>
                 </motion.div>
@@ -182,49 +249,47 @@ export default function LoginPage() {
               {isSignUp && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="firstName" className="block text-sm font-medium text-text-secondary mb-2">
+                    <label htmlFor="firstName" className="block text-xs uppercase tracking-[0.2em] text-white/40 mb-2">
                       First Name
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <User className="w-5 h-5 text-text-muted" />
+                        <User className="w-4 h-4 text-white/30" />
                       </div>
                       <input
                         id="firstName"
                         type="text"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
+                        className="w-full pl-11 pr-4 py-3 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50 transition-colors"
                         placeholder="John"
                       />
                     </div>
                   </div>
                   <div>
-                    <label htmlFor="lastName" className="block text-sm font-medium text-text-secondary mb-2">
+                    <label htmlFor="lastName" className="block text-xs uppercase tracking-[0.2em] text-white/40 mb-2">
                       Last Name
                     </label>
-                    <div className="relative">
-                      <input
-                        id="lastName"
-                        type="text"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
-                        placeholder="Doe"
-                      />
-                    </div>
+                    <input
+                      id="lastName"
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full px-4 py-3 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50 transition-colors"
+                      placeholder="Doe"
+                    />
                   </div>
                 </div>
               )}
 
               {/* Email Field */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-text-secondary mb-2">
+                <label htmlFor="email" className="block text-xs uppercase tracking-[0.2em] text-white/40 mb-2">
                   Email address
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Mail className="w-5 h-5 text-text-muted" />
+                    <Mail className="w-4 h-4 text-white/30" />
                   </div>
                   <input
                     id="email"
@@ -232,7 +297,7 @@ export default function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
+                    className="w-full pl-11 pr-4 py-3 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50 transition-colors"
                     placeholder="you@example.com"
                   />
                 </div>
@@ -241,13 +306,13 @@ export default function LoginPage() {
               {/* Password Field */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="password" className="block text-sm font-medium text-text-secondary">
+                  <label htmlFor="password" className="block text-xs uppercase tracking-[0.2em] text-white/40">
                     Password
                   </label>
                   {!isSignUp && (
                     <Link
                       to="/forgot-password"
-                      className="text-sm text-brand-blue hover:text-brand-blue/80 transition-colors"
+                      className="text-xs text-[#f0e226] hover:text-white transition-colors"
                     >
                       Forgot password?
                     </Link>
@@ -255,7 +320,7 @@ export default function LoginPage() {
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Lock className="w-5 h-5 text-text-muted" />
+                    <Lock className="w-4 h-4 text-white/30" />
                   </div>
                   <input
                     id="password"
@@ -263,7 +328,7 @@ export default function LoginPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
+                    className="w-full pl-11 pr-4 py-3 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50 transition-colors"
                     placeholder={isSignUp ? 'Create a password (min 10 chars)' : 'Enter your password'}
                   />
                 </div>
@@ -272,12 +337,12 @@ export default function LoginPage() {
               {/* Confirm Password Field (Sign Up only) */}
               {isSignUp && (
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-text-secondary mb-2">
+                  <label htmlFor="confirmPassword" className="block text-xs uppercase tracking-[0.2em] text-white/40 mb-2">
                     Confirm Password
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Lock className="w-5 h-5 text-text-muted" />
+                      <Lock className="w-4 h-4 text-white/30" />
                     </div>
                     <input
                       id="confirmPassword"
@@ -285,7 +350,7 @@ export default function LoginPage() {
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
+                      className="w-full pl-11 pr-4 py-3 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50 transition-colors"
                       placeholder="Confirm your password"
                     />
                   </div>
@@ -299,31 +364,32 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-white/20 bg-white/5 text-brand-blue focus:ring-brand-blue/50 focus:ring-offset-0 cursor-pointer"
+                  className="w-4 h-4 border-white/20 bg-black text-[#f0e226] focus:ring-[#f0e226]/50 focus:ring-offset-0 cursor-pointer accent-[#f0e226]"
                 />
-                <label htmlFor="rememberMe" className="ml-2 text-sm text-text-secondary cursor-pointer select-none">
+                <label htmlFor="rememberMe" className="ml-3 text-sm text-white/40 cursor-pointer select-none">
                   Remember me
                 </label>
               </div>
 
               {/* Submit Button */}
-              <button
+              <MagneticButton
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-white text-surface font-semibold rounded-xl hover:bg-white/90 hover:shadow-glow-sm hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-surface disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 transition-all duration-300"
+                variant="primary"
+                className="w-full text-sm"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     {isSignUp ? 'Creating account...' : 'Signing in...'}
                   </>
                 ) : (
                   <>
                     {isSignUp ? 'Create Account' : 'Sign in'}
-                    <ArrowRight className="w-5 h-5" />
+                    <ArrowRight className="w-4 h-4" />
                   </>
                 )}
-              </button>
+              </MagneticButton>
             </form>
 
             {/* Divider */}
@@ -331,22 +397,22 @@ export default function LoginPage() {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-white/10" />
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-surface-100 text-text-muted">
+              <div className="relative flex justify-center text-xs">
+                <span className="px-4 bg-[#19181a] text-white/40 uppercase tracking-wider">
                   {isSignUp ? 'Already have an account?' : 'New to Producer Tour?'}
                 </span>
               </div>
             </div>
 
             {/* Toggle Sign Up / Sign In */}
-            <button
-              type="button"
+            <MagneticButton
               onClick={toggleMode}
-              className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-white/5 text-white font-medium rounded-xl border border-white/10 hover:bg-white/10 hover:border-white/20 hover:-translate-y-0.5 transition-all duration-300"
+              variant="secondary"
+              className="w-full text-sm"
             >
               {isSignUp ? 'Sign in instead' : 'Create an account'}
               <ArrowRight className="w-4 h-4" />
-            </button>
+            </MagneticButton>
 
             {/* Apply Link (for writers) */}
             {!isSignUp && (
@@ -355,13 +421,13 @@ export default function LoginPage() {
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-white/10" />
                   </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-surface-100 text-text-muted">Looking for writer membership?</span>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="px-4 bg-[#19181a] text-white/40 uppercase tracking-wider">Looking for writer membership?</span>
                   </div>
                 </div>
                 <Link
                   to="/apply"
-                  className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-brand-blue/10 text-brand-blue font-medium rounded-xl border border-brand-blue/20 hover:bg-brand-blue/20 hover:border-brand-blue/30 hover:-translate-y-0.5 transition-all duration-300"
+                  className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-[#f0e226]/10 text-[#f0e226] font-medium uppercase tracking-wider text-sm border border-[#f0e226]/20 hover:bg-[#f0e226]/20 hover:border-[#f0e226]/40 transition-all"
                 >
                   Apply for writer membership
                   <ArrowRight className="w-4 h-4" />
@@ -372,13 +438,13 @@ export default function LoginPage() {
 
           {/* Footer Links */}
           <div className="mt-8 text-center">
-            <p className="text-sm text-text-muted">
+            <p className="text-xs text-white/30">
               By signing in, you agree to our{' '}
-              <a href="#terms" className="text-text-secondary hover:text-white transition-colors">
+              <a href="#terms" className="text-white/50 hover:text-[#f0e226] transition-colors">
                 Terms of Service
               </a>{' '}
               and{' '}
-              <a href="#privacy" className="text-text-secondary hover:text-white transition-colors">
+              <a href="#privacy" className="text-white/50 hover:text-[#f0e226] transition-colors">
                 Privacy Policy
               </a>
             </p>
