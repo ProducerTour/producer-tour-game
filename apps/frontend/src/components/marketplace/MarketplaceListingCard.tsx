@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Play, Pause, Eye, ShoppingCart } from 'lucide-react';
-import ReactPlayer from 'react-player';
 
 interface MarketplaceListing {
   id: string;
@@ -33,6 +32,17 @@ interface MarketplaceListingCardProps {
 
 export function MarketplaceListingCard({ listing, onPurchase }: MarketplaceListingCardProps) {
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      if (isPlayingPreview) {
+        audioRef.current.play();
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [isPlayingPreview]);
 
   const sellerName =
     listing.seller.firstName && listing.seller.lastName
@@ -97,15 +107,12 @@ export function MarketplaceListingCard({ listing, onPurchase }: MarketplaceListi
 
         {/* Hidden Audio Player */}
         {listing.audioPreviewUrl && (
-          <div className="hidden">
-            <ReactPlayer
-              url={listing.audioPreviewUrl}
-              playing={isPlayingPreview}
-              onEnded={() => setIsPlayingPreview(false)}
-              width="0"
-              height="0"
-            />
-          </div>
+          <audio
+            ref={audioRef}
+            src={listing.audioPreviewUrl}
+            onEnded={() => setIsPlayingPreview(false)}
+            className="hidden"
+          />
         )}
       </div>
 

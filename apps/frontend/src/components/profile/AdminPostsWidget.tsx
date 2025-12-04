@@ -4,7 +4,6 @@ import {
   BadgeCheck,
   Loader2,
   MessageCircle,
-  ExternalLink,
   Clock,
   ChevronRight,
 } from 'lucide-react';

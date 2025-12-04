@@ -11,7 +11,7 @@ import {
   Sparkles,
   BadgeCheck,
 } from 'lucide-react';
-import { api, feedApi, userApi } from '../../lib/api';
+import { feedApi, userApi } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 
 interface Writer {
@@ -77,7 +77,9 @@ function WriterCard({ writer, isFollowing, onFollow, onUnfollow, isLoading }: Wr
             {fullName}
           </Link>
           {writer.role === 'ADMIN' && (
-            <BadgeCheck className="w-4 h-4 text-amber-500 fill-amber-100 flex-shrink-0" title="Verified Admin" />
+            <span title="Verified Admin">
+              <BadgeCheck className="w-4 h-4 text-amber-500 fill-amber-100 flex-shrink-0" />
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500">

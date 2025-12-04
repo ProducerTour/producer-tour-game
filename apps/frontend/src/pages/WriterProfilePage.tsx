@@ -206,10 +206,9 @@ export default function WriterProfilePage() {
                     <div className="flex items-center gap-2 mb-1">
                       <h2 className="text-3xl font-bold text-gray-900">{fullName}</h2>
                       {profile.role === 'ADMIN' && (
-                        <BadgeCheck
-                          className="w-7 h-7 text-amber-500 fill-amber-100"
-                          title="Verified Admin"
-                        />
+                        <span title="Verified Admin">
+                          <BadgeCheck className="w-7 h-7 text-amber-500 fill-amber-100" />
+                        </span>
                       )}
                     </div>
                     <p className="text-gray-500">@{profile.profileSlug || 'user'}</p>

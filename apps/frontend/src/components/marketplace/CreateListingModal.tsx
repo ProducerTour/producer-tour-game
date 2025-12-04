@@ -104,7 +104,7 @@ export function CreateListingModal({ isOpen, onClose }: CreateListingModalProps)
       if (audioPreview) formData.append('audioPreview', audioPreview);
       if (productFile) formData.append('productFile', productFile);
 
-      const response = await marketplaceApi.createListing(formData);
+      const response = await marketplaceApi.createListing(formData as any);
       return response.data;
     },
     onSuccess: () => {

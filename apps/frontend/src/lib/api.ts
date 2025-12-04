@@ -901,8 +901,8 @@ export const marketplaceApi = {
     search?: string;
   }) => api.get(`/marketplace/user/${userSlug}`, { params }),
 
-  // Create new listing
-  createListing: (data: {
+  // Create new listing (supports FormData for file uploads)
+  createListing: (data: FormData | {
     title: string;
     description: string;
     category: string;
@@ -912,7 +912,9 @@ export const marketplaceApi = {
     fileUrl?: string;
     slug: string;
     tags?: string[];
-  }) => api.post('/marketplace/listings', data),
+  }) => api.post('/marketplace/listings', data, data instanceof FormData ? {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  } : undefined),
 
   // Update listing
   updateListing: (id: string, data: {
