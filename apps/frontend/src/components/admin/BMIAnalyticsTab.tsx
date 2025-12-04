@@ -4,14 +4,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import {
-  Card,
-  Title,
-  Text,
-  Metric,
-  Flex,
-  Grid,
-} from '@tremor/react';
+// Tremor Card, Title, Text, Metric, Flex, Grid removed - using cassette theme divs
 import {
   BarChart,
   Bar,
@@ -38,8 +31,8 @@ const COLORS = ['#f0e226', '#c4c41c', '#a3a311', '#d9d920', '#e6e623', '#f5f54a'
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-[#19181a] border border-white/10 p-4 shadow-2xl">
-        <p className="text-[#f0e226] font-light text-sm mb-3 pb-2 border-b border-white/10">{label}</p>
+      <div className="bg-theme-card border border-theme-border-strong p-4 shadow-2xl">
+        <p className="text-theme-primary font-light text-sm mb-3 pb-2 border-b border-theme-border-strong">{label}</p>
         <div className="space-y-2">
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex items-center justify-between gap-4">
@@ -48,7 +41,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                   className="w-3 h-3"
                   style={{ backgroundColor: entry.color }}
                 />
-                <span className="text-white/40 text-sm">{entry.name}</span>
+                <span className="text-theme-foreground-muted text-sm">{entry.name}</span>
               </div>
               <span className="text-white font-light text-sm">
                 ${entry.value?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -68,13 +61,13 @@ const CustomPieLegend = ({ data }: { data: any[] }) => {
   return (
     <div className="space-y-2 mt-4">
       {data.map((entry: any, index: number) => (
-        <div key={index} className="flex items-center justify-between px-3 py-2 bg-black/30 hover:bg-black/50 border border-white/5 transition-colors">
+        <div key={index} className="flex items-center justify-between px-3 py-2 bg-black/30 hover:bg-black/50 border border-theme-border transition-colors">
           <div className="flex items-center gap-2">
             <div
               className="w-3 h-3"
               style={{ backgroundColor: entry.fill }}
             />
-            <span className="text-white/60 text-sm">{entry.name}</span>
+            <span className="text-theme-foreground-secondary text-sm">{entry.name}</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-white font-light text-sm">
@@ -102,7 +95,7 @@ export default function BMIAnalyticsTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
       </div>
     );
   }
@@ -110,7 +103,7 @@ export default function BMIAnalyticsTab() {
   if (error || !data) {
     return (
       <div className="bg-red-500/10 border border-red-500/30 p-6 text-center">
-        <Text className="text-red-400">Failed to load BMI Analytics. Make sure you have BMI statements uploaded and processed.</Text>
+        <p className="text-red-400">Failed to load BMI Analytics. Make sure you have BMI statements uploaded and processed.</p>
       </div>
     );
   }
@@ -163,103 +156,103 @@ export default function BMIAnalyticsTab() {
       <div>
         <div className="flex justify-between items-start">
           <div>
-            <h2 className="text-white text-2xl font-light flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center">
-                <Radio className="w-5 h-5 text-[#f0e226]" />
+            <h2 className="text-theme-foreground text-2xl font-light flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+                <Radio className="w-5 h-5 text-theme-primary" />
               </div>
               BMI Analytics
             </h2>
-            <p className="text-white/40">Broadcast Music Inc. statement analysis</p>
+            <p className="text-theme-foreground-muted">Broadcast Music Inc. statement analysis</p>
           </div>
           <div className={`flex items-center gap-2 px-4 py-2 text-sm transition-all ${
             (kpis?.totalStatements || 0) > 0
-              ? 'bg-[#f0e226]/15 text-[#f0e226] border border-[#f0e226]/30'
-              : 'bg-white/5 text-white/40 border border-white/10'
+              ? 'bg-theme-primary/15 text-theme-primary border border-theme-border-hover'
+              : 'bg-white/5 text-theme-foreground-muted border border-theme-border-strong'
           }`}>
             <div className={`w-2 h-2 rounded-full ${
-              (kpis?.totalStatements || 0) > 0 ? 'bg-[#f0e226] animate-pulse' : 'bg-white/30'
+              (kpis?.totalStatements || 0) > 0 ? 'bg-theme-primary animate-pulse' : 'bg-white/30'
             }`} />
             <span className="font-light">{kpis?.totalStatements || 0}</span>
-            <span className="text-white/40">Statements Processed</span>
+            <span className="text-theme-foreground-muted">Statements Processed</span>
           </div>
         </div>
       </div>
 
       {/* KPI Cards - Cassette Theme */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300 border-t-2 border-t-[#f0e226]">
+        <div className="group relative overflow-hidden bg-theme-card border border-theme-border p-4 hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Total Revenue</p>
-              <p className="text-[#f0e226] text-2xl font-light mt-1">{currencyFormat(kpis?.totalRevenue || 0)}</p>
+              <p className="text-theme-foreground-muted text-xs uppercase tracking-[0.2em]">Total Revenue</p>
+              <p className="text-theme-primary text-2xl font-light mt-1">{currencyFormat(kpis?.totalRevenue || 0)}</p>
             </div>
-            <div className="p-2 bg-[#f0e226]/10">
-              <DollarSign className="w-5 h-5 text-[#f0e226]" />
+            <div className="p-2 bg-theme-primary/10">
+              <DollarSign className="w-5 h-5 text-theme-primary" />
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="group relative overflow-hidden bg-theme-card border border-theme-border p-4 hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Net Revenue</p>
-              <p className="text-white text-2xl font-light mt-1">{currencyFormat(kpis?.totalNetRevenue || 0)}</p>
+              <p className="text-theme-foreground-muted text-xs uppercase tracking-[0.2em]">Net Revenue</p>
+              <p className="text-theme-foreground text-2xl font-light mt-1">{currencyFormat(kpis?.totalNetRevenue || 0)}</p>
             </div>
-            <div className="p-2 bg-[#f0e226]/10">
-              <TrendingUp className="w-5 h-5 text-[#f0e226]" />
+            <div className="p-2 bg-theme-primary/10">
+              <TrendingUp className="w-5 h-5 text-theme-primary" />
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="group relative overflow-hidden bg-theme-card border border-theme-border p-4 hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Unique Songs</p>
-              <p className="text-white text-2xl font-light mt-1">{(kpis?.uniqueSongs || 0).toLocaleString()}</p>
+              <p className="text-theme-foreground-muted text-xs uppercase tracking-[0.2em]">Unique Songs</p>
+              <p className="text-theme-foreground text-2xl font-light mt-1">{(kpis?.uniqueSongs || 0).toLocaleString()}</p>
             </div>
-            <div className="p-2 bg-[#f0e226]/10">
-              <Music className="w-5 h-5 text-[#f0e226]" />
+            <div className="p-2 bg-theme-primary/10">
+              <Music className="w-5 h-5 text-theme-primary" />
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="group relative overflow-hidden bg-theme-card border border-theme-border p-4 hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Territories</p>
-              <p className="text-white text-2xl font-light mt-1">{kpis?.uniqueTerritories || 0}</p>
+              <p className="text-theme-foreground-muted text-xs uppercase tracking-[0.2em]">Territories</p>
+              <p className="text-theme-foreground text-2xl font-light mt-1">{kpis?.uniqueTerritories || 0}</p>
             </div>
-            <div className="p-2 bg-[#f0e226]/10">
-              <Globe className="w-5 h-5 text-[#f0e226]" />
+            <div className="p-2 bg-theme-primary/10">
+              <Globe className="w-5 h-5 text-theme-primary" />
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="group relative overflow-hidden bg-theme-card border border-theme-border p-4 hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Countries</p>
-              <p className="text-white text-2xl font-light mt-1">{kpis?.uniqueCountries || 0}</p>
+              <p className="text-theme-foreground-muted text-xs uppercase tracking-[0.2em]">Countries</p>
+              <p className="text-theme-foreground text-2xl font-light mt-1">{kpis?.uniqueCountries || 0}</p>
             </div>
-            <div className="p-2 bg-[#f0e226]/10">
-              <MapPin className="w-5 h-5 text-[#f0e226]" />
+            <div className="p-2 bg-theme-primary/10">
+              <MapPin className="w-5 h-5 text-theme-primary" />
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="group relative overflow-hidden bg-theme-card border border-theme-border p-4 hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Perf. Sources</p>
-              <p className="text-white text-2xl font-light mt-1">{kpis?.uniquePerfSources || 0}</p>
+              <p className="text-theme-foreground-muted text-xs uppercase tracking-[0.2em]">Perf. Sources</p>
+              <p className="text-theme-foreground text-2xl font-light mt-1">{kpis?.uniquePerfSources || 0}</p>
             </div>
-            <div className="p-2 bg-[#f0e226]/10">
-              <Radio className="w-5 h-5 text-[#f0e226]" />
+            <div className="p-2 bg-theme-primary/10">
+              <Radio className="w-5 h-5 text-theme-primary" />
             </div>
           </div>
         </div>
@@ -267,21 +260,21 @@ export default function BMIAnalyticsTab() {
 
       {/* Revenue Timeline - Cassette Theme */}
       {timelineAreaData.length > 0 && (
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-primary-20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-light text-white mb-1">Revenue by Quarter/Period</h3>
-              <p className="text-white/40 text-sm">Gross and net revenue over time</p>
+              <h3 className="text-lg font-light text-theme-foreground mb-1">Revenue by Quarter/Period</h3>
+              <p className="text-theme-foreground-muted text-sm">Gross and net revenue over time</p>
             </div>
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-[#f0e226]" />
-                <span className="text-white/40 text-xs">Gross</span>
+                <div className="w-3 h-3 bg-theme-primary" />
+                <span className="text-theme-foreground-muted text-xs">Gross</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-white/60" />
-                <span className="text-white/40 text-xs">Net</span>
+                <span className="text-theme-foreground-muted text-xs">Net</span>
               </div>
             </div>
           </div>
@@ -349,11 +342,11 @@ export default function BMIAnalyticsTab() {
       {/* Territory and Performance Source Breakdown - Cassette Theme */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Territory Pie Chart */}
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-primary-20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="mb-4">
-            <h3 className="text-lg font-light text-white mb-1">Revenue by Territory</h3>
-            <p className="text-white/40 text-sm">Geographic distribution of earnings</p>
+            <h3 className="text-lg font-light text-theme-foreground mb-1">Revenue by Territory</h3>
+            <p className="text-theme-foreground-muted text-sm">Geographic distribution of earnings</p>
           </div>
           {territoryPieData.length > 0 ? (
             <div className="flex flex-col lg:flex-row gap-4">
@@ -404,18 +397,18 @@ export default function BMIAnalyticsTab() {
             </div>
           ) : (
             <div className="h-56 flex items-center justify-center">
-              <p className="text-white/40">No territory data available</p>
+              <p className="text-theme-foreground-muted">No territory data available</p>
             </div>
           )}
         </div>
 
         {/* Performance Source Bar Chart */}
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-primary-20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-light text-white mb-1">Performance Source Breakdown</h3>
-              <p className="text-white/40 text-sm">Revenue by source (Radio, TV, Streaming, etc.)</p>
+              <h3 className="text-lg font-light text-theme-foreground mb-1">Performance Source Breakdown</h3>
+              <p className="text-theme-foreground-muted text-sm">Revenue by source (Radio, TV, Streaming, etc.)</p>
             </div>
           </div>
           {perfSourceBarData.length > 0 ? (
@@ -459,28 +452,28 @@ export default function BMIAnalyticsTab() {
             </div>
           ) : (
             <div className="h-80 flex items-center justify-center">
-              <p className="text-white/40">No performance source data available</p>
+              <p className="text-theme-foreground-muted">No performance source data available</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Top Songs - Cassette Theme */}
-      <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-primary-20 transition-all duration-300">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-light text-white mb-1">Top Performing Songs</h3>
-            <p className="text-white/40 text-sm">Revenue and territory distribution (top 10)</p>
+            <h3 className="text-lg font-light text-theme-foreground mb-1">Top Performing Songs</h3>
+            <p className="text-theme-foreground-muted text-sm">Revenue and territory distribution (top 10)</p>
           </div>
           <div className="flex gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-[#f0e226]" />
-              <span className="text-white/40 text-xs">Revenue</span>
+              <div className="w-3 h-3 bg-theme-primary" />
+              <span className="text-theme-foreground-muted text-xs">Revenue</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-0.5 bg-white/60" />
-              <span className="text-white/40 text-xs">Territories</span>
+              <span className="text-theme-foreground-muted text-xs">Territories</span>
             </div>
           </div>
         </div>
@@ -535,19 +528,19 @@ export default function BMIAnalyticsTab() {
           </div>
         ) : (
           <div className="h-96 flex items-center justify-center">
-            <p className="text-white/40">No song data available</p>
+            <p className="text-theme-foreground-muted">No song data available</p>
           </div>
         )}
       </div>
 
       {/* Country Breakdown - Cassette Theme */}
       {countryBarData.length > 0 && (
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-primary-20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-light text-white mb-1">Revenue by Country of Performance</h3>
-              <p className="text-white/40 text-sm">Detailed country-level breakdown</p>
+              <h3 className="text-lg font-light text-theme-foreground mb-1">Revenue by Country of Performance</h3>
+              <p className="text-theme-foreground-muted text-sm">Detailed country-level breakdown</p>
             </div>
           </div>
           <div className="h-80">
@@ -592,21 +585,21 @@ export default function BMIAnalyticsTab() {
       )}
 
       {/* Commission Summary */}
-      <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#f0e226]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-theme-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="flex justify-between items-center relative z-10">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 rounded-full bg-[#f0e226] animate-pulse" />
-              <h3 className="text-white font-light text-lg">Commission Summary</h3>
+              <div className="w-2 h-2 rounded-full bg-theme-primary animate-pulse" />
+              <h3 className="text-theme-foreground font-light text-lg">Commission Summary</h3>
             </div>
-            <p className="text-white/40">Total commission earned from BMI statements</p>
+            <p className="text-theme-foreground-muted">Total commission earned from BMI statements</p>
           </div>
           <div className="text-right">
-            <div className="text-[#f0e226] text-3xl font-light">{currencyFormat(kpis?.totalCommission || 0)}</div>
+            <div className="text-theme-primary text-3xl font-light">{currencyFormat(kpis?.totalCommission || 0)}</div>
             <div className="flex items-center justify-end gap-2 mt-1">
-              <span className="px-2 py-0.5 bg-[#f0e226]/15 text-[#f0e226] text-xs border border-[#f0e226]/30">
+              <span className="px-2 py-0.5 bg-theme-primary/15 text-theme-primary text-xs border border-theme-border-hover">
                 {kpis?.marginPercentage || 0}% margin
               </span>
             </div>

@@ -128,16 +128,16 @@ const TheaterMode = ({
     >
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-[95vw] max-w-7xl h-[85vh] bg-[#19181a] border border-white/5 shadow-2xl overflow-hidden"
+        className="relative z-10 w-[95vw] max-w-7xl h-[85vh] bg-theme-card border border-theme-border shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Yellow top accent */}
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-          <h2 className="text-white text-xl font-light">{title}</h2>
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+        <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
+          <h2 className="text-theme-foreground text-xl font-light">{title}</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#f0e226]/10 transition-colors text-white/40 hover:text-[#f0e226]"
+            className="p-2 hover:bg-theme-primary-10 transition-colors text-theme-foreground-muted hover:text-theme-primary"
           >
             <X className="w-5 h-5" />
           </button>
@@ -154,7 +154,7 @@ const TheaterMode = ({
 const ExpandButton = ({ onClick }: { onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="p-2 hover:bg-[#f0e226]/10 transition-colors text-white/40 hover:text-[#f0e226]"
+    className="p-2 hover:bg-theme-primary-10 transition-colors text-theme-foreground-muted hover:text-theme-primary"
     title="Open in theater mode"
   >
     <Maximize2 className="w-4 h-4" />
@@ -321,7 +321,7 @@ export default function AnalyticsTabTremor() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
       </div>
     );
   }
@@ -330,8 +330,8 @@ export default function AnalyticsTabTremor() {
     <div className="space-y-8">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-light text-white">Platform Analytics</h1>
-          <p className="text-white/40 mt-1">Comprehensive overview of platform performance</p>
+          <h1 className="text-2xl font-light text-theme-foreground">Platform Analytics</h1>
+          <p className="text-theme-foreground-muted mt-1">Comprehensive overview of platform performance</p>
         </div>
         {/* Dev Mode Mock Data Toggle - only visible in development */}
         {isDev && (
@@ -339,8 +339,8 @@ export default function AnalyticsTabTremor() {
             onClick={() => setUseMockData(!useMockData)}
             className={`px-3 py-1.5 text-xs font-medium uppercase tracking-wider transition-all ${
               useMockData
-                ? 'bg-[#f0e226]/15 text-[#f0e226] border border-[#f0e226]/30'
-                : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'
+                ? 'bg-theme-primary-15 text-theme-primary border border-theme-border-hover'
+                : 'bg-white/5 text-theme-foreground-muted border border-theme-border-strong hover:bg-white/10'
             }`}
           >
             {useMockData ? 'Mock Data ON' : 'Live Data'}
@@ -348,8 +348,8 @@ export default function AnalyticsTabTremor() {
         )}
       </div>
       {useMockData && (
-        <div className="bg-[#f0e226]/10 border border-[#f0e226]/30 px-4 py-2">
-          <p className="text-[#f0e226] text-sm">
+        <div className="bg-theme-primary-10 border border-theme-border-hover px-4 py-2">
+          <p className="text-theme-primary text-sm">
             Dev Mode: Displaying mock data for testing. Toggle off to see real data.
           </p>
         </div>
@@ -357,38 +357,38 @@ export default function AnalyticsTabTremor() {
 
       {/* Financial Summary - Revenue, Net, Commission */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/30 transition-all duration-300 border-t-2 border-t-[#f0e226]">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#f0e226]/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
+          <div className="absolute inset-0 bg-gradient-to-br from-theme-primary-3 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="relative flex items-start justify-between">
             <div>
-              <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2">Gross Revenue</p>
-              <p className="text-3xl font-light text-white">{currencyFormatter(Number(stats?.totalRevenue || 0))}</p>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Gross Revenue</p>
+              <p className="text-3xl font-light text-theme-foreground">{currencyFormatter(Number(stats?.totalRevenue || 0))}</p>
             </div>
-            <div className="w-14 h-14 bg-[#f0e226]/10 flex items-center justify-center">
+            <div className="w-14 h-14 bg-theme-primary-10 flex items-center justify-center">
               <span className="text-2xl">💰</span>
             </div>
           </div>
         </div>
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/30 transition-all duration-300 border-t-2 border-t-[#f0e226]">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#f0e226]/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
+          <div className="absolute inset-0 bg-gradient-to-br from-theme-primary-3 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="relative flex items-start justify-between">
             <div>
-              <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2">Net to Writers</p>
-              <p className="text-3xl font-light text-white">{currencyFormatter(Number(stats?.totalNet || 0))}</p>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Net to Writers</p>
+              <p className="text-3xl font-light text-theme-foreground">{currencyFormatter(Number(stats?.totalNet || 0))}</p>
             </div>
-            <div className="w-14 h-14 bg-[#f0e226]/10 flex items-center justify-center">
+            <div className="w-14 h-14 bg-theme-primary-10 flex items-center justify-center">
               <span className="text-2xl">💵</span>
             </div>
           </div>
         </div>
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/30 transition-all duration-300 border-t-2 border-t-[#f0e226]">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#f0e226]/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
+          <div className="absolute inset-0 bg-gradient-to-br from-theme-primary-3 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="relative flex items-start justify-between">
             <div>
-              <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2">Commission</p>
-              <p className="text-3xl font-light text-white">{currencyFormatter(Number(stats?.totalCommission || 0))}</p>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Commission</p>
+              <p className="text-3xl font-light text-theme-foreground">{currencyFormatter(Number(stats?.totalCommission || 0))}</p>
             </div>
-            <div className="w-14 h-14 bg-[#f0e226]/10 flex items-center justify-center">
+            <div className="w-14 h-14 bg-theme-primary-10 flex items-center justify-center">
               <span className="text-2xl">📈</span>
             </div>
           </div>
@@ -397,60 +397,60 @@ export default function AnalyticsTabTremor() {
 
       {/* Other Stats - KPI Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-4 group hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-4 group hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Total Writers</p>
-              <p className="text-2xl font-light text-white">{stats?.totalWriters || 0}</p>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Total Writers</p>
+              <p className="text-2xl font-light text-theme-foreground">{stats?.totalWriters || 0}</p>
             </div>
-            <div className="w-8 h-8 bg-[#f0e226]/10 flex items-center justify-center text-lg">👥</div>
+            <div className="w-8 h-8 bg-theme-primary-10 flex items-center justify-center text-lg">👥</div>
           </div>
         </div>
 
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-4 group hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-4 group hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Total Statements</p>
-              <p className="text-2xl font-light text-white">{stats?.totalStatements || 0}</p>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Total Statements</p>
+              <p className="text-2xl font-light text-theme-foreground">{stats?.totalStatements || 0}</p>
             </div>
-            <div className="w-8 h-8 bg-[#f0e226]/10 flex items-center justify-center text-lg">📊</div>
+            <div className="w-8 h-8 bg-theme-primary-10 flex items-center justify-center text-lg">📊</div>
           </div>
         </div>
 
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-4 group hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-4 group hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Processed</p>
-              <p className="text-2xl font-light text-white">{stats?.processedStatements || 0}</p>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Processed</p>
+              <p className="text-2xl font-light text-theme-foreground">{stats?.processedStatements || 0}</p>
             </div>
-            <div className="w-8 h-8 bg-[#f0e226]/10 flex items-center justify-center text-lg">✅</div>
+            <div className="w-8 h-8 bg-theme-primary-10 flex items-center justify-center text-lg">✅</div>
           </div>
         </div>
 
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-4 group hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-4 group hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Unique Works</p>
-              <p className="text-2xl font-light text-white">{stats?.uniqueWorks || 0}</p>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Unique Works</p>
+              <p className="text-2xl font-light text-theme-foreground">{stats?.uniqueWorks || 0}</p>
             </div>
-            <div className="w-8 h-8 bg-[#f0e226]/10 flex items-center justify-center text-lg">🎵</div>
+            <div className="w-8 h-8 bg-theme-primary-10 flex items-center justify-center text-lg">🎵</div>
           </div>
         </div>
 
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-4 group hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-4 group hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Total Revenue</p>
-              <p className="text-xl font-light text-white">
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Total Revenue</p>
+              <p className="text-xl font-light text-theme-foreground">
                 ${Number(stats?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="w-8 h-8 bg-[#f0e226]/10 flex items-center justify-center text-lg">💰</div>
+            <div className="w-8 h-8 bg-theme-primary-10 flex items-center justify-center text-lg">💰</div>
           </div>
         </div>
       </div>
@@ -458,12 +458,12 @@ export default function AnalyticsTabTremor() {
       {/* Revenue & PRO Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Revenue Timeline - Previous Quarter */}
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-normal text-white">Revenue Over Time</h3>
-              <p className="text-sm text-white/40">{getQuarterLabel()}</p>
+              <h3 className="text-lg font-normal text-theme-foreground">Revenue Over Time</h3>
+              <p className="text-sm text-theme-foreground-muted">{getQuarterLabel()}</p>
             </div>
             <ExpandButton onClick={() => setTheaterChart('revenue')} />
           </div>
@@ -476,19 +476,19 @@ export default function AnalyticsTabTremor() {
               valueFormat={currencyFormatter}
             />
           ) : (
-            <div className="h-72 flex items-center justify-center text-white/30">
+            <div className="h-72 flex items-center justify-center text-theme-foreground-muted">
               No revenue data available
             </div>
           )}
         </div>
 
         {/* PRO Breakdown Pie */}
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-normal text-white">Revenue by PRO</h3>
-              <p className="text-sm text-white/40">Distribution across PROs</p>
+              <h3 className="text-lg font-normal text-theme-foreground">Revenue by PRO</h3>
+              <p className="text-sm text-theme-foreground-muted">Distribution across PROs</p>
             </div>
             <ExpandButton onClick={() => setTheaterChart('pro')} />
           </div>
@@ -501,7 +501,7 @@ export default function AnalyticsTabTremor() {
               valueFormat={currencyFormatter}
             />
           ) : (
-            <div className="h-52 flex items-center justify-center text-white/30">
+            <div className="h-52 flex items-center justify-center text-theme-foreground-muted">
               No PRO data available
             </div>
           )}
@@ -510,11 +510,11 @@ export default function AnalyticsTabTremor() {
 
       {/* PRO Statistics Bar Chart */}
       {getProBarChartData().length > 0 && (
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="mb-4">
-            <h3 className="text-lg font-normal text-white">PRO Statistics</h3>
-            <p className="text-sm text-white/40">Revenue and statement count by PRO</p>
+            <h3 className="text-lg font-normal text-theme-foreground">PRO Statistics</h3>
+            <p className="text-sm text-theme-foreground-muted">Revenue and statement count by PRO</p>
           </div>
           <NivoBarChart
             data={getProBarChartData()}
@@ -531,19 +531,19 @@ export default function AnalyticsTabTremor() {
       {!platformLoading && platformData?.platforms?.length > 0 && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-light text-white">Platform & Service Analytics</h2>
-            <p className="text-white/40">Revenue breakdown by streaming platform and service type</p>
+            <h2 className="text-xl font-light text-theme-foreground">Platform & Service Analytics</h2>
+            <p className="text-theme-foreground-muted">Revenue breakdown by streaming platform and service type</p>
           </div>
 
           {/* Distribution Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Platform Distribution Pie */}
-            <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+            <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-normal text-white">Platform Distribution</h3>
-                  <p className="text-sm text-white/40">Revenue share by streaming service</p>
+                  <h3 className="text-lg font-normal text-theme-foreground">Platform Distribution</h3>
+                  <p className="text-sm text-theme-foreground-muted">Revenue share by streaming service</p>
                 </div>
                 <ExpandButton onClick={() => setTheaterChart('platform')} />
               </div>
@@ -557,12 +557,12 @@ export default function AnalyticsTabTremor() {
             </div>
 
             {/* Service Type Distribution Pie */}
-            <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+            <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-normal text-white">Service Type Mix</h3>
-                  <p className="text-sm text-white/40">Premium vs Ad-Supported vs other tiers</p>
+                  <h3 className="text-lg font-normal text-theme-foreground">Service Type Mix</h3>
+                  <p className="text-sm text-theme-foreground-muted">Premium vs Ad-Supported vs other tiers</p>
                 </div>
                 <ExpandButton onClick={() => setTheaterChart('serviceType')} />
               </div>
@@ -583,10 +583,10 @@ export default function AnalyticsTabTremor() {
           </div>
 
           {/* Platform Comparison Bar Chart - Gross vs Net */}
-          <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
-            <h3 className="text-lg font-normal text-white mb-2">Platform Revenue Comparison</h3>
-            <p className="text-sm text-white/40 mb-4">Gross vs Net revenue by platform (top 8)</p>
+          <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+            <h3 className="text-lg font-normal text-theme-foreground mb-2">Platform Revenue Comparison</h3>
+            <p className="text-sm text-theme-foreground-muted mb-4">Gross vs Net revenue by platform (top 8)</p>
             <NivoBarChart
               data={getPlatformComparisonData()}
               keys={['Gross Revenue', 'Net Revenue']}
@@ -601,7 +601,7 @@ export default function AnalyticsTabTremor() {
 
           {/* Top Platforms Metric Cards */}
           <div>
-            <h3 className="text-lg font-normal text-white mb-4">Top Platforms</h3>
+            <h3 className="text-lg font-normal text-theme-foreground mb-4">Top Platforms</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {platformData.platforms.slice(0, 8).map((platform: any, index: number) => {
                 const marginPct = getMarginPercent(platform.revenue, platform.netRevenue);
@@ -609,20 +609,20 @@ export default function AnalyticsTabTremor() {
                 return (
                   <div
                     key={platform.platform}
-                    className={`relative overflow-hidden bg-[#19181a] border p-4 group hover:border-[#f0e226]/30 transition-all duration-300 ${isTopPlatform ? 'border-[#f0e226]/30' : 'border-white/5'}`}
+                    className={`relative overflow-hidden bg-theme-card border p-4 group hover:border-theme-border-hover transition-all duration-300 ${isTopPlatform ? 'border-theme-border-hover' : 'border-theme-border'}`}
                   >
-                    <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+                    <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
                     <div className="flex justify-between items-start">
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs text-white/40 uppercase tracking-wider truncate">
+                        <p className="text-xs text-theme-foreground-muted uppercase tracking-wider truncate">
                           {platform.platform}
                         </p>
-                        <p className="text-lg font-light text-white mt-1">
+                        <p className="text-lg font-light text-theme-foreground mt-1">
                           ${Number(platform.revenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                         </p>
                       </div>
                       {isTopPlatform && (
-                        <span className="px-2 py-0.5 bg-[#f0e226]/15 text-[#f0e226] text-xs font-medium">#{index + 1}</span>
+                        <span className="px-2 py-0.5 bg-theme-primary-15 text-theme-primary text-xs font-medium">#{index + 1}</span>
                       )}
                     </div>
                     <div className="flex justify-between mt-3">
@@ -655,24 +655,24 @@ export default function AnalyticsTabTremor() {
           </div>
 
           {/* Collapsible Platform Details Table */}
-          <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+          <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
             <button
               onClick={() => setPlatformTableExpanded(!platformTableExpanded)}
               className="w-full"
             >
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-lg font-normal text-white text-left">Detailed Breakdown</h3>
-                  <p className="text-sm text-white/40 text-left">
+                  <h3 className="text-lg font-normal text-theme-foreground text-left">Detailed Breakdown</h3>
+                  <p className="text-sm text-theme-foreground-muted text-left">
                     {platformData.platforms.length} platform{platformData.platforms.length !== 1 ? 's' : ''} • Click to {platformTableExpanded ? 'collapse' : 'expand'}
                   </p>
                 </div>
-                <div className="p-2 hover:bg-[#f0e226]/10 transition-colors">
+                <div className="p-2 hover:bg-theme-primary-10 transition-colors">
                   {platformTableExpanded ? (
-                    <ChevronUp className="w-5 h-5 text-white/40" />
+                    <ChevronUp className="w-5 h-5 text-theme-foreground-muted" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-white/40" />
+                    <ChevronDown className="w-5 h-5 text-theme-foreground-muted" />
                   )}
                 </div>
               </div>
@@ -683,12 +683,12 @@ export default function AnalyticsTabTremor() {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableHeaderCell className="text-white/40 uppercase tracking-wider text-xs">Platform</TableHeaderCell>
-                      <TableHeaderCell className="text-white/40 uppercase tracking-wider text-xs">Service Types</TableHeaderCell>
-                      <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Items</TableHeaderCell>
-                      <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Gross</TableHeaderCell>
-                      <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Net</TableHeaderCell>
-                      <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Margin</TableHeaderCell>
+                      <TableHeaderCell className="text-theme-foreground-muted uppercase tracking-wider text-xs">Platform</TableHeaderCell>
+                      <TableHeaderCell className="text-theme-foreground-muted uppercase tracking-wider text-xs">Service Types</TableHeaderCell>
+                      <TableHeaderCell className="text-right text-theme-foreground-muted uppercase tracking-wider text-xs">Items</TableHeaderCell>
+                      <TableHeaderCell className="text-right text-theme-foreground-muted uppercase tracking-wider text-xs">Gross</TableHeaderCell>
+                      <TableHeaderCell className="text-right text-theme-foreground-muted uppercase tracking-wider text-xs">Net</TableHeaderCell>
+                      <TableHeaderCell className="text-right text-theme-foreground-muted uppercase tracking-wider text-xs">Margin</TableHeaderCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -696,12 +696,12 @@ export default function AnalyticsTabTremor() {
                       const marginPct = getMarginPercent(platform.revenue, platform.netRevenue);
                       return (
                         <TableRow key={platform.platform}>
-                          <TableCell className="text-white font-medium">{platform.platform}</TableCell>
+                          <TableCell className="text-theme-foreground font-medium">{platform.platform}</TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {platform.offerings?.length > 0 ? (
                                 platform.offerings.slice(0, 3).map((offering: string, i: number) => (
-                                  <span key={i} className="px-2 py-0.5 bg-white/[0.08] text-xs text-white/60">
+                                  <span key={i} className="px-2 py-0.5 bg-white/[0.08] text-xs text-theme-foreground-secondary">
                                     {offering}
                                   </span>
                                 ))
@@ -715,15 +715,15 @@ export default function AnalyticsTabTremor() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right text-white/60">{platform.count.toLocaleString()}</TableCell>
-                          <TableCell className="text-right text-[#f0e226] font-medium">
+                          <TableCell className="text-right text-theme-foreground-secondary">{platform.count.toLocaleString()}</TableCell>
+                          <TableCell className="text-right text-theme-primary font-medium">
                             ${Number(platform.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </TableCell>
-                          <TableCell className="text-right text-[#f0e226]/70">
+                          <TableCell className="text-right text-theme-primary">
                             ${Number(platform.netRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell className="text-right">
-                            <span className={`text-xs ${Number(marginPct) > 15 ? 'text-[#f0e226]' : 'text-white/40'}`}>
+                            <span className={`text-xs ${Number(marginPct) > 15 ? 'text-theme-primary' : 'text-theme-foreground-muted'}`}>
                               {marginPct}%
                             </span>
                           </TableCell>
@@ -733,18 +733,18 @@ export default function AnalyticsTabTremor() {
                   </TableBody>
                   <TableFoot>
                     <TableRow>
-                      <TableFooterCell className="text-white font-bold uppercase tracking-wider">TOTAL</TableFooterCell>
+                      <TableFooterCell className="text-theme-foreground font-bold uppercase tracking-wider">TOTAL</TableFooterCell>
                       <TableFooterCell></TableFooterCell>
-                      <TableFooterCell className="text-right text-white font-bold">
+                      <TableFooterCell className="text-right text-theme-foreground font-bold">
                         {platformData.totalCount.toLocaleString()}
                       </TableFooterCell>
-                      <TableFooterCell className="text-right text-[#f0e226] font-bold">
+                      <TableFooterCell className="text-right text-theme-primary font-bold">
                         ${Number(platformData.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </TableFooterCell>
-                      <TableFooterCell className="text-right text-[#f0e226]/70 font-bold">
+                      <TableFooterCell className="text-right text-theme-primary font-bold">
                         ${Number(platformData.totalNetRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </TableFooterCell>
-                      <TableFooterCell className="text-right text-white/40 font-bold">
+                      <TableFooterCell className="text-right text-theme-foreground-muted font-bold">
                         {getMarginPercent(platformData.totalRevenue, platformData.totalNetRevenue || 0)}%
                       </TableFooterCell>
                     </TableRow>
@@ -760,15 +760,15 @@ export default function AnalyticsTabTremor() {
       {!organizationLoading && organizationData?.organizations?.length > 0 && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-light text-white">Revenue by Organization</h2>
-            <p className="text-white/40">Breakdown by collecting organization</p>
+            <h2 className="text-xl font-light text-theme-foreground">Revenue by Organization</h2>
+            <p className="text-theme-foreground-muted">Breakdown by collecting organization</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Organization Pie */}
-            <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
-              <h3 className="text-lg font-normal text-white mb-4">Organization Distribution</h3>
+            <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+              <h3 className="text-lg font-normal text-theme-foreground mb-4">Organization Distribution</h3>
               <NivoPieChart
                 data={getOrganizationPieData()}
                 height={208}
@@ -779,9 +779,9 @@ export default function AnalyticsTabTremor() {
             </div>
 
             {/* Organization Bar Chart */}
-            <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
-              <h3 className="text-lg font-normal text-white mb-4">Organization Revenue</h3>
+            <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+              <h3 className="text-lg font-normal text-theme-foreground mb-4">Organization Revenue</h3>
               <NivoBarChart
                 data={getOrganizationBarData()}
                 keys={['Revenue']}
@@ -794,28 +794,28 @@ export default function AnalyticsTabTremor() {
           </div>
 
           {/* Organization Details Table */}
-          <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
-            <h3 className="text-lg font-normal text-white mb-4">Organization Details</h3>
+          <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+            <h3 className="text-lg font-normal text-theme-foreground mb-4">Organization Details</h3>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableHeaderCell className="text-white/40 uppercase tracking-wider text-xs">Organization</TableHeaderCell>
-                  <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Statements</TableHeaderCell>
-                  <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Revenue</TableHeaderCell>
-                  <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Net</TableHeaderCell>
-                  <TableHeaderCell className="text-right text-white/40 uppercase tracking-wider text-xs">Commission</TableHeaderCell>
+                  <TableHeaderCell className="text-theme-foreground-muted uppercase tracking-wider text-xs">Organization</TableHeaderCell>
+                  <TableHeaderCell className="text-right text-theme-foreground-muted uppercase tracking-wider text-xs">Statements</TableHeaderCell>
+                  <TableHeaderCell className="text-right text-theme-foreground-muted uppercase tracking-wider text-xs">Revenue</TableHeaderCell>
+                  <TableHeaderCell className="text-right text-theme-foreground-muted uppercase tracking-wider text-xs">Net</TableHeaderCell>
+                  <TableHeaderCell className="text-right text-theme-foreground-muted uppercase tracking-wider text-xs">Commission</TableHeaderCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {organizationData.organizations.map((org: any) => (
                   <TableRow key={org.organization}>
-                    <TableCell className="text-white font-medium">{org.organization}</TableCell>
-                    <TableCell className="text-right text-white/60">{org.count}</TableCell>
-                    <TableCell className="text-right text-[#f0e226] font-medium">
+                    <TableCell className="text-theme-foreground font-medium">{org.organization}</TableCell>
+                    <TableCell className="text-right text-theme-foreground-secondary">{org.count}</TableCell>
+                    <TableCell className="text-right text-theme-primary font-medium">
                       ${Number(org.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </TableCell>
-                    <TableCell className="text-right text-[#f0e226]/70">
+                    <TableCell className="text-right text-theme-primary">
                       ${Number(org.netRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell className="text-right text-white/50">
@@ -826,11 +826,11 @@ export default function AnalyticsTabTremor() {
               </TableBody>
               <TableFoot>
                 <TableRow>
-                  <TableFooterCell className="text-white font-bold uppercase tracking-wider">Total</TableFooterCell>
-                  <TableFooterCell className="text-right text-white font-bold">
+                  <TableFooterCell className="text-theme-foreground font-bold uppercase tracking-wider">Total</TableFooterCell>
+                  <TableFooterCell className="text-right text-theme-foreground font-bold">
                     {organizationData.totalCount}
                   </TableFooterCell>
-                  <TableFooterCell className="text-right text-[#f0e226] font-bold">
+                  <TableFooterCell className="text-right text-theme-primary font-bold">
                     ${Number(organizationData.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </TableFooterCell>
                   <TableFooterCell></TableFooterCell>
@@ -844,8 +844,8 @@ export default function AnalyticsTabTremor() {
 
       {/* Territory Revenue Heatmap */}
       <div>
-        <h2 className="text-xl font-light text-white mb-2">Revenue by Territory</h2>
-        <p className="text-white/40 mb-4">Global distribution of earnings</p>
+        <h2 className="text-xl font-light text-theme-foreground mb-2">Revenue by Territory</h2>
+        <p className="text-theme-foreground-muted mb-4">Global distribution of earnings</p>
         <ChartCard
           title="Global Revenue Heatmap"
           chartId="territory-heatmap"
@@ -854,12 +854,12 @@ export default function AnalyticsTabTremor() {
         >
           {territoryLoading ? (
             <div className="h-full flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
             </div>
           ) : territoryData?.territories?.length > 0 ? (
             <TerritoryHeatmap territories={territoryData.territories} />
           ) : (
-            <div className="h-full flex items-center justify-center text-white/30">
+            <div className="h-full flex items-center justify-center text-theme-foreground-muted">
               No territory data available yet
             </div>
           )}
@@ -868,11 +868,11 @@ export default function AnalyticsTabTremor() {
 
       {/* Recent Statements */}
       {stats?.recentStatements?.length > 0 && (
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="mb-4">
-            <h3 className="text-lg font-normal text-white">Recent Statements</h3>
-            <p className="text-sm text-white/40">Latest processed statements</p>
+            <h3 className="text-lg font-normal text-theme-foreground">Recent Statements</h3>
+            <p className="text-sm text-theme-foreground-muted">Latest processed statements</p>
           </div>
           <div className="space-y-3 mt-4">
             {stats.recentStatements.map((statement: any) => (
@@ -885,16 +885,16 @@ export default function AnalyticsTabTremor() {
                   }`}>
                     {statement.proType}
                   </span>
-                  <span className="text-white truncate">{statement.filename}</span>
+                  <span className="text-theme-foreground truncate">{statement.filename}</span>
                   <span className={`px-2 py-1 text-xs font-medium ${
-                    statement.status === 'PUBLISHED' ? 'bg-[#f0e226]/15 text-[#f0e226]' :
-                    statement.status === 'PROCESSED' ? 'bg-[#f0e226]/10 text-[#f0e226]/70' :
+                    statement.status === 'PUBLISHED' ? 'bg-theme-primary-15 text-theme-primary' :
+                    statement.status === 'PROCESSED' ? 'bg-theme-primary-10 text-theme-primary' :
                     'bg-white/10 text-white/50'
                   }`}>
                     {statement.status}
                   </span>
                 </div>
-                <span className="text-[#f0e226] font-light text-lg">
+                <span className="text-theme-primary font-light text-lg">
                   ${Number(statement.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -926,7 +926,7 @@ export default function AnalyticsTabTremor() {
               valueFormat={currencyFormatter}
             />
           ) : (
-            <div className="h-full flex items-center justify-center text-white/30">
+            <div className="h-full flex items-center justify-center text-theme-foreground-muted">
               No revenue data available
             </div>
           )}
@@ -951,7 +951,7 @@ export default function AnalyticsTabTremor() {
               />
             </div>
           ) : (
-            <div className="text-white/30">No PRO data available</div>
+            <div className="text-theme-foreground-muted">No PRO data available</div>
           )}
         </div>
       </TheaterMode>
@@ -974,7 +974,7 @@ export default function AnalyticsTabTremor() {
               />
             </div>
           ) : (
-            <div className="text-white/30">No platform data available</div>
+            <div className="text-theme-foreground-muted">No platform data available</div>
           )}
         </div>
       </TheaterMode>
@@ -997,7 +997,7 @@ export default function AnalyticsTabTremor() {
               />
             </div>
           ) : (
-            <div className="text-white/30">No service type data available</div>
+            <div className="text-theme-foreground-muted">No service type data available</div>
           )}
         </div>
       </TheaterMode>

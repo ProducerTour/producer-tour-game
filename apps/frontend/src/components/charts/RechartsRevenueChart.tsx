@@ -33,8 +33,8 @@ interface RechartsRevenueChartProps {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-[#19181a] border border-white/10 p-4 shadow-2xl">
-        <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2 pb-2 border-b border-white/5">
+      <div className="bg-theme-card border border-theme-border-strong p-4 shadow-2xl">
+        <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2 pb-2 border-b border-theme-border">
           {label}
         </p>
         <div className="flex items-center justify-between gap-4">
@@ -45,9 +45,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                 backgroundColor: payload[0].color,
               }}
             />
-            <span className="text-white/40 text-sm">Revenue</span>
+            <span className="text-theme-foreground-muted text-sm">Revenue</span>
           </div>
-          <span className="text-[#f0e226] font-light text-lg">
+          <span className="text-theme-primary font-light text-lg">
             ${payload[0].value?.toLocaleString('en-US', {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2

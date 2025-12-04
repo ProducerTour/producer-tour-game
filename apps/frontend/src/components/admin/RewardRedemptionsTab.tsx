@@ -123,7 +123,7 @@ export default function RewardRedemptionsTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
       </div>
     );
   }
@@ -133,76 +133,76 @@ export default function RewardRedemptionsTab() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-light text-white mb-2">Reward Redemptions</h2>
-        <p className="text-white/40">Manage pending physical reward redemptions</p>
+        <h2 className="text-2xl font-light text-theme-foreground mb-2">Reward Redemptions</h2>
+        <p className="text-theme-foreground-muted">Manage pending physical reward redemptions</p>
       </div>
 
       {redemptions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 text-white/40">
-          <div className="w-16 h-16 mb-4 bg-[#f0e226]/10 flex items-center justify-center">
-            <Gift className="w-8 h-8 text-[#f0e226]" />
+        <div className="flex flex-col items-center justify-center h-64 text-theme-foreground-muted">
+          <div className="w-16 h-16 mb-4 bg-theme-primary-10 flex items-center justify-center">
+            <Gift className="w-8 h-8 text-theme-primary" />
           </div>
           <div className="text-lg mb-2">No pending redemptions</div>
-          <div className="text-sm text-white/30">Physical reward redemptions will appear here</div>
+          <div className="text-sm text-theme-foreground-muted">Physical reward redemptions will appear here</div>
         </div>
       ) : (
         <div className="space-y-4">
           {redemptions.map((redemption: Redemption) => (
             <div
               key={redemption.id}
-              className="group relative overflow-hidden bg-[#19181a] p-6 border border-white/5 hover:border-[#f0e226]/30 transition-all duration-300"
+              className="group relative overflow-hidden bg-theme-card p-6 border border-theme-border hover:border-theme-border-hover transition-all duration-300"
             >
-              <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+              <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center">
-                      <Package className="w-5 h-5 text-[#f0e226]" />
+                    <div className="w-10 h-10 bg-theme-primary-10 flex items-center justify-center">
+                      <Package className="w-5 h-5 text-theme-primary" />
                     </div>
-                    <h3 className="text-lg font-medium text-white">{redemption.reward.name}</h3>
+                    <h3 className="text-lg font-medium text-theme-foreground">{redemption.reward.name}</h3>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                      <div className="text-xs text-white/40 uppercase tracking-wider mb-1">User</div>
-                      <div className="text-sm text-white">{redemption.userName}</div>
-                      <div className="text-xs text-white/40">{redemption.userEmail}</div>
+                      <div className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">User</div>
+                      <div className="text-sm text-theme-foreground">{redemption.userName}</div>
+                      <div className="text-xs text-theme-foreground-muted">{redemption.userEmail}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-white/40 uppercase tracking-wider mb-1">Redeemed</div>
-                      <div className="text-sm text-white">
+                      <div className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Redeemed</div>
+                      <div className="text-sm text-theme-foreground">
                         {new Date(redemption.redeemedAt).toLocaleString()}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-white/40 uppercase tracking-wider mb-1">Cost</div>
-                      <div className="text-lg font-light text-[#f0e226]">
+                      <div className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Cost</div>
+                      <div className="text-lg font-light text-theme-primary">
                         {redemption.pointsCost.toLocaleString()} TP
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-white/40 uppercase tracking-wider mb-1">Type</div>
-                      <div className="text-sm text-white">{redemption.reward.type}</div>
+                      <div className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Type</div>
+                      <div className="text-sm text-theme-foreground">{redemption.reward.type}</div>
                     </div>
                   </div>
 
-                  <div className="text-sm text-white/60 mb-4">
+                  <div className="text-sm text-theme-foreground-secondary mb-4">
                     {redemption.reward.description}
                   </div>
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4 border-t border-white/5">
+              <div className="flex gap-3 pt-4 border-t border-theme-border">
                 <button
                   onClick={() => openModal(redemption, 'approve')}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black hover:bg-theme-primary-hover transition-colors"
                 >
                   <CheckCircle className="w-4 h-4" />
                   Approve
                 </button>
                 <button
                   onClick={() => openModal(redemption, 'deny')}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white hover:bg-white/20 border border-white/10 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white hover:bg-white/20 border border-theme-border-strong transition-colors"
                 >
                   <XCircle className="w-4 h-4" />
                   Deny
@@ -216,25 +216,25 @@ export default function RewardRedemptionsTab() {
       {/* Confirmation Modal */}
       {showModal && selectedRedemption && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="relative overflow-hidden bg-[#19181a] max-w-md w-full p-6 border border-white/10">
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+          <div className="relative overflow-hidden bg-theme-card max-w-md w-full p-6 border border-theme-border-strong">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
             <h3 className="text-xl font-light text-white mb-4">
               {modalAction === 'approve' ? 'Approve' : 'Deny'} Redemption
             </h3>
-            <p className="text-white/60 mb-4">
+            <p className="text-theme-foreground-secondary mb-4">
               {modalAction === 'approve'
-                ? <>Approve <span className="text-[#f0e226]">{selectedRedemption.userName}</span>'s redemption of "<span className="text-white">{selectedRedemption.reward.name}</span>"?</>
-                : <>Deny <span className="text-[#f0e226]">{selectedRedemption.userName}</span>'s redemption and refund <span className="text-[#f0e226]">{selectedRedemption.pointsCost} TP</span>?</>}
+                ? <>Approve <span className="text-theme-primary">{selectedRedemption.userName}</span>'s redemption of "<span className="text-white">{selectedRedemption.reward.name}</span>"?</>
+                : <>Deny <span className="text-theme-primary">{selectedRedemption.userName}</span>'s redemption and refund <span className="text-theme-primary">{selectedRedemption.pointsCost} TP</span>?</>}
             </p>
 
             <div className="mb-6">
-              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">
+              <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">
                 Admin Notes {modalAction === 'deny' && '(Required for denial)'}
               </label>
               <textarea
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
-                className="w-full px-3 py-2 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50"
+                className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
                 rows={3}
                 placeholder={modalAction === 'approve' ? 'Optional notes...' : 'Reason for denial...'}
               />
@@ -243,7 +243,7 @@ export default function RewardRedemptionsTab() {
             <div className="flex space-x-3">
               <button
                 onClick={closeModal}
-                className="flex-1 px-4 py-2 border border-white/10 text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                className="flex-1 px-4 py-2 border border-theme-border-strong text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors"
               >
                 Cancel
               </button>
@@ -256,8 +256,8 @@ export default function RewardRedemptionsTab() {
                 }
                 className={`flex-1 px-4 py-2 transition-colors ${
                   modalAction === 'approve'
-                    ? 'bg-[#f0e226] text-black hover:bg-[#d9cc22]'
-                    : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                    ? 'bg-theme-primary text-black hover:bg-theme-primary-hover'
+                    : 'bg-white/10 text-white hover:bg-white/20 border border-theme-border-strong'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {approveMutation.isPending || denyMutation.isPending

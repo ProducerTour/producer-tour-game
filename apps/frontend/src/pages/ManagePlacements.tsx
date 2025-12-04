@@ -468,42 +468,38 @@ export default function ManagePlacements() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">Manage Placements</h1>
-          <p className="text-text-muted mt-1">View and manage approved work registrations</p>
+          <h1 className="text-3xl font-light text-theme-foreground">Manage Placements</h1>
+          <p className="text-theme-foreground-muted mt-1">View and manage approved work registrations</p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Bulk Import Button */}
-          <motion.button
+          <button
             onClick={() => setShowBulkModal(true)}
-            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold flex items-center gap-2 border border-white/20"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-theme-foreground font-medium flex items-center gap-2 transition-colors"
           >
             <Upload className="w-5 h-5" />
             Bulk Import
-          </motion.button>
+          </button>
 
           {/* Add Placement Button */}
-          <motion.button
+          <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-blue-600/30"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            className="px-4 py-2.5 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium flex items-center gap-2 transition-colors"
           >
             <Plus className="w-5 h-5" />
             Add Placement
-          </motion.button>
+          </button>
 
           {/* Search */}
           <div className="relative max-w-md w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-foreground-muted" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by title, artist, case #, or writer..."
-              className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+              className="w-full pl-10 pr-4 py-3 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
             />
           </div>
         </div>
@@ -511,89 +507,81 @@ export default function ManagePlacements() {
 
       {/* Stats */}
       <div className="relative grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <motion.div
-          className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08]"
-          whileHover={{ scale: 1.02 }}
-        >
-          <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-text-muted text-sm">Total Placements</p>
-              <p className="text-3xl font-bold text-white">{totalPlacements}</p>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Total Placements</p>
+              <p className="text-3xl font-light text-theme-foreground">{totalPlacements}</p>
             </div>
-            <Music className="w-8 h-8 text-blue-400" />
+            <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+              <Music className="w-5 h-5 text-theme-primary" />
+            </div>
           </div>
-        </motion.div>
-        <motion.div
-          className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08]"
-          whileHover={{ scale: 1.02 }}
-        >
-          <div className="flex items-center justify-between">
+        </div>
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-text-muted text-sm">Approved</p>
-              <p className="text-3xl font-bold text-white">{approvedCount}</p>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Approved</p>
+              <p className="text-3xl font-light text-theme-foreground">{approvedCount}</p>
             </div>
-            <CheckCircle2 className="w-8 h-8 text-green-400" />
+            <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-theme-primary" />
+            </div>
           </div>
-        </motion.div>
-        <motion.div
-          className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08]"
-          whileHover={{ scale: 1.02 }}
-        >
-          <div className="flex items-center justify-between">
+        </div>
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-text-muted text-sm">Tracking</p>
-              <p className="text-3xl font-bold text-white">{trackingCount}</p>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Tracking</p>
+              <p className="text-3xl font-light text-theme-foreground">{trackingCount}</p>
             </div>
-            <Clock className="w-8 h-8 text-yellow-400" />
+            <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-theme-primary" />
+            </div>
           </div>
-        </motion.div>
-        <motion.div
-          className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08]"
-          whileHover={{ scale: 1.02 }}
-        >
-          <div className="flex items-center justify-between">
+        </div>
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-text-muted text-sm">Completed</p>
-              <p className="text-3xl font-bold text-white">{completedCount}</p>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Completed</p>
+              <p className="text-3xl font-light text-theme-foreground">{completedCount}</p>
             </div>
-            <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+            <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-theme-primary" />
+            </div>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <motion.div
-            className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          />
+          <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
         </div>
       )}
 
       {/* Empty State */}
       {!isLoading && filteredPlacements.length === 0 && (
-        <motion.div
-          className="text-center py-20"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Music className="w-20 h-20 mx-auto mb-4 text-text-muted" />
-          <h3 className="text-2xl font-bold text-white mb-2">No Placements Yet</h3>
-          <p className="text-text-muted mb-6">
+        <div className="text-center py-20">
+          <div className="w-20 h-20 mx-auto mb-4 bg-theme-primary/10 flex items-center justify-center">
+            <Music className="w-10 h-10 text-theme-primary" />
+          </div>
+          <h3 className="text-2xl font-light text-theme-foreground mb-2">No Placements Yet</h3>
+          <p className="text-theme-foreground-muted mb-6">
             {searchQuery ? 'No placements match your search.' : 'Approved work registrations will appear here.'}
           </p>
-          <motion.button
+          <button
             onClick={() => setShowAddModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold inline-flex items-center gap-2"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            className="px-6 py-3 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium inline-flex items-center gap-2 transition-colors"
           >
             <Plus className="w-5 h-5" />
             Add Your First Placement
-          </motion.button>
-        </motion.div>
+          </button>
+        </div>
       )}
 
       {/* Placements List */}
@@ -602,16 +590,17 @@ export default function ManagePlacements() {
           {filteredPlacements.map((placement, index) => (
             <motion.div
               key={placement.id}
-              className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] hover:border-blue-500/50 transition-all duration-300 overflow-hidden"
+              className="relative overflow-hidden bg-theme-card border border-theme-border hover:border-theme-border-hover transition-all duration-300"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ delay: index * 0.05 }}
               layout
             >
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
               {/* Main Content */}
               <div
-                className="p-6 cursor-pointer hover:bg-white/[0.02] transition-colors rounded-t-xl"
+                className="p-6 cursor-pointer hover:bg-black/30 transition-colors"
                 onClick={() => toggleExpand(placement.id)}
               >
                 <div className="flex items-start gap-6">
@@ -637,7 +626,7 @@ export default function ManagePlacements() {
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-bold text-white">{placement.title}</h3>
+                          <h3 className="text-xl font-bold text-theme-foreground">{placement.title}</h3>
                           {placement.caseNumber && (
                             <span className="px-2 py-0.5 bg-green-500/20 text-green-300 rounded text-xs font-mono border border-green-500/30">
                               {placement.caseNumber}
@@ -690,54 +679,54 @@ export default function ManagePlacements() {
                   <div className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Left Column - Song Info */}
                     <div className="space-y-4">
-                      <h4 className="text-white font-semibold mb-3">Song Information</h4>
+                      <h4 className="text-theme-foreground font-semibold mb-3">Song Information</h4>
                       <div>
                         <p className="text-text-muted text-sm mb-1">Title</p>
-                        <p className="text-white font-medium">{placement.title}</p>
+                        <p className="text-theme-foreground font-medium">{placement.title}</p>
                       </div>
                       <div>
                         <p className="text-text-muted text-sm mb-1">Artist</p>
-                        <p className="text-white">{placement.artist}</p>
+                        <p className="text-theme-foreground">{placement.artist}</p>
                       </div>
                       {placement.albumName && (
                         <div>
                           <p className="text-text-muted text-sm mb-1">Album</p>
-                          <p className="text-white">{placement.albumName}</p>
+                          <p className="text-theme-foreground">{placement.albumName}</p>
                         </div>
                       )}
                       {placement.isrc && (
                         <div>
                           <p className="text-text-muted text-sm mb-1">ISRC</p>
-                          <p className="text-white font-mono">{placement.isrc}</p>
+                          <p className="text-theme-foreground font-mono">{placement.isrc}</p>
                         </div>
                       )}
                       {placement.releaseDate && (
                         <div>
                           <p className="text-text-muted text-sm mb-1">Release Date</p>
-                          <p className="text-white">{formatDate(placement.releaseDate)}</p>
+                          <p className="text-theme-foreground">{formatDate(placement.releaseDate)}</p>
                         </div>
                       )}
                       {placement.genre && (
                         <div>
                           <p className="text-text-muted text-sm mb-1">Genre</p>
-                          <p className="text-white">{placement.genre}</p>
+                          <p className="text-theme-foreground">{placement.genre}</p>
                         </div>
                       )}
                       {placement.label && (
                         <div>
                           <p className="text-text-muted text-sm mb-1">Label</p>
-                          <p className="text-white">{placement.label}</p>
+                          <p className="text-theme-foreground">{placement.label}</p>
                         </div>
                       )}
                     </div>
 
                     {/* Right Column - Writer & Deal Info */}
                     <div className="space-y-4">
-                      <h4 className="text-white font-semibold mb-3">Writer & Deal Information</h4>
+                      <h4 className="text-theme-foreground font-semibold mb-3">Writer & Deal Information</h4>
                       {placement.user && (
                         <div>
                           <p className="text-text-muted text-sm mb-1">Submitted By</p>
-                          <p className="text-white">
+                          <p className="text-theme-foreground">
                             {placement.user.firstName} {placement.user.lastName}
                           </p>
                           <p className="text-text-muted text-sm">{placement.user.email}</p>
@@ -752,13 +741,13 @@ export default function ManagePlacements() {
                       {placement.reviewedAt && (
                         <div>
                           <p className="text-text-muted text-sm mb-1">Approved Date</p>
-                          <p className="text-white">{formatDate(placement.reviewedAt)}</p>
+                          <p className="text-theme-foreground">{formatDate(placement.reviewedAt)}</p>
                         </div>
                       )}
                       {placement.dealTerms && (
                         <div>
                           <p className="text-text-muted text-sm mb-1">Deal Terms</p>
-                          <p className="text-white">{placement.dealTerms}</p>
+                          <p className="text-theme-foreground">{placement.dealTerms}</p>
                         </div>
                       )}
                       {placement.advanceAmount && (
@@ -766,7 +755,7 @@ export default function ManagePlacements() {
                           <DollarSign className="w-4 h-4 text-green-400" />
                           <div>
                             <p className="text-text-muted text-sm mb-1">Advance Amount</p>
-                            <p className="text-white font-medium">${placement.advanceAmount.toLocaleString()}</p>
+                            <p className="text-theme-foreground font-medium">${placement.advanceAmount.toLocaleString()}</p>
                           </div>
                         </div>
                       )}
@@ -775,7 +764,7 @@ export default function ManagePlacements() {
                           <Percent className="w-4 h-4 text-blue-400" />
                           <div>
                             <p className="text-text-muted text-sm mb-1">Royalty Percentage</p>
-                            <p className="text-white font-medium">{placement.royaltyPercentage}%</p>
+                            <p className="text-theme-foreground font-medium">{placement.royaltyPercentage}%</p>
                           </div>
                         </div>
                       )}
@@ -785,7 +774,7 @@ export default function ManagePlacements() {
                   {/* Credits/Collaborators Section */}
                   {placement.credits && placement.credits.length > 0 && (
                     <div className="mt-6 pt-6 border-t border-white/[0.08]">
-                      <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+                      <h4 className="text-theme-foreground font-semibold mb-4 flex items-center gap-2">
                         <Users className="w-5 h-5 text-purple-400" />
                         Collaborators & Splits ({placement.credits.length})
                       </h4>
@@ -794,7 +783,7 @@ export default function ManagePlacements() {
                           <div key={credit.id || idx} className="flex items-center justify-between p-4 bg-white/[0.04] rounded-lg border border-white/[0.08]">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <p className="text-white font-semibold">
+                                <p className="text-theme-foreground font-semibold">
                                   {credit.firstName} {credit.lastName}
                                 </p>
                                 {credit.isPrimary && (
@@ -835,7 +824,7 @@ export default function ManagePlacements() {
                   {/* Notes Section */}
                   {placement.notes && (
                     <div className="mt-6 pt-6 border-t border-white/[0.08]">
-                      <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                      <h4 className="text-theme-foreground font-semibold mb-3 flex items-center gap-2">
                         <FileText className="w-5 h-5 text-blue-400" />
                         Notes
                       </h4>
@@ -862,24 +851,24 @@ export default function ManagePlacements() {
             onClick={() => setShowAddModal(false)}
           >
             <motion.div
-              className="bg-surface rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-white/[0.08]"
+              className="bg-theme-card rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-theme-border"
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
-              <div className="sticky top-0 bg-surface border-b border-white/[0.08] p-6 flex items-center justify-between z-10">
+              <div className="sticky top-0 bg-theme-card border-b border-theme-border p-6 flex items-center justify-between z-10">
                 <div>
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <h2 className="text-2xl font-bold text-theme-foreground flex items-center gap-3">
                     <Music className="w-6 h-6 text-blue-400" />
                     Add New Placement
                   </h2>
-                  <p className="text-text-muted mt-1">Manually add a placement directly to the tracker</p>
+                  <p className="text-theme-foreground-muted mt-1">Manually add a placement directly to the tracker</p>
                 </div>
                 <button
                   onClick={() => setShowAddModal(false)}
-                  className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+                  className="p-2 text-gray-400 hover:text-theme-foreground rounded-lg hover:bg-white/10 transition-colors"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -888,7 +877,7 @@ export default function ManagePlacements() {
               <div className="p-6 space-y-6">
                 {/* Song Selection */}
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-4">Song Information</h3>
+                  <h3 className="text-lg font-semibold text-theme-foreground mb-4">Song Information</h3>
 
                   {/* Spotify Lookup Button */}
                   <motion.button
@@ -900,8 +889,8 @@ export default function ManagePlacements() {
                     <div className="flex items-center gap-3">
                       <Search className="w-6 h-6 text-green-400" />
                       <div>
-                        <p className="text-white font-semibold">Search Spotify</p>
-                        <p className="text-text-muted text-sm">Find and auto-fill song details from Spotify</p>
+                        <p className="text-theme-foreground font-semibold">Search Spotify</p>
+                        <p className="text-theme-foreground-muted text-sm">Find and auto-fill song details from Spotify</p>
                       </div>
                     </div>
                   </motion.button>
@@ -917,8 +906,8 @@ export default function ManagePlacements() {
                         />
                       )}
                       <div className="flex-1">
-                        <p className="text-white font-semibold">{selectedTrack.title}</p>
-                        <p className="text-text-muted">{selectedTrack.artist}</p>
+                        <p className="text-theme-foreground font-semibold">{selectedTrack.title}</p>
+                        <p className="text-theme-foreground-muted">{selectedTrack.artist}</p>
                       </div>
                       <button
                         onClick={() => {
@@ -935,32 +924,32 @@ export default function ManagePlacements() {
                   {/* Manual Entry Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm text-text-muted mb-2">Title *</label>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Title *</label>
                       <input
                         type="text"
                         value={manualEntry.title}
                         onChange={(e) => setManualEntry({ ...manualEntry, title: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="Song title"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-text-muted mb-2">Artist *</label>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Artist *</label>
                       <input
                         type="text"
                         value={manualEntry.artist}
                         onChange={(e) => setManualEntry({ ...manualEntry, artist: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="Artist name"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-text-muted mb-2">Album</label>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Album</label>
                       <input
                         type="text"
                         value={manualEntry.albumName}
                         onChange={(e) => setManualEntry({ ...manualEntry, albumName: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="Album name"
                       />
                     </div>
@@ -970,46 +959,46 @@ export default function ManagePlacements() {
                         type="text"
                         value={manualEntry.isrc}
                         onChange={(e) => setManualEntry({ ...manualEntry, isrc: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="ISRC code"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-text-muted mb-2">Genre</label>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Genre</label>
                       <input
                         type="text"
                         value={manualEntry.genre}
                         onChange={(e) => setManualEntry({ ...manualEntry, genre: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="Genre"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-text-muted mb-2">Release Year</label>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Release Year</label>
                       <input
                         type="text"
                         value={manualEntry.releaseYear}
                         onChange={(e) => setManualEntry({ ...manualEntry, releaseYear: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="e.g., 2024"
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm text-text-muted mb-2">Label</label>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Label</label>
                       <input
                         type="text"
                         value={manualEntry.label}
                         onChange={(e) => setManualEntry({ ...manualEntry, label: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="Record label"
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm text-text-muted mb-2">Notes</label>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Notes</label>
                       <textarea
                         value={manualEntry.notes}
                         onChange={(e) => setManualEntry({ ...manualEntry, notes: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                         placeholder="Additional notes..."
                         rows={3}
                       />
@@ -1019,7 +1008,7 @@ export default function ManagePlacements() {
 
                 {/* Collaborators */}
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-theme-foreground mb-4 flex items-center gap-2">
                     <Users className="w-5 h-5 text-purple-400" />
                     Collaborators & Splits
                   </h3>
@@ -1052,7 +1041,7 @@ export default function ManagePlacements() {
                 <div className="flex justify-end gap-3 pt-4 border-t border-white/[0.08]">
                   <motion.button
                     onClick={() => setShowAddModal(false)}
-                    className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold transition-colors"
+                    className="px-6 py-3 bg-white/10 hover:bg-white/20 text-theme-foreground rounded-xl font-semibold transition-colors"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -1125,16 +1114,16 @@ export default function ManagePlacements() {
             onClick={() => setShowBulkModal(false)}
           >
             <motion.div
-              className="bg-surface rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-white/[0.08]"
+              className="bg-theme-card rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-theme-border"
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
-              <div className="sticky top-0 bg-surface border-b border-white/[0.08] p-6 flex items-center justify-between z-10">
+              <div className="sticky top-0 bg-theme-card border-b border-theme-border p-6 flex items-center justify-between z-10">
                 <div>
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <h2 className="text-2xl font-bold text-theme-foreground flex items-center gap-3">
                     <FileSpreadsheet className="w-6 h-6 text-green-400" />
                     Bulk Import Placements
                   </h2>
@@ -1146,7 +1135,7 @@ export default function ManagePlacements() {
                     setBulkData([]);
                     setBulkErrors([]);
                   }}
-                  className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+                  className="p-2 text-gray-400 hover:text-theme-foreground rounded-lg hover:bg-white/10 transition-colors"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -1175,13 +1164,13 @@ export default function ManagePlacements() {
                 {/* Download Template */}
                 <motion.button
                   onClick={downloadTemplate}
-                  className="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-left hover:bg-white/10 transition-all flex items-center gap-3"
+                  className="w-full p-4 bg-white/5 border border-theme-border-strong rounded-xl text-left hover:bg-white/10 transition-all flex items-center gap-3"
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                 >
                   <Download className="w-6 h-6 text-green-400" />
                   <div>
-                    <p className="text-white font-semibold">Download CSV Template</p>
+                    <p className="text-theme-foreground font-semibold">Download CSV Template</p>
                     <p className="text-text-muted text-sm">Get a pre-formatted template with example data</p>
                   </div>
                 </motion.button>
@@ -1198,7 +1187,7 @@ export default function ManagePlacements() {
                     />
                     <div className="p-8 border-2 border-dashed border-white/20 rounded-xl text-center hover:border-white/40 transition-colors">
                       <Upload className="w-12 h-12 text-text-muted mx-auto mb-3" />
-                      <p className="text-white font-medium">Click or drag to upload CSV file</p>
+                      <p className="text-theme-foreground font-medium">Click or drag to upload CSV file</p>
                       <p className="text-text-muted text-sm mt-1">Supports .csv files</p>
                     </div>
                   </div>
@@ -1222,15 +1211,15 @@ export default function ManagePlacements() {
                 {/* Parsed Data Preview */}
                 {bulkData.length > 0 && (
                   <div className="space-y-4">
-                    <h3 className="text-white font-semibold flex items-center gap-2">
+                    <h3 className="text-theme-foreground font-semibold flex items-center gap-2">
                       <CheckCircle2 className="w-5 h-5 text-green-400" />
                       Ready to Import ({bulkData.length} placement{bulkData.length !== 1 ? 's' : ''})
                     </h3>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {bulkData.map((row, idx) => (
-                        <div key={idx} className="p-3 bg-white/5 rounded-lg border border-white/10 flex items-center justify-between">
+                        <div key={idx} className="p-3 bg-white/5 rounded-lg border border-theme-border-strong flex items-center justify-between">
                           <div>
-                            <p className="text-white font-medium">{row.title}</p>
+                            <p className="text-theme-foreground font-medium">{row.title}</p>
                             <p className="text-text-muted text-sm">{row.artist}</p>
                           </div>
                           <div className="text-right">
@@ -1250,7 +1239,7 @@ export default function ManagePlacements() {
                   <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-blue-400 font-medium">Importing placements...</span>
-                      <span className="text-white">{bulkProgress.current} / {bulkProgress.total}</span>
+                      <span className="text-theme-foreground">{bulkProgress.current} / {bulkProgress.total}</span>
                     </div>
                     <div className="w-full bg-white/10 rounded-full h-2">
                       <motion.div
@@ -1270,7 +1259,7 @@ export default function ManagePlacements() {
                       setBulkData([]);
                       setBulkErrors([]);
                     }}
-                    className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold transition-colors"
+                    className="px-6 py-3 bg-white/10 hover:bg-white/20 text-theme-foreground rounded-xl font-semibold transition-colors"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >

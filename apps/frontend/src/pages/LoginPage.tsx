@@ -224,7 +224,7 @@ export default function LoginPage() {
           </div>
 
           {/* Login/SignUp Card */}
-          <div className="bg-[#19181a] border border-white/5 p-8 sm:p-10">
+          <div className="bg-[#19181a] border border-white/10 p-8 sm:p-10">
             <div className="mb-8">
               <h2 className="text-2xl font-normal text-white mb-2">
                 {isSignUp ? 'Create your account' : 'Welcome back'}
@@ -254,14 +254,14 @@ export default function LoginPage() {
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <User className="w-4 h-4 text-white/30" />
+                        <User className="w-4 h-4 text-white/40" />
                       </div>
                       <input
                         id="firstName"
                         type="text"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50 transition-colors"
+                        className="w-full pl-11 pr-4 py-3 bg-black border border-white/20 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226] transition-colors"
                         placeholder="John"
                       />
                     </div>
@@ -275,7 +275,7 @@ export default function LoginPage() {
                       type="text"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className="w-full px-4 py-3 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50 transition-colors"
+                      className="w-full px-4 py-3 bg-black border border-white/20 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226] transition-colors"
                       placeholder="Doe"
                     />
                   </div>
@@ -289,7 +289,7 @@ export default function LoginPage() {
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Mail className="w-4 h-4 text-white/30" />
+                    <Mail className="w-4 h-4 text-white/40" />
                   </div>
                   <input
                     id="email"
@@ -297,7 +297,7 @@ export default function LoginPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50 transition-colors"
+                    className="w-full pl-11 pr-4 py-3 bg-black border border-white/20 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226] transition-colors"
                     placeholder="you@example.com"
                   />
                 </div>
@@ -320,7 +320,7 @@ export default function LoginPage() {
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Lock className="w-4 h-4 text-white/30" />
+                    <Lock className="w-4 h-4 text-white/40" />
                   </div>
                   <input
                     id="password"
@@ -328,7 +328,7 @@ export default function LoginPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50 transition-colors"
+                    className="w-full pl-11 pr-4 py-3 bg-black border border-white/20 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226] transition-colors"
                     placeholder={isSignUp ? 'Create a password (min 10 chars)' : 'Enter your password'}
                   />
                 </div>
@@ -342,7 +342,7 @@ export default function LoginPage() {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Lock className="w-4 h-4 text-white/30" />
+                      <Lock className="w-4 h-4 text-white/40" />
                     </div>
                     <input
                       id="confirmPassword"
@@ -350,7 +350,7 @@ export default function LoginPage() {
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50 transition-colors"
+                      className="w-full pl-11 pr-4 py-3 bg-black border border-white/20 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226] transition-colors"
                       placeholder="Confirm your password"
                     />
                   </div>
@@ -395,7 +395,7 @@ export default function LoginPage() {
             {/* Divider */}
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/10" />
+                <div className="w-full border-t border-white/20" />
               </div>
               <div className="relative flex justify-center text-xs">
                 <span className="px-4 bg-[#19181a] text-white/40 uppercase tracking-wider">
@@ -419,7 +419,7 @@ export default function LoginPage() {
               <>
                 <div className="relative my-6">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-white/10" />
+                    <div className="w-full border-t border-white/20" />
                   </div>
                   <div className="relative flex justify-center text-xs">
                     <span className="px-4 bg-[#19181a] text-white/40 uppercase tracking-wider">Looking for writer membership?</span>
@@ -427,7 +427,7 @@ export default function LoginPage() {
                 </div>
                 <Link
                   to="/apply"
-                  className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-[#f0e226]/10 text-[#f0e226] font-medium uppercase tracking-wider text-sm border border-[#f0e226]/20 hover:bg-[#f0e226]/20 hover:border-[#f0e226]/40 transition-all"
+                  className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-[#f0e226]/10 text-[#f0e226] font-medium uppercase tracking-wider text-sm border border-[#f0e226]/20 hover:bg-[#f0e226]/20 hover:border-[#f0e226]/30 transition-all"
                 >
                   Apply for writer membership
                   <ArrowRight className="w-4 h-4" />

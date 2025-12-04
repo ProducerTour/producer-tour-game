@@ -533,19 +533,19 @@ const PlacementTracker: React.FC = () => {
     ? placements
     : placements.filter(p => p.clientFullName === clientFilter);
 
-  const inputClass = "block w-full py-2.5 px-3 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50 transition-colors";
-  const labelClass = "block mb-1 text-xs font-medium text-white/40 uppercase tracking-wider";
+  const inputClass = "block w-full py-2.5 px-3 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors";
+  const labelClass = "block mb-1 text-xs font-medium text-theme-foreground-muted uppercase tracking-wider";
 
   return (
-    <div className="min-h-screen bg-surface text-white">
+    <div className="min-h-screen bg-theme-background text-theme-foreground">
       <div className="max-w-screen-xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
           <div>
-            <h1 className="text-2xl font-light text-white mb-1">
+            <h1 className="text-2xl font-light text-theme-foreground mb-1">
               Producer Clearances
             </h1>
-            <p className="text-white/40 text-sm">Track placement deals, contracts, and billing</p>
+            <p className="text-theme-foreground-muted text-sm">Track placement deals, contracts, and billing</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
             <div>
@@ -563,19 +563,19 @@ const PlacementTracker: React.FC = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowLegalModal(true)}
-                className="px-4 py-2 bg-white/10 border border-white/10 text-white text-sm hover:bg-white/20 transition-colors"
+                className="px-4 py-2 bg-theme-background/50 border border-theme-border-strong text-theme-foreground-secondary text-sm hover:bg-theme-background hover:text-theme-foreground transition-colors"
               >
                 Legal AI Tool
               </button>
               <button
                 onClick={() => setShowBillingModal(true)}
-                className="px-4 py-2 bg-white/10 border border-white/10 text-white text-sm hover:bg-white/20 transition-colors"
+                className="px-4 py-2 bg-theme-background/50 border border-theme-border-strong text-theme-foreground-secondary text-sm hover:bg-theme-background hover:text-theme-foreground transition-colors"
               >
                 Billing AI Tool
               </button>
               <button
                 onClick={() => setShowFormModal(true)}
-                className="px-4 py-2 bg-[#f0e226] text-black text-sm font-medium hover:bg-[#d9cc22] transition-colors"
+                className="px-4 py-2 bg-theme-primary text-black text-sm font-medium hover:bg-theme-primary-hover transition-colors"
               >
                 Add New Placement
               </button>
@@ -583,7 +583,7 @@ const PlacementTracker: React.FC = () => {
           </div>
         </div>
 
-        <p className="text-sm text-white/40 mb-4">
+        <p className="text-sm text-theme-foreground-muted mb-4">
           Click any row to mark for Billing AI or Legal AI. Use the selection controls below to prep multiple placements at once.
         </p>
 
@@ -591,71 +591,71 @@ const PlacementTracker: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3 text-sm mb-4">
           <button
             onClick={handleSelectAll}
-            className="px-3 py-1.5 border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+            className="px-3 py-1.5 border border-theme-border-strong bg-theme-input text-theme-foreground-secondary hover:bg-theme-card-hover hover:text-theme-foreground transition-colors"
           >
             Select All
           </button>
           <button
             onClick={handleClearSelection}
-            className="px-3 py-1.5 border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+            className="px-3 py-1.5 border border-theme-border-strong bg-theme-input text-theme-foreground-secondary hover:bg-theme-card-hover hover:text-theme-foreground transition-colors"
           >
             Clear Selection
           </button>
           <span className={`px-3 py-1 text-xs uppercase tracking-wider ${
             selectedPlacements.size > 0
-              ? 'bg-[#f0e226]/15 text-[#f0e226] border border-[#f0e226]/30'
-              : 'bg-white/5 text-white/40 border border-white/10'
+              ? 'bg-theme-primary/15 text-theme-primary border border-theme-border-hover'
+              : 'bg-theme-input text-theme-foreground-muted border border-theme-border-strong'
           }`}>
             {selectedPlacements.size > 0 ? `${selectedPlacements.size} selected` : 'None selected'}
           </span>
         </div>
 
         {/* Main Table */}
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-white/5">
-              <thead className="bg-black/30">
+            <table className="min-w-full divide-y divide-theme-border">
+              <thead className="bg-theme-input">
                 <tr>
-                  <th className="py-3 px-4 text-left text-xs text-white/40 uppercase tracking-wider">Client</th>
-                  <th className="py-3 px-4 text-left text-xs text-white/40 uppercase tracking-wider">Song & Artist</th>
-                  <th className="py-3 px-4 text-left text-xs text-white/40 uppercase tracking-wider"># of Streams</th>
-                  <th className="py-3 px-4 text-left text-xs text-white/40 uppercase tracking-wider">Label</th>
-                  <th className="py-3 px-4 text-left text-xs text-white/40 uppercase tracking-wider">Co-Producers</th>
-                  <th className="py-3 px-4 text-left text-xs text-white/40 uppercase tracking-wider">Notes</th>
-                  <th className="py-3 px-4 text-left text-xs text-white/40 uppercase tracking-wider">Deal Terms</th>
-                  <th className="py-3 px-4 text-left text-xs text-white/40 uppercase tracking-wider">Progress</th>
-                  <th className="py-3 px-4 text-right text-xs text-white/40 uppercase tracking-wider">Actions</th>
+                  <th className="py-3 px-4 text-left text-xs text-theme-foreground-muted uppercase tracking-wider">Client</th>
+                  <th className="py-3 px-4 text-left text-xs text-theme-foreground-muted uppercase tracking-wider">Song & Artist</th>
+                  <th className="py-3 px-4 text-left text-xs text-theme-foreground-muted uppercase tracking-wider"># of Streams</th>
+                  <th className="py-3 px-4 text-left text-xs text-theme-foreground-muted uppercase tracking-wider">Label</th>
+                  <th className="py-3 px-4 text-left text-xs text-theme-foreground-muted uppercase tracking-wider">Co-Producers</th>
+                  <th className="py-3 px-4 text-left text-xs text-theme-foreground-muted uppercase tracking-wider">Notes</th>
+                  <th className="py-3 px-4 text-left text-xs text-theme-foreground-muted uppercase tracking-wider">Deal Terms</th>
+                  <th className="py-3 px-4 text-left text-xs text-theme-foreground-muted uppercase tracking-wider">Progress</th>
+                  <th className="py-3 px-4 text-right text-xs text-theme-foreground-muted uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-theme-border">
                 {filteredPlacements.map(placement => (
                   <tr
                     key={placement.id}
                     onClick={() => handleRowClick(placement.id)}
                     className={`cursor-pointer transition-colors ${
                       selectedPlacements.has(placement.id)
-                        ? 'bg-[#f0e226]/10 shadow-[inset_4px_0_#f0e226]'
-                        : 'hover:bg-white/5'
+                        ? 'bg-theme-primary/10 shadow-[inset_4px_0_var(--theme-primary)]'
+                        : 'hover:bg-theme-card-hover'
                     }`}
                   >
-                    <td className="py-4 px-4 text-sm text-white/60">
-                      <div className="text-white">{placement.clientFullName}</div>
-                      <div className="text-xs text-white/40">{placement.clientPKA}</div>
+                    <td className="py-4 px-4 text-sm text-theme-foreground-secondary">
+                      <div className="text-theme-foreground">{placement.clientFullName}</div>
+                      <div className="text-xs text-theme-foreground-muted">{placement.clientPKA}</div>
                     </td>
                     <td className="py-4 px-4 text-sm">
-                      <div className="text-white">{placement.songTitle}</div>
-                      <div className="text-xs text-white/40">{placement.artistName}</div>
+                      <div className="text-theme-foreground">{placement.songTitle}</div>
+                      <div className="text-xs text-theme-foreground-muted">{placement.artistName}</div>
                     </td>
-                    <td className="py-4 px-4 text-sm text-white/60">{placement.streams}</td>
-                    <td className="py-4 px-4 text-sm text-white/60">{placement.label}</td>
-                    <td className="py-4 px-4 text-sm text-white/60">{placement.coProducers}</td>
-                    <td className="py-4 px-4 text-sm text-white/60">
+                    <td className="py-4 px-4 text-sm text-theme-foreground-secondary">{placement.streams}</td>
+                    <td className="py-4 px-4 text-sm text-theme-foreground-secondary">{placement.label}</td>
+                    <td className="py-4 px-4 text-sm text-theme-foreground-secondary">{placement.coProducers}</td>
+                    <td className="py-4 px-4 text-sm text-theme-foreground-secondary">
                       <div className="max-w-xs truncate">{placement.notes}</div>
                     </td>
-                    <td className="py-4 px-4 text-sm text-white/60">
+                    <td className="py-4 px-4 text-sm text-theme-foreground-secondary">
                       <div className="text-xs space-y-1">
-                        {placement.advance && <div className="text-[#f0e226]">Adv: {placement.advance}</div>}
+                        {placement.advance && <div className="text-theme-primary">Adv: {placement.advance}</div>}
                         {placement.masterRoyalty && <div>Master: {placement.masterRoyalty}</div>}
                         {placement.pubPercent && <div>Pub: {placement.pubPercent}</div>}
                       </div>
@@ -664,7 +664,7 @@ const PlacementTracker: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <div className={`w-3 h-3 rounded-full ${
                           getProgressStatus(placement) === 'green' ? 'bg-emerald-500' :
-                          getProgressStatus(placement) === 'yellow' ? 'bg-[#f0e226]' : 'bg-white/30'
+                          getProgressStatus(placement) === 'yellow' ? 'bg-theme-primary' : 'bg-white/30'
                         }`}></div>
                       </div>
                     </td>
@@ -675,7 +675,7 @@ const PlacementTracker: React.FC = () => {
                             e.stopPropagation();
                             handleEdit(placement);
                           }}
-                          className="text-[#f0e226] hover:text-white text-sm transition-colors"
+                          className="text-theme-primary hover:text-white text-sm transition-colors"
                         >
                           Edit
                         </button>
@@ -684,7 +684,7 @@ const PlacementTracker: React.FC = () => {
                             e.stopPropagation();
                             handleDelete(placement.id);
                           }}
-                          className="text-white/40 hover:text-red-400 text-sm transition-colors"
+                          className="text-theme-foreground-muted hover:text-red-400 text-sm transition-colors"
                         >
                           Delete
                         </button>
@@ -700,9 +700,9 @@ const PlacementTracker: React.FC = () => {
         {/* Form Modal */}
         {showFormModal && (
           <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-            <div className="relative overflow-hidden bg-[#19181a] p-6 sm:p-8 border border-white/10 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
-              <h2 className="text-2xl font-light mb-6 text-white">
+            <div className="relative overflow-hidden bg-theme-card p-6 sm:p-8 border border-theme-border-strong w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+              <h2 className="text-2xl font-light mb-6 text-theme-foreground">
                 {editingPlacement ? 'Edit Placement' : 'Add New Placement'}
               </h2>
               <form onSubmit={handleFormSubmit}>
@@ -805,8 +805,8 @@ const PlacementTracker: React.FC = () => {
                     </div>
 
                     {/* Legal Fee Section */}
-                    <fieldset className="space-y-4 bg-black/30 p-4 border border-white/5">
-                      <legend className="text-xs text-white/40 mb-2 uppercase tracking-wider">Legal Fee</legend>
+                    <fieldset className="space-y-4 bg-black/30 p-4 border border-theme-border">
+                      <legend className="text-xs text-theme-foreground-muted mb-2 uppercase tracking-wider">Legal Fee</legend>
                       <div>
                         <label className={labelClass}>Amount</label>
                         <input
@@ -898,23 +898,23 @@ const PlacementTracker: React.FC = () => {
                   </div>
 
                   {/* Contracting Info */}
-                  <fieldset className="md:col-span-3 mt-4 bg-black/30 border border-white/5 p-4">
+                  <fieldset className="md:col-span-3 mt-4 bg-black/30 border border-theme-border p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <legend className="text-xs text-white/40 uppercase tracking-wider">Contracting Info</legend>
+                      <legend className="text-xs text-theme-foreground-muted uppercase tracking-wider">Contracting Info</legend>
                       <div className="relative">
                         <button
                           type="button"
                           onClick={() => setShowContactPicker(!showContactPicker)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#f0e226] hover:text-white bg-[#f0e226]/10 hover:bg-[#f0e226]/20 border border-[#f0e226]/30 transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-theme-primary hover:text-white bg-theme-primary/10 hover:bg-theme-primary/20 border border-theme-border-hover transition-colors"
                         >
                           <BookUser className="w-3.5 h-3.5" />
                           Autofill from Contacts
                           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showContactPicker ? 'rotate-180' : ''}`} />
                         </button>
                         {showContactPicker && (
-                          <div className="absolute right-0 mt-1 w-72 max-h-64 overflow-y-auto bg-[#19181a] border border-white/10 shadow-xl z-50">
+                          <div className="absolute right-0 mt-1 w-72 max-h-64 overflow-y-auto bg-theme-card border border-theme-border-strong shadow-xl z-50">
                             {businessContacts.length === 0 ? (
-                              <div className="p-3 text-sm text-white/40 text-center">
+                              <div className="p-3 text-sm text-theme-foreground-muted text-center">
                                 No contacts found. Add contacts in the Contacts tab.
                               </div>
                             ) : (
@@ -924,10 +924,10 @@ const PlacementTracker: React.FC = () => {
                                     key={contact.id}
                                     type="button"
                                     onClick={() => handleAutofillFromContact(contact)}
-                                    className="w-full px-3 py-2 text-left hover:bg-[#f0e226]/10 transition-colors"
+                                    className="w-full px-3 py-2 text-left hover:bg-theme-primary/10 transition-colors"
                                   >
-                                    <div className="text-sm text-white">{contact.companyName}</div>
-                                    <div className="text-xs text-white/40">{contact.contactName} • {contact.category.toLowerCase()}</div>
+                                    <div className="text-sm text-theme-foreground">{contact.companyName}</div>
+                                    <div className="text-xs text-theme-foreground-muted">{contact.contactName} • {contact.category.toLowerCase()}</div>
                                   </button>
                                 ))}
                               </div>
@@ -1025,7 +1025,7 @@ const PlacementTracker: React.FC = () => {
 
                   {/* Checklist */}
                   <fieldset className="md:col-span-3 mt-4">
-                    <legend className="text-xs text-white/40 mb-3 uppercase tracking-wider">Checklist</legend>
+                    <legend className="text-xs text-theme-foreground-muted mb-3 uppercase tracking-wider">Checklist</legend>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
                       <div>
                         <label className={labelClass}>Advance Received</label>
@@ -1115,17 +1115,17 @@ const PlacementTracker: React.FC = () => {
                 </div>
 
                 {/* Form Actions */}
-                <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-white/5">
+                <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-theme-border">
                   <button
                     type="button"
                     onClick={handleCloseForm}
-                    className="px-4 py-2 border border-white/10 text-white/60 hover:text-white hover:bg-white/5 text-sm transition-colors"
+                    className="px-4 py-2 border border-theme-border-strong text-theme-foreground-secondary hover:text-white hover:bg-white/5 text-sm transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-[#f0e226] text-black text-sm font-medium hover:bg-[#d9cc22] transition-colors"
+                    className="px-4 py-2 bg-theme-primary text-black text-sm font-medium hover:bg-theme-primary-hover transition-colors"
                   >
                     Save
                   </button>
@@ -1138,18 +1138,18 @@ const PlacementTracker: React.FC = () => {
         {/* Billing AI Modal */}
         {showBillingModal && (
           <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-            <div className="relative overflow-hidden bg-[#19181a] w-full max-w-6xl max-h-[95vh] overflow-y-auto border border-white/10 p-6 sm:p-8 space-y-6">
-              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+            <div className="relative overflow-hidden bg-theme-card w-full max-w-6xl max-h-[95vh] overflow-y-auto border border-theme-border-strong p-6 sm:p-8 space-y-6">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-xs text-[#f0e226] tracking-wider uppercase mb-1">Billing AI Tool</p>
-                  <h2 className="text-2xl font-light text-white">AI Billing Workspace</h2>
-                  <p className="text-sm text-white/40 mt-1">Billing AI drafts invoices, posts bookkeeping notes, and handles payment flows using the placement data you sync from the tracker.</p>
+                  <p className="text-xs text-theme-primary tracking-wider uppercase mb-1">Billing AI Tool</p>
+                  <h2 className="text-2xl font-light text-theme-foreground">AI Billing Workspace</h2>
+                  <p className="text-sm text-theme-foreground-muted mt-1">Billing AI drafts invoices, posts bookkeeping notes, and handles payment flows using the placement data you sync from the tracker.</p>
                 </div>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowBillingModal(false)}
-                    className="px-4 py-2 border border-white/10 text-white/60 hover:text-white hover:bg-white/5 text-sm transition-colors"
+                    className="px-4 py-2 border border-theme-border-strong text-theme-foreground-secondary hover:text-white hover:bg-white/5 text-sm transition-colors"
                   >
                     Close
                   </button>
@@ -1159,15 +1159,15 @@ const PlacementTracker: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Sidebar - Selected Deals */}
                 <section className="space-y-4">
-                  <div className="bg-[#f0e226]/10 border border-[#f0e226]/30 p-4">
-                    <p className="text-sm text-[#f0e226]">
+                  <div className="bg-theme-primary/10 border border-theme-border-hover p-4">
+                    <p className="text-sm text-theme-primary">
                       {selectedPlacements.size > 0 ? `${selectedPlacements.size} placements selected` : 'Select placements to sync.'}
                     </p>
-                    <p className="text-xs text-white/40 mt-1">Tap rows inside the tracker to mark which deals you want Billing AI to work on.</p>
+                    <p className="text-xs text-theme-foreground-muted mt-1">Tap rows inside the tracker to mark which deals you want Billing AI to work on.</p>
                   </div>
                   <div className="space-y-3">
                     {selectedPlacements.size === 0 ? (
-                      <p className="text-sm text-white/40">No deals selected yet.</p>
+                      <p className="text-sm text-theme-foreground-muted">No deals selected yet.</p>
                     ) : (
                       Array.from(selectedPlacements).map(id => {
                         const placement = placements.find(p => p.id === id);
@@ -1178,18 +1178,18 @@ const PlacementTracker: React.FC = () => {
                             onClick={() => handleSelectBillingDeal(id)}
                             className={`w-full text-left border p-4 transition ${
                               activeBillingDeal === id
-                                ? 'border-[#f0e226] bg-[#f0e226]/10'
-                                : 'border-white/5 bg-black/30 hover:border-[#f0e226]/50'
+                                ? 'border-theme-primary bg-theme-primary-10'
+                                : 'border-theme-border bg-black/30 hover:border-theme-input-focus'
                             }`}
                           >
-                            <div className="text-sm text-white">{placement.clientFullName}</div>
-                            <div className="text-xs text-white/40">{placement.songTitle} - {placement.artistName}</div>
+                            <div className="text-sm text-theme-foreground">{placement.clientFullName}</div>
+                            <div className="text-xs text-theme-foreground-muted">{placement.songTitle} - {placement.artistName}</div>
                           </button>
                         );
                       })
                     )}
                   </div>
-                  <div className="text-xs text-white/30 space-y-1">
+                  <div className="text-xs text-theme-foreground-muted/50 space-y-1">
                     <p>Multi-select placements to build a combined billing run. Each card stores its own invoice context.</p>
                     <p>All deal intel stays in sync when you reopen Billing AI.</p>
                   </div>
@@ -1197,21 +1197,21 @@ const PlacementTracker: React.FC = () => {
 
                 {/* Main Content - Billing Form */}
                 <section className="lg:col-span-2 space-y-6">
-                  <div className="bg-black/30 border border-white/5 p-4">
-                    <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Active deal</p>
+                  <div className="bg-black/30 border border-theme-border p-4">
+                    <p className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Active deal</p>
                     {activeBillingDeal ? (
                       <>
-                        <p className="text-xl font-light text-white">
+                        <p className="text-xl font-light text-theme-foreground">
                           {placements.find(p => p.id === activeBillingDeal)?.clientFullName}
                         </p>
-                        <p className="text-sm text-[#f0e226]">
+                        <p className="text-sm text-theme-primary">
                           {placements.find(p => p.id === activeBillingDeal)?.songTitle}
                         </p>
                       </>
                     ) : (
                       <>
-                        <p className="text-xl font-light text-white">Select a placement</p>
-                        <p className="text-sm text-white/40">Choose a deal card on the left to auto-populate invoice data, bookkeeping notes, and payment instructions.</p>
+                        <p className="text-xl font-light text-theme-foreground">Select a placement</p>
+                        <p className="text-sm text-theme-foreground-muted">Choose a deal card on the left to auto-populate invoice data, bookkeeping notes, and payment instructions.</p>
                       </>
                     )}
                   </div>
@@ -1290,23 +1290,23 @@ const PlacementTracker: React.FC = () => {
                     </section>
 
                     {/* Bill To Section */}
-                    <fieldset className="space-y-4 bg-black/30 border border-white/5 p-4">
+                    <fieldset className="space-y-4 bg-black/30 border border-theme-border p-4">
                       <div className="flex items-center justify-between">
-                        <legend className="text-xs text-white/40 uppercase tracking-wider px-2">Bill To (Via Email Section)</legend>
+                        <legend className="text-xs text-theme-foreground-muted uppercase tracking-wider px-2">Bill To (Via Email Section)</legend>
                         <div className="relative">
                           <button
                             type="button"
                             onClick={() => setShowBillingContactPicker(!showBillingContactPicker)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#f0e226] hover:text-white bg-[#f0e226]/10 hover:bg-[#f0e226]/20 border border-[#f0e226]/30 transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-theme-primary hover:text-white bg-theme-primary/10 hover:bg-theme-primary/20 border border-theme-border-hover transition-colors"
                           >
                             <BookUser className="w-3.5 h-3.5" />
                             Autofill from Contacts
                             <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showBillingContactPicker ? 'rotate-180' : ''}`} />
                           </button>
                           {showBillingContactPicker && (
-                            <div className="absolute right-0 mt-1 w-72 max-h-64 overflow-y-auto bg-[#19181a] border border-white/10 shadow-xl z-50">
+                            <div className="absolute right-0 mt-1 w-72 max-h-64 overflow-y-auto bg-theme-card border border-theme-border-strong shadow-xl z-50">
                               {businessContacts.length === 0 ? (
-                                <div className="p-3 text-sm text-white/40 text-center">
+                                <div className="p-3 text-sm text-theme-foreground-muted text-center">
                                   No contacts found. Add contacts in the Contacts tab.
                                 </div>
                               ) : (
@@ -1316,10 +1316,10 @@ const PlacementTracker: React.FC = () => {
                                       key={contact.id}
                                       type="button"
                                       onClick={() => handleAutofillBillingFromContact(contact)}
-                                      className="w-full px-3 py-2 text-left hover:bg-[#f0e226]/10 transition-colors"
+                                      className="w-full px-3 py-2 text-left hover:bg-theme-primary/10 transition-colors"
                                     >
-                                      <div className="text-sm text-white">{contact.companyName}</div>
-                                      <div className="text-xs text-white/40">{contact.contactName} • {contact.category.toLowerCase()}</div>
+                                      <div className="text-sm text-theme-foreground">{contact.companyName}</div>
+                                      <div className="text-xs text-theme-foreground-muted">{contact.contactName} • {contact.category.toLowerCase()}</div>
                                     </button>
                                   ))}
                                 </div>
@@ -1328,7 +1328,7 @@ const PlacementTracker: React.FC = () => {
                           )}
                         </div>
                       </div>
-                      <p className="text-xs text-white/30 -mt-2">This information appears in the "Via Email" section of the invoice</p>
+                      <p className="text-xs text-theme-foreground-muted/50 -mt-2">This information appears in the "Via Email" section of the invoice</p>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -1505,37 +1505,37 @@ const PlacementTracker: React.FC = () => {
                     {/* Invoice Preview Section */}
                     <section className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-xs text-white/40 uppercase tracking-wider">Invoice Preview</h3>
+                        <h3 className="text-xs text-theme-foreground-muted uppercase tracking-wider">Invoice Preview</h3>
                         <button
                           type="button"
                           onClick={handleDraftInvoice}
                           disabled={!activeBillingDeal}
-                          className="px-4 py-2 bg-[#f0e226] text-black text-sm font-medium hover:bg-[#d9cc22] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="px-4 py-2 bg-theme-primary text-black text-sm font-medium hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           Draft Invoice with Billing AI
                         </button>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3">
-                        <button type="button" className="px-4 py-2 border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors">
+                        <button type="button" className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors">
                           Save Invoice Draft
                         </button>
-                        <button type="button" className="px-4 py-2 border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors">
+                        <button type="button" className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors">
                           Export Invoice (HTML)
                         </button>
-                        <button type="button" className="px-4 py-2 border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors">
+                        <button type="button" className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors">
                           Export Invoice (DOC)
                         </button>
-                        <button type="button" className="px-4 py-2 border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors">
+                        <button type="button" className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors">
                           Export Invoice (PDF)
                         </button>
-                        <button type="button" className="px-4 py-2 border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors">
+                        <button type="button" className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors">
                           Export Billing Package (JSON)
                         </button>
-                        <span className="text-xs text-white/30">No draft saved yet.</span>
+                        <span className="text-xs text-theme-foreground-muted/50">No draft saved yet.</span>
                       </div>
 
-                      <div className="bg-black/30 border border-white/5 p-6">
+                      <div className="bg-black/30 border border-theme-border p-6">
                         <div className="bg-white rounded-lg p-8 text-gray-900 font-serif" style={{ fontFamily: 'Times New Roman, serif' }}>
                           {!showInvoicePreview || !activeBillingDeal ? (
                             <div className="text-center text-sm text-gray-500 py-12">
@@ -1676,7 +1676,7 @@ const PlacementTracker: React.FC = () => {
                         </div>
                       </div>
 
-                      <p className="text-xs text-white/30 text-center">
+                      <p className="text-xs text-theme-foreground-muted/50 text-center">
                         {showInvoicePreview && activeBillingDeal
                           ? 'Edit the fields above to update the preview. Export when ready.'
                           : 'Review the generated invoice, make edits in the fields above, then export or send when ready.'
@@ -1685,8 +1685,8 @@ const PlacementTracker: React.FC = () => {
                     </section>
 
                     {/* Banking Details */}
-                    <fieldset className="space-y-4 bg-black/30 border border-white/5 p-4">
-                      <legend className="text-xs text-white/40 uppercase tracking-wider">Wire / Banking Details</legend>
+                    <fieldset className="space-y-4 bg-black/30 border border-theme-border p-4">
+                      <legend className="text-xs text-theme-foreground-muted uppercase tracking-wider">Wire / Banking Details</legend>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className={labelClass}>Account Name</label>
@@ -1755,7 +1755,7 @@ const PlacementTracker: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setShowBillingModal(false)}
-                        className="px-4 py-2 border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                        className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors"
                         disabled={createBillingInvoiceMutation.isPending}
                       >
                         Cancel
@@ -1763,12 +1763,12 @@ const PlacementTracker: React.FC = () => {
                       <button
                         type="submit"
                         disabled={!activeBillingDeal || createBillingInvoiceMutation.isPending}
-                        className="px-4 py-2 bg-[#f0e226] text-black text-sm font-medium hover:bg-[#d9cc22] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="px-4 py-2 bg-theme-primary text-black text-sm font-medium hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         {createBillingInvoiceMutation.isPending ? 'Creating Invoice...' : 'Create Invoice & Send to Billing Hub'}
                       </button>
                     </div>
-                    <p className="text-xs text-white/30 text-center mt-2">
+                    <p className="text-xs text-theme-foreground-muted/50 text-center mt-2">
                       Invoice will appear in the Billing Hub with FEE type (20% commission). You can review and process payment from there.
                     </p>
                   </form>
@@ -1781,17 +1781,17 @@ const PlacementTracker: React.FC = () => {
         {/* Legal AI Modal */}
         {showLegalModal && (
           <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-            <div className="relative overflow-hidden bg-[#19181a] w-full max-w-6xl max-h-[95vh] overflow-y-auto border border-white/10 p-6 sm:p-8 space-y-6">
-              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+            <div className="relative overflow-hidden bg-theme-card w-full max-w-6xl max-h-[95vh] overflow-y-auto border border-theme-border-strong p-6 sm:p-8 space-y-6">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-xs text-[#f0e226] tracking-wider uppercase mb-1">Legal AI Tool</p>
-                  <h2 className="text-2xl font-light text-white">AI Legal Workspace</h2>
-                  <p className="text-sm text-white/40 mt-1">Legal AI assists with contract review, redline tracking, agreement drafting, and legal term analysis for your placements.</p>
+                  <p className="text-xs text-theme-primary tracking-wider uppercase mb-1">Legal AI Tool</p>
+                  <h2 className="text-2xl font-light text-theme-foreground">AI Legal Workspace</h2>
+                  <p className="text-sm text-theme-foreground-muted mt-1">Legal AI assists with contract review, redline tracking, agreement drafting, and legal term analysis for your placements.</p>
                 </div>
                 <button
                   onClick={() => setShowLegalModal(false)}
-                  className="px-4 py-2 border border-white/10 text-white/60 hover:text-white hover:bg-white/5 text-sm transition-colors"
+                  className="px-4 py-2 border border-theme-border-strong text-theme-foreground-secondary hover:text-white hover:bg-white/5 text-sm transition-colors"
                 >
                   Close
                 </button>
@@ -1800,41 +1800,41 @@ const PlacementTracker: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Sidebar - Selected Deals */}
                 <section className="space-y-4">
-                  <div className="bg-[#f0e226]/10 border border-[#f0e226]/30 p-4">
-                    <p className="text-sm text-[#f0e226]">
+                  <div className="bg-theme-primary/10 border border-theme-border-hover p-4">
+                    <p className="text-sm text-theme-primary">
                       {selectedPlacements.size > 0 ? `${selectedPlacements.size} placements selected` : 'Select placements for legal review.'}
                     </p>
-                    <p className="text-xs text-white/40 mt-1">Click rows in the tracker to mark which deals need legal attention.</p>
+                    <p className="text-xs text-theme-foreground-muted mt-1">Click rows in the tracker to mark which deals need legal attention.</p>
                   </div>
                   <div className="space-y-3">
                     {selectedPlacements.size === 0 ? (
-                      <p className="text-sm text-white/40">No deals selected yet.</p>
+                      <p className="text-sm text-theme-foreground-muted">No deals selected yet.</p>
                     ) : (
                       Array.from(selectedPlacements).map(id => {
                         const placement = placements.find(p => p.id === id);
                         if (!placement) return null;
                         const statusColor = placement.agreement === 'Fully Executed' ? 'bg-emerald-500' :
-                                          placement.agreement === 'In Legal Review' ? 'bg-[#f0e226]' : 'bg-white/30';
+                                          placement.agreement === 'In Legal Review' ? 'bg-theme-primary' : 'bg-white/30';
                         return (
                           <div
                             key={id}
-                            className="border border-white/5 bg-black/30 p-4"
+                            className="border border-theme-border bg-black/30 p-4"
                           >
                             <div className="flex items-start justify-between mb-2">
-                              <div className="text-sm text-white">{placement.clientFullName}</div>
+                              <div className="text-sm text-theme-foreground">{placement.clientFullName}</div>
                               <div className={`w-2 h-2 rounded-full ${statusColor}`}></div>
                             </div>
-                            <div className="text-xs text-white/40 mb-1">{placement.songTitle} - {placement.artistName}</div>
-                            <div className="text-xs text-white/30">Status: {placement.agreement}</div>
+                            <div className="text-xs text-theme-foreground-muted mb-1">{placement.songTitle} - {placement.artistName}</div>
+                            <div className="text-xs text-theme-foreground-muted/50">Status: {placement.agreement}</div>
                             {placement.status && (
-                              <div className="text-xs text-[#f0e226] mt-1">Action: {placement.status}</div>
+                              <div className="text-xs text-theme-primary mt-1">Action: {placement.status}</div>
                             )}
                           </div>
                         );
                       })
                     )}
                   </div>
-                  <div className="text-xs text-white/30 space-y-1">
+                  <div className="text-xs text-theme-foreground-muted/50 space-y-1">
                     <p>Legal AI tracks agreement status, redlines, and contract versions for each placement.</p>
                     <p>Upload contracts or paste links to enable AI-powered analysis.</p>
                   </div>
@@ -1843,10 +1843,10 @@ const PlacementTracker: React.FC = () => {
                 {/* Main Content - Legal Tools */}
                 <section className="lg:col-span-2 space-y-6">
                   {/* Contract Analysis Section */}
-                  <div className="bg-black/30 border border-white/5 p-4 space-y-4">
+                  <div className="bg-black/30 border border-theme-border p-4 space-y-4">
                     <div>
-                      <p className="text-xs text-white/40 uppercase tracking-wider mb-2">Contract Review</p>
-                      <p className="text-sm text-white/60">Upload or link to contracts for AI-powered analysis and redline tracking.</p>
+                      <p className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Contract Review</p>
+                      <p className="text-sm text-theme-foreground-secondary">Upload or link to contracts for AI-powered analysis and redline tracking.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1872,8 +1872,8 @@ const PlacementTracker: React.FC = () => {
 
                     <div>
                       <label className={labelClass}>Contract Upload</label>
-                      <div className="border-2 border-dashed border-white/10 p-6 text-center hover:border-[#f0e226]/30 transition-colors">
-                        <div className="text-white/40 text-sm mb-2">
+                      <div className="border-2 border-dashed border-theme-border-strong p-6 text-center hover:border-theme-border-hover transition-colors">
+                        <div className="text-theme-foreground-muted text-sm mb-2">
                           <svg className="mx-auto h-12 w-12 mb-3" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                             <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
@@ -1885,35 +1885,35 @@ const PlacementTracker: React.FC = () => {
                   </div>
 
                   {/* AI Analysis Tools */}
-                  <div className="bg-black/30 border border-white/5 p-4 space-y-4">
-                    <p className="text-xs text-white/40 uppercase tracking-wider">Legal AI Actions</p>
+                  <div className="bg-black/30 border border-theme-border p-4 space-y-4">
+                    <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Legal AI Actions</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <button className="group px-4 py-3 bg-[#f0e226] text-black text-sm text-left hover:bg-[#d9cc22] transition-colors">
+                      <button className="group px-4 py-3 bg-theme-primary text-black text-sm text-left hover:bg-theme-primary-hover transition-colors">
                         <div className="font-medium mb-1">Analyze Contract</div>
                         <div className="text-xs opacity-70">Review terms, identify issues, suggest improvements</div>
                       </button>
 
-                      <button className="px-4 py-3 bg-white/10 border border-white/10 text-white text-sm text-left hover:bg-white/20 transition-colors">
+                      <button className="px-4 py-3 bg-white/10 border border-theme-border-strong text-white text-sm text-left hover:bg-white/20 transition-colors">
                         <div className="font-medium mb-1">Generate Agreement</div>
-                        <div className="text-xs text-white/60">Create producer agreement from placement data</div>
+                        <div className="text-xs text-theme-foreground-secondary">Create producer agreement from placement data</div>
                       </button>
 
-                      <button className="px-4 py-3 bg-white/10 border border-white/10 text-white text-sm text-left hover:bg-white/20 transition-colors">
+                      <button className="px-4 py-3 bg-white/10 border border-theme-border-strong text-white text-sm text-left hover:bg-white/20 transition-colors">
                         <div className="font-medium mb-1">Track Redlines</div>
-                        <div className="text-xs text-white/60">Compare versions and track changes</div>
+                        <div className="text-xs text-theme-foreground-secondary">Compare versions and track changes</div>
                       </button>
 
-                      <button className="px-4 py-3 bg-white/10 border border-white/10 text-white text-sm text-left hover:bg-white/20 transition-colors">
+                      <button className="px-4 py-3 bg-white/10 border border-theme-border-strong text-white text-sm text-left hover:bg-white/20 transition-colors">
                         <div className="font-medium mb-1">Explain Terms</div>
-                        <div className="text-xs text-white/60">Plain English explanations of legal clauses</div>
+                        <div className="text-xs text-theme-foreground-secondary">Plain English explanations of legal clauses</div>
                       </button>
                     </div>
                   </div>
 
                   {/* Legal Terms Reference */}
-                  <div className="bg-black/30 border border-white/5 p-4 space-y-4">
-                    <p className="text-xs text-white/40 uppercase tracking-wider">Deal Terms & Legal Notes</p>
+                  <div className="bg-black/30 border border-theme-border p-4 space-y-4">
+                    <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Deal Terms & Legal Notes</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -1970,8 +1970,8 @@ const PlacementTracker: React.FC = () => {
                   </div>
 
                   {/* Legal Fee Tracking */}
-                  <div className="bg-black/30 border border-white/5 p-4 space-y-4">
-                    <p className="text-xs text-white/40 uppercase tracking-wider">Legal Fee Information</p>
+                  <div className="bg-black/30 border border-theme-border p-4 space-y-4">
+                    <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Legal Fee Information</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -2019,9 +2019,9 @@ const PlacementTracker: React.FC = () => {
                   </div>
 
                   {/* AI Analysis Results */}
-                  <div className="bg-black/30 border border-white/5 p-4 space-y-4">
+                  <div className="bg-black/30 border border-theme-border p-4 space-y-4">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs text-white/40 uppercase tracking-wider">AI Analysis Results</p>
+                      <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">AI Analysis Results</p>
                       <span className="text-xs text-white/30">No analysis run yet</span>
                     </div>
 
@@ -2034,27 +2034,27 @@ const PlacementTracker: React.FC = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <button className="px-4 py-2 border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors">
+                      <button className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors">
                         Export Analysis Report (PDF)
                       </button>
-                      <button className="px-4 py-2 border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors">
+                      <button className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors">
                         Save Legal Package (JSON)
                       </button>
-                      <button className="px-4 py-2 border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors">
+                      <button className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors">
                         Generate Agreement (DOCX)
                       </button>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-white/5">
+                  <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4 border-t border-theme-border">
                     <button
                       onClick={() => setShowLegalModal(false)}
-                      className="px-4 py-2 border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                      className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors"
                     >
                       Close
                     </button>
-                    <button className="px-4 py-2 bg-[#f0e226] text-black text-sm font-medium hover:bg-[#d9cc22] transition-colors">
+                    <button className="px-4 py-2 bg-theme-primary text-black text-sm font-medium hover:bg-theme-primary-hover transition-colors">
                       Save Legal Updates
                     </button>
                   </div>

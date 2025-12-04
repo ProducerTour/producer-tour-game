@@ -2,11 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen, Camera, Trash2, Loader2, Plane, Globe, Music, Instagram, Twitter, Linkedin, ExternalLink, Copy, Check, ArrowLeft, Youtube, CloudRain, Smartphone, MessageCircle, Volume2, VolumeX, Eye, EyeOff, BellRing, ChevronDown, ChevronUp } from 'lucide-react';
+import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen, Camera, Trash2, Loader2, Plane, Globe, Music, Instagram, Twitter, Linkedin, ExternalLink, Copy, Check, ArrowLeft, Youtube, CloudRain, Smartphone, MessageCircle, Volume2, VolumeX, Eye, EyeOff, BellRing, ChevronDown, ChevronUp, Palette } from 'lucide-react';
 import { userApi, settingsApi, preferencesApi, systemSettingsApi, chatSettingsApi, api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import AdminGuide from '../components/AdminGuide';
 import { PaymentSettings } from '../components/PaymentSettings';
+import { ThemeSelector } from '../components/settings/ThemeSelector';
 import {
   Switch,
   Checkbox,
@@ -21,7 +22,7 @@ import {
   AlertDialogTrigger,
 } from '../components/ui';
 
-type SettingsSection = 'profile' | 'password' | 'payments' | 'notifications' | 'chat' | 'publishers' | 'documentation' | 'system' | 'tourhub';
+type SettingsSection = 'profile' | 'password' | 'payments' | 'notifications' | 'chat' | 'publishers' | 'documentation' | 'system' | 'tourhub' | 'appearance';
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuthStore();
@@ -30,7 +31,7 @@ export default function SettingsPage() {
 
   // Check for section query param (e.g., /settings?section=tourhub)
   const sectionParam = searchParams.get('section') as SettingsSection | null;
-  const validSections: SettingsSection[] = ['profile', 'password', 'payments', 'notifications', 'chat', 'publishers', 'documentation', 'system', 'tourhub'];
+  const validSections: SettingsSection[] = ['profile', 'password', 'payments', 'notifications', 'chat', 'publishers', 'documentation', 'system', 'tourhub', 'appearance'];
   const initialSection: SettingsSection = sectionParam && validSections.includes(sectionParam) ? sectionParam : 'profile';
 
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
@@ -515,42 +516,42 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface relative">
-      {/* Background Effects */}
+    <div className="min-h-screen bg-theme-background relative">
+      {/* Background Effects - Theme aware */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-brand-blue/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-green-500/5 rounded-full blur-[100px]" />
+        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-theme-primary-5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-theme-primary-3 rounded-full blur-[100px]" />
       </div>
 
       {/* Header with Back Button */}
-      <header className="bg-slate-800/50 backdrop-blur-sm border-b border-white/10 sticky top-0 z-10">
+      <header className="bg-theme-card-80 backdrop-blur-sm border-b border-theme-border sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <Link
             to="/dashboard"
-            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+            className="flex items-center gap-2 text-theme-foreground-muted hover:text-theme-foreground transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>Back to Dashboard</span>
           </Link>
           <div className="flex items-center gap-2">
-            <Settings className="w-5 h-5 text-primary-400" />
-            <span className="font-semibold text-white">Settings</span>
+            <Settings className="w-5 h-5 text-theme-primary" />
+            <span className="font-semibold text-theme-foreground">Settings</span>
           </div>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-0">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-          <p className="text-text-muted">Manage your account settings and preferences</p>
+          <h1 className="text-3xl font-bold text-theme-foreground mb-2">Settings</h1>
+          <p className="text-theme-foreground-muted">Manage your account settings and preferences</p>
         </div>
 
         {/* Message Banner */}
         {message.text && (
-          <div className={`mb-6 p-4 rounded-lg ${
+          <div className={`mb-6 p-4 ${
             message.type === 'success'
-              ? 'bg-green-500/10 border border-green-500/30 text-green-400'
-              : 'bg-red-500/10 border border-red-500/30 text-red-400'
+              ? 'bg-theme-success-bg border border-theme-success-30 text-theme-success'
+              : 'bg-theme-error-bg border border-theme-error-30 text-theme-error'
           }`}>
             {message.text}
           </div>
@@ -559,13 +560,14 @@ export default function SettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar Navigation */}
           <div className="lg:col-span-1">
-            <nav className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-2 space-y-1">
+            <nav className="relative overflow-hidden bg-theme-card border border-theme-border p-2 space-y-1">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
               <button
                 onClick={() => setActiveSection('profile')}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                className={`w-full text-left px-4 py-3 transition-colors ${
                   activeSection === 'profile'
-                    ? 'bg-primary-500/20 text-primary-400'
-                    : 'text-text-secondary hover:bg-white/[0.04]'
+                    ? 'bg-theme-primary-10 text-theme-primary border-l-2 border-theme-primary'
+                    : 'text-theme-foreground-secondary hover:bg-theme-card-hover hover:text-theme-foreground border-l-2 border-transparent'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -575,10 +577,10 @@ export default function SettingsPage() {
               </button>
               <button
                 onClick={() => setActiveSection('password')}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                className={`w-full text-left px-4 py-3 transition-colors ${
                   activeSection === 'password'
-                    ? 'bg-primary-500/20 text-primary-400'
-                    : 'text-text-secondary hover:bg-white/[0.04]'
+                    ? 'bg-theme-primary-10 text-theme-primary border-l-2 border-theme-primary'
+                    : 'text-theme-foreground-secondary hover:bg-theme-card-hover hover:text-theme-foreground border-l-2 border-transparent'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -589,10 +591,10 @@ export default function SettingsPage() {
               {user?.role === 'WRITER' && (
                 <button
                   onClick={() => setActiveSection('payments')}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  className={`w-full text-left px-4 py-3 transition-colors ${
                     activeSection === 'payments'
-                      ? 'bg-primary-500/20 text-primary-400'
-                      : 'text-text-secondary hover:bg-white/[0.04]'
+                      ? 'bg-theme-primary-10 text-theme-primary border-l-2 border-theme-primary'
+                      : 'text-theme-foreground-secondary hover:bg-theme-card-hover hover:text-theme-foreground border-l-2 border-transparent'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -603,10 +605,10 @@ export default function SettingsPage() {
               )}
               <button
                 onClick={() => setActiveSection('notifications')}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                className={`w-full text-left px-4 py-3 transition-colors ${
                   activeSection === 'notifications'
-                    ? 'bg-primary-500/20 text-primary-400'
-                    : 'text-text-secondary hover:bg-white/[0.04]'
+                    ? 'bg-theme-primary-10 text-theme-primary border-l-2 border-theme-primary'
+                    : 'text-theme-foreground-secondary hover:bg-theme-card-hover hover:text-theme-foreground border-l-2 border-transparent'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -616,10 +618,10 @@ export default function SettingsPage() {
               </button>
               <button
                 onClick={() => setActiveSection('chat')}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                className={`w-full text-left px-4 py-3 transition-colors ${
                   activeSection === 'chat'
-                    ? 'bg-primary-500/20 text-primary-400'
-                    : 'text-text-secondary hover:bg-white/[0.04]'
+                    ? 'bg-theme-primary-10 text-theme-primary border-l-2 border-theme-primary'
+                    : 'text-theme-foreground-secondary hover:bg-theme-card-hover hover:text-theme-foreground border-l-2 border-transparent'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -629,10 +631,10 @@ export default function SettingsPage() {
               </button>
               <button
                 onClick={() => setActiveSection('tourhub')}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                className={`w-full text-left px-4 py-3 transition-colors ${
                   activeSection === 'tourhub'
-                    ? 'bg-primary-500/20 text-primary-400'
-                    : 'text-text-secondary hover:bg-white/[0.04]'
+                    ? 'bg-theme-primary-10 text-theme-primary border-l-2 border-theme-primary'
+                    : 'text-theme-foreground-secondary hover:bg-theme-card-hover hover:text-theme-foreground border-l-2 border-transparent'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -644,10 +646,10 @@ export default function SettingsPage() {
                 <>
                   <button
                     onClick={() => setActiveSection('system')}
-                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                    className={`w-full text-left px-4 py-3 transition-colors ${
                       activeSection === 'system'
-                        ? 'bg-primary-500/20 text-primary-400'
-                        : 'text-text-secondary hover:bg-white/[0.04]'
+                        ? 'bg-theme-primary-10 text-theme-primary border-l-2 border-theme-primary'
+                        : 'text-theme-foreground-secondary hover:bg-theme-card-hover hover:text-theme-foreground border-l-2 border-transparent'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -657,10 +659,10 @@ export default function SettingsPage() {
                   </button>
                   <button
                     onClick={() => setActiveSection('publishers')}
-                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                    className={`w-full text-left px-4 py-3 transition-colors ${
                       activeSection === 'publishers'
-                        ? 'bg-primary-500/20 text-primary-400'
-                        : 'text-text-secondary hover:bg-white/[0.04]'
+                        ? 'bg-theme-primary-10 text-theme-primary border-l-2 border-theme-primary'
+                        : 'text-theme-foreground-secondary hover:bg-theme-card-hover hover:text-theme-foreground border-l-2 border-transparent'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -670,15 +672,28 @@ export default function SettingsPage() {
                   </button>
                   <button
                     onClick={() => setActiveSection('documentation')}
-                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                    className={`w-full text-left px-4 py-3 transition-colors ${
                       activeSection === 'documentation'
-                        ? 'bg-primary-500/20 text-primary-400'
-                        : 'text-text-secondary hover:bg-white/[0.04]'
+                        ? 'bg-theme-primary-10 text-theme-primary border-l-2 border-theme-primary'
+                        : 'text-theme-foreground-secondary hover:bg-theme-card-hover hover:text-theme-foreground border-l-2 border-transparent'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <BookOpen className="w-4 h-4" />
                       <span className="font-medium">Documentation</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setActiveSection('appearance')}
+                    className={`w-full text-left px-4 py-3 transition-colors ${
+                      activeSection === 'appearance'
+                        ? 'bg-theme-primary-10 text-theme-primary border-l-2 border-theme-primary'
+                        : 'text-theme-foreground-secondary hover:bg-theme-card-hover hover:text-theme-foreground border-l-2 border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Palette className="w-4 h-4" />
+                      <span className="font-medium">Appearance</span>
                     </div>
                   </button>
                 </>
@@ -688,20 +703,21 @@ export default function SettingsPage() {
 
           {/* Content Area */}
           <div className="lg:col-span-3">
-            <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
+            <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
               {/* Profile Section */}
               {activeSection === 'profile' && (
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-6">User Information</h2>
+                  <h2 className="text-2xl font-bold text-theme-foreground mb-6">User Information</h2>
 
                   {/* Profile Photo */}
                   <div className="mb-8">
-                    <label className="block text-sm font-medium text-text-secondary mb-4">
+                    <label className="block text-sm font-medium text-theme-foreground-secondary mb-4">
                       Profile Photo
                     </label>
                     <div className="flex items-center gap-6">
                       <div className="relative">
-                        <div className="w-24 h-24 rounded-full overflow-hidden bg-white/10 flex items-center justify-center">
+                        <div className="w-24 h-24 rounded-full overflow-hidden bg-theme-border-strong flex items-center justify-center">
                           {profilePhotoUrl ? (
                             <img
                               src={profilePhotoUrl}
@@ -709,14 +725,14 @@ export default function SettingsPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <span className="text-3xl font-bold text-white/40">
+                            <span className="text-3xl font-bold text-theme-foreground-muted">
                               {user?.firstName?.[0]}{user?.lastName?.[0]}
                             </span>
                           )}
                         </div>
                         {isUploadingPhoto && (
-                          <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-                            <Loader2 className="w-6 h-6 text-white animate-spin" />
+                          <div className="absolute inset-0 bg-theme-background-50 rounded-full flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 text-theme-foreground animate-spin" />
                           </div>
                         )}
                       </div>
@@ -733,7 +749,7 @@ export default function SettingsPage() {
                             type="button"
                             onClick={() => photoInputRef.current?.click()}
                             disabled={isUploadingPhoto}
-                            className="px-4 py-2 bg-primary-500/20 text-primary-400 rounded-lg text-sm font-medium hover:bg-primary-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
+                            className="px-4 py-2 bg-theme-primary-20 text-theme-primary text-sm font-medium hover:bg-theme-primary-30 transition-colors disabled:opacity-50 flex items-center gap-2"
                           >
                             <Camera className="w-4 h-4" />
                             {profilePhotoUrl ? 'Change Photo' : 'Upload Photo'}
@@ -743,7 +759,7 @@ export default function SettingsPage() {
                               type="button"
                               onClick={handleDeletePhoto}
                               disabled={isUploadingPhoto}
-                              className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
+                              className="px-4 py-2 bg-theme-error-20 text-theme-error text-sm font-medium hover:bg-theme-error-30 transition-colors disabled:opacity-50 flex items-center gap-2"
                             >
                               <Trash2 className="w-4 h-4" />
                               Remove
@@ -753,12 +769,12 @@ export default function SettingsPage() {
                       )}
                     </div>
                     {user?.role !== 'ADMIN' && (
-                      <p className="text-xs text-text-muted mt-2">
+                      <p className="text-xs text-theme-foreground-muted mt-2">
                         Contact your administrator to update your profile photo
                       </p>
                     )}
                     {user?.role === 'ADMIN' && (
-                      <p className="text-xs text-text-muted mt-2">
+                      <p className="text-xs text-theme-foreground-muted mt-2">
                         Recommended: Square image, at least 200x200px. Max 5MB.
                       </p>
                     )}
@@ -767,7 +783,7 @@ export default function SettingsPage() {
                   <form onSubmit={handleProfileSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-2">
+                        <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                           First Name
                         </label>
                         {user?.role === 'ADMIN' ? (
@@ -775,16 +791,16 @@ export default function SettingsPage() {
                             type="text"
                             value={profileData.firstName}
                             onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
-                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                            className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                           />
                         ) : (
-                          <div className="w-full px-4 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-white">
+                          <div className="w-full px-4 py-2 bg-theme-card-hover border border-theme-border text-theme-foreground">
                             {profileData.firstName || 'Not set'}
                           </div>
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-2">
+                        <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                           Last Name
                         </label>
                         {user?.role === 'ADMIN' ? (
@@ -792,10 +808,10 @@ export default function SettingsPage() {
                             type="text"
                             value={profileData.lastName}
                             onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
-                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                            className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                           />
                         ) : (
-                          <div className="w-full px-4 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-white">
+                          <div className="w-full px-4 py-2 bg-theme-card-hover border border-theme-border text-theme-foreground">
                             {profileData.lastName || 'Not set'}
                           </div>
                         )}
@@ -803,7 +819,7 @@ export default function SettingsPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-text-secondary mb-2">
+                      <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                         Email Address
                       </label>
                       {user?.role === 'ADMIN' ? (
@@ -811,10 +827,10 @@ export default function SettingsPage() {
                           type="email"
                           value={profileData.email}
                           onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                          className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                         />
                       ) : (
-                        <div className="w-full px-4 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-white">
+                        <div className="w-full px-4 py-2 bg-theme-card-hover border border-theme-border text-theme-foreground">
                           {profileData.email || 'Not set'}
                         </div>
                       )}
@@ -823,10 +839,10 @@ export default function SettingsPage() {
                     {/* Writer IPI - only for WRITER role */}
                     {user?.role === 'WRITER' && (
                       <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-2">
+                        <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                           Writer IPI Number
                         </label>
-                        <div className="w-full px-4 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-white">
+                        <div className="w-full px-4 py-2 bg-theme-card-hover border border-theme-border text-theme-foreground">
                           {user?.writerIpiNumber || 'Not set'}
                         </div>
                       </div>
@@ -835,24 +851,24 @@ export default function SettingsPage() {
                     {/* Publisher IPI - for WRITER and PUBLISHER roles */}
                     {(user?.role === 'WRITER' || user?.role === 'PUBLISHER') && (
                       <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-2">
+                        <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                           Publisher IPI Number
                         </label>
-                        <div className="w-full px-4 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-white">
+                        <div className="w-full px-4 py-2 bg-theme-card-hover border border-theme-border text-theme-foreground">
                           {user?.publisherIpiNumber || 'Not set'}
                         </div>
                       </div>
                     )}
 
                     {user?.role !== 'ADMIN' && (
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                      <div className="bg-theme-primary-10 border border-theme-primary-30 p-4">
                         <div className="flex gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                            <Info className="w-4 h-4 text-blue-400" />
+                          <div className="w-8 h-8 bg-theme-primary-20 flex items-center justify-center flex-shrink-0">
+                            <Info className="w-4 h-4 text-theme-primary" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-blue-300 mb-1">Read-Only Information</p>
-                            <p className="text-sm text-blue-200/80">
+                            <p className="text-sm font-medium text-theme-primary mb-1">Read-Only Information</p>
+                            <p className="text-sm text-theme-foreground-secondary">
                               Your user information can only be updated by an administrator. Contact support if you need to make changes.
                             </p>
                           </div>
@@ -861,11 +877,11 @@ export default function SettingsPage() {
                     )}
 
                     {user?.role === 'ADMIN' && (
-                      <div className="flex justify-end pt-4 border-t border-white/[0.08]">
+                      <div className="flex justify-end pt-4 border-t border-theme-border">
                         <button
                           type="submit"
                           disabled={updateProfileMutation.isPending}
-                          className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-white/20 disabled:cursor-not-allowed transition-colors"
+                          className="px-6 py-2 bg-theme-primary text-theme-primary-foreground font-medium hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
                         </button>
@@ -878,52 +894,52 @@ export default function SettingsPage() {
               {/* Password Section */}
               {activeSection === 'password' && (
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-6">Change Password</h2>
+                  <h2 className="text-2xl font-bold text-theme-foreground mb-6">Change Password</h2>
                   <form onSubmit={handlePasswordSubmit} className="space-y-6">
                     <div>
-                      <label className="block text-sm font-medium text-text-secondary mb-2">
+                      <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                         Current Password
                       </label>
                       <input
                         type="password"
                         value={passwordData.currentPassword}
                         onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                        className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-text-secondary mb-2">
+                      <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                         New Password
                       </label>
                       <input
                         type="password"
                         value={passwordData.newPassword}
                         onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                        className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                       />
-                      <p className="text-sm text-text-muted mt-1">
+                      <p className="text-sm text-theme-foreground-muted mt-1">
                         Password must be at least 6 characters
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-text-secondary mb-2">
+                      <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                         Confirm New Password
                       </label>
                       <input
                         type="password"
                         value={passwordData.confirmPassword}
                         onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                        className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                       />
                     </div>
 
-                    <div className="flex justify-end pt-4 border-t border-white/[0.08]">
+                    <div className="flex justify-end pt-4 border-t border-theme-border">
                       <button
                         type="submit"
                         disabled={updatePasswordMutation.isPending}
-                        className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-white/20 disabled:cursor-not-allowed transition-colors"
+                        className="px-6 py-2 bg-theme-primary text-theme-primary-foreground font-medium hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         {updatePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
                       </button>
@@ -935,7 +951,7 @@ export default function SettingsPage() {
               {/* Payments Section */}
               {activeSection === 'payments' && (
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-6">Payment Settings</h2>
+                  <h2 className="text-2xl font-bold text-theme-foreground mb-6">Payment Settings</h2>
                   <PaymentSettings />
                 </div>
               )}
@@ -943,12 +959,12 @@ export default function SettingsPage() {
               {/* Notifications Section */}
               {activeSection === 'notifications' && (
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-6">Notification Preferences</h2>
+                  <h2 className="text-2xl font-bold text-theme-foreground mb-6">Notification Preferences</h2>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
+                    <div className="flex items-center justify-between p-4 bg-theme-card-hover border border-theme-border">
                       <div>
-                        <h3 className="text-white font-medium">Email Notifications</h3>
-                        <p className="text-sm text-text-muted">Receive email updates about new statements</p>
+                        <h3 className="text-theme-foreground font-medium">Email Notifications</h3>
+                        <p className="text-sm text-theme-foreground-muted">Receive email updates about new statements</p>
                       </div>
                       <Switch
                         checked={notificationPrefs.emailNotificationsEnabled}
@@ -956,10 +972,10 @@ export default function SettingsPage() {
                       />
                     </div>
 
-                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
+                    <div className="flex items-center justify-between p-4 bg-theme-card-hover border border-theme-border">
                       <div>
-                        <h3 className="text-white font-medium">Statement Notifications</h3>
-                        <p className="text-sm text-text-muted">Get notified when new statements are published</p>
+                        <h3 className="text-theme-foreground font-medium">Statement Notifications</h3>
+                        <p className="text-sm text-theme-foreground-muted">Get notified when new statements are published</p>
                       </div>
                       <Switch
                         checked={notificationPrefs.statementNotificationsEnabled}
@@ -967,10 +983,10 @@ export default function SettingsPage() {
                       />
                     </div>
 
-                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
+                    <div className="flex items-center justify-between p-4 bg-theme-card-hover border border-theme-border">
                       <div>
-                        <h3 className="text-white font-medium">Monthly Summary</h3>
-                        <p className="text-sm text-text-muted">Receive monthly earning summaries</p>
+                        <h3 className="text-theme-foreground font-medium">Monthly Summary</h3>
+                        <p className="text-sm text-theme-foreground-muted">Receive monthly earning summaries</p>
                       </div>
                       <Switch
                         checked={notificationPrefs.monthlySummaryEnabled}
@@ -978,7 +994,7 @@ export default function SettingsPage() {
                       />
                     </div>
 
-                    <p className="text-sm text-text-muted pt-4">
+                    <p className="text-sm text-theme-foreground-muted pt-4">
                       Changes are saved automatically. Disable notifications to prevent emails during payment testing.
                     </p>
                   </div>
@@ -989,20 +1005,20 @@ export default function SettingsPage() {
               {activeSection === 'chat' && (
                 <div>
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500/20 to-teal-500/20 flex items-center justify-center">
-                      <MessageCircle className="w-5 h-5 text-green-400" />
+                    <div className="w-10 h-10 bg-theme-primary-10 flex items-center justify-center">
+                      <MessageCircle className="w-5 h-5 text-theme-primary" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-white">Chat Settings</h2>
-                      <p className="text-text-muted text-sm">Manage your chat preferences and privacy</p>
+                      <h2 className="text-2xl font-bold text-theme-foreground">Chat Settings</h2>
+                      <p className="text-theme-foreground-muted text-sm">Manage your chat preferences and privacy</p>
                     </div>
                   </div>
 
                   <div className="space-y-6">
                     {/* Visibility Status */}
-                    <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-6">
-                      <h3 className="text-lg font-semibold text-white mb-4">Visibility Status</h3>
-                      <p className="text-sm text-text-muted mb-4">
+                    <div className="bg-theme-card-hover border border-theme-border p-6">
+                      <h3 className="text-lg font-semibold text-theme-foreground mb-4">Visibility Status</h3>
+                      <p className="text-sm text-theme-foreground-muted mb-4">
                         Choose how you appear to other users in the chat
                       </p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1015,34 +1031,34 @@ export default function SettingsPage() {
                           <button
                             key={status.value}
                             onClick={() => handleChatSettingToggle('chatVisibilityStatus', status.value)}
-                            className={`p-4 rounded-xl border transition-all ${
+                            className={`p-4 border transition-all ${
                               chatSettings.chatVisibilityStatus === status.value
-                                ? 'border-primary-500 bg-primary-500/10'
-                                : 'border-white/10 hover:border-white/20 bg-white/[0.02]'
+                                ? 'border-theme-primary bg-theme-primary-10'
+                                : 'border-theme-border hover:border-theme-border-hover bg-theme-card-hover'
                             }`}
                           >
                             <div className="flex items-center gap-2 mb-2">
                               <div className={`w-3 h-3 rounded-full ${status.color}`} />
-                              <span className="text-white font-medium text-sm">{status.label}</span>
+                              <span className="text-theme-foreground font-medium text-sm">{status.label}</span>
                             </div>
-                            <p className="text-xs text-text-muted">{status.description}</p>
+                            <p className="text-xs text-theme-foreground-muted">{status.description}</p>
                           </button>
                         ))}
                       </div>
                     </div>
 
                     {/* Sound Settings */}
-                    <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-4 space-y-4">
+                    <div className="bg-theme-card-hover border border-theme-border p-4 space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           {chatSettings.chatSoundEnabled ? (
-                            <Volume2 className="w-5 h-5 text-green-400" />
+                            <Volume2 className="w-5 h-5 text-theme-success" />
                           ) : (
-                            <VolumeX className="w-5 h-5 text-gray-400" />
+                            <VolumeX className="w-5 h-5 text-theme-foreground-muted" />
                           )}
                           <div>
-                            <h3 className="text-white font-medium">Message Sounds</h3>
-                            <p className="text-sm text-text-muted">Play a sound when you receive new messages</p>
+                            <h3 className="text-theme-foreground font-medium">Message Sounds</h3>
+                            <p className="text-sm text-theme-foreground-muted">Play a sound when you receive new messages</p>
                           </div>
                         </div>
                         <Switch
@@ -1053,8 +1069,8 @@ export default function SettingsPage() {
 
                       {/* Sound Type Selector */}
                       {chatSettings.chatSoundEnabled && (
-                        <div className="pt-2 border-t border-white/[0.08]">
-                          <label className="block text-sm font-medium text-text-secondary mb-2">
+                        <div className="pt-2 border-t border-theme-border">
+                          <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                             Notification Sound
                           </label>
                           <div className="flex flex-wrap gap-2">
@@ -1068,17 +1084,17 @@ export default function SettingsPage() {
                               <button
                                 key={sound.value}
                                 onClick={() => handleChatSettingToggle('chatSoundType', sound.value)}
-                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                                className={`px-3 py-1.5 text-sm font-medium transition-all ${
                                   chatSettings.chatSoundType === sound.value
-                                    ? 'bg-primary-500 text-white'
-                                    : 'bg-white/[0.06] text-text-secondary hover:bg-white/[0.1]'
+                                    ? 'bg-theme-primary text-theme-primary-foreground'
+                                    : 'bg-theme-border-strong text-theme-foreground-secondary hover:bg-theme-card-hover'
                                 }`}
                               >
                                 {sound.label}
                               </button>
                             ))}
                           </div>
-                          <p className="text-xs text-text-muted mt-2">
+                          <p className="text-xs text-theme-foreground-muted mt-2">
                             Select a sound to preview. The sound will play when you receive new messages.
                           </p>
                         </div>
@@ -1086,12 +1102,12 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Desktop Notifications */}
-                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
+                    <div className="flex items-center justify-between p-4 bg-theme-card-hover border border-theme-border">
                       <div className="flex items-center gap-3">
-                        <BellRing className="w-5 h-5 text-blue-400" />
+                        <BellRing className="w-5 h-5 text-theme-primary" />
                         <div>
-                          <h3 className="text-white font-medium">Desktop Notifications</h3>
-                          <p className="text-sm text-text-muted">Show push notifications for new messages</p>
+                          <h3 className="text-theme-foreground font-medium">Desktop Notifications</h3>
+                          <p className="text-sm text-theme-foreground-muted">Show push notifications for new messages</p>
                         </div>
                       </div>
                       <Switch
@@ -1101,12 +1117,12 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Message Preview */}
-                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
+                    <div className="flex items-center justify-between p-4 bg-theme-card-hover border border-theme-border">
                       <div className="flex items-center gap-3">
-                        <Eye className="w-5 h-5 text-purple-400" />
+                        <Eye className="w-5 h-5 text-theme-primary" />
                         <div>
-                          <h3 className="text-white font-medium">Message Preview</h3>
-                          <p className="text-sm text-text-muted">Show message content in notifications</p>
+                          <h3 className="text-theme-foreground font-medium">Message Preview</h3>
+                          <p className="text-sm text-theme-foreground-muted">Show message content in notifications</p>
                         </div>
                       </div>
                       <Switch
@@ -1116,20 +1132,20 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Privacy Settings */}
-                    <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-6">
-                      <h3 className="text-lg font-semibold text-white mb-4">Privacy</h3>
+                    <div className="bg-theme-card-hover border border-theme-border p-6">
+                      <h3 className="text-lg font-semibold text-theme-foreground mb-4">Privacy</h3>
 
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             {chatSettings.chatShowOnlineStatus ? (
-                              <Eye className="w-5 h-5 text-green-400" />
+                              <Eye className="w-5 h-5 text-theme-success" />
                             ) : (
-                              <EyeOff className="w-5 h-5 text-gray-400" />
+                              <EyeOff className="w-5 h-5 text-theme-foreground-muted" />
                             )}
                             <div>
-                              <h4 className="text-white font-medium">Show Online Status</h4>
-                              <p className="text-sm text-text-muted">Let others see when you're online</p>
+                              <h4 className="text-theme-foreground font-medium">Show Online Status</h4>
+                              <p className="text-sm text-theme-foreground-muted">Let others see when you're online</p>
                             </div>
                           </div>
                           <Switch
@@ -1140,10 +1156,10 @@ export default function SettingsPage() {
 
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <MessageCircle className="w-5 h-5 text-teal-400" />
+                            <MessageCircle className="w-5 h-5 text-theme-primary" />
                             <div>
-                              <h4 className="text-white font-medium">Show Typing Indicator</h4>
-                              <p className="text-sm text-text-muted">Let others see when you're typing</p>
+                              <h4 className="text-theme-foreground font-medium">Show Typing Indicator</h4>
+                              <p className="text-sm text-theme-foreground-muted">Let others see when you're typing</p>
                             </div>
                           </div>
                           <Switch
@@ -1155,14 +1171,14 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Info Box */}
-                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                    <div className="bg-theme-primary-10 border border-theme-primary-30 p-4">
                       <div className="flex gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                          <Info className="w-4 h-4 text-green-400" />
+                        <div className="w-8 h-8 bg-theme-primary-20 flex items-center justify-center flex-shrink-0">
+                          <Info className="w-4 h-4 text-theme-primary" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-green-300 mb-1">About Chat Privacy</p>
-                          <p className="text-sm text-green-200/80">
+                          <p className="text-sm font-medium text-theme-primary mb-1">About Chat Privacy</p>
+                          <p className="text-sm text-theme-foreground-secondary">
                             Your privacy settings are synced across all devices. Changes take effect immediately.
                             When set to "Invisible", you'll appear offline but can still send and receive messages.
                           </p>
@@ -1177,23 +1193,23 @@ export default function SettingsPage() {
               {activeSection === 'tourhub' && (
                 <div>
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center">
-                      <Plane className="w-5 h-5 text-purple-400" />
+                    <div className="w-10 h-10 bg-theme-primary-10 flex items-center justify-center">
+                      <Plane className="w-5 h-5 text-theme-primary" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-white">My Tour Profile</h2>
-                      <p className="text-text-muted text-sm">Customize your public profile</p>
+                      <h2 className="text-2xl font-bold text-theme-foreground">My Tour Profile</h2>
+                      <p className="text-theme-foreground-muted text-sm">Customize your public profile</p>
                     </div>
                   </div>
 
                   {/* Profile Photo Section */}
-                  <div className="mb-8 bg-white/[0.04] rounded-xl border border-white/[0.08] p-6">
-                    <label className="block text-sm font-medium text-text-secondary mb-4">
+                  <div className="mb-8 bg-theme-card-hover border border-theme-border p-6">
+                    <label className="block text-sm font-medium text-theme-foreground-secondary mb-4">
                       Profile Photo
                     </label>
                     <div className="flex items-center gap-6">
                       <div className="relative">
-                        <div className="w-24 h-24 rounded-full overflow-hidden bg-white/10 flex items-center justify-center">
+                        <div className="w-24 h-24 rounded-full overflow-hidden bg-theme-border-strong flex items-center justify-center">
                           {profilePhotoUrl ? (
                             <img
                               src={profilePhotoUrl}
@@ -1201,14 +1217,14 @@ export default function SettingsPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <span className="text-3xl font-bold text-white/40">
+                            <span className="text-3xl font-bold text-theme-foreground-muted">
                               {user?.firstName?.[0]}{user?.lastName?.[0]}
                             </span>
                           )}
                         </div>
                         {isUploadingPhoto && (
-                          <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-                            <Loader2 className="w-6 h-6 text-white animate-spin" />
+                          <div className="absolute inset-0 bg-theme-background-50 rounded-full flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 text-theme-foreground animate-spin" />
                           </div>
                         )}
                       </div>
@@ -1224,7 +1240,7 @@ export default function SettingsPage() {
                           type="button"
                           onClick={() => tourHubPhotoInputRef.current?.click()}
                           disabled={isUploadingPhoto}
-                          className="px-4 py-2 bg-primary-500/20 text-primary-400 rounded-lg text-sm font-medium hover:bg-primary-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
+                          className="px-4 py-2 bg-theme-primary-20 text-theme-primary text-sm font-medium hover:bg-theme-primary-30 transition-colors disabled:opacity-50 flex items-center gap-2"
                         >
                           <Camera className="w-4 h-4" />
                           {profilePhotoUrl ? 'Change Photo' : 'Upload Photo'}
@@ -1234,7 +1250,7 @@ export default function SettingsPage() {
                             type="button"
                             onClick={handleDeletePhoto}
                             disabled={isUploadingPhoto}
-                            className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/30 transition-colors disabled:opacity-50 flex items-center gap-2"
+                            className="px-4 py-2 bg-theme-error-20 text-theme-error text-sm font-medium hover:bg-theme-error-30 transition-colors disabled:opacity-50 flex items-center gap-2"
                           >
                             <Trash2 className="w-4 h-4" />
                             Remove
@@ -1242,32 +1258,32 @@ export default function SettingsPage() {
                         )}
                       </div>
                     </div>
-                    <p className="text-xs text-text-muted mt-2">
+                    <p className="text-xs text-theme-foreground-muted mt-2">
                       Recommended: Square image, at least 200x200px. Max 2MB.
                     </p>
                   </div>
 
                   <form onSubmit={handleTourHubSubmit} className="space-y-6">
                     {/* Profile URL / Slug */}
-                    <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-6">
-                      <label className="block text-sm font-medium text-text-secondary mb-2">
+                    <div className="bg-theme-card-hover border border-theme-border p-6">
+                      <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                         Profile URL
                       </label>
                       <div className="flex gap-3">
-                        <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg">
-                          <span className="text-text-muted">{window.location.origin}/writer/</span>
+                        <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-theme-input border border-theme-border-strong">
+                          <span className="text-theme-foreground-muted">{window.location.origin}/writer/</span>
                           <input
                             type="text"
                             value={tourHubForm.profileSlug}
                             onChange={(e) => setTourHubForm({ ...tourHubForm, profileSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
                             placeholder="your-name"
-                            className="flex-1 bg-transparent text-white focus:outline-none"
+                            className="flex-1 bg-transparent text-theme-foreground focus:outline-none"
                           />
                         </div>
                         <button
                           type="button"
                           onClick={generateSlug}
-                          className="px-4 py-2 bg-white/10 text-text-secondary rounded-lg hover:bg-white/20 transition-colors text-sm"
+                          className="px-4 py-2 bg-theme-border-strong text-theme-foreground-secondary hover:bg-theme-card-hover transition-colors text-sm"
                         >
                           Generate
                         </button>
@@ -1275,14 +1291,14 @@ export default function SettingsPage() {
                           <button
                             type="button"
                             onClick={copyProfileUrl}
-                            className="px-4 py-2 bg-primary-500/20 text-primary-400 rounded-lg hover:bg-primary-500/30 transition-colors flex items-center gap-2"
+                            className="px-4 py-2 bg-theme-primary-20 text-theme-primary hover:bg-theme-primary-30 transition-colors flex items-center gap-2"
                           >
                             {slugCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                             {slugCopied ? 'Copied!' : 'Copy'}
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-text-muted mt-2">
+                      <p className="text-xs text-theme-foreground-muted mt-2">
                         Only lowercase letters, numbers, and hyphens allowed
                       </p>
                       {tourHubForm.profileSlug && (
@@ -1290,7 +1306,7 @@ export default function SettingsPage() {
                           href={`/writer/${tourHubForm.profileSlug}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm text-primary-400 hover:text-primary-300 mt-2"
+                          className="inline-flex items-center gap-1 text-sm text-theme-primary hover:opacity-80 mt-2"
                         >
                           <ExternalLink className="w-3 h-3" />
                           Preview your public profile
@@ -1299,10 +1315,10 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Public Profile Toggle */}
-                    <div className="flex items-center justify-between p-4 bg-white/[0.04] rounded-xl border border-white/[0.08]">
+                    <div className="flex items-center justify-between p-4 bg-theme-card-hover border border-theme-border">
                       <div>
-                        <h3 className="text-white font-medium">Make Profile Public</h3>
-                        <p className="text-sm text-text-muted">Allow anyone to view your Writer Tour Hub profile</p>
+                        <h3 className="text-theme-foreground font-medium">Make Profile Public</h3>
+                        <p className="text-sm text-theme-foreground-muted">Allow anyone to view your Writer Tour Hub profile</p>
                       </div>
                       <Switch
                         checked={tourHubForm.isPublicProfile}
@@ -1312,7 +1328,7 @@ export default function SettingsPage() {
 
                     {/* Bio */}
                     <div>
-                      <label className="block text-sm font-medium text-text-secondary mb-2">
+                      <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                         Bio
                       </label>
                       <textarea
@@ -1320,13 +1336,13 @@ export default function SettingsPage() {
                         onChange={(e) => setTourHubForm({ ...tourHubForm, bio: e.target.value })}
                         placeholder="Tell people about yourself, your music journey, achievements..."
                         rows={4}
-                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50 resize-none"
+                        className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus resize-none"
                       />
                     </div>
 
                     {/* Location */}
                     <div>
-                      <label className="block text-sm font-medium text-text-secondary mb-2">
+                      <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                         Location
                       </label>
                       <input
@@ -1334,29 +1350,29 @@ export default function SettingsPage() {
                         value={tourHubForm.location}
                         onChange={(e) => setTourHubForm({ ...tourHubForm, location: e.target.value })}
                         placeholder="e.g., Los Angeles, CA"
-                        className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                        className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                       />
                     </div>
 
                     {/* Social Links - Collapsible */}
-                    <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] overflow-hidden">
+                    <div className="bg-theme-card-hover border border-theme-border overflow-hidden">
                       <button
                         type="button"
                         onClick={() => setExpandedSections(prev => ({ ...prev, socialLinks: !prev.socialLinks }))}
-                        className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
+                        className="w-full flex items-center justify-between p-4 hover:bg-theme-border-strong transition-colors"
                       >
-                        <h3 className="text-lg font-semibold text-white">Social & Web Links</h3>
+                        <h3 className="text-lg font-semibold text-theme-foreground">Social & Web Links</h3>
                         {expandedSections.socialLinks ? (
-                          <ChevronUp className="w-5 h-5 text-text-muted" />
+                          <ChevronUp className="w-5 h-5 text-theme-foreground-muted" />
                         ) : (
-                          <ChevronDown className="w-5 h-5 text-text-muted" />
+                          <ChevronDown className="w-5 h-5 text-theme-foreground-muted" />
                         )}
                       </button>
 
                       {expandedSections.socialLinks && (
-                        <div className="space-y-4 p-4 pt-0 border-t border-white/[0.08]">
+                        <div className="space-y-4 p-4 pt-0 border-t border-theme-border">
                       <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-text-secondary mb-2">
+                        <label className="flex items-center gap-2 text-sm font-medium text-theme-foreground-secondary mb-2">
                           <Globe className="w-4 h-4" />
                           Website
                         </label>
@@ -1365,12 +1381,12 @@ export default function SettingsPage() {
                           value={tourHubForm.website}
                           onChange={(e) => setTourHubForm({ ...tourHubForm, website: e.target.value })}
                           placeholder="https://yourwebsite.com"
-                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                          className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                         />
                       </div>
 
                       <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-green-400 mb-2">
+                        <label className="flex items-center gap-2 text-sm font-medium text-theme-primary mb-2">
                           <Music className="w-4 h-4" />
                           Spotify Artist URL
                         </label>
@@ -1379,48 +1395,48 @@ export default function SettingsPage() {
                           value={tourHubForm.spotifyArtistUrl}
                           onChange={(e) => setTourHubForm({ ...tourHubForm, spotifyArtistUrl: e.target.value })}
                           placeholder="https://open.spotify.com/artist/..."
-                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-green-500/50"
+                          className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                         />
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-pink-400 mb-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-theme-foreground-secondary mb-2">
                             <Instagram className="w-4 h-4" />
                             Instagram
                           </label>
-                          <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg">
-                            <span className="text-text-muted">@</span>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-theme-input border border-theme-border-strong">
+                            <span className="text-theme-foreground-muted">@</span>
                             <input
                               type="text"
                               value={tourHubForm.instagramHandle}
                               onChange={(e) => setTourHubForm({ ...tourHubForm, instagramHandle: e.target.value.replace('@', '') })}
                               placeholder="username"
-                              className="flex-1 bg-transparent text-white focus:outline-none"
+                              className="flex-1 bg-transparent text-theme-foreground focus:outline-none"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-sky-400 mb-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-theme-foreground-secondary mb-2">
                             <Twitter className="w-4 h-4" />
                             Twitter / X
                           </label>
-                          <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg">
-                            <span className="text-text-muted">@</span>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-theme-input border border-theme-border-strong">
+                            <span className="text-theme-foreground-muted">@</span>
                             <input
                               type="text"
                               value={tourHubForm.twitterHandle}
                               onChange={(e) => setTourHubForm({ ...tourHubForm, twitterHandle: e.target.value.replace('@', '') })}
                               placeholder="username"
-                              className="flex-1 bg-transparent text-white focus:outline-none"
+                              className="flex-1 bg-transparent text-theme-foreground focus:outline-none"
                             />
                           </div>
                         </div>
                       </div>
 
                       <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-blue-400 mb-2">
+                        <label className="flex items-center gap-2 text-sm font-medium text-theme-foreground-secondary mb-2">
                           <Linkedin className="w-4 h-4" />
                           LinkedIn
                         </label>
@@ -1429,30 +1445,30 @@ export default function SettingsPage() {
                           value={tourHubForm.linkedinUrl}
                           onChange={(e) => setTourHubForm({ ...tourHubForm, linkedinUrl: e.target.value })}
                           placeholder="https://linkedin.com/in/..."
-                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-blue-500/50"
+                          className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                         />
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-theme-foreground-secondary mb-2">
                             <Smartphone className="w-4 h-4" />
                             TikTok
                           </label>
-                          <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg">
-                            <span className="text-text-muted">@</span>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-theme-input border border-theme-border-strong">
+                            <span className="text-theme-foreground-muted">@</span>
                             <input
                               type="text"
                               value={tourHubForm.tiktokHandle}
                               onChange={(e) => setTourHubForm({ ...tourHubForm, tiktokHandle: e.target.value.replace('@', '') })}
                               placeholder="username"
-                              className="flex-1 bg-transparent text-white focus:outline-none"
+                              className="flex-1 bg-transparent text-theme-foreground focus:outline-none"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-red-400 mb-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-theme-foreground-secondary mb-2">
                             <Youtube className="w-4 h-4" />
                             YouTube Channel
                           </label>
@@ -1461,14 +1477,14 @@ export default function SettingsPage() {
                             value={tourHubForm.youtubeChannelUrl}
                             onChange={(e) => setTourHubForm({ ...tourHubForm, youtubeChannelUrl: e.target.value })}
                             placeholder="https://youtube.com/@..."
-                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-red-500/50"
+                            className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                           />
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-rose-400 mb-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-theme-foreground-secondary mb-2">
                             <Music className="w-4 h-4" />
                             Apple Music
                           </label>
@@ -1477,12 +1493,12 @@ export default function SettingsPage() {
                             value={tourHubForm.appleMusicUrl}
                             onChange={(e) => setTourHubForm({ ...tourHubForm, appleMusicUrl: e.target.value })}
                             placeholder="https://music.apple.com/artist/..."
-                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-rose-500/50"
+                            className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                           />
                         </div>
 
                         <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-orange-400 mb-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-theme-foreground-secondary mb-2">
                             <CloudRain className="w-4 h-4" />
                             SoundCloud
                           </label>
@@ -1491,7 +1507,7 @@ export default function SettingsPage() {
                             value={tourHubForm.soundcloudUrl}
                             onChange={(e) => setTourHubForm({ ...tourHubForm, soundcloudUrl: e.target.value })}
                             placeholder="https://soundcloud.com/..."
-                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-orange-500/50"
+                            className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                           />
                         </div>
                       </div>
@@ -1500,14 +1516,14 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Info Box */}
-                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                    <div className="bg-theme-primary-10 border border-theme-primary-30 p-4">
                       <div className="flex gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                          <Info className="w-4 h-4 text-purple-400" />
+                        <div className="w-8 h-8 bg-theme-primary-20 flex items-center justify-center flex-shrink-0">
+                          <Info className="w-4 h-4 text-theme-primary" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-purple-300 mb-1">About Your Public Profile</p>
-                          <p className="text-sm text-purple-200/80">
+                          <p className="text-sm font-medium text-theme-primary mb-1">About Your Public Profile</p>
+                          <p className="text-sm text-theme-foreground-secondary">
                             Your public profile showcases your placements, achievements, and Tour Miles.
                             Share your profile URL with others to show off your success!
                           </p>
@@ -1515,11 +1531,11 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    <div className="flex justify-end pt-4 border-t border-white/[0.08]">
+                    <div className="flex justify-end pt-4 border-t border-theme-border">
                       <button
                         type="submit"
                         disabled={updateTourHubMutation.isPending}
-                        className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-white/20 disabled:cursor-not-allowed transition-colors"
+                        className="px-6 py-2 bg-theme-primary text-theme-primary-foreground font-medium hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         {updateTourHubMutation.isPending ? 'Saving...' : 'Save Profile'}
                       </button>
@@ -1531,20 +1547,20 @@ export default function SettingsPage() {
               {/* Publishers Section (Admin Only) */}
               {activeSection === 'publishers' && user?.role === 'ADMIN' && (
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-6">Producer Tour Publishers</h2>
-                  <p className="text-text-muted mb-6">
+                  <h2 className="text-2xl font-bold text-theme-foreground mb-6">Producer Tour Publishers</h2>
+                  <p className="text-theme-foreground-muted mb-6">
                     Manage your Producer Tour publisher IPIs. These are used for MLC statement matching to identify which writers use Producer Tour as their publisher.
                   </p>
 
                   {/* Add/Edit Publisher Form */}
-                  <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-6 mb-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">
+                  <div className="bg-theme-card-hover border border-theme-border p-6 mb-6">
+                    <h3 className="text-lg font-semibold text-theme-foreground mb-4">
                       {isEditing ? 'Edit Publisher' : 'Add New Publisher'}
                     </h3>
                     <form onSubmit={handlePublisherSubmit} className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-text-secondary mb-2">
+                          <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                             Publisher Name *
                           </label>
                           <input
@@ -1552,12 +1568,12 @@ export default function SettingsPage() {
                             value={publisherForm.publisherName}
                             onChange={(e) => setPublisherForm({ ...publisherForm, publisherName: e.target.value })}
                             placeholder="e.g., Producer Tour ASCAP"
-                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                            className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-text-secondary mb-2">
+                          <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                             IPI Number *
                           </label>
                           <input
@@ -1565,13 +1581,13 @@ export default function SettingsPage() {
                             value={publisherForm.ipiNumber}
                             onChange={(e) => setPublisherForm({ ...publisherForm, ipiNumber: e.target.value })}
                             placeholder="e.g., 1266292635"
-                            className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                            className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                             required
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-2">
+                        <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
                           Notes (Optional)
                         </label>
                         <textarea
@@ -1579,7 +1595,7 @@ export default function SettingsPage() {
                           onChange={(e) => setPublisherForm({ ...publisherForm, notes: e.target.value })}
                           placeholder="Additional notes..."
                           rows={2}
-                          className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+                          className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
                         />
                       </div>
                       {isEditing && (
@@ -1589,7 +1605,7 @@ export default function SettingsPage() {
                             checked={publisherForm.isActive}
                             onCheckedChange={(checked) => setPublisherForm({ ...publisherForm, isActive: checked as boolean })}
                           />
-                          <label htmlFor="isActive" className="text-sm text-text-secondary cursor-pointer">
+                          <label htmlFor="isActive" className="text-sm text-theme-foreground-secondary cursor-pointer">
                             Active
                           </label>
                         </div>
@@ -1598,7 +1614,7 @@ export default function SettingsPage() {
                         <button
                           type="submit"
                           disabled={createPublisherMutation.isPending || updatePublisherMutation.isPending}
-                          className="px-6 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 disabled:bg-white/20 disabled:cursor-not-allowed transition-colors"
+                          className="px-6 py-2 bg-theme-primary text-theme-primary-foreground font-medium hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           {isEditing ? 'Update Publisher' : 'Add Publisher'}
                         </button>
@@ -1606,7 +1622,7 @@ export default function SettingsPage() {
                           <button
                             type="button"
                             onClick={handleCancelEdit}
-                            className="px-6 py-2 bg-white/20 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors"
+                            className="px-6 py-2 bg-theme-border-strong text-theme-foreground font-medium hover:bg-theme-card-hover transition-colors"
                           >
                             Cancel
                           </button>
@@ -1617,37 +1633,37 @@ export default function SettingsPage() {
 
                   {/* Publishers List */}
                   <div className="space-y-3">
-                    <h3 className="text-lg font-semibold text-white mb-4">Configured Publishers</h3>
+                    <h3 className="text-lg font-semibold text-theme-foreground mb-4">Configured Publishers</h3>
                     {!publishersData?.data?.publishers?.length ? (
-                      <div className="text-center py-8 text-text-muted">
+                      <div className="text-center py-8 text-theme-foreground-muted">
                         No publishers configured yet. Add one above to get started.
                       </div>
                     ) : (
                       publishersData.data.publishers.map((publisher: any) => (
                         <div
                           key={publisher.id}
-                          className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-4 flex items-center justify-between"
+                          className="bg-theme-card-hover border border-theme-border p-4 flex items-center justify-between"
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-3">
-                              <h4 className="text-white font-medium">{publisher.publisherName}</h4>
-                              <span className={`px-2 py-1 rounded text-xs ${
+                              <h4 className="text-theme-foreground font-medium">{publisher.publisherName}</h4>
+                              <span className={`px-2 py-1 text-xs ${
                                 publisher.isActive
-                                  ? 'bg-green-500/20 text-green-400'
-                                  : 'bg-gray-500/20 text-text-muted'
+                                  ? 'bg-theme-success-bg text-theme-success border border-theme-success-30'
+                                  : 'bg-theme-border-strong text-theme-foreground-muted border border-theme-border'
                               }`}>
                                 {publisher.isActive ? 'Active' : 'Inactive'}
                               </span>
                             </div>
-                            <p className="text-sm text-text-muted mt-1">IPI: {publisher.ipiNumber}</p>
+                            <p className="text-sm text-theme-foreground-muted mt-1">IPI: {publisher.ipiNumber}</p>
                             {publisher.notes && (
-                              <p className="text-sm text-text-muted mt-1">{publisher.notes}</p>
+                              <p className="text-sm text-theme-foreground-muted mt-1">{publisher.notes}</p>
                             )}
                           </div>
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEditPublisher(publisher)}
-                              className="px-4 py-2 text-sm bg-primary-500/20 text-primary-400 rounded-lg hover:bg-primary-500/30 transition-colors"
+                              className="px-4 py-2 text-sm bg-theme-primary-20 text-theme-primary hover:bg-theme-primary-30 transition-colors"
                             >
                               Edit
                             </button>
@@ -1655,7 +1671,7 @@ export default function SettingsPage() {
                               <AlertDialogTrigger asChild>
                                 <button
                                   disabled={deletePublisherMutation.isPending}
-                                  className="px-4 py-2 text-sm bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                                  className="px-4 py-2 text-sm bg-theme-error-20 text-theme-error hover:bg-theme-error-30 transition-colors disabled:opacity-50"
                                 >
                                   Delete
                                 </button>
@@ -1671,7 +1687,7 @@ export default function SettingsPage() {
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
                                     onClick={() => handleDeletePublisher(publisher.id)}
-                                    className="bg-red-500 hover:bg-red-600"
+                                    className="bg-theme-error hover:bg-theme-error-80"
                                   >
                                     Delete
                                   </AlertDialogAction>
@@ -1689,21 +1705,21 @@ export default function SettingsPage() {
               {/* System Settings Section (Admin Only) */}
               {activeSection === 'system' && user?.role === 'ADMIN' && (
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-6">System Settings</h2>
-                  <p className="text-text-muted mb-8">Configure system-wide settings that affect all users</p>
+                  <h2 className="text-2xl font-bold text-theme-foreground mb-6">System Settings</h2>
+                  <p className="text-theme-foreground-muted mb-8">Configure system-wide settings that affect all users</p>
 
                   <div className="space-y-6">
                     {/* Minimum Withdrawal Amount */}
-                    <div className="bg-white/[0.04] rounded-xl border border-white/[0.08] p-6">
-                      <label className="block text-sm font-medium text-text-secondary mb-4">
+                    <div className="bg-theme-card-hover border border-theme-border p-6">
+                      <label className="block text-sm font-medium text-theme-foreground-secondary mb-4">
                         Minimum Withdrawal Amount
                       </label>
-                      <p className="text-sm text-text-muted mb-4">
+                      <p className="text-sm text-theme-foreground-muted mb-4">
                         Set the minimum amount writers must have in their available balance before they can request a withdrawal.
                       </p>
                       <div className="flex items-center gap-4">
                         <div className="relative flex-1 max-w-xs">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted">$</span>
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-theme-foreground-muted">$</span>
                           <input
                             type="number"
                             min="0"
@@ -1714,31 +1730,31 @@ export default function SettingsPage() {
                               ...systemSettings,
                               minimumWithdrawalAmount: parseFloat(e.target.value) || 0
                             })}
-                            className="w-full pl-8 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                            className="w-full pl-8 pr-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:ring-2 focus:ring-theme-input-focus"
                           />
                         </div>
                         <button
                           onClick={handleSystemSettingsUpdate}
                           disabled={updateSystemSettingsMutation.isPending}
-                          className="px-6 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="px-6 py-2 bg-theme-primary text-theme-primary-foreground font-medium hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           {updateSystemSettingsMutation.isPending ? 'Saving...' : 'Save'}
                         </button>
                       </div>
-                      <p className="text-xs text-text-muted mt-2">
+                      <p className="text-xs text-theme-foreground-muted mt-2">
                         Current: ${systemSettings.minimumWithdrawalAmount.toFixed(2)} • Recommended: $50.00 - $100.00
                       </p>
                     </div>
 
                     {/* Info Box */}
-                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                    <div className="bg-theme-primary-10 border border-theme-primary-30 p-4">
                       <div className="flex gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                          <Info className="w-4 h-4 text-blue-400" />
+                        <div className="w-8 h-8 bg-theme-primary-20 flex items-center justify-center flex-shrink-0">
+                          <Info className="w-4 h-4 text-theme-primary" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-blue-300 mb-1">About System Settings</p>
-                          <p className="text-sm text-blue-200/80">
+                          <p className="text-sm font-medium text-theme-primary mb-1">About System Settings</p>
+                          <p className="text-sm text-theme-foreground-secondary">
                             Changes to system settings take effect immediately for all users. Writers will see the updated minimum amount the next time they view their wallet.
                           </p>
                         </div>
@@ -1752,6 +1768,15 @@ export default function SettingsPage() {
               {activeSection === 'documentation' && user?.role === 'ADMIN' && (
                 <div>
                   <AdminGuide />
+                </div>
+              )}
+
+              {/* Appearance Section (Admin Only) */}
+              {activeSection === 'appearance' && user?.role === 'ADMIN' && (
+                <div>
+                  <h2 className="text-2xl font-bold text-theme-foreground mb-6">Appearance</h2>
+                  <p className="text-theme-foreground-muted mb-8">Customize how your dashboard looks and feels</p>
+                  <ThemeSelector />
                 </div>
               )}
             </div>

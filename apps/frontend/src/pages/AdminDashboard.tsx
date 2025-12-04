@@ -98,11 +98,11 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-black overflow-hidden">
-      {/* Background Effects - Cassette Theme */}
+    <div className="flex flex-col h-screen bg-theme-background overflow-hidden">
+      {/* Background Effects - Theme aware */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-[#f0e226]/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-[#f0e226]/3 rounded-full blur-[100px]" />
+        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-theme-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-theme-primary/3 rounded-full blur-[100px]" />
       </div>
       {/* Noise texture overlay */}
       <div className="fixed inset-0 pointer-events-none opacity-[0.015] z-[1]">
@@ -252,8 +252,8 @@ function _DashboardOverview() {
         {/* Revenue Chart */}
         <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-white">Revenue Overview</h3>
-            <select className="bg-white/5 text-text-secondary text-sm rounded-xl px-3 py-2 border border-white/10 focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50">
+            <h3 className="text-lg font-semibold text-theme-foreground">Revenue Overview</h3>
+            <select className="bg-white/5 text-text-secondary text-sm rounded-xl px-3 py-2 border border-theme-border-strong focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50">
               <option>Last 12 months</option>
               <option>Last 6 months</option>
               <option>Last 3 months</option>
@@ -310,7 +310,7 @@ function _DashboardOverview() {
 
         {/* PRO Distribution */}
         <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Statement Distribution</h3>
+          <h3 className="text-lg font-semibold text-theme-foreground mb-6">Statement Distribution</h3>
           {stats?.statementsByPRO && stats.statementsByPRO.length > 0 ? (
             <div className="space-y-4">
               {stats.statementsByPRO.map((item: any, index: number) => {
@@ -353,7 +353,7 @@ function _DashboardOverview() {
         {/* Recent Statements */}
         <div className="lg:col-span-2 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-white">Recent Statements</h3>
+            <h3 className="text-lg font-semibold text-theme-foreground">Recent Statements</h3>
             <button className="text-brand-blue hover:text-brand-blue/80 text-sm font-medium">
               View All →
             </button>
@@ -386,7 +386,7 @@ function _DashboardOverview() {
                     </p>
                     <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                       statement.status === 'PUBLISHED' ? 'bg-green-500/20 text-green-400' :
-                      statement.status === 'PROCESSED' ? 'bg-yellow-500/20 text-yellow-400' :
+                      statement.status === 'PROCESSED' ? 'bg-theme-warning-20 text-theme-warning' :
                       'bg-blue-500/20 text-blue-400'
                     }`}>
                       {statement.status}
@@ -402,21 +402,21 @@ function _DashboardOverview() {
 
         {/* Quick Actions */}
         <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Quick Actions</h3>
+          <h3 className="text-lg font-semibold text-theme-foreground mb-6">Quick Actions</h3>
           <div className="space-y-3">
             <button className="w-full flex items-center gap-3 p-4 bg-gradient-to-r from-brand-blue to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl text-white font-medium transition-all shadow-lg shadow-brand-blue/30">
               <BarChart3 className="w-5 h-5" />
               <span>Upload Statement</span>
             </button>
-            <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-colors">
+            <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-theme-border-strong rounded-xl text-white font-medium transition-colors">
               <Users className="w-5 h-5" />
               <span>Add Writer</span>
             </button>
-            <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-colors">
+            <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-theme-border-strong rounded-xl text-white font-medium transition-colors">
               <FileText className="w-5 h-5" />
               <span>Upload Document</span>
             </button>
-            <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-colors">
+            <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-theme-border-strong rounded-xl text-white font-medium transition-colors">
               <TrendingUp className="w-5 h-5" />
               <span>View Reports</span>
             </button>
@@ -515,14 +515,21 @@ function StatementsTab() {
 
   return (
     <div className="space-y-8">
+      {/* Header */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-light text-theme-foreground mb-2">Statement Management</h2>
+        <p className="text-theme-foreground-muted">Upload and process PRO royalty statements</p>
+      </div>
+
       {/* Upload Section */}
-      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6">
-        <h3 className="text-lg font-medium text-white mb-4">Upload New Statement</h3>
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+        <h3 className="text-lg font-light text-theme-foreground mb-4">Upload New Statement</h3>
 
         <div className="space-y-4">
           {/* PRO Selector */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
+            <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
               Select Statement Type
             </label>
             <div className="flex gap-3">
@@ -530,10 +537,10 @@ function StatementsTab() {
                 <button
                   key={pro}
                   onClick={() => setSelectedPRO(pro)}
-                  className={`px-6 py-3 rounded-xl font-medium transition-colors ${
+                  className={`px-6 py-3 font-medium transition-colors ${
                     selectedPRO === pro
-                      ? 'bg-brand-blue text-white'
-                      : 'bg-white/5 text-text-secondary border border-white/10 hover:bg-white/10'
+                      ? 'bg-theme-primary text-theme-primary-foreground'
+                      : 'bg-theme-input text-theme-foreground-secondary border border-theme-border-strong hover:border-theme-border-hover hover:text-theme-foreground'
                   }`}
                 >
                   {pro}
@@ -544,7 +551,7 @@ function StatementsTab() {
 
           {/* File Upload */}
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-2">
+            <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
               {selectedPRO === 'MLC' ? 'TSV File' : 'CSV File'}
             </label>
             <div className="flex items-center gap-4">
@@ -553,24 +560,24 @@ function StatementsTab() {
                 type="file"
                 accept={selectedPRO === 'MLC' ? '.tsv,.txt' : '.csv'}
                 onChange={handleFileChange}
-                className="block w-full text-sm text-text-muted
+                className="block w-full text-sm text-theme-foreground-muted
                   file:mr-4 file:py-2 file:px-4
-                  file:rounded-xl file:border-0
+                  file:border-0
                   file:text-sm file:font-semibold
-                  file:bg-brand-blue file:text-white
-                  hover:file:bg-brand-blue/90
+                  file:bg-theme-primary file:text-theme-primary-foreground
+                  hover:file:bg-theme-primary-hover
                   file:cursor-pointer cursor-pointer"
               />
               <button
                 onClick={handleUpload}
                 disabled={!selectedFile || uploading}
-                className="px-6 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-6 py-2.5 bg-theme-primary text-theme-primary-foreground font-medium hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {uploading ? 'Uploading...' : 'Upload & Process'}
               </button>
             </div>
             {selectedFile && (
-              <p className="mt-2 text-sm text-green-400">
+              <p className="mt-2 text-sm text-theme-primary">
                 Selected: {selectedFile.name}
               </p>
             )}
@@ -585,39 +592,43 @@ function StatementsTab() {
 
       {/* Statements Queue */}
       <div>
-        <h3 className="text-lg font-medium text-white mb-4">Statement Queue</h3>
+        <h3 className="text-lg font-light text-theme-foreground mb-4">Statement Queue</h3>
         {isLoading ? (
-          <div className="text-center text-text-secondary py-8">Loading...</div>
+          <div className="flex items-center justify-center py-8">
+            <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
+          </div>
         ) : queueStatements.length > 0 ? (
           <div className="space-y-3">
             {queueStatements.map((statement: any) => (
               <div
                 key={statement.id}
-                className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors"
+                className="group relative overflow-hidden flex items-center justify-between p-4 bg-theme-card border border-theme-border hover:border-theme-border-hover transition-all duration-300"
               >
+                <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                      statement.proType === 'BMI' ? 'bg-blue-500/20 text-blue-400' :
-                      statement.proType === 'ASCAP' ? 'bg-green-500/20 text-green-400' :
-                      'bg-purple-500/20 text-purple-400'
+                    <span className={`px-3 py-1 text-sm font-medium border ${
+                      statement.proType === 'BMI' ? 'bg-white/10 text-theme-foreground-secondary border-theme-border-strong' :
+                      statement.proType === 'ASCAP' ? 'bg-white/10 text-theme-foreground-secondary border-theme-border-strong' :
+                      statement.proType === 'MLC' ? 'bg-theme-primary-15 text-theme-primary border-theme-border-hover' :
+                      'bg-white/10 text-theme-foreground-secondary border-theme-border-strong'
                     }`}>
                       {statement.proType}
                     </span>
                     <span className="text-white font-medium">{statement.filename}</span>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      statement.status === 'PUBLISHED' ? 'bg-green-500/20 text-green-400' :
-                      statement.status === 'PROCESSED' ? 'bg-yellow-500/20 text-yellow-400' :
-                      statement.status === 'ERROR' ? 'bg-red-500/20 text-red-400' :
-                      'bg-blue-500/20 text-blue-400'
+                    <span className={`px-2 py-1 text-xs font-medium border ${
+                      statement.status === 'PUBLISHED' ? 'bg-theme-primary-15 text-theme-primary border-theme-border-hover' :
+                      statement.status === 'PROCESSED' ? 'bg-theme-primary-10 text-theme-primary border-theme-primary-20' :
+                      statement.status === 'ERROR' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                      'bg-white/10 text-theme-foreground-secondary border-theme-border-strong'
                     }`}>
                       {statement.status}
                     </span>
                   </div>
-                  <div className="flex gap-4 mt-2 text-sm text-text-muted">
+                  <div className="flex gap-4 mt-2 text-sm text-theme-foreground-muted">
                     <span>Items: {statement.itemCount || 0}</span>
                     <span>Performances: {Number(statement.totalPerformances).toLocaleString()}</span>
-                    <span className="text-green-400">
+                    <span className="text-theme-primary">
                       ${Number(statement.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -627,7 +638,7 @@ function StatementsTab() {
                   {statement.status === 'UPLOADED' && (
                     <button
                       onClick={() => setReviewingStatement(statement)}
-                      className="px-4 py-2 bg-brand-blue text-white rounded-xl text-sm font-medium hover:bg-brand-blue/90 transition-colors"
+                      className="px-4 py-2 bg-theme-primary text-theme-primary-foreground text-sm font-medium hover:bg-theme-primary-hover transition-colors"
                     >
                       Review & Assign
                     </button>
@@ -636,7 +647,7 @@ function StatementsTab() {
                     <button
                       onClick={() => publishMutation.mutate(statement.id)}
                       disabled={publishMutation.isPending}
-                      className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 disabled:opacity-50 transition-colors"
+                      className="px-4 py-2 bg-theme-primary text-theme-primary-foreground text-sm font-medium hover:bg-theme-primary-hover disabled:opacity-50 transition-colors"
                     >
                       Publish
                     </button>
@@ -644,7 +655,7 @@ function StatementsTab() {
                   <button
                     onClick={() => setDeletingStatement(statement)}
                     disabled={deleteMutation.isPending}
-                    className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-sm font-medium hover:bg-red-500/30 disabled:opacity-50 transition-colors"
+                    className="px-4 py-2 bg-white/5 text-theme-foreground-secondary border border-theme-border-strong text-sm font-medium hover:bg-white/10 hover:text-white disabled:opacity-50 transition-colors"
                   >
                     Delete
                   </button>
@@ -653,40 +664,47 @@ function StatementsTab() {
             ))}
           </div>
         ) : (
-          <p className="text-text-muted text-center py-8">No statements in queue</p>
+          <div className="flex flex-col items-center justify-center py-8 text-theme-foreground-muted">
+            <FileText className="w-8 h-8 mb-2 text-theme-primary/50" />
+            <p>No statements in queue</p>
+          </div>
         )}
       </div>
 
       {/* Completed Statements */}
       <div>
-        <h3 className="text-lg font-medium text-white mb-4">Completed Statements</h3>
+        <h3 className="text-lg font-light text-theme-foreground mb-4">Completed Statements</h3>
         {isLoading ? (
-          <div className="text-center text-text-secondary py-8">Loading...</div>
+          <div className="flex items-center justify-center py-8">
+            <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
+          </div>
         ) : completedStatements.length > 0 ? (
           <div className="space-y-3">
             {completedStatements.map((statement: any) => (
               <div
                 key={statement.id}
-                className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors"
+                className="group relative overflow-hidden flex items-center justify-between p-4 bg-theme-card border border-theme-border hover:border-theme-border-hover transition-all duration-300"
               >
+                <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                      statement.proType === 'BMI' ? 'bg-blue-500/20 text-blue-400' :
-                      statement.proType === 'ASCAP' ? 'bg-green-500/20 text-green-400' :
-                      'bg-purple-500/20 text-purple-400'
+                    <span className={`px-3 py-1 text-sm font-medium border ${
+                      statement.proType === 'BMI' ? 'bg-white/10 text-theme-foreground-secondary border-theme-border-strong' :
+                      statement.proType === 'ASCAP' ? 'bg-white/10 text-theme-foreground-secondary border-theme-border-strong' :
+                      statement.proType === 'MLC' ? 'bg-theme-primary-15 text-theme-primary border-theme-border-hover' :
+                      'bg-white/10 text-theme-foreground-secondary border-theme-border-strong'
                     }`}>
                       {statement.proType}
                     </span>
                     <span className="text-white font-medium">{statement.filename}</span>
-                    <span className="px-2 py-1 rounded text-xs font-medium bg-green-500/20 text-green-400">
+                    <span className="px-2 py-1 text-xs font-medium bg-theme-primary-15 text-theme-primary border border-theme-border-hover">
                       PUBLISHED
                     </span>
                   </div>
-                  <div className="flex gap-4 mt-2 text-sm text-text-muted">
+                  <div className="flex gap-4 mt-2 text-sm text-theme-foreground-muted">
                     <span>Items: {statement.itemCount || 0}</span>
                     <span>Performances: {Number(statement.totalPerformances).toLocaleString()}</span>
-                    <span className="text-green-400">
+                    <span className="text-theme-primary">
                       ${Number(statement.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -696,7 +714,7 @@ function StatementsTab() {
                   <button
                     onClick={() => setDeletingStatement(statement)}
                     disabled={deleteMutation.isPending}
-                    className="px-4 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-sm font-medium hover:bg-red-500/30 disabled:opacity-50 transition-colors"
+                    className="px-4 py-2 bg-white/5 text-theme-foreground-secondary border border-theme-border-strong text-sm font-medium hover:bg-white/10 hover:text-white disabled:opacity-50 transition-colors"
                   >
                     Delete
                   </button>
@@ -705,7 +723,10 @@ function StatementsTab() {
             ))}
           </div>
         ) : (
-          <p className="text-text-muted text-center py-8">No completed statements</p>
+          <div className="flex flex-col items-center justify-center py-8 text-theme-foreground-muted">
+            <CheckCircle2 className="w-8 h-8 mb-2 text-theme-primary/50" />
+            <p>No completed statements</p>
+          </div>
         )}
       </div>
 
@@ -1059,14 +1080,14 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
       }`}>
         <div className="p-6 border-b border-white/[0.08] flex items-start justify-between">
           <div>
-            <h3 className="text-xl font-bold text-white">Review & Assign Writers</h3>
+            <h3 className="text-xl font-bold text-theme-foreground">Review & Assign Writers</h3>
             <p className="text-sm text-text-secondary mt-1">
               {statement.filename} • {displayRows.length} {isMLC ? 'publisher rows' : 'songs'}
             </p>
           </div>
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors"
+            className="p-2 bg-white/5 hover:bg-white/10 border border-theme-border-strong rounded-xl transition-colors"
             title={isFullscreen ? 'Exit fullscreen' : 'Expand to fullscreen'}
           >
             {isFullscreen ? <Minimize2 className="w-5 h-5 text-white" /> : <Maximize2 className="w-5 h-5 text-white" />}
@@ -1105,7 +1126,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                 placeholder="Search songs or publishers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
+                className="w-full px-3 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
               />
               {searchQuery && (
                 <button
@@ -1122,7 +1143,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                className="px-3 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
               >
                 <option value="all">All Rows</option>
                 <option value="tracked">Tracked (Manage Placements)</option>
@@ -1134,7 +1155,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+              className="px-3 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
             >
               <option value="revenue-desc">Revenue: High → Low</option>
               <option value="revenue-asc">Revenue: Low → High</option>
@@ -1180,7 +1201,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                 <select
                   value={assignAllWriter}
                   onChange={(e) => setAssignAllWriter(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                  className="flex-1 px-3 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                 >
                   <option value="">Select a writer...</option>
                   {writersList.map((writer: any) => (
@@ -1321,7 +1342,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                           value={assignment.userId}
                           onChange={(e) => updateWriter(rowKey, writerIndex, 'userId', e.target.value)}
                           className={`col-span-4 px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue/50 ${
-                            assignment.userId ? 'bg-white/5 border-green-500/50 text-white' : 'bg-white/5 border-white/10 text-text-muted'
+                            assignment.userId ? 'bg-white/5 border-green-500/50 text-white' : 'bg-white/5 border-theme-border-strong text-text-muted'
                           }`}
                         >
                           <option value="">Select writer...</option>
@@ -1339,7 +1360,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                           placeholder="Writer IPI"
                           value={assignment.writerIpiNumber}
                           onChange={(e) => updateWriter(rowKey, writerIndex, 'writerIpiNumber', e.target.value)}
-                          className="col-span-2 px-2 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                          className="col-span-2 px-2 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                         />
 
                         <input
@@ -1347,7 +1368,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                           placeholder="Publisher IPI"
                           value={assignment.publisherIpiNumber}
                           onChange={(e) => updateWriter(rowKey, writerIndex, 'publisherIpiNumber', e.target.value)}
-                          className="col-span-2 px-2 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                          className="col-span-2 px-2 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                         />
 
                         <div className="col-span-2 relative">
@@ -1358,7 +1379,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                             step="0.01"
                             value={assignment.splitPercentage}
                             onChange={(e) => updateWriter(rowKey, writerIndex, 'splitPercentage', e.target.value)}
-                            className="w-full px-2 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                            className="w-full px-2 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                           />
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs pointer-events-none">%</span>
                         </div>
@@ -1376,7 +1397,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
 
                   {/* Split Total Warning */}
                   {Math.abs(splitTotal - 100) > 0.01 && (
-                    <div className="text-sm text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-3 py-2">
+                    <div className="text-sm text-theme-warning bg-theme-warning-10 border border-theme-warning-20 rounded-xl px-3 py-2">
                       Total: {splitTotal.toFixed(2)}% (Note: Splits don't equal 100%, but this is allowed)
                     </div>
                   )}
@@ -1400,7 +1421,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
           </button>
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 bg-white/5 text-text-secondary border border-white/10 rounded-xl font-medium hover:bg-white/10 transition-colors"
+            className="flex-1 px-4 py-2.5 bg-white/5 text-text-secondary border border-theme-border-strong rounded-xl font-medium hover:bg-white/10 transition-colors"
           >
             Cancel
           </button>
@@ -1417,7 +1438,7 @@ function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-md p-6 max-w-md w-full mx-4">
-        <h3 className="text-xl font-semibold text-white mb-4">Delete Statement</h3>
+        <h3 className="text-xl font-semibold text-theme-foreground mb-4">Delete Statement</h3>
 
         <div className="space-y-4">
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
@@ -1450,7 +1471,7 @@ function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder="Type 'delete' to confirm"
-              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-red-500/50"
+              className="w-full px-4 py-2.5 bg-white/5 border border-theme-border-strong rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-red-500/50"
               autoFocus
             />
           </div>
@@ -1459,7 +1480,7 @@ function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 bg-white/5 text-text-secondary border border-white/10 rounded-xl font-medium hover:bg-white/10 transition-colors"
+            className="flex-1 px-4 py-2.5 bg-white/5 text-text-secondary border border-theme-border-strong rounded-xl font-medium hover:bg-white/10 transition-colors"
           >
             Cancel
           </button>
@@ -1594,11 +1615,19 @@ function UsersTab() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-light text-theme-foreground mb-2">User Management</h2>
+        <p className="text-theme-foreground-muted">Manage writers, admins, and platform users</p>
+      </div>
+
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium text-white">User Management</h3>
+        <div className="text-theme-foreground-muted text-sm">
+          {usersData?.users?.length || 0} users total
+        </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 bg-brand-blue text-white rounded-xl font-medium hover:bg-brand-blue/90 transition-colors"
+          className="px-4 py-2.5 bg-theme-primary text-theme-primary-foreground font-medium hover:bg-theme-primary-hover transition-colors"
         >
           + Add User
         </button>
@@ -1606,77 +1635,80 @@ function UsersTab() {
 
       {/* Users Table */}
       {isLoading ? (
-        <div className="text-center text-text-secondary py-8">Loading...</div>
+        <div className="flex items-center justify-center py-8">
+          <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
+        </div>
       ) : usersData?.users?.length > 0 ? (
-        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] overflow-x-auto">
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border overflow-x-auto">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <table className="w-full">
-            <thead className="bg-white/[0.04]">
+            <thead className="bg-theme-background-30">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
                   Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
                   Email
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Writer IPI</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Publisher IPI</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">PRO</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">Commission</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Writer IPI</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Publisher IPI</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">PRO</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Commission</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.06]">
+            <tbody className="divide-y divide-white/5">
               {usersData.users.map((user: any) => (
-                <tr key={user.id} className="hover:bg-white/[0.03] transition-colors">
+                <tr key={user.id} className="hover:bg-white/[0.02] transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-white">
+                    <div className="text-sm font-medium text-theme-foreground">
                       {user.firstName || user.middleName || user.lastName
                         ? `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim().replace(/\s+/g, ' ')
                         : '-'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-text-secondary">{user.email}</div>
+                    <div className="text-sm text-theme-foreground-secondary">{user.email}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium border ${
                       user.role === 'ADMIN'
-                        ? 'bg-purple-500/20 text-purple-400'
+                        ? 'bg-red-500/20 text-red-400 border-red-500/30'
                         : user.role === 'CUSTOMER'
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-blue-500/20 text-blue-400'
+                        ? 'bg-white/10 text-theme-foreground-secondary border-theme-border-strong'
+                        : 'bg-theme-primary-15 text-theme-primary border-theme-border-hover'
                     }`}>
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{user.role === 'CUSTOMER' ? '-' : formatIpiDisplay(user.writerIpiNumber)}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{user.role === 'CUSTOMER' ? '-' : formatIpiDisplay(user.publisherIpiNumber)}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{user.role === 'CUSTOMER' ? '-' : (user.producer?.proAffiliation || '-')}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-text-muted">{user.role === 'CUSTOMER' ? '-' : (user.commissionOverrideRate != null ? `${Number(user.commissionOverrideRate).toFixed(2)}%` : 'Default')}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-theme-foreground-muted">{user.role === 'CUSTOMER' ? '-' : formatIpiDisplay(user.writerIpiNumber)}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-theme-foreground-muted">{user.role === 'CUSTOMER' ? '-' : formatIpiDisplay(user.publisherIpiNumber)}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-theme-foreground-muted">{user.role === 'CUSTOMER' ? '-' : (user.producer?.proAffiliation || '-')}</div></td>
+                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-theme-foreground-muted">{user.role === 'CUSTOMER' ? '-' : (user.commissionOverrideRate != null ? `${Number(user.commissionOverrideRate).toFixed(2)}%` : 'Default')}</div></td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex gap-2 justify-end">
                       <button
                         onClick={() => handleViewAs(user)}
-                        className="text-cyan-400 hover:text-cyan-300"
+                        className="text-theme-primary hover:text-theme-primary/80 transition-colors"
                         title="View dashboard as this user"
                       >
                         View As
                       </button>
                       <button
                         onClick={() => setEditingUser({ ...user, password: '' })}
-                        className="text-blue-400 hover:text-blue-300"
+                        className="text-theme-foreground-secondary hover:text-white transition-colors"
                       >
                         Edit
                       </button>
                       {user.role !== 'ADMIN' && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <button className="text-red-400 hover:text-red-300">
+                            <button className="text-theme-foreground-muted hover:text-red-400 transition-colors">
                               Delete
                             </button>
                           </AlertDialogTrigger>
@@ -1707,46 +1739,50 @@ function UsersTab() {
           </table>
         </div>
       ) : (
-        <p className="text-text-muted text-center py-8">No users found</p>
+        <div className="flex flex-col items-center justify-center py-8 text-theme-foreground-muted">
+          <Users className="w-8 h-8 mb-2 text-theme-primary/50" />
+          <p>No users found</p>
+        </div>
       )}
 
       {/* Add User Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-md p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-white mb-4">Add New User</h3>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="relative overflow-hidden bg-theme-card border border-theme-border-strong p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+            <h3 className="text-xl font-light text-white mb-4">Add New User</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                   Email *
                 </label>
                 <input
                   type="email"
                   value={newUser.email}
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
                   placeholder="user@example.com"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                   Password *
                 </label>
                 <input
                   type="password"
                   value={newUser.password}
                   onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                   Role *
                 </label>
                 <select
                   value={newUser.role}
                   onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white focus:outline-none focus:border-theme-input-focus"
                 >
                   <option value="WRITER">Writer</option>
                   <option value="CUSTOMER">Customer</option>
@@ -1759,37 +1795,37 @@ function UsersTab() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                   First Name
                 </label>
                 <input
                   type="text"
                   value={newUser.firstName}
                   onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                   Middle Name
                 </label>
                 <input
                   type="text"
                   value={newUser.middleName}
                   onChange={(e) => setNewUser({ ...newUser, middleName: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
                   placeholder="Optional"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                   Last Name
                 </label>
                 <input
                   type="text"
                   value={newUser.lastName}
                   onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
                 />
               </div>
 
@@ -1798,76 +1834,76 @@ function UsersTab() {
                 <>
                   {newUser.role === 'WRITER' && (
                     <div>
-                      <label className="block text-sm font-medium text-text-secondary mb-1">
+                      <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                         Writer IPI Number
                       </label>
                       <input
                         type="text"
                         value={newUser.writerIpiNumber}
                         onChange={(e) => setNewUser({ ...newUser, writerIpiNumber: e.target.value })}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                        className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
                         placeholder="Writer IPI/CAE Number"
                       />
                     </div>
                   )}
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                       Publisher Name
                     </label>
                     <input
                       type="text"
                       value={newUser.publisherName}
                       onChange={(e) => setNewUser({ ...newUser, publisherName: e.target.value })}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
                       placeholder="Publisher Name"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                       Publisher IPI Number
                     </label>
                     <input
                       type="text"
                       value={newUser.publisherIpiNumber}
                       onChange={(e) => setNewUser({ ...newUser, publisherIpiNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
                       placeholder="Publisher IPI/CAE Number"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                       Sub Publisher Name / Administrator
                     </label>
                     <input
                       type="text"
                       value={newUser.subPublisherName}
                       onChange={(e) => setNewUser({ ...newUser, subPublisherName: e.target.value })}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
                       placeholder="Sub Publisher Name / Administrator"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                       Sub Publisher IPI Number
                     </label>
                     <input
                       type="text"
                       value={newUser.subPublisherIpiNumber}
                       onChange={(e) => setNewUser({ ...newUser, subPublisherIpiNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
                       placeholder="Sub Publisher IPI Number"
                     />
                   </div>
                   {newUser.role === 'WRITER' && (
                     <>
                       <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-1">
+                        <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                           PRO Affiliation
                         </label>
                         <select
                           value={newUser.proAffiliation}
                           onChange={(e) => setNewUser({ ...newUser, proAffiliation: e.target.value })}
-                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                          className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white focus:outline-none focus:border-theme-input-focus"
                         >
                           <option value="BMI">BMI</option>
                           <option value="ASCAP">ASCAP</option>
@@ -1877,7 +1913,7 @@ function UsersTab() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-1">
+                        <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                           Commission Override (%)
                         </label>
                         <input
@@ -1887,10 +1923,10 @@ function UsersTab() {
                           step={0.01}
                           value={newUser.commissionOverrideRate}
                           onChange={(e) => setNewUser({ ...newUser, commissionOverrideRate: e.target.value })}
-                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                          className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
                           placeholder="Leave blank to use default"
                         />
-                        <p className="text-xs text-text-muted mt-1">If left blank, uses the global commission rate.</p>
+                        <p className="text-xs text-theme-foreground-muted mt-1">If left blank, uses the global commission rate.</p>
                       </div>
                     </>
                   )}
@@ -1899,15 +1935,15 @@ function UsersTab() {
 
               {/* Viewer-specific fields */}
               {newUser.role === 'VIEWER' && (
-                <div className="flex items-center gap-2 p-3 bg-white/[0.04] border border-white/[0.08] rounded-xl">
+                <div className="flex items-center gap-2 p-3 bg-theme-background-30 border border-theme-border-strong">
                   <input
                     type="checkbox"
                     id="canUploadStatements"
                     checked={newUser.canUploadStatements}
                     onChange={(e) => setNewUser({ ...newUser, canUploadStatements: e.target.checked })}
-                    className="w-4 h-4 text-brand-blue bg-white/5 border-white/20 rounded focus:ring-brand-blue/50 focus:ring-2"
+                    className="w-4 h-4 bg-theme-input border-theme-border-strong accent-theme-primary"
                   />
-                  <label htmlFor="canUploadStatements" className="text-sm text-text-secondary">
+                  <label htmlFor="canUploadStatements" className="text-sm text-theme-foreground-secondary">
                     Allow statement uploads
                   </label>
                 </div>
@@ -1917,13 +1953,13 @@ function UsersTab() {
               <button
                 onClick={handleAddUser}
                 disabled={createMutation.isPending}
-                className="flex-1 px-4 py-2.5 bg-brand-blue text-white rounded-xl font-medium hover:bg-brand-blue/90 disabled:bg-white/10 disabled:text-text-muted transition-colors"
+                className="flex-1 px-4 py-2.5 bg-theme-primary text-theme-primary-foreground font-medium hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {createMutation.isPending ? 'Creating...' : 'Create User'}
               </button>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="flex-1 px-4 py-2.5 bg-white/5 text-text-secondary border border-white/10 rounded-xl font-medium hover:bg-white/10 transition-colors"
+                className="flex-1 px-4 py-2.5 bg-white/5 text-theme-foreground-secondary border border-theme-border-strong font-medium hover:bg-white/10 hover:text-white transition-colors"
               >
                 Cancel
               </button>
@@ -1934,41 +1970,42 @@ function UsersTab() {
 
       {/* Edit User Modal */}
       {editingUser && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-md p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-white mb-4">Edit User</h3>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="relative overflow-hidden bg-theme-card border border-theme-border-strong p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+            <h3 className="text-xl font-light text-white mb-4">Edit User</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                   Email *
                 </label>
                 <input
                   type="email"
                   value={editingUser.email}
                   onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                   New Password (leave blank to keep current)
                 </label>
                 <input
                   type="password"
                   value={editingUser.password || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                   placeholder="Leave blank to keep current password"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                   Role *
                 </label>
                 <select
                   value={editingUser.role}
                   onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white focus:outline-none focus:border-theme-input-focus transition-colors"
                 >
                   <option value="WRITER">Writer</option>
                   <option value="CUSTOMER">Customer</option>
@@ -1981,37 +2018,37 @@ function UsersTab() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                   First Name
                 </label>
                 <input
                   type="text"
                   value={editingUser.firstName || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                   Middle Name
                 </label>
                 <input
                   type="text"
                   value={editingUser.middleName || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, middleName: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                   placeholder="Optional"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                   Last Name
                 </label>
                 <input
                   type="text"
                   value={editingUser.lastName || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                 />
               </div>
 
@@ -2020,76 +2057,76 @@ function UsersTab() {
                 <>
                   {editingUser.role === 'WRITER' && (
                     <div>
-                      <label className="block text-sm font-medium text-text-secondary mb-1">
+                      <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                         Writer IPI Number
                       </label>
                       <input
                         type="text"
                         value={editingUser.writerIpiNumber || ''}
                         onChange={(e) => setEditingUser({ ...editingUser, writerIpiNumber: e.target.value })}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                        className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                         placeholder="Writer IPI/CAE Number"
                       />
                     </div>
                   )}
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                       Publisher Name
                     </label>
                     <input
                       type="text"
                       value={editingUser.publisherName || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, publisherName: e.target.value })}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                       placeholder="Publisher Name"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                       Publisher IPI Number
                     </label>
                     <input
                       type="text"
                       value={editingUser.publisherIpiNumber || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, publisherIpiNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                       placeholder="Publisher IPI/CAE Number"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                       Sub Publisher Name / Administrator
                     </label>
                     <input
                       type="text"
                       value={editingUser.subPublisherName || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, subPublisherName: e.target.value })}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                       placeholder="Sub Publisher Name / Administrator"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-text-secondary mb-1">
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                       Sub Publisher IPI Number
                     </label>
                     <input
                       type="text"
                       value={editingUser.subPublisherIpiNumber || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, subPublisherIpiNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                       placeholder="Sub Publisher IPI Number"
                     />
                   </div>
                   {editingUser.role === 'WRITER' && (
                     <>
                       <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-1">
+                        <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                           PRO Affiliation
                         </label>
                         <select
                           value={editingUser.producer?.proAffiliation || 'OTHER'}
                           onChange={(e) => setEditingUser({ ...editingUser, producer: { ...(editingUser.producer || {}), proAffiliation: e.target.value } })}
-                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                          className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white focus:outline-none focus:border-theme-input-focus transition-colors"
                         >
                           <option value="BMI">BMI</option>
                           <option value="ASCAP">ASCAP</option>
@@ -2099,7 +2136,7 @@ function UsersTab() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-1">
+                        <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
                           Commission Override (%)
                         </label>
                         <input
@@ -2109,10 +2146,10 @@ function UsersTab() {
                           step={0.01}
                           value={editingUser.commissionOverrideRate ?? ''}
                           onChange={(e) => setEditingUser({ ...editingUser, commissionOverrideRate: e.target.value })}
-                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                          className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                           placeholder="Leave blank to use default"
                         />
-                        <p className="text-xs text-text-muted mt-1">Writer sees net = writer split minus commission. Blank uses global rate.</p>
+                        <p className="text-xs text-theme-foreground-muted mt-1">Writer sees net = writer split minus commission. Blank uses global rate.</p>
                       </div>
                     </>
                   )}
@@ -2121,15 +2158,15 @@ function UsersTab() {
 
               {/* Viewer-specific fields */}
               {editingUser.role === 'VIEWER' && (
-                <div className="flex items-center gap-2 p-3 bg-white/[0.04] border border-white/[0.08] rounded-xl">
+                <div className="flex items-center gap-2 p-3 bg-theme-background-30 border border-theme-border-strong">
                   <input
                     type="checkbox"
                     id="editCanUploadStatements"
                     checked={editingUser.canUploadStatements || false}
                     onChange={(e) => setEditingUser({ ...editingUser, canUploadStatements: e.target.checked })}
-                    className="w-4 h-4 text-brand-blue bg-white/5 border-white/20 rounded focus:ring-brand-blue/50 focus:ring-2"
+                    className="w-4 h-4 accent-theme-primary bg-theme-input border-theme-border-strong focus:ring-theme-input-focus focus:ring-2"
                   />
-                  <label htmlFor="editCanUploadStatements" className="text-sm text-text-secondary">
+                  <label htmlFor="editCanUploadStatements" className="text-sm text-theme-foreground-secondary">
                     Allow statement uploads
                   </label>
                 </div>
@@ -2139,13 +2176,13 @@ function UsersTab() {
               <button
                 onClick={handleUpdateUser}
                 disabled={updateMutation.isPending}
-                className="flex-1 px-4 py-2.5 bg-brand-blue text-white rounded-xl font-medium hover:bg-brand-blue/90 disabled:bg-white/10 disabled:text-text-muted transition-colors"
+                className="flex-1 px-4 py-2.5 bg-theme-primary text-theme-primary-foreground font-medium hover:bg-theme-primary-hover disabled:bg-white/10 disabled:text-theme-foreground-muted transition-colors"
               >
                 {updateMutation.isPending ? 'Updating...' : 'Update User'}
               </button>
               <button
                 onClick={() => setEditingUser(null)}
-                className="flex-1 px-4 py-2.5 bg-white/5 text-text-secondary border border-white/10 rounded-xl font-medium hover:bg-white/10 transition-colors"
+                className="flex-1 px-4 py-2.5 bg-white/5 text-theme-foreground-secondary border border-theme-border-strong font-medium hover:bg-white/10 transition-colors"
               >
                 Cancel
               </button>
@@ -2733,7 +2770,7 @@ function _AnalyticsTab() {
                       <span className="text-white text-sm">{statement.filename}</span>
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
                         statement.status === 'PUBLISHED' ? 'bg-green-500/20 text-green-400' :
-                        statement.status === 'PROCESSED' ? 'bg-yellow-500/20 text-yellow-400' :
+                        statement.status === 'PROCESSED' ? 'bg-theme-warning-20 text-theme-warning' :
                         'bg-blue-500/20 text-blue-400'
                       }`}>
                         {statement.status}

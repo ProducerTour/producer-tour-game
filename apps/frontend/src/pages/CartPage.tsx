@@ -96,7 +96,7 @@ export default function CartPage() {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="text-center py-20"
             >
-              <div className="w-24 h-24 border border-[#f0e226]/30 flex items-center justify-center mx-auto mb-6">
+              <div className="w-24 h-24 border border-white/20 flex items-center justify-center mx-auto mb-6">
                 <ShoppingBag className="w-12 h-12 text-[#f0e226]/50" />
               </div>
               <h2 className="text-2xl font-semibold text-white mb-4 uppercase tracking-wide">Your cart is empty</h2>
@@ -243,7 +243,7 @@ export default function CartPage() {
                   {/* Coupon Code */}
                   <div className="mb-6">
                     {couponCode ? (
-                      <div className="flex items-center justify-between p-3 bg-[#f0e226]/10 border border-[#f0e226]/30">
+                      <div className="flex items-center justify-between p-3 bg-[#f0e226]/10 border border-white/20">
                         <div className="flex items-center gap-2">
                           <Tag className="w-4 h-4 text-[#f0e226]" />
                           <span className="text-[#f0e226] font-medium">{couponCode}</span>
@@ -266,7 +266,7 @@ export default function CartPage() {
                             value={couponInput}
                             onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                             placeholder="Coupon code"
-                            className="flex-1 px-4 py-3 bg-[#0f0f0f] border border-white/10 text-white placeholder:text-white/40 focus:border-[#f0e226]/50 focus:outline-none transition-colors"
+                            className="flex-1 px-4 py-3 bg-[#0f0f0f] border border-white/10 text-white placeholder-white/40 focus:border-[#f0e226]/50 focus:outline-none transition-colors"
                           />
                           <button
                             onClick={handleApplyCoupon}

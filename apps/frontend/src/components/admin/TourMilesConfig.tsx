@@ -90,20 +90,20 @@ export default function TourMilesConfig() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-light text-white">Tour Miles Configuration</h2>
-        <p className="text-white/40">Manage gamification settings, users, rewards, and achievements</p>
+        <h2 className="text-2xl font-light text-theme-foreground">Tour Miles Configuration</h2>
+        <p className="text-theme-foreground-muted">Manage gamification settings, users, rewards, and achievements</p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex space-x-1 bg-black p-1 border border-white/5">
+      <div className="flex space-x-1 bg-theme-card p-1 border border-theme-border">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2 transition-colors ${
               activeTab === tab.id
-                ? 'bg-[#f0e226] text-black'
-                : 'text-white/40 hover:text-white hover:bg-white/10'
+                ? 'bg-theme-primary text-black'
+                : 'text-theme-foreground-muted hover:text-white hover:bg-white/10'
             }`}
           >
             <tab.icon className="w-4 h-4" />
@@ -113,8 +113,8 @@ export default function TourMilesConfig() {
       </div>
 
       {/* Tab Content */}
-      <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'rewards' && <RewardManagement />}
         {activeTab === 'achievements' && <AchievementManagement />}
@@ -128,7 +128,7 @@ export default function TourMilesConfig() {
 function UserManagement() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [tierFilter, setTierFilter] = useState<string>('all');
   const [pointsModal, setPointsModal] = useState<{ userId: string; name: string; action: 'award' | 'deduct' } | null>(null);
 
   const { data: users, isLoading, refetch } = useQuery<GamificationUser[]>({
@@ -141,121 +141,144 @@ function UserManagement() {
     },
   });
 
-  const filteredUsers = users?.filter(
-    (u) =>
-      u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users?.filter((u) => {
+    const matchesSearch = u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTier = tierFilter === 'all' || u.tier === tierFilter;
+    return matchesSearch && matchesTier;
+  });
+
+  const inputClass = "block w-full py-2.5 px-3 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus";
+
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case 'ELITE': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      case 'DIAMOND': return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
+      case 'GOLD': return 'bg-theme-primary-15 text-theme-primary border-theme-border-hover';
+      case 'SILVER': return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      default: return 'bg-amber-700/20 text-amber-600 border-amber-700/30';
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Search & Actions */}
-      <div className="flex items-center justify-between">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-          <input
-            type="text"
-            placeholder="Search users..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 bg-black border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-[#f0e226]/50"
-          />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-light text-theme-foreground">User Management</h1>
+          <p className="text-sm text-theme-foreground-muted mt-1">Manage user points, tiers, and achievements</p>
         </div>
         <button
           onClick={() => refetch()}
-          className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-theme-primary text-black text-sm font-medium hover:bg-theme-primary-hover transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           Refresh
         </button>
       </div>
 
-      {/* Users List */}
+      {/* Search and Filter */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={`${inputClass} pl-10`}
+          />
+        </div>
+        <select
+          value={tierFilter}
+          onChange={(e) => setTierFilter(e.target.value)}
+          className={`${inputClass} w-full sm:w-48`}
+        >
+          <option value="all">All Tiers</option>
+          <option value="BRONZE">Bronze</option>
+          <option value="SILVER">Silver</option>
+          <option value="GOLD">Gold</option>
+          <option value="DIAMOND">Diamond</option>
+          <option value="ELITE">Elite</option>
+        </select>
+      </div>
+
+      {/* Users Grid */}
       {isLoading ? (
-        <div className="flex justify-center py-8">
-          <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-48 bg-theme-card border border-theme-border animate-pulse" />
+          ))}
+        </div>
+      ) : filteredUsers?.length === 0 ? (
+        <div className="text-center py-12 bg-theme-card border border-theme-border">
+          <Users className="w-12 h-12 mx-auto text-theme-primary-30 mb-4" />
+          <h3 className="text-lg font-normal text-theme-foreground mb-2">No users found</h3>
+          <p className="text-sm text-theme-foreground-muted mb-4">
+            {searchTerm || tierFilter !== 'all'
+              ? 'Try adjusting your search or filters'
+              : 'No users have joined yet'}
+          </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredUsers?.map((user) => (
-            <div key={user.id} className="group relative overflow-hidden bg-black border border-white/5 hover:border-[#f0e226]/30 transition-all duration-300">
-              <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
-              <div
-                className="flex items-center justify-between p-4 cursor-pointer"
-                onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
-              >
-                <div className="flex items-center gap-4">
-                  <div>
-                    <p className="text-white font-medium">
-                      {user.name}
-                    </p>
-                    <p className="text-white/40 text-sm">{user.email}</p>
-                  </div>
-                  <span
-                    className={`px-2 py-1 text-xs uppercase tracking-wider ${
-                      user.role === 'ADMIN' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-[#f0e226]/10 text-[#f0e226] border border-[#f0e226]/30'
-                    }`}
-                  >
-                    {user.role}
-                  </span>
+            <div
+              key={user.id}
+              className="group relative overflow-hidden bg-theme-card border border-theme-border p-5 hover:border-theme-border-hover transition-all duration-300"
+            >
+              <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-medium text-theme-foreground truncate">
+                    {user.name}
+                  </h3>
+                  <p className="text-sm text-theme-foreground-muted truncate">
+                    {user.email}
+                  </p>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-[#f0e226] font-light text-lg">
-                      {user.points?.toLocaleString() || 0} TP
-                    </p>
-                    <p className="text-white/40 text-xs">
-                      {user.tier || 'BRONZE'} • {user.achievementCount} achievements
-                    </p>
-                  </div>
-                  {expandedUser === user.id ? (
-                    <ChevronUp className="w-5 h-5 text-white/40" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-white/40" />
-                  )}
+                <span className={`px-2 py-0.5 text-xs font-medium border ${getTierColor(user.tier || 'BRONZE')}`}>
+                  {user.tier || 'BRONZE'}
+                </span>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2 text-theme-foreground-muted">
+                  <Trophy className="w-4 h-4 text-theme-primary-30 flex-shrink-0" />
+                  <span className="text-theme-primary font-medium">{user.points?.toLocaleString() || 0} TP</span>
+                  <span className="text-theme-foreground-muted/50">•</span>
+                  <span>{user.totalEarned?.toLocaleString() || 0} lifetime</span>
+                </div>
+                <div className="flex items-center gap-2 text-theme-foreground-muted">
+                  <Gift className="w-4 h-4 text-theme-primary-30 flex-shrink-0" />
+                  <span>{user.achievementCount} achievements • {user.redemptionCount} redemptions</span>
+                </div>
+                <div className="flex items-center gap-2 text-theme-foreground-muted">
+                  <RefreshCw className="w-4 h-4 text-theme-primary-30 flex-shrink-0" />
+                  <span>{user.currentStreak || 0} day streak</span>
                 </div>
               </div>
 
-              {/* Expanded Details */}
-              {expandedUser === user.id && (
-                <div className="border-t border-white/5 p-4 space-y-4 bg-[#19181a]">
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="bg-black/50 p-3 border border-white/5">
-                      <p className="text-white/40 text-xs uppercase tracking-wider">Total Points</p>
-                      <p className="text-[#f0e226] font-light text-lg">{user.points?.toLocaleString() || 0}</p>
-                    </div>
-                    <div className="bg-black/50 p-3 border border-white/5">
-                      <p className="text-white/40 text-xs uppercase tracking-wider">Lifetime Points</p>
-                      <p className="text-white font-light text-lg">{user.totalEarned?.toLocaleString() || 0}</p>
-                    </div>
-                    <div className="bg-black/50 p-3 border border-white/5">
-                      <p className="text-white/40 text-xs uppercase tracking-wider">Current Streak</p>
-                      <p className="text-white font-light text-lg">{user.currentStreak || 0} days</p>
-                    </div>
-                    <div className="bg-black/50 p-3 border border-white/5">
-                      <p className="text-white/40 text-xs uppercase tracking-wider">Redemptions</p>
-                      <p className="text-white font-light text-lg">{user.redemptionCount}</p>
-                    </div>
-                  </div>
+              {user.role === 'ADMIN' && (
+                <p className="mt-3 text-xs text-theme-foreground-muted/50 line-clamp-2">Admin account</p>
+              )}
 
-                  {user.role !== 'ADMIN' && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setPointsModal({ userId: user.id, name: user.name, action: 'award' })}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Award Points
-                      </button>
-                      <button
-                        onClick={() => setPointsModal({ userId: user.id, name: user.name, action: 'deduct' })}
-                        className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white hover:bg-white/20 border border-white/10 transition-colors"
-                      >
-                        <Minus className="w-4 h-4" />
-                        Deduct Points
-                      </button>
-                    </div>
-                  )}
+              {user.role !== 'ADMIN' && (
+                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-theme-border">
+                  <button
+                    onClick={() => setPointsModal({ userId: user.id, name: user.name, action: 'award' })}
+                    className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 text-sm text-theme-foreground-secondary hover:text-theme-primary hover:bg-theme-primary-10 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Award
+                  </button>
+                  <button
+                    onClick={() => setPointsModal({ userId: user.id, name: user.name, action: 'deduct' })}
+                    className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 text-sm text-theme-foreground-muted hover:text-white hover:bg-white/10 transition-colors"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                    Deduct
+                  </button>
                 </div>
               )}
             </div>
@@ -322,39 +345,39 @@ function PointsModal({
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-      <div className="relative overflow-hidden bg-[#19181a] p-6 w-full max-w-md border border-white/10">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+      <div className="relative overflow-hidden bg-theme-card p-6 w-full max-w-md border border-theme-border-strong">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-light text-white">
+          <h3 className="text-lg font-light text-theme-foreground">
             {action === 'award' ? 'Award Points' : 'Deduct Points'}
           </h3>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-theme-foreground-muted hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <p className="text-white/40 mb-4">
-          {action === 'award' ? 'Award points to' : 'Deduct points from'} <span className="text-[#f0e226]">{userName}</span>
+        <p className="text-theme-foreground-muted mb-4">
+          {action === 'award' ? 'Award points to' : 'Deduct points from'} <span className="text-theme-primary">{userName}</span>
         </p>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Points</label>
+            <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Points</label>
             <input
               type="number"
               min="1"
               value={points}
               onChange={(e) => setPoints(parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
+              className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
             />
           </div>
           <div>
-            <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Reason</label>
+            <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Reason</label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Enter reason for this adjustment..."
-              className="w-full px-4 py-2 bg-black border border-white/10 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#f0e226]/50"
+              className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted resize-none focus:outline-none focus:border-theme-input-focus"
               rows={3}
             />
           </div>
@@ -363,7 +386,7 @@ function PointsModal({
         <div className="flex justify-end gap-2 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-white/40 hover:text-white transition-colors"
+            className="px-4 py-2 text-theme-foreground-muted hover:text-white transition-colors"
           >
             Cancel
           </button>
@@ -371,7 +394,7 @@ function PointsModal({
             onClick={handleSubmit}
             disabled={points <= 0 || !reason.trim() || isSubmitting}
             className={`px-4 py-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              action === 'award' ? 'bg-[#f0e226] text-black hover:bg-[#d9cc22]' : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+              action === 'award' ? 'bg-theme-primary text-black hover:bg-theme-primary-hover' : 'bg-theme-background/50 text-theme-foreground-secondary hover:bg-theme-background hover:text-theme-foreground border border-theme-border-strong'
             }`}
           >
             {isSubmitting ? 'Processing...' : action === 'award' ? 'Award Points' : 'Deduct Points'}
@@ -422,17 +445,17 @@ function RewardManagement() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-light text-white">Rewards Management</h3>
+        <h3 className="text-lg font-light text-theme-foreground">Rewards Management</h3>
         <div className="flex gap-2">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-theme-background/50 text-theme-foreground-secondary hover:bg-theme-background hover:text-theme-foreground border border-theme-border-strong transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
             onClick={() => setIsCreating(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black hover:bg-theme-primary-hover transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Reward
@@ -443,27 +466,27 @@ function RewardManagement() {
       {/* Rewards Grid */}
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {rewards?.map((reward) => (
             <div
               key={reward.id}
-              className={`group relative overflow-hidden bg-black border p-4 hover:border-[#f0e226]/30 transition-all duration-300 ${
-                reward.isActive ? 'border-white/5' : 'border-red-500/30 opacity-60'
+              className={`group relative overflow-hidden bg-theme-card border p-4 hover:border-theme-border-hover transition-all duration-300 ${
+                reward.isActive ? 'border-theme-border' : 'border-red-500/30 opacity-60'
               }`}
             >
-              <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+              <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
               <div className="flex items-start justify-between">
                 <div>
-                  <h4 className="text-white font-medium">{reward.name}</h4>
-                  <p className="text-white/40 text-sm line-clamp-2">{reward.description}</p>
+                  <h4 className="text-theme-foreground font-medium">{reward.name}</h4>
+                  <p className="text-theme-foreground-muted text-sm line-clamp-2">{reward.description}</p>
                 </div>
                 <div className="flex gap-1">
                   <button
                     onClick={() => setEditingReward(reward)}
-                    className="p-1 text-white/40 hover:text-[#f0e226] transition-colors"
+                    className="p-1 text-theme-foreground-muted hover:text-theme-primary transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -473,17 +496,17 @@ function RewardManagement() {
                         deleteMutation.mutate(reward.id);
                       }
                     }}
-                    className="p-1 text-white/40 hover:text-red-400 transition-colors"
+                    className="p-1 text-theme-foreground-muted hover:text-red-400 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
               <div className="mt-3 flex items-center gap-2 flex-wrap">
-                <span className="px-2 py-1 bg-[#f0e226]/15 text-[#f0e226] text-xs border border-[#f0e226]/30">
+                <span className="px-2 py-1 bg-theme-primary/15 text-theme-primary text-xs border border-theme-border-hover">
                   {reward.cost} TP
                 </span>
-                <span className="px-2 py-1 bg-white/5 text-white/60 text-xs border border-white/10">
+                <span className="px-2 py-1 bg-white/5 text-theme-foreground-secondary text-xs border border-theme-border-strong">
                   {reward.category}
                 </span>
                 {reward.tierRestriction && (
@@ -497,7 +520,7 @@ function RewardManagement() {
                   </span>
                 )}
                 {reward.inventory !== null && (
-                  <span className="px-2 py-1 bg-white/5 text-white/40 text-xs border border-white/10">
+                  <span className="px-2 py-1 bg-white/5 text-theme-foreground-muted text-xs border border-theme-border-strong">
                     {reward.inventory} left
                   </span>
                 )}
@@ -587,55 +610,55 @@ function RewardModal({
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 overflow-y-auto py-8">
-      <div className="relative overflow-hidden bg-[#19181a] p-6 w-full max-w-lg border border-white/10">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+      <div className="relative overflow-hidden bg-theme-card p-6 w-full max-w-lg border border-theme-border-strong">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-light text-white">
+          <h3 className="text-lg font-light text-theme-foreground">
             {reward ? 'Edit Reward' : 'Create Reward'}
           </h3>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-theme-foreground-muted hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Name</label>
+            <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
+              className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Description</label>
+            <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 bg-black border border-white/10 text-white resize-none focus:outline-none focus:border-[#f0e226]/50"
+              className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground resize-none focus:outline-none focus:border-theme-input-focus"
               rows={3}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Cost (TP)</label>
+              <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Cost (TP)</label>
               <input
                 type="number"
                 min="0"
                 value={formData.cost}
                 onChange={(e) => setFormData({ ...formData, cost: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
+                className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
               />
             </div>
             <div>
-              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Category</label>
+              <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
+                className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
               >
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -646,22 +669,22 @@ function RewardModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Role Restriction</label>
+              <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Role Restriction</label>
               <select
                 value={formData.roleRestriction}
                 onChange={(e) => setFormData({ ...formData, roleRestriction: e.target.value })}
-                className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
+                className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
               >
                 <option value="">All Roles</option>
                 <option value="WRITER">WRITER only</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Tier Restriction</label>
+              <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Tier Restriction</label>
               <select
                 value={formData.tierRestriction}
                 onChange={(e) => setFormData({ ...formData, tierRestriction: e.target.value })}
-                className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
+                className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
               >
                 <option value="">All Tiers</option>
                 {tiers.map((tier) => (
@@ -673,14 +696,14 @@ function RewardModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Inventory (optional)</label>
+              <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Inventory (optional)</label>
               <input
                 type="number"
                 min="0"
                 value={formData.inventory}
                 onChange={(e) => setFormData({ ...formData, inventory: e.target.value })}
                 placeholder="Unlimited"
-                className="w-full px-4 py-2 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50"
+                className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
               />
             </div>
             <div className="flex items-end">
@@ -689,22 +712,22 @@ function RewardModal({
                   type="checkbox"
                   checked={formData.isActive}
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-4 h-4 bg-black border-white/10 accent-[#f0e226]"
+                  className="w-4 h-4 bg-black border-theme-border-strong accent-theme-primary"
                 />
-                <span className="text-white/40">Active</span>
+                <span className="text-theme-foreground-muted">Active</span>
               </label>
             </div>
           </div>
         </div>
 
         <div className="flex justify-end gap-2 mt-6">
-          <button onClick={onClose} className="px-4 py-2 text-white/40 hover:text-white transition-colors">
+          <button onClick={onClose} className="px-4 py-2 text-theme-foreground-muted hover:text-white transition-colors">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!formData.name.trim() || !formData.description.trim() || isSubmitting}
-            className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black hover:bg-theme-primary-hover transition-colors disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {isSubmitting ? 'Saving...' : 'Save Reward'}
@@ -754,17 +777,17 @@ function AchievementManagement() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-light text-white">Achievements Management</h3>
+        <h3 className="text-lg font-light text-theme-foreground">Achievements Management</h3>
         <div className="flex gap-2">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-theme-background/50 text-theme-foreground-secondary hover:bg-theme-background hover:text-theme-foreground border border-theme-border-strong transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
             onClick={() => setIsCreating(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black hover:bg-theme-primary-hover transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Achievement
@@ -775,32 +798,32 @@ function AchievementManagement() {
       {/* Achievements Grid */}
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {achievements?.map((achievement) => (
             <div
               key={achievement.id}
-              className={`group relative overflow-hidden bg-black border p-4 hover:border-[#f0e226]/30 transition-all duration-300 ${
-                achievement.isActive ? 'border-white/5' : 'border-red-500/30 opacity-60'
+              className={`group relative overflow-hidden bg-theme-card border p-4 hover:border-theme-border-hover transition-all duration-300 ${
+                achievement.isActive ? 'border-theme-border' : 'border-red-500/30 opacity-60'
               }`}
             >
-              <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+              <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center">
-                    <Trophy className="w-5 h-5 text-[#f0e226]" />
+                  <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+                    <Trophy className="w-5 h-5 text-theme-primary" />
                   </div>
                   <div>
-                    <h4 className="text-white font-medium">{achievement.name}</h4>
-                    <p className="text-white/40 text-sm line-clamp-1">{achievement.description}</p>
+                    <h4 className="text-theme-foreground font-medium">{achievement.name}</h4>
+                    <p className="text-theme-foreground-muted text-sm line-clamp-1">{achievement.description}</p>
                   </div>
                 </div>
                 <div className="flex gap-1">
                   <button
                     onClick={() => setEditingAchievement(achievement)}
-                    className="p-1 text-white/40 hover:text-[#f0e226] transition-colors"
+                    className="p-1 text-theme-foreground-muted hover:text-theme-primary transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -810,20 +833,20 @@ function AchievementManagement() {
                         deleteMutation.mutate(achievement.id);
                       }
                     }}
-                    className="p-1 text-white/40 hover:text-red-400 transition-colors"
+                    className="p-1 text-theme-foreground-muted hover:text-red-400 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
               <div className="mt-3 flex items-center gap-2 flex-wrap">
-                <span className="px-2 py-1 bg-[#f0e226]/15 text-[#f0e226] text-xs border border-[#f0e226]/30">
+                <span className="px-2 py-1 bg-theme-primary/15 text-theme-primary text-xs border border-theme-border-hover">
                   +{achievement.points} TP
                 </span>
-                <span className="px-2 py-1 bg-white/5 text-white/60 text-xs border border-white/10">
+                <span className="px-2 py-1 bg-white/5 text-theme-foreground-secondary text-xs border border-theme-border-strong">
                   {achievement.category}
                 </span>
-                <span className="px-2 py-1 bg-white/5 text-white/40 text-xs border border-white/10">
+                <span className="px-2 py-1 bg-white/5 text-theme-foreground-muted text-xs border border-theme-border-strong">
                   {achievement._count.userAchievements} unlocked
                 </span>
               </div>
@@ -900,55 +923,55 @@ function AchievementModal({
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-      <div className="relative overflow-hidden bg-[#19181a] p-6 w-full max-w-lg border border-white/10">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+      <div className="relative overflow-hidden bg-theme-card p-6 w-full max-w-lg border border-theme-border-strong">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-light text-white">
+          <h3 className="text-lg font-light text-theme-foreground">
             {achievement ? 'Edit Achievement' : 'Create Achievement'}
           </h3>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-theme-foreground-muted hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Name</label>
+            <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Name</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
+              className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Description</label>
+            <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 bg-black border border-white/10 text-white resize-none focus:outline-none focus:border-[#f0e226]/50"
+              className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground resize-none focus:outline-none focus:border-theme-input-focus"
               rows={3}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Points Reward</label>
+              <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Points Reward</label>
               <input
                 type="number"
                 min="0"
                 value={formData.points}
                 onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
+                className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
               />
             </div>
             <div>
-              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Category</label>
+              <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-4 py-2 bg-black border border-white/10 text-white focus:outline-none focus:border-[#f0e226]/50"
+                className="w-full px-4 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
               >
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -962,20 +985,20 @@ function AchievementModal({
               type="checkbox"
               checked={formData.isActive}
               onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className="w-4 h-4 bg-black border-white/10 accent-[#f0e226]"
+              className="w-4 h-4 bg-black border-theme-border-strong accent-theme-primary"
             />
-            <span className="text-white/40">Active</span>
+            <span className="text-theme-foreground-muted">Active</span>
           </div>
         </div>
 
         <div className="flex justify-end gap-2 mt-6">
-          <button onClick={onClose} className="px-4 py-2 text-white/40 hover:text-white transition-colors">
+          <button onClick={onClose} className="px-4 py-2 text-theme-foreground-muted hover:text-white transition-colors">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!formData.name.trim() || !formData.description.trim() || isSubmitting}
-            className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black hover:bg-theme-primary-hover transition-colors disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {isSubmitting ? 'Saving...' : 'Save Achievement'}
@@ -1065,13 +1088,13 @@ function PointConfiguration() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-light text-white">Point Configuration</h3>
-          <p className="text-white/40 text-sm">Configure how many Tour Points are awarded for each action</p>
+          <h3 className="text-lg font-light text-theme-foreground">Point Configuration</h3>
+          <p className="text-theme-foreground-muted text-sm">Configure how many Tour Points are awarded for each action</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => refetch()}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-theme-background/50 text-theme-foreground-secondary hover:bg-theme-background hover:text-theme-foreground border border-theme-border-strong transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -1079,14 +1102,14 @@ function PointConfiguration() {
             <>
               <button
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2 text-white/40 hover:text-white transition-colors"
+                className="px-4 py-2 text-theme-foreground-muted hover:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={saveMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black hover:bg-theme-primary-hover transition-colors disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -1095,7 +1118,7 @@ function PointConfiguration() {
           ) : (
             <button
               onClick={handleStartEdit}
-              className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black hover:bg-theme-primary-hover transition-colors"
             >
               <Edit2 className="w-4 h-4" />
               Edit Config
@@ -1107,17 +1130,17 @@ function PointConfiguration() {
       {/* Config Grid */}
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.entries(isEditing ? editedConfig : currentConfig).map(([key, value]) => (
-            <div key={key} className="group relative overflow-hidden bg-black border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
-              <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+            <div key={key} className="group relative overflow-hidden bg-theme-card border border-theme-border p-4 hover:border-theme-border-hover transition-all duration-300">
+              <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-white font-medium">{eventLabels[key] || key}</p>
-                  <p className="text-white/30 text-xs">{key}</p>
+                  <p className="text-theme-foreground font-medium">{eventLabels[key] || key}</p>
+                  <p className="text-theme-foreground-muted text-xs">{key}</p>
                 </div>
                 {isEditing ? (
                   <input
@@ -1127,10 +1150,10 @@ function PointConfiguration() {
                     onChange={(e) =>
                       setEditedConfig({ ...editedConfig, [key]: parseInt(e.target.value) || 0 })
                     }
-                    className="w-24 px-3 py-1 bg-[#19181a] border border-white/10 text-white text-right focus:outline-none focus:border-[#f0e226]/50"
+                    className="w-24 px-3 py-1 bg-theme-input border border-theme-border-strong text-theme-foreground text-right focus:outline-none focus:border-theme-input-focus"
                   />
                 ) : (
-                  <span className="text-[#f0e226] font-light text-lg">{value} TP</span>
+                  <span className="text-theme-primary font-light text-lg">{value} TP</span>
                 )}
               </div>
             </div>
@@ -1139,8 +1162,8 @@ function PointConfiguration() {
       )}
 
       {/* Info Box */}
-      <div className="bg-[#f0e226]/10 border border-[#f0e226]/30 p-4">
-        <p className="text-[#f0e226] text-sm">
+      <div className="bg-theme-primary/10 border border-theme-border-hover p-4">
+        <p className="text-theme-primary text-sm">
           <strong>Note:</strong> Changes to point values only affect future actions. Previously awarded points will not be recalculated.
         </p>
       </div>

@@ -174,7 +174,7 @@ export default function PricingPage() {
               transition={{ duration: 0.6 }}
               className="text-center mb-16"
             >
-              <span className="inline-flex items-center gap-2 px-4 py-2 border border-[#f0e226]/30 text-[#f0e226] text-sm font-medium uppercase tracking-wider mb-6">
+              <span className="inline-flex items-center gap-2 px-4 py-2 border border-white/20 text-[#f0e226] text-sm font-medium uppercase tracking-wider mb-6">
                 <Zap className="w-4 h-4" />
                 Simple Pricing
               </span>
@@ -215,7 +215,7 @@ export default function PricingPage() {
 
                     <div className="relative">
                       {/* Icon */}
-                      <div className="w-12 h-12 border border-[#f0e226]/30 flex items-center justify-center mb-6">
+                      <div className="w-12 h-12 border border-white/20 flex items-center justify-center mb-6">
                         <plan.icon className="w-6 h-6 text-[#f0e226]" />
                       </div>
 
@@ -238,7 +238,7 @@ export default function PricingPage() {
                             <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center mt-0.5">
                               <Check className="w-4 h-4 text-[#f0e226]" />
                             </div>
-                            <span className="text-white/70 text-sm">{feature}</span>
+                            <span className="text-white/60 text-sm">{feature}</span>
                           </li>
                         ))}
                       </ul>
@@ -282,9 +282,9 @@ export default function PricingPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.4 + index * 0.05 }}
                     whileHover={{ y: -4, boxShadow: '0 20px 40px -12px rgba(240, 226, 38, 0.1)' }}
-                    className="bg-[#19181a] border border-white/10 p-6 hover:border-[#f0e226]/30 transition-all duration-300"
+                    className="bg-[#19181a] border border-white/10 p-6 hover:border-white/20 transition-all duration-300"
                   >
-                    <div className="w-10 h-10 border border-[#f0e226]/30 flex items-center justify-center mb-4">
+                    <div className="w-10 h-10 border border-white/20 flex items-center justify-center mb-4">
                       <tool.icon className="w-5 h-5 text-[#f0e226]" />
                     </div>
                     <h3 className="text-lg font-semibold text-white mb-2">{tool.name}</h3>
@@ -322,7 +322,7 @@ export default function PricingPage() {
               transition={{ duration: 0.6, delay: 0.5 }}
             >
               <div className="text-center mb-12">
-                <span className="inline-flex items-center gap-2 px-3 py-1 border border-[#f0e226]/30 text-[#f0e226] text-sm font-medium uppercase tracking-wider mb-4">
+                <span className="inline-flex items-center gap-2 px-3 py-1 border border-white/20 text-[#f0e226] text-sm font-medium uppercase tracking-wider mb-4">
                   <Award className="w-4 h-4" />
                   Always Free
                 </span>
@@ -342,7 +342,7 @@ export default function PricingPage() {
                     whileHover={{ y: -4, boxShadow: '0 20px 40px -12px rgba(240, 226, 38, 0.1)' }}
                     className="bg-[#19181a] border border-[#f0e226]/20 p-6 hover:border-[#f0e226]/50 transition-all duration-300"
                   >
-                    <div className="w-10 h-10 border border-[#f0e226]/30 flex items-center justify-center mb-4">
+                    <div className="w-10 h-10 border border-white/20 flex items-center justify-center mb-4">
                       <tool.icon className="w-5 h-5 text-[#f0e226]" />
                     </div>
                     <h3 className="text-lg font-semibold text-white mb-2">{tool.name}</h3>
@@ -363,7 +363,7 @@ export default function PricingPage() {
 
                     <Link
                       to="/login"
-                      className="block w-full text-center py-2.5 px-4 bg-[#f0e226]/10 border border-[#f0e226]/30 text-[#f0e226] text-sm font-medium uppercase tracking-wider hover:bg-[#f0e226] hover:text-black transition-all duration-300"
+                      className="block w-full text-center py-2.5 px-4 bg-[#f0e226]/10 border border-white/20 text-[#f0e226] text-sm font-medium uppercase tracking-wider hover:bg-[#f0e226] hover:text-black transition-all duration-300"
                     >
                       Try Free
                     </Link>

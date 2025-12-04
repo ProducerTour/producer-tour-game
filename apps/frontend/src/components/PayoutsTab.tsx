@@ -34,9 +34,11 @@ class PayoutsErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     if (this.state.hasError) {
       return (
         <div className="flex flex-col items-center justify-center h-64 space-y-4">
-          <AlertTriangle className="h-12 w-12 text-red-400" />
-          <div className="text-red-400 text-lg font-semibold">Something went wrong</div>
-          <p className="text-gray-400 text-sm text-center max-w-md">
+          <div className="w-16 h-16 bg-red-500/10 flex items-center justify-center">
+            <AlertTriangle className="h-8 w-8 text-red-400" />
+          </div>
+          <div className="text-red-400 text-lg font-light">Something went wrong</div>
+          <p className="text-theme-foreground-muted text-sm text-center max-w-md">
             {this.state.error?.message || 'An error occurred while loading the payouts tab'}
           </p>
           <button
@@ -44,7 +46,7 @@ class PayoutsErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               this.setState({ hasError: false, error: undefined });
               this.props.onReset?.();
             }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+            className="px-4 py-2 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium flex items-center gap-2 transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
             Try Again
@@ -421,7 +423,7 @@ const PayoutsTab: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-400">Loading payment data...</div>
+        <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
       </div>
     );
   }
@@ -429,14 +431,16 @@ const PayoutsTab: React.FC = () => {
   if (statementsError) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <AlertTriangle className="h-12 w-12 text-red-400" />
-        <div className="text-red-400 text-lg font-semibold">Failed to load payment data</div>
-        <p className="text-gray-400 text-sm">
+        <div className="w-16 h-16 bg-red-500/10 flex items-center justify-center">
+          <AlertTriangle className="h-8 w-8 text-red-400" />
+        </div>
+        <div className="text-red-400 text-lg font-light">Failed to load payment data</div>
+        <p className="text-theme-foreground-muted text-sm">
           {(statementsError as any)?.response?.data?.error || 'An error occurred while fetching statements'}
         </p>
         <button
           onClick={() => refetch()}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+          className="px-4 py-2 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium flex items-center gap-2 transition-colors"
         >
           <RefreshCw className="h-4 w-4" />
           Try Again
@@ -451,72 +455,90 @@ const PayoutsTab: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Sub-Tab Navigation */}
-      <div className="border-b border-slate-700">
-        <nav className="flex gap-1" aria-label="Payouts sub-navigation">
-          {PAYOUTS_SUB_TABS.map((tab) => {
-            const IconComponent = tab.icon;
-            const isActive = activeSubTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveSubTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  isActive
-                    ? 'border-blue-500 text-blue-400'
-                    : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-slate-600'
-                }`}
-              >
-                <IconComponent className="h-4 w-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </nav>
+      <div className="flex gap-1 mb-6">
+        {PAYOUTS_SUB_TABS.map((tab) => {
+          const IconComponent = tab.icon;
+          const isActive = activeSubTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveSubTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium uppercase tracking-wider transition-colors ${
+                isActive
+                  ? 'bg-theme-primary text-black'
+                  : 'text-theme-foreground-muted hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <IconComponent className="h-4 w-4" />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Summary Stats - visible on Overview */}
       {activeSubTab === 'overview' && (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-slate-700/30 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Unpaid Queue</span>
-            <XCircle className="h-5 w-5 text-red-400" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-red-400">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-red-400 group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Unpaid Queue</p>
+              <p className="text-3xl font-light text-theme-foreground">{paymentQueue.length}</p>
+              <p className="text-sm text-theme-foreground-muted mt-1">{formatCurrency(totalUnpaidRevenue)}</p>
+            </div>
+            <div className="w-10 h-10 bg-red-500/10 flex items-center justify-center">
+              <XCircle className="w-5 h-5 text-red-400" />
+            </div>
           </div>
-          <div className="text-2xl font-bold text-white">{paymentQueue.length}</div>
-          <div className="text-sm text-gray-400 mt-1">{formatCurrency(totalUnpaidRevenue)}</div>
         </div>
 
-        <div className="bg-slate-700/30 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Pending</span>
-            <Clock className="h-5 w-5 text-yellow-400" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Pending</p>
+              <p className="text-3xl font-light text-theme-foreground">{pendingStatements.length}</p>
+              <p className="text-sm text-theme-foreground-muted mt-1">In Processing</p>
+            </div>
+            <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-theme-primary" />
+            </div>
           </div>
-          <div className="text-2xl font-bold text-white">{pendingStatements.length}</div>
-          <div className="text-sm text-gray-400 mt-1">In Processing</div>
         </div>
 
-        <div className="bg-slate-700/30 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Paid (All Time)</span>
-            <CheckCircle className="h-5 w-5 text-green-400" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Paid (All Time)</p>
+              <p className="text-3xl font-light text-theme-foreground">{paymentHistory.length}</p>
+              <p className="text-sm text-theme-primary mt-1">{formatCurrency(totalPaidRevenue)}</p>
+            </div>
+            <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-theme-primary" />
+            </div>
           </div>
-          <div className="text-2xl font-bold text-white">{paymentHistory.length}</div>
-          <div className="text-sm text-green-400 mt-1">{formatCurrency(totalPaidRevenue)}</div>
         </div>
 
-        <div className="bg-slate-700/30 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Selected</span>
-            <DollarSign className="h-5 w-5 text-blue-400" />
-          </div>
-          <div className="text-2xl font-bold text-white">{selectedStatements.size}</div>
-          <div className="text-sm text-gray-400 mt-1">
-            {formatCurrency(
-              Array.from(selectedStatements).reduce((sum, id) => {
-                const stmt = safeStatements.find(s => s.id === id);
-                return sum + Number(stmt?.totalNet || 0);
-              }, 0)
-            )}
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Selected</p>
+              <p className="text-3xl font-light text-theme-foreground">{selectedStatements.size}</p>
+              <p className="text-sm text-theme-foreground-muted mt-1">
+                {formatCurrency(
+                  Array.from(selectedStatements).reduce((sum, id) => {
+                    const stmt = safeStatements.find(s => s.id === id);
+                    return sum + Number(stmt?.totalNet || 0);
+                  }, 0)
+                )}
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+              <DollarSign className="w-5 h-5 text-theme-primary" />
+            </div>
           </div>
         </div>
       </div>
@@ -524,12 +546,15 @@ const PayoutsTab: React.FC = () => {
 
       {/* Withdrawal Requests Section - visible on Withdrawals */}
       {activeSubTab === 'withdrawals' && Array.isArray(withdrawalRequests) && withdrawalRequests.length > 0 && (
-        <div className="bg-slate-800 rounded-lg shadow-xl p-6">
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <Wallet className="h-6 w-6 text-amber-400" />
-              <h2 className="text-2xl font-bold text-white">Withdrawal Requests</h2>
-              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-sm font-semibold">
+              <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-theme-primary" />
+              </div>
+              <h2 className="text-xl font-light text-theme-foreground">Withdrawal Requests</h2>
+              <span className="px-3 py-1 bg-theme-primary/10 text-theme-primary text-sm font-medium">
                 {withdrawalRequests.length} Pending
               </span>
             </div>
@@ -539,14 +564,14 @@ const PayoutsTab: React.FC = () => {
             {withdrawalRequests.map((request: any) => (
               <div
                 key={request.id}
-                className="bg-slate-700/30 rounded-lg p-5 border border-slate-600 hover:border-slate-500 transition-colors"
+                className="bg-black/30 p-5 border border-theme-border hover:border-theme-border-hover transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
                       <User className="h-5 w-5 text-gray-400" />
                       <div>
-                        <h3 className="text-lg font-semibold text-white">{request.user.name}</h3>
+                        <h3 className="text-lg font-semibold text-theme-foreground">{request.user.name}</h3>
                         <p className="text-sm text-gray-400">{request.user.email}</p>
                       </div>
                     </div>
@@ -625,18 +650,21 @@ const PayoutsTab: React.FC = () => {
 
       {/* Session Payout Requests Section - visible on Sessions */}
       {activeSubTab === 'sessions' && (pendingSessionPayouts.length > 0 || approvedSessionPayouts.length > 0) && (
-        <div className="bg-slate-800 rounded-lg shadow-xl p-6">
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <FileCheck className="h-6 w-6 text-teal-400" />
-              <h2 className="text-2xl font-bold text-white">Recording Session Payouts</h2>
+              <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+                <FileCheck className="w-5 h-5 text-theme-primary" />
+              </div>
+              <h2 className="text-xl font-light text-theme-foreground">Recording Session Payouts</h2>
               {pendingSessionPayouts.length > 0 && (
-                <span className="px-3 py-1 bg-teal-500/20 text-teal-300 rounded-full text-sm font-semibold">
+                <span className="px-3 py-1 bg-theme-primary/10 text-theme-primary text-sm font-medium">
                   {pendingSessionPayouts.length} Pending
                 </span>
               )}
               {approvedSessionPayouts.length > 0 && (
-                <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm font-semibold">
+                <span className="px-3 py-1 bg-white/10 text-theme-foreground-secondary text-sm font-medium">
                   {approvedSessionPayouts.length} Ready to Pay
                 </span>
               )}
@@ -648,57 +676,57 @@ const PayoutsTab: React.FC = () => {
             {pendingSessionPayouts.map((payout: any) => (
               <div
                 key={payout.id}
-                className="bg-slate-700/30 rounded-lg p-5 border border-teal-600/30 hover:border-teal-500/50 transition-colors"
+                className="bg-black/30 p-5 border border-theme-border hover:border-theme-border-hover transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
-                      <Music className="h-5 w-5 text-teal-400" />
+                      <Music className="h-5 w-5 text-theme-primary" />
                       <div>
-                        <h3 className="text-lg font-semibold text-white">
+                        <h3 className="text-lg font-medium text-theme-foreground">
                           {payout.artistName} - {payout.songTitles}
                         </h3>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-theme-foreground-muted">
                           Submitted by {payout.submittedByName} • {payout.studioName}
                         </p>
                       </div>
-                      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded text-xs font-semibold">
+                      <span className="px-2 py-1 bg-theme-primary/10 text-theme-primary text-xs font-medium">
                         PENDING REVIEW
                       </span>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4">
                       <div>
-                        <p className="text-xs text-gray-500 uppercase">Session Date</p>
-                        <p className="text-sm text-white font-medium">
+                        <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Session Date</p>
+                        <p className="text-sm text-theme-foreground font-medium">
                           {format(new Date(payout.sessionDate), 'MMM d, yyyy')}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 uppercase">Duration</p>
-                        <p className="text-sm text-white font-medium">{Number(payout.totalHours).toFixed(1)} hours</p>
+                        <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Duration</p>
+                        <p className="text-sm text-theme-foreground font-medium">{Number(payout.totalHours).toFixed(1)} hours</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 uppercase">Studio Cost</p>
-                        <p className="text-sm text-white font-medium">${Number(payout.studioCost).toFixed(2)}</p>
+                        <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Studio Cost</p>
+                        <p className="text-sm text-theme-foreground font-medium">${Number(payout.studioCost).toFixed(2)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 uppercase">Engineer Fee</p>
-                        <p className="text-sm text-white font-medium">${Number(payout.engineerFee).toFixed(2)}</p>
+                        <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Engineer Fee</p>
+                        <p className="text-sm text-theme-foreground font-medium">${Number(payout.engineerFee).toFixed(2)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 uppercase">Payout Amount</p>
-                        <p className="text-lg text-teal-400 font-bold">${Number(payout.payoutAmount).toFixed(2)}</p>
+                        <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Payout Amount</p>
+                        <p className="text-lg text-theme-primary font-light">${Number(payout.payoutAmount).toFixed(2)}</p>
                       </div>
                     </div>
 
-                    <div className="mt-4 p-3 bg-slate-800/50 rounded-lg">
-                      <p className="text-xs text-gray-500 uppercase mb-2">Asset Links</p>
+                    <div className="mt-4 p-3 bg-black/50 border border-theme-border">
+                      <p className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Asset Links</p>
                       <div className="flex flex-wrap gap-2">
-                        <a href={payout.masterLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 underline">Master</a>
-                        <a href={payout.sessionFilesLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 underline">Session Files</a>
-                        <a href={payout.beatStemsLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 underline">Beat Stems</a>
-                        <a href={payout.beatLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:text-blue-300 underline">Beat</a>
+                        <a href={payout.masterLink} target="_blank" rel="noopener noreferrer" className="text-xs text-theme-primary hover:text-white underline">Master</a>
+                        <a href={payout.sessionFilesLink} target="_blank" rel="noopener noreferrer" className="text-xs text-theme-primary hover:text-white underline">Session Files</a>
+                        <a href={payout.beatStemsLink} target="_blank" rel="noopener noreferrer" className="text-xs text-theme-primary hover:text-white underline">Beat Stems</a>
+                        <a href={payout.beatLink} target="_blank" rel="noopener noreferrer" className="text-xs text-theme-primary hover:text-white underline">Beat</a>
                       </div>
                     </div>
                   </div>
@@ -709,7 +737,7 @@ const PayoutsTab: React.FC = () => {
                         setSelectedSessionPayout(payout);
                         setShowSessionPayoutModal(true);
                       }}
-                      className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium transition-colors flex items-center gap-2"
                     >
                       <Eye className="h-4 w-4" />
                       Details
@@ -717,7 +745,7 @@ const PayoutsTab: React.FC = () => {
                     <button
                       onClick={() => approveSessionPayoutMutation.mutate({ payoutId: payout.id })}
                       disabled={approveSessionPayoutMutation.isPending}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-4 py-2 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       <CheckCircle className="h-4 w-4" />
                       Approve
@@ -730,7 +758,7 @@ const PayoutsTab: React.FC = () => {
                         }
                       }}
                       disabled={rejectSessionPayoutMutation.isPending}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-4 py-2 bg-red-600/80 hover:bg-red-600 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       <XCircle className="h-4 w-4" />
                       Reject
@@ -744,51 +772,51 @@ const PayoutsTab: React.FC = () => {
             {approvedSessionPayouts.map((payout: any) => (
               <div
                 key={payout.id}
-                className="bg-slate-700/30 rounded-lg p-5 border border-blue-600/30 hover:border-blue-500/50 transition-colors"
+                className="bg-black/30 p-5 border border-theme-border hover:border-theme-border-hover transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
-                      <CreditCard className="h-5 w-5 text-blue-400" />
+                      <CreditCard className="h-5 w-5 text-theme-primary" />
                       <div>
-                        <h3 className="text-lg font-semibold text-white">
+                        <h3 className="text-lg font-medium text-theme-foreground">
                           {payout.artistName} - {payout.songTitles}
                         </h3>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-theme-foreground-muted">
                           Pay to: {payout.submittedByName} ({payout.submittedByEmail || payout.submittedBy?.email})
                         </p>
                       </div>
-                      <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs font-semibold">
+                      <span className="px-2 py-1 bg-white/10 text-theme-foreground-secondary text-xs font-medium">
                         APPROVED - READY TO PAY
                       </span>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                       <div>
-                        <p className="text-xs text-gray-500 uppercase">Session Date</p>
-                        <p className="text-sm text-white font-medium">
+                        <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Session Date</p>
+                        <p className="text-sm text-theme-foreground font-medium">
                           {format(new Date(payout.sessionDate), 'MMM d, yyyy')}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 uppercase">Studio</p>
+                        <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Studio</p>
                         <p className="text-sm text-white font-medium">{payout.studioName}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 uppercase">Approved</p>
+                        <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Approved</p>
                         <p className="text-sm text-white font-medium">
                           {payout.reviewedAt ? format(new Date(payout.reviewedAt), 'MMM d, yyyy') : 'N/A'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 uppercase">Payout Amount</p>
-                        <p className="text-lg text-blue-400 font-bold">${Number(payout.payoutAmount).toFixed(2)}</p>
+                        <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Payout Amount</p>
+                        <p className="text-lg text-theme-primary font-light">${Number(payout.payoutAmount).toFixed(2)}</p>
                       </div>
                     </div>
 
                     {!payout.submittedBy?.stripeOnboardingComplete && (
-                      <div className="mt-4 p-3 bg-red-900/30 border border-red-700 rounded-lg">
-                        <p className="text-sm text-red-200">
+                      <div className="mt-4 p-3 bg-red-900/30 border border-red-500/30">
+                        <p className="text-sm text-red-300">
                           ⚠️ Engineer has not completed Stripe Connect onboarding. Cannot process payment.
                         </p>
                       </div>
@@ -801,7 +829,7 @@ const PayoutsTab: React.FC = () => {
                         setSelectedSessionPayout(payout);
                         setShowSessionPayoutModal(true);
                       }}
-                      className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg font-semibold transition-colors flex items-center gap-2"
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium transition-colors flex items-center gap-2"
                     >
                       <Eye className="h-4 w-4" />
                       Details
@@ -809,7 +837,7 @@ const PayoutsTab: React.FC = () => {
                     <button
                       onClick={() => processSessionPaymentMutation.mutate(payout.id)}
                       disabled={processSessionPaymentMutation.isPending || !payout.submittedBy?.stripeOnboardingComplete}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-4 py-2 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       <Send className="h-4 w-4" />
                       Process Stripe Payment
@@ -824,11 +852,12 @@ const PayoutsTab: React.FC = () => {
 
       {/* Payment Queue Section - visible on Statements */}
       {activeSubTab === 'statements' && (
-      <div className="bg-slate-700/30 rounded-lg p-6">
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-white">Statement Queue</h3>
-            <p className="text-sm text-gray-400 mt-1">
+            <h3 className="text-lg font-light text-theme-foreground">Statement Queue</h3>
+            <p className="text-sm text-theme-foreground-muted mt-1">
               Statements ready for payment processing
             </p>
           </div>
@@ -838,14 +867,14 @@ const PayoutsTab: React.FC = () => {
                 <button
                   onClick={handleBulkProcessPayments}
                   disabled={processPaymentMutation.isPending}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="h-4 w-4" />
                   Process {selectedStatements.size} Selected
                 </button>
                 <button
                   onClick={() => setSelectedStatements(new Set())}
-                  className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors"
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium transition-colors"
                 >
                   Clear Selection
                 </button>
@@ -855,62 +884,62 @@ const PayoutsTab: React.FC = () => {
         </div>
 
         {paymentQueue.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <CheckCircle className="h-12 w-12 mx-auto mb-3 text-gray-500" />
-            <p>No unpaid statements in queue</p>
+          <div className="text-center py-12">
+            <CheckCircle className="h-12 w-12 mx-auto mb-3 text-white/20" />
+            <p className="text-theme-foreground-muted">No unpaid statements in queue</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="border-b-2 border-slate-600">
+              <thead className="border-b border-theme-border-strong">
                 <tr>
                   <th className="text-left py-3 px-2">
                     <input
                       type="checkbox"
                       checked={selectedStatements.size === paymentQueue.length && paymentQueue.length > 0}
                       onChange={() => handleSelectAll(paymentQueue.map(s => s.id))}
-                      className="rounded border-gray-600 bg-slate-700 text-blue-600 focus:ring-blue-500"
+                      className="border-white/20 bg-black text-theme-primary focus:ring-theme-primary-50"
                     />
                   </th>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Statement</th>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Type</th>
-                  <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Items</th>
-                  <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Gross Revenue</th>
-                  <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Net Payout</th>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Uploaded</th>
-                  <th className="text-center text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Actions</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Statement</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Type</th>
+                  <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Items</th>
+                  <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Gross Revenue</th>
+                  <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Net Payout</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Uploaded</th>
+                  <th className="text-center text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {paymentQueue.map(statement => (
                   <tr
                     key={statement.id}
-                    className="border-b border-slate-700/50 hover:bg-slate-600/20 transition-colors"
+                    className="border-b border-theme-border hover:bg-black/30 transition-colors"
                   >
                     <td className="py-3 px-2">
                       <input
                         type="checkbox"
                         checked={selectedStatements.has(statement.id)}
                         onChange={() => handleSelectStatement(statement.id)}
-                        className="rounded border-gray-600 bg-slate-700 text-blue-600 focus:ring-blue-500"
+                        className="border-white/20 bg-black text-theme-primary focus:ring-theme-primary-50"
                       />
                     </td>
                     <td className="py-3 px-2 text-white font-medium">{statement.filename}</td>
                     <td className="py-3 px-2">
-                      <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs font-medium">
+                      <span className="px-2 py-0.5 bg-theme-primary/10 text-theme-primary text-xs font-medium">
                         {statement.proType}
                       </span>
                     </td>
-                    <td className="py-3 px-2 text-right text-gray-300">{statement.itemCount.toLocaleString()}</td>
-                    <td className="py-3 px-2 text-right text-gray-300">{formatCurrency(statement.totalRevenue)}</td>
-                    <td className="py-3 px-2 text-right text-green-400 font-semibold">{formatCurrency(statement.totalNet)}</td>
-                    <td className="py-3 px-2 text-sm text-gray-400">{formatDate(statement.uploadedAt)}</td>
+                    <td className="py-3 px-2 text-right text-theme-foreground-secondary">{statement.itemCount.toLocaleString()}</td>
+                    <td className="py-3 px-2 text-right text-theme-foreground-secondary">{formatCurrency(statement.totalRevenue)}</td>
+                    <td className="py-3 px-2 text-right text-theme-primary font-light text-lg">{formatCurrency(statement.totalNet)}</td>
+                    <td className="py-3 px-2 text-sm text-theme-foreground-muted">{formatDate(statement.uploadedAt)}</td>
                     <td className="py-3 px-2 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => loadPaymentSummary(statement.id)}
                           disabled={detailsLoading}
-                          className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                          className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
                           title="View writer breakdown"
                         >
                           <Eye className="h-3.5 w-3.5" />
@@ -919,7 +948,7 @@ const PayoutsTab: React.FC = () => {
                         <button
                           onClick={() => handleProcessPayment(statement.id)}
                           disabled={processPaymentMutation.isPending}
-                          className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                          className="px-3 py-1.5 bg-theme-primary hover:bg-theme-primary-hover text-black text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
                         >
                           <Send className="h-3.5 w-3.5" />
                           Process
@@ -937,65 +966,66 @@ const PayoutsTab: React.FC = () => {
 
       {/* Statement History Section - visible on Statements */}
       {activeSubTab === 'statements' && (
-      <div className="bg-slate-700/30 rounded-lg p-6">
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-white">Statement History</h3>
-            <p className="text-sm text-gray-400 mt-1">
+            <h3 className="text-lg font-light text-white">Statement History</h3>
+            <p className="text-sm text-theme-foreground-muted mt-1">
               All processed payments
             </p>
           </div>
           <div className="flex gap-2">
             <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/30" />
               <input
                 type="text"
                 placeholder="Search statements..."
                 value={historyFilter}
                 onChange={(e) => setHistoryFilter(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="pl-9 pr-4 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
               />
             </div>
           </div>
         </div>
 
         {paymentHistory.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <Clock className="h-12 w-12 mx-auto mb-3 text-gray-500" />
-            <p>No payment history yet</p>
+          <div className="text-center py-12">
+            <Clock className="h-12 w-12 mx-auto mb-3 text-white/20" />
+            <p className="text-theme-foreground-muted">No payment history yet</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="border-b-2 border-slate-600">
+              <thead className="border-b border-theme-border-strong">
                 <tr>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Statement</th>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Type</th>
-                  <th className="text-center text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Status</th>
-                  <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Items</th>
-                  <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Net Paid</th>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Processed Date</th>
-                  <th className="text-center text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Actions</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Statement</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Type</th>
+                  <th className="text-center text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Status</th>
+                  <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Items</th>
+                  <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Net Paid</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Processed Date</th>
+                  <th className="text-center text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {paymentHistory.map(statement => (
                   <tr
                     key={statement.id}
-                    className="border-b border-slate-700/50 hover:bg-slate-600/20 transition-colors"
+                    className="border-b border-theme-border hover:bg-black/30 transition-colors"
                   >
                     <td className="py-3 px-2 text-white font-medium">{statement.filename}</td>
                     <td className="py-3 px-2">
-                      <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs font-medium">
+                      <span className="px-2 py-0.5 bg-theme-primary/10 text-theme-primary text-xs font-medium">
                         {statement.proType}
                       </span>
                     </td>
                     <td className="py-3 px-2 text-center">
                       {getStatusBadge(statement.paymentStatus)}
                     </td>
-                    <td className="py-3 px-2 text-right text-gray-300">{statement.itemCount.toLocaleString()}</td>
-                    <td className="py-3 px-2 text-right text-green-400 font-semibold">{formatCurrency(statement.totalNet)}</td>
-                    <td className="py-3 px-2 text-sm text-gray-400">
+                    <td className="py-3 px-2 text-right text-theme-foreground-secondary">{statement.itemCount.toLocaleString()}</td>
+                    <td className="py-3 px-2 text-right text-theme-primary font-light text-lg">{formatCurrency(statement.totalNet)}</td>
+                    <td className="py-3 px-2 text-sm text-theme-foreground-muted">
                       {statement.paymentProcessedAt ? formatDate(statement.paymentProcessedAt) : '-'}
                     </td>
                     <td className="py-3 px-2 text-center">
@@ -1003,7 +1033,7 @@ const PayoutsTab: React.FC = () => {
                         <button
                           onClick={() => loadPaymentSummary(statement.id)}
                           disabled={detailsLoading}
-                          className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                          className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
                           title="View writer breakdown"
                         >
                           <Eye className="h-3.5 w-3.5" />
@@ -1011,7 +1041,7 @@ const PayoutsTab: React.FC = () => {
                         </button>
                         <button
                           onClick={() => statementApi.exportCSV(statement.id)}
-                          className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium transition-colors inline-flex items-center gap-1"
+                          className="px-3 py-1.5 bg-theme-primary hover:bg-theme-primary-hover text-black text-sm font-medium transition-colors inline-flex items-center gap-1"
                           title="Download CSV"
                         >
                           <Download className="h-3.5 w-3.5" />
@@ -1022,13 +1052,13 @@ const PayoutsTab: React.FC = () => {
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="border-t-2 border-slate-600 bg-slate-700/20">
+              <tfoot className="border-t border-theme-border-strong bg-black/20">
                 <tr>
-                  <td colSpan={3} className="py-3 px-2 text-white font-bold text-sm">TOTAL PAID</td>
-                  <td className="py-3 px-2 text-right text-white font-bold">
+                  <td colSpan={3} className="py-3 px-2 text-white font-medium text-sm uppercase tracking-wider">Total Paid</td>
+                  <td className="py-3 px-2 text-right text-white font-medium">
                     {paymentHistory.reduce((sum, s) => sum + Number(s.itemCount || 0), 0).toLocaleString()}
                   </td>
-                  <td className="py-3 px-2 text-right text-green-400 font-bold">
+                  <td className="py-3 px-2 text-right text-theme-primary font-light text-lg">
                     {formatCurrency(totalPaidRevenue)}
                   </td>
                   <td colSpan={2}></td>
@@ -1042,73 +1072,79 @@ const PayoutsTab: React.FC = () => {
 
       {/* Withdrawal History Section - visible on Withdrawals */}
       {activeSubTab === 'withdrawals' && (
-      <div className="bg-slate-700/30 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-white">Withdrawal History</h3>
-            <p className="text-sm text-gray-400 mt-1">
-              All processed withdrawal requests
-            </p>
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+        <div className="p-6 border-b border-theme-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+              <Clock className="h-5 w-5 text-theme-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-light text-white">Withdrawal History</h3>
+              <p className="text-sm text-theme-foreground-muted">
+                All processed withdrawal requests
+              </p>
+            </div>
           </div>
         </div>
 
         {!allPayoutsData || !allPayoutsData.payouts || allPayoutsData.payouts.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <Clock className="h-12 w-12 mx-auto mb-3 text-gray-500" />
+          <div className="text-center py-12 text-theme-foreground-muted">
+            <Clock className="h-12 w-12 mx-auto mb-3 text-white/20" />
             <p>No payout history yet</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b-2 border-slate-600">
+            <table className="w-full text-sm">
+              <thead className="bg-white/[0.04]">
                 <tr>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Writer</th>
-                  <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Amount</th>
-                  <th className="text-center text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Status</th>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Requested</th>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Completed</th>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Stripe Transfer</th>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Notes</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Writer</th>
+                  <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Amount</th>
+                  <th className="text-center text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Status</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Requested</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Completed</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Stripe Transfer</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Notes</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-white/[0.05]">
                 {allPayoutsData.payouts.map((payout: any) => (
                   <tr
                     key={payout.id}
-                    className="border-b border-slate-700/50 hover:bg-slate-600/20 transition-colors"
+                    className="hover:bg-white/[0.02] transition-colors"
                   >
-                    <td className="py-3 px-2">
+                    <td className="py-3 px-4">
                       <div>
                         <p className="text-white font-medium">{payout.user.name}</p>
-                        <p className="text-xs text-gray-400">{payout.user.email}</p>
+                        <p className="text-xs text-theme-foreground-muted">{payout.user.email}</p>
                       </div>
                     </td>
-                    <td className="py-3 px-2 text-right text-green-400 font-semibold">{formatCurrency(payout.amount)}</td>
-                    <td className="py-3 px-2 text-center">
+                    <td className="py-3 px-4 text-right text-theme-primary font-medium">{formatCurrency(payout.amount)}</td>
+                    <td className="py-3 px-4 text-center">
                       {getPayoutStatusBadge(payout.status)}
                     </td>
-                    <td className="py-3 px-2 text-sm text-gray-400">
+                    <td className="py-3 px-4 text-sm text-theme-foreground-secondary">
                       {formatDate(payout.requestedAt)}
                     </td>
-                    <td className="py-3 px-2 text-sm text-gray-400">
+                    <td className="py-3 px-4 text-sm text-theme-foreground-secondary">
                       {payout.completedAt ? formatDate(payout.completedAt) : '-'}
                     </td>
-                    <td className="py-3 px-2">
+                    <td className="py-3 px-4">
                       {payout.stripeTransferId ? (
-                        <code className="text-xs text-blue-300 bg-slate-900/50 px-2 py-1 rounded">
+                        <code className="text-xs text-theme-primary/80 bg-black/50 px-2 py-1 border border-theme-border-strong">
                           {payout.stripeTransferId}
                         </code>
                       ) : (
-                        <span className="text-xs text-gray-500">-</span>
+                        <span className="text-xs text-white/30">-</span>
                       )}
                     </td>
-                    <td className="py-3 px-2">
+                    <td className="py-3 px-4">
                       {payout.failureReason ? (
-                        <span className="text-xs text-red-300">{payout.failureReason}</span>
+                        <span className="text-xs text-red-400">{payout.failureReason}</span>
                       ) : payout.adminNotes ? (
-                        <span className="text-xs text-gray-400">{payout.adminNotes}</span>
+                        <span className="text-xs text-theme-foreground-muted">{payout.adminNotes}</span>
                       ) : (
-                        <span className="text-xs text-gray-500">-</span>
+                        <span className="text-xs text-white/30">-</span>
                       )}
                     </td>
                   </tr>
@@ -1122,84 +1158,89 @@ const PayoutsTab: React.FC = () => {
 
       {/* Session Payout History Section - visible on Sessions */}
       {activeSubTab === 'sessions' && (
-      <div className="bg-slate-700/30 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <Headphones className="h-5 w-5 text-teal-400" />
-              Session Payout History
-            </h3>
-            <p className="text-sm text-gray-400 mt-1">
-              All completed recording session payouts
-            </p>
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+        <div className="p-6 border-b border-theme-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+                <Headphones className="h-5 w-5 text-theme-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-light text-white">Session Payout History</h3>
+                <p className="text-sm text-theme-foreground-muted">
+                  All completed recording session payouts
+                </p>
+              </div>
+            </div>
+            {completedSessionPayouts.length > 0 && (
+              <span className="text-sm text-theme-foreground-muted">{completedSessionPayouts.length} paid</span>
+            )}
           </div>
-          {completedSessionPayouts.length > 0 && (
-            <span className="text-sm text-gray-400">{completedSessionPayouts.length} paid</span>
-          )}
         </div>
 
         {completedSessionPayouts.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <Clock className="h-12 w-12 mx-auto mb-3 text-gray-500" />
+          <div className="text-center py-12 text-theme-foreground-muted">
+            <Clock className="h-12 w-12 mx-auto mb-3 text-white/20" />
             <p>No completed session payouts yet</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b-2 border-slate-600">
+            <table className="w-full text-sm">
+              <thead className="bg-white/[0.04]">
                 <tr>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Work Order</th>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Engineer</th>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Artist / Song</th>
-                  <th className="text-right text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Amount</th>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Paid At</th>
-                  <th className="text-left text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Stripe Transfer</th>
-                  <th className="text-center text-xs font-semibold text-gray-300 uppercase tracking-wider py-3 px-2">Actions</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Work Order</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Engineer</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Artist / Song</th>
+                  <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Amount</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Paid At</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Stripe Transfer</th>
+                  <th className="text-center text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-4">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-white/[0.05]">
                 {completedSessionPayouts.map((payout: any) => (
                   <tr
                     key={payout.id}
-                    className="border-b border-slate-700/50 hover:bg-slate-600/20 transition-colors"
+                    className="hover:bg-white/[0.02] transition-colors"
                   >
-                    <td className="py-3 px-2">
-                      <span className="font-mono text-teal-300">{payout.workOrderNumber}</span>
+                    <td className="py-3 px-4">
+                      <span className="font-mono text-theme-primary">{payout.workOrderNumber}</span>
                     </td>
-                    <td className="py-3 px-2">
+                    <td className="py-3 px-4">
                       <div>
                         <p className="text-white font-medium">{payout.submittedByName}</p>
-                        <p className="text-xs text-gray-400">{payout.submittedBy?.email}</p>
+                        <p className="text-xs text-theme-foreground-muted">{payout.submittedBy?.email}</p>
                       </div>
                     </td>
-                    <td className="py-3 px-2">
+                    <td className="py-3 px-4">
                       <div>
                         <p className="text-white">{payout.artistName}</p>
-                        <p className="text-xs text-gray-400">{payout.songTitles}</p>
+                        <p className="text-xs text-theme-foreground-muted">{payout.songTitles}</p>
                       </div>
                     </td>
-                    <td className="py-3 px-2 text-right text-green-400 font-semibold">
+                    <td className="py-3 px-4 text-right text-theme-primary font-medium">
                       ${Number(payout.payoutAmount).toFixed(2)}
                     </td>
-                    <td className="py-3 px-2 text-sm text-gray-400">
+                    <td className="py-3 px-4 text-sm text-theme-foreground-secondary">
                       {payout.paidAt ? format(new Date(payout.paidAt), 'MMM d, yyyy h:mm a') : '-'}
                     </td>
-                    <td className="py-3 px-2">
+                    <td className="py-3 px-4">
                       {payout.stripeTransferId ? (
-                        <code className="text-xs text-blue-300 bg-slate-900/50 px-2 py-1 rounded">
+                        <code className="text-xs text-theme-primary/80 bg-black/50 px-2 py-1 border border-theme-border-strong">
                           {payout.stripeTransferId}
                         </code>
                       ) : (
-                        <span className="text-xs text-gray-500">-</span>
+                        <span className="text-xs text-white/30">-</span>
                       )}
                     </td>
-                    <td className="py-3 px-2 text-center">
+                    <td className="py-3 px-4 text-center">
                       <button
                         onClick={() => {
                           setSelectedSessionPayout(payout);
                           setShowSessionPayoutModal(true);
                         }}
-                        className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1 mx-auto"
+                        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors flex items-center gap-1 mx-auto"
                       >
                         <Eye className="h-3 w-3" />
                         Details
@@ -1208,10 +1249,10 @@ const PayoutsTab: React.FC = () => {
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="border-t-2 border-slate-600 bg-slate-700/20">
+              <tfoot className="border-t border-theme-border-strong bg-white/[0.02]">
                 <tr>
-                  <td colSpan={3} className="py-3 px-2 text-white font-bold text-sm">TOTAL SESSION PAYOUTS</td>
-                  <td className="py-3 px-2 text-right text-green-400 font-bold">
+                  <td colSpan={3} className="py-3 px-4 text-white font-medium text-sm uppercase tracking-wider">Total Session Payouts</td>
+                  <td className="py-3 px-4 text-right text-theme-primary font-bold">
                     ${completedSessionPayouts.reduce((sum: number, p: any) => sum + Number(p.payoutAmount || 0), 0).toFixed(2)}
                   </td>
                   <td colSpan={3}></td>
@@ -1225,26 +1266,27 @@ const PayoutsTab: React.FC = () => {
 
       {/* Export Section - visible on Overview */}
       {activeSubTab === 'overview' && (
-      <div className="bg-slate-700/30 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Export & Reconciliation</h3>
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+        <h3 className="text-lg font-light text-white mb-4">Export & Reconciliation</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={() => statementApi.exportUnpaidSummary()}
-            className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+            className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-medium flex items-center justify-center gap-2 transition-colors"
           >
             <Download className="h-4 w-4" />
             Export Payment Queue (CSV)
           </button>
-          <button className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors">
+          <button className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-medium flex items-center justify-center gap-2 transition-colors">
             <Download className="h-4 w-4" />
             Export Payment History (CSV)
           </button>
-          <button className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors">
+          <button className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-medium flex items-center justify-center gap-2 transition-colors">
             <Download className="h-4 w-4" />
             QuickBooks Format
           </button>
         </div>
-        <p className="text-sm text-gray-400 mt-3">
+        <p className="text-sm text-theme-foreground-muted mt-3">
           Export payment data for accounting, reconciliation, or manual processing in external systems.
         </p>
       </div>

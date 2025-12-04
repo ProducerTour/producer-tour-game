@@ -1,6 +1,6 @@
 /**
  * Dashboard Overview with Tremor Components
- * Cassette theme styling with yellow (#f0e226) accents
+ * Theme-aware styling via CSS variables (see config/themes.ts)
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -14,7 +14,7 @@ import { TrendingUp, TrendingDown, Minus, Users, FileText, Music, DollarSign, Wa
 const formatCurrency = (value: number) =>
   `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-// Cassette-themed KPI Card component
+// Theme-aware KPI Card component
 function CassetteKpiCard({
   title,
   value,
@@ -32,21 +32,21 @@ function CassetteKpiCard({
 }) {
   return (
     <div className={cn(
-      "relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group",
-      "hover:border-[#f0e226]/30 transition-all duration-300",
-      large && "border-t-2 border-t-[#f0e226]"
+      "relative overflow-hidden bg-theme-card border border-theme-border p-6 group",
+      "hover:border-theme-border-hover transition-all duration-300",
+      large && "border-t-2 border-t-theme-primary"
     )}>
       {/* Subtle glow on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#f0e226]/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute inset-0 bg-gradient-to-br from-theme-primary/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
       {/* Top accent line animation on hover */}
-      <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+      <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
 
       <div className="relative flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-2">{title}</p>
+          <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">{title}</p>
           <p className={cn(
-            "font-light text-white",
+            "font-light text-theme-foreground",
             large ? "text-3xl" : "text-2xl"
           )}>
             {typeof value === 'number' ? value.toLocaleString() : value}
@@ -55,26 +55,26 @@ function CassetteKpiCard({
             <div className="mt-3 flex items-center gap-2">
               <span className={cn(
                 "inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium uppercase tracking-wider",
-                deltaType === 'increase' && "bg-[#f0e226]/15 text-[#f0e226] border border-[#f0e226]/30",
-                deltaType === 'decrease' && "bg-white/5 text-white/50 border border-white/10",
-                deltaType === 'unchanged' && "bg-white/5 text-white/40 border border-white/10"
+                deltaType === 'increase' && "bg-theme-primary/15 text-theme-primary border border-theme-primary/30",
+                deltaType === 'decrease' && "bg-theme-border-strong text-theme-foreground-secondary border border-theme-border",
+                deltaType === 'unchanged' && "bg-theme-border-strong text-theme-foreground-muted border border-theme-border"
               )}>
                 {deltaType === 'increase' && <TrendingUp className="w-3 h-3" />}
                 {deltaType === 'decrease' && <TrendingDown className="w-3 h-3" />}
                 {deltaType === 'unchanged' && <Minus className="w-3 h-3" />}
                 {delta}
               </span>
-              <span className="text-xs text-white/30">vs last period</span>
+              <span className="text-xs text-theme-foreground-muted">vs last period</span>
             </div>
           )}
         </div>
         <div className={cn(
           "flex items-center justify-center shrink-0",
-          "bg-[#f0e226]/10 group-hover:bg-[#f0e226]/20 transition-colors",
+          "bg-theme-primary/10 group-hover:bg-theme-primary/20 transition-colors",
           large ? "w-14 h-14" : "w-10 h-10"
         )}>
           <Icon className={cn(
-            "text-[#f0e226]",
+            "text-theme-primary",
             large ? "w-7 h-7" : "w-5 h-5"
           )} />
         </div>
@@ -105,7 +105,7 @@ export default function DashboardOverviewTremor() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-400">Loading dashboard...</div>
+        <div className="text-theme-foreground-muted">Loading dashboard...</div>
       </div>
     );
   }
@@ -196,40 +196,40 @@ export default function DashboardOverviewTremor() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Revenue Area Chart */}
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
           {/* Top accent line */}
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary/50 to-transparent" />
 
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-normal text-white">Cumulative Revenue</h3>
-              <p className="text-sm text-white/40">Total revenue over time</p>
+              <h3 className="text-lg font-normal text-theme-foreground">Cumulative Revenue</h3>
+              <p className="text-sm text-theme-foreground-muted">Total revenue over time</p>
             </div>
-            <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-[#f0e226]" />
+            <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-theme-primary" />
             </div>
           </div>
           {revenueChartData.length > 0 ? (
             <RechartsRevenueChart
               data={revenueChartData}
               height={288}
-              color="#f0e226"
+              color="var(--theme-primary)"
               gradientId="adminRevenueGradient"
             />
           ) : (
-            <div className="flex items-center justify-center h-72 text-white/30">
+            <div className="flex items-center justify-center h-72 text-theme-foreground-muted">
               No revenue data available
             </div>
           )}
         </div>
 
         {/* PRO Distribution Donut */}
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
           {/* Top accent line */}
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary/50 to-transparent" />
 
-          <h3 className="text-lg font-normal text-white">Statement Distribution</h3>
-          <p className="text-sm text-white/40 mb-4">By PRO type</p>
+          <h3 className="text-lg font-normal text-theme-foreground">Statement Distribution</h3>
+          <p className="text-sm text-theme-foreground-muted mb-4">By PRO type</p>
           {proDistribution.length > 0 ? (
             <>
               <NivoPieChart
@@ -244,10 +244,10 @@ export default function DashboardOverviewTremor() {
                   const total = proDistribution.reduce((acc: number, curr: any) => acc + curr.value, 0);
                   const percentage = ((item.value / total) * 100).toFixed(1);
                   return (
-                    <div key={item.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                      <span className="text-white/60 text-sm">{item.label}</span>
-                      <span className="text-white/40 text-sm">
-                        {item.value} <span className="text-white/30">({percentage}%)</span>
+                    <div key={item.id} className="flex items-center justify-between py-2 border-b border-theme-border last:border-0">
+                      <span className="text-theme-foreground-secondary text-sm">{item.label}</span>
+                      <span className="text-theme-foreground-muted text-sm">
+                        {item.value} <span className="text-theme-foreground-muted">({percentage}%)</span>
                       </span>
                     </div>
                   );
@@ -255,7 +255,7 @@ export default function DashboardOverviewTremor() {
               </div>
             </>
           ) : (
-            <div className="flex items-center justify-center h-72 text-white/30">
+            <div className="flex items-center justify-center h-72 text-theme-foreground-muted">
               No statement data available
             </div>
           )}
@@ -263,46 +263,46 @@ export default function DashboardOverviewTremor() {
       </div>
 
       {/* Recent Statements */}
-      <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
         {/* Top accent line */}
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary/50 to-transparent" />
 
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-normal text-white">Recent Statements</h3>
-            <p className="text-sm text-white/40">Latest processed statements</p>
+            <h3 className="text-lg font-normal text-theme-foreground">Recent Statements</h3>
+            <p className="text-sm text-theme-foreground-muted">Latest processed statements</p>
           </div>
-          <button className="text-[#f0e226] hover:text-white text-sm font-medium uppercase tracking-wider transition-colors">
+          <button className="text-theme-primary hover:text-theme-foreground text-sm font-medium uppercase tracking-wider transition-colors">
             View All →
           </button>
         </div>
         <div className="space-y-3">
           {recentStatements.length > 0 ? (
             recentStatements.map((statement: any) => (
-              <div key={statement.id} className="flex items-center justify-between p-3 bg-black/30 hover:bg-black/50 transition-colors">
+              <div key={statement.id} className="flex items-center justify-between p-3 bg-theme-background/30 hover:bg-theme-background/50 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center shrink-0">
-                    <FileText className="w-5 h-5 text-[#f0e226]" />
+                  <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center shrink-0">
+                    <FileText className="w-5 h-5 text-theme-primary" />
                   </div>
                   <div className="truncate">
-                    <p className="text-white text-sm font-medium truncate">{statement.filename}</p>
-                    <p className="text-white/40 text-xs">
+                    <p className="text-theme-foreground text-sm font-medium truncate">{statement.filename}</p>
+                    <p className="text-theme-foreground-muted text-xs">
                       {statement.proType} • {statement.itemCount || 0} items
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[#f0e226] font-light text-lg">
+                  <p className="text-theme-primary font-light text-lg">
                     ${Number(statement.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </p>
-                  <p className="text-white/30 text-xs">
+                  <p className="text-theme-foreground-muted text-xs">
                     {new Date(statement.createdAt).toLocaleDateString()}
                   </p>
                 </div>
               </div>
             ))
           ) : (
-            <div className="text-center py-8 text-white/30">
+            <div className="text-center py-8 text-theme-foreground-muted">
               No recent statements
             </div>
           )}

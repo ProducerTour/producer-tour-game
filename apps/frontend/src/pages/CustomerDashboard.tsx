@@ -115,7 +115,7 @@ export default function CustomerDashboard() {
               <>
                 {/* Welcome Header - only on overview tab */}
                 <div className="mb-8">
-                  <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                  <h1 className="text-2xl md:text-3xl font-bold text-theme-foreground mb-2">
                     Welcome back, {user?.firstName || 'Guest'}!
                   </h1>
                   <p className="text-text-secondary">
@@ -135,7 +135,7 @@ export default function CustomerDashboard() {
                         {currentTier}
                       </span>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">
+                    <p className="text-3xl font-bold text-theme-foreground mb-1">
                       {stats?.points?.toLocaleString() || 0}
                     </p>
                     <p className="text-sm text-text-secondary">Tour Miles</p>
@@ -148,7 +148,7 @@ export default function CustomerDashboard() {
                         <Zap className="w-6 h-6 text-orange-400" />
                       </div>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">
+                    <p className="text-3xl font-bold text-theme-foreground mb-1">
                       {stats?.currentStreak || 0}
                     </p>
                     <p className="text-sm text-text-secondary">Day Streak</p>
@@ -161,7 +161,7 @@ export default function CustomerDashboard() {
                         <Trophy className="w-6 h-6 text-purple-400" />
                       </div>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">
+                    <p className="text-3xl font-bold text-theme-foreground mb-1">
                       {stats?.achievementsUnlocked || 0}
                     </p>
                     <p className="text-sm text-text-secondary">Achievements</p>
@@ -174,7 +174,7 @@ export default function CustomerDashboard() {
                         <Target className="w-6 h-6 text-green-400" />
                       </div>
                     </div>
-                    <p className="text-3xl font-bold text-white mb-1">{profileCompletion}%</p>
+                    <p className="text-3xl font-bold text-theme-foreground mb-1">{profileCompletion}%</p>
                     <p className="text-sm text-text-secondary">Profile Complete</p>
                   </div>
                 </div>
@@ -190,7 +190,7 @@ export default function CustomerDashboard() {
                         <Sparkles className="w-6 h-6 text-amber-400" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-white font-semibold mb-1">Tour Miles Hub</h3>
+                        <h3 className="text-theme-foreground font-semibold mb-1">Tour Miles Hub</h3>
                         <p className="text-sm text-text-secondary">Earn points, unlock rewards</p>
                       </div>
                       <ChevronRight className="w-5 h-5 text-text-secondary group-hover:text-white transition-colors" />
@@ -206,7 +206,7 @@ export default function CustomerDashboard() {
                         <Target className="w-6 h-6 text-blue-400" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-white font-semibold mb-1">Complete Profile</h3>
+                        <h3 className="text-theme-foreground font-semibold mb-1">Complete Profile</h3>
                         <p className="text-sm text-text-secondary">Earn bonus Tour Miles</p>
                       </div>
                       <ChevronRight className="w-5 h-5 text-text-secondary group-hover:text-white transition-colors" />
@@ -222,7 +222,7 @@ export default function CustomerDashboard() {
                         <Play className="w-6 h-6 text-green-400" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-white font-semibold mb-1">Explore Tools</h3>
+                        <h3 className="text-theme-foreground font-semibold mb-1">Explore Tools</h3>
                         <p className="text-sm text-text-secondary">Unlock with Tour Miles</p>
                       </div>
                       <ChevronRight className="w-5 h-5 text-text-secondary group-hover:text-white transition-colors" />
@@ -233,7 +233,7 @@ export default function CustomerDashboard() {
                 {/* Recent Activity */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-semibold text-white">Recent Activity</h2>
+                    <h2 className="text-lg font-semibold text-theme-foreground">Recent Activity</h2>
                     <Link to="/customer/tour-miles" className="text-sm text-brand-blue hover:underline">
                       View All
                     </Link>
@@ -250,7 +250,7 @@ export default function CustomerDashboard() {
                               <Clock className="w-5 h-5 text-text-secondary" />
                             </div>
                             <div>
-                              <p className="text-white text-sm">{activity.eventType?.replace(/_/g, ' ')}</p>
+                              <p className="text-theme-foreground text-sm">{activity.eventType?.replace(/_/g, ' ')}</p>
                               <p className="text-xs text-text-secondary">
                                 {new Date(activity.createdAt).toLocaleDateString()}
                               </p>
@@ -278,7 +278,7 @@ export default function CustomerDashboard() {
               <div className="space-y-6">
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
                   <Music className="w-16 h-16 text-brand-blue mx-auto mb-4 opacity-50" />
-                  <h2 className="text-xl font-semibold text-white mb-2">Discover Content Coming Soon</h2>
+                  <h2 className="text-xl font-semibold text-theme-foreground mb-2">Discover Content Coming Soon</h2>
                   <p className="text-text-secondary max-w-md mx-auto">
                     Curated playlists, new releases from Producer Tour artists, and featured producers will be available here.
                   </p>
@@ -290,7 +290,7 @@ export default function CustomerDashboard() {
               <div className="space-y-6">
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
                   <Calendar className="w-16 h-16 text-purple-400 mx-auto mb-4 opacity-50" />
-                  <h2 className="text-xl font-semibold text-white mb-2">Events Coming Soon</h2>
+                  <h2 className="text-xl font-semibold text-theme-foreground mb-2">Events Coming Soon</h2>
                   <p className="text-text-secondary max-w-md mx-auto">
                     Community events, workshops, and networking opportunities will be listed here.
                   </p>
@@ -302,7 +302,7 @@ export default function CustomerDashboard() {
               <div className="space-y-6">
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
                   <BookOpen className="w-16 h-16 text-green-400 mx-auto mb-4 opacity-50" />
-                  <h2 className="text-xl font-semibold text-white mb-2">Learning Center Coming Soon</h2>
+                  <h2 className="text-xl font-semibold text-theme-foreground mb-2">Learning Center Coming Soon</h2>
                   <p className="text-text-secondary max-w-md mx-auto">
                     Tips, tutorials, and educational content about music production and the industry.
                   </p>
@@ -314,7 +314,7 @@ export default function CustomerDashboard() {
               <div className="space-y-6">
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
                   <Heart className="w-16 h-16 text-red-400 mx-auto mb-4 opacity-50" />
-                  <h2 className="text-xl font-semibold text-white mb-2">Wishlist Coming Soon</h2>
+                  <h2 className="text-xl font-semibold text-theme-foreground mb-2">Wishlist Coming Soon</h2>
                   <p className="text-text-secondary max-w-md mx-auto">
                     Save tools and rewards you're interested in, and track Tour Miles prices.
                   </p>

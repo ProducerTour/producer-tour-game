@@ -136,8 +136,8 @@ export default function WriterDashboard() {
     <div className="flex flex-col h-screen bg-black overflow-hidden">
       {/* Background Effects - Cassette Theme */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-[#f0e226]/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-[#f0e226]/3 rounded-full blur-[100px]" />
+        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-theme-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-theme-primary/3 rounded-full blur-[100px]" />
       </div>
       {/* Noise texture overlay */}
       <div className="fixed inset-0 pointer-events-none opacity-[0.015] z-[1]">
@@ -167,10 +167,10 @@ export default function WriterDashboard() {
         {activeTab === 'overview' && (
           <>
             {paymentStatusLoading ? (
-              <div className="mb-6 bg-[#19181a] border border-white/5 p-4">
+              <div className="mb-6 bg-theme-card border border-theme-border p-4">
                 <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#f0e226]"></div>
-                  <p className="text-sm text-white/40">Loading payment status...</p>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-theme-primary"></div>
+                  <p className="text-sm text-theme-foreground-muted">Loading payment status...</p>
                 </div>
               </div>
             ) : paymentStatusError ? (
@@ -218,7 +218,7 @@ export default function WriterDashboard() {
         )}
 
         {/* Content */}
-        <div className="bg-[#19181a] border border-white/5 p-6">
+        <div className="bg-theme-card border border-theme-border p-6">
             {activeTab === 'overview' && (
               <WriterOverviewTremor onWithdrawClick={handleWithdrawClick} />
             )}
@@ -299,15 +299,15 @@ export default function WriterDashboard() {
       {/* Withdrawal Modal */}
       {showWithdrawModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#19181a] border border-white/5 max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b border-white/5">
+          <div className="bg-theme-card border border-theme-border max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-theme-border">
               <h3 className="text-xl font-normal text-white">Request Withdrawal</h3>
               <button
                 onClick={() => {
                   setShowWithdrawModal(false);
                   setWithdrawError('');
                 }}
-                className="text-white/40 hover:text-[#f0e226] transition-colors"
+                className="text-theme-foreground-muted hover:text-theme-primary transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -315,23 +315,23 @@ export default function WriterDashboard() {
 
             <div className="p-6 space-y-4">
               <div>
-                <p className="text-white/40 text-sm mb-4">
+                <p className="text-theme-foreground-muted text-sm mb-4">
                   Request a withdrawal from your available balance. Your request will be reviewed by an administrator.
                 </p>
-                <div className="bg-black border border-white/10 p-4 mb-4">
-                  <p className="text-xs text-white/40 uppercase tracking-[0.2em] mb-1">Available Balance</p>
-                  <p className="text-2xl font-light text-[#f0e226]">
+                <div className="bg-theme-input border border-theme-border-strong p-4 mb-4">
+                  <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-1">Available Balance</p>
+                  <p className="text-2xl font-light text-theme-primary">
                     ${walletBalance?.availableBalance.toFixed(2) || '0.00'}
                   </p>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="withdrawAmount" className="block text-xs font-medium text-white/40 uppercase tracking-[0.2em] mb-2">
+                <label htmlFor="withdrawAmount" className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">
                   Withdrawal Amount
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/30">$</span>
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-theme-foreground-muted">$</span>
                   <input
                     type="number"
                     id="withdrawAmount"
@@ -342,7 +342,7 @@ export default function WriterDashboard() {
                     }}
                     min="50"
                     step="0.01"
-                    className="w-full pl-8 pr-4 py-3 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50 transition-all"
+                    className="w-full pl-8 pr-4 py-3 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-all"
                     placeholder="0.00"
                   />
                 </div>
@@ -363,14 +363,14 @@ export default function WriterDashboard() {
                     setShowWithdrawModal(false);
                     setWithdrawError('');
                   }}
-                  className="flex-1 px-4 py-3 bg-black text-white border border-white/10 hover:border-[#f0e226]/30 transition-colors uppercase tracking-wider text-sm"
+                  className="flex-1 px-4 py-3 bg-black text-white border border-theme-border-strong hover:border-theme-border-hover transition-colors uppercase tracking-wider text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleWithdrawSubmit}
                   disabled={withdrawMutation.isPending}
-                  className="flex-1 px-4 py-3 bg-[#f0e226] text-black font-medium hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider text-sm"
+                  className="flex-1 px-4 py-3 bg-theme-primary text-black font-medium hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider text-sm"
                 >
                   {withdrawMutation.isPending ? 'Submitting...' : 'Request Withdrawal'}
                 </button>
@@ -1226,12 +1226,12 @@ function WriterDocumentsSection() {
 
 function StatCard({ title, value, subtitle }: { title: string; value: string; subtitle: string; color?: string }) {
   return (
-    <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 hover:border-[#f0e226]/30 transition-all duration-300 group">
+    <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 hover:border-theme-border-hover transition-all duration-300 group">
       {/* Subtle yellow glow effect on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#f0e226]/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute inset-0 bg-gradient-to-br from-theme-primary-3 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
       <div className="relative">
-        <h3 className="text-xs font-medium text-white/40 uppercase tracking-[0.2em] mb-2">{title}</h3>
+        <h3 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">{title}</h3>
         <p className="text-3xl font-light text-white mb-1">{value}</p>
         <p className="text-xs text-white/30">{subtitle}</p>
       </div>

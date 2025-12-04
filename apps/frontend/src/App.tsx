@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/auth.store';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 // Components
 import CommandPalette from './components/CommandPalette';
@@ -63,6 +64,7 @@ function App() {
   const { user } = useAuthStore();
 
   return (
+    <ThemeProvider>
     <BrowserRouter>
       {/* Global Toast Notifications */}
       <Toaster
@@ -269,6 +271,7 @@ function App() {
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

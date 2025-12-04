@@ -9,14 +9,14 @@ import { getAuthToken, gamificationApi } from '../lib/api';
 import { AnimatedBorder, parseBorderConfig } from './AnimatedBorder';
 import { ProfileBadge, parseBadgeConfig } from './ProfileBadge';
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
+import blackLogo from '@/assets/images/logos/blacktransparentpt.png';
+import { useThemeOptional } from '@/contexts/ThemeContext';
 
 // Re-export types for backward compatibility
 export type { NavSection, NavItem };
 
-// Cassette theme colors
-// #000000 - Pure Black (background)
-// #19181a - Soft Black (cards)
-// #f0e226 - Yellow (accent)
+// Theme colors are now managed via CSS variables (see config/themes.ts)
+// Use theme-* Tailwind classes for dynamic theming
 
 interface SidebarProps {
   activeTab?: string;
@@ -27,6 +27,8 @@ interface SidebarProps {
 export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const themeContext = useThemeOptional();
+  const isLightTheme = themeContext?.themeId === 'light';
   const [expandedSections, setExpandedSections] = useState<string[]>(['main']);
   const [expandedTabs, setExpandedTabs] = useState<string[]>(['placement-deals']); // Auto-expand placement tracker
 
@@ -155,17 +157,17 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   return (
     <>
       {/* Mobile Header Bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-black/95 backdrop-blur-xl border-b border-white/5 z-[70] flex items-center justify-between px-4">
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-theme-background/95 backdrop-blur-xl border-b border-theme-border z-[70] flex items-center justify-between px-4">
         <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
           <img
-            src={whiteLogo}
+            src={isLightTheme ? blackLogo : whiteLogo}
             alt="Producer Tour"
             className="h-10 w-auto"
           />
         </Link>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="w-10 h-10 flex items-center justify-center text-white/60 hover:text-[#f0e226] hover:bg-[#f0e226]/10 transition-colors"
+          className="w-10 h-10 flex items-center justify-center text-theme-foreground-secondary hover:text-theme-primary hover:bg-theme-primary/10 transition-colors"
           aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
         >
           {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -175,23 +177,23 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[55]"
+          className="md:hidden fixed inset-0 bg-theme-background/80 backdrop-blur-sm z-[55]"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <div className={`
-        fixed left-0 top-0 flex flex-col h-screen bg-black border-r border-white/5 z-[60] transition-all duration-300
+        fixed left-0 top-0 flex flex-col h-screen bg-theme-background border-r border-theme-border z-[60] transition-all duration-300
         ${isCollapsed ? 'w-20' : 'w-64'}
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         md:translate-x-0
       `}>
         {/* Logo Section */}
-        <div className={`${isCollapsed ? 'p-4' : 'p-6'} border-b border-white/5 relative`}>
+        <div className={`${isCollapsed ? 'p-4' : 'p-6'} border-b border-theme-border relative`}>
           <Link to="/" className="flex items-center justify-center hover:opacity-80 transition-opacity">
             <img
-              src={whiteLogo}
+              src={isLightTheme ? blackLogo : whiteLogo}
               alt="Producer Tour"
               className={`${isCollapsed ? 'h-10' : 'h-14'} w-auto transition-all duration-300`}
             />
@@ -199,7 +201,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
           {/* Collapse Toggle Button - hidden on mobile */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#19181a] border border-[#f0e226]/30 rounded-full items-center justify-center text-[#f0e226]/60 hover:text-[#f0e226] hover:bg-[#f0e226]/10 transition-all"
+            className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-theme-card border border-theme-border rounded-full items-center justify-center text-theme-foreground hover:text-theme-primary hover:bg-theme-primary/10 transition-all"
             title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -207,7 +209,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
         </div>
 
       {/* User Profile Section */}
-      <div className={`${isCollapsed ? 'px-3 py-4' : 'px-6 py-4'} border-b border-white/5 bg-[#19181a]/50`}>
+      <div className={`${isCollapsed ? 'px-3 py-4' : 'px-6 py-4'} border-b border-theme-border bg-theme-card/50`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
           {/* Profile Photo with Animated Border */}
           <div className="relative flex-shrink-0">
@@ -225,7 +227,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                 />
               ) : (
                 <div
-                  className="w-full h-full rounded-full bg-[#f0e226] flex items-center justify-center text-black font-semibold"
+                  className="w-full h-full rounded-full bg-theme-primary flex items-center justify-center text-theme-primary-foreground font-semibold"
                   title={isCollapsed ? `${user?.firstName} ${user?.lastName}` : undefined}
                 >
                   {user?.firstName?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
@@ -248,16 +250,16 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
           {!isCollapsed && (
             <>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">
+                <p className="text-sm font-medium text-theme-foreground truncate">
                   {user?.firstName && user?.lastName
                     ? `${user.firstName} ${user.lastName}`
                     : user?.email}
                 </p>
-                <p className="text-xs text-[#f0e226]/60 uppercase tracking-wider">{user?.role.toLowerCase()}</p>
+                <p className="text-xs text-theme-primary/60 uppercase tracking-wider">{user?.role.toLowerCase()}</p>
               </div>
               <button
                 onClick={logout}
-                className="text-white/40 hover:text-[#f0e226] transition-colors p-2 hover:bg-[#f0e226]/10"
+                className="text-theme-foreground-muted hover:text-theme-primary transition-colors p-2 hover:bg-theme-primary/10"
                 title="Logout"
               >
                 <LogOut className="w-5 h-5" />
@@ -268,13 +270,13 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       </div>
 
       {/* Navigation Sections */}
-      <div className="flex-1 overflow-y-auto py-4 scrollbar-cassette">
+      <div className="flex-1 overflow-y-auto py-4 scrollbar-theme">
         {sections.map((section) => (
           <div key={section.id} className="mb-4">
             {!isCollapsed && (
               <button
                 onClick={() => toggleSection(section.id)}
-                className="w-full px-6 py-2 flex items-center justify-between text-white/40 hover:text-[#f0e226] transition-colors"
+                className="w-full px-6 py-2 flex items-center justify-between text-theme-foreground-muted hover:text-theme-primary transition-colors"
               >
                 <span className="text-xs font-medium uppercase tracking-[0.2em]">
                   {section.label}
@@ -302,10 +304,10 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                           to={item.path}
                           onClick={() => setIsMobileMenuOpen(false)}
                           title={isCollapsed ? item.label : undefined}
-                          className={`w-full ${isCollapsed ? 'px-0 py-3 justify-center' : 'px-6 py-3'} flex items-center gap-3 transition-all ${
+                          className={`w-full ${isCollapsed ? 'px-0 py-3 justify-center' : 'px-6 py-3 gap-3'} flex items-center transition-all ${
                             isActive
-                              ? `bg-[#f0e226]/10 ${isCollapsed ? 'border-l-2' : 'border-l-2'} border-[#f0e226] text-[#f0e226]`
-                              : `text-white/60 hover:text-white hover:bg-white/5 ${isCollapsed ? 'border-l-2' : 'border-l-2'} border-transparent`
+                              ? 'bg-theme-primary/10 border-l-2 border-theme-primary text-theme-primary'
+                              : 'text-theme-foreground-secondary hover:text-theme-foreground hover:bg-theme-border-strong border-l-2 border-transparent'
                           }`}
                         >
                           {renderIcon(item.icon)}
@@ -317,10 +319,10 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                                   px-2 py-0.5 text-xs font-medium uppercase tracking-wider
                                   ${item.badgeColor === 'green' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : ''}
                                   ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
-                                  ${item.badgeColor === 'yellow' ? 'bg-[#f0e226]/20 text-[#f0e226] border border-[#f0e226]/40' : ''}
+                                  ${item.badgeColor === 'yellow' ? 'bg-theme-primary/20 text-theme-primary border border-theme-primary/40' : ''}
                                   ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
                                   ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
-                                  ${!item.badgeColor ? 'bg-white/10 text-white/60 border border-white/20' : ''}
+                                  ${!item.badgeColor ? 'bg-theme-border-strong text-theme-foreground-secondary border border-theme-border' : ''}
                                 `}>
                                   {item.badge}
                                 </span>
@@ -329,10 +331,10 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                           )}
                         </Link>
                       ) : (
-                        <div className={`w-full ${isCollapsed ? 'px-0 py-3 justify-center' : 'px-6 py-3'} flex items-center gap-3 transition-all ${
+                        <div className={`w-full ${isCollapsed ? 'px-0 py-3 justify-center' : 'px-6 py-3 gap-3'} flex items-center transition-all ${
                           isActive
-                            ? `bg-[#f0e226]/10 ${isCollapsed ? 'border-l-2' : 'border-l-2'} border-[#f0e226] text-[#f0e226]`
-                            : `text-white/60 hover:text-white hover:bg-white/5 ${isCollapsed ? 'border-l-2' : 'border-l-2'} border-transparent`
+                            ? 'bg-theme-primary/10 border-l-2 border-theme-primary text-theme-primary'
+                            : 'text-theme-foreground-secondary hover:text-theme-foreground hover:bg-theme-border-strong border-l-2 border-transparent'
                         }`}>
                           {/* Main clickable area - always navigates to tab */}
                           <button
@@ -348,7 +350,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                               }
                             }}
                             title={isCollapsed ? item.label : undefined}
-                            className="flex items-center gap-3 flex-1 text-left"
+                            className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 flex-1 text-left'}`}
                           >
                             {renderIcon(item.icon)}
                             {!isCollapsed && (
@@ -359,10 +361,10 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                                     px-2 py-0.5 text-xs font-medium uppercase tracking-wider
                                     ${item.badgeColor === 'green' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : ''}
                                     ${item.badgeColor === 'blue' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : ''}
-                                    ${item.badgeColor === 'yellow' ? 'bg-[#f0e226]/20 text-[#f0e226] border border-[#f0e226]/40' : ''}
+                                    ${item.badgeColor === 'yellow' ? 'bg-theme-primary/20 text-theme-primary border border-theme-primary/40' : ''}
                                     ${item.badgeColor === 'red' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : ''}
                                     ${item.badgeColor === 'purple' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : ''}
-                                    ${!item.badgeColor ? 'bg-white/10 text-white/60 border border-white/20' : ''}
+                                    ${!item.badgeColor ? 'bg-theme-border-strong text-theme-foreground-secondary border border-theme-border' : ''}
                                   `}>
                                     {item.badge}
                                   </span>
@@ -377,7 +379,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                                 e.stopPropagation();
                                 toggleTab(item.id);
                               }}
-                              className="p-1 hover:bg-[#f0e226]/10 transition-colors"
+                              className="p-1 hover:bg-theme-primary/10 transition-colors"
                               title={isExpanded ? 'Collapse' : 'Expand'}
                             >
                               <ChevronDown
@@ -397,8 +399,8 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                             const isChildActive = activeTab === child.id;
                             const childClassName = `w-full px-6 py-2 flex items-center gap-3 transition-all ${
                               isChildActive
-                                ? 'bg-[#f0e226]/5 border-l-2 border-[#f0e226]/60 text-[#f0e226]'
-                                : 'text-white/40 hover:text-white hover:bg-white/5 border-l-2 border-transparent'
+                                ? 'bg-theme-primary/5 border-l-2 border-theme-primary/60 text-theme-primary'
+                                : 'text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-border-strong border-l-2 border-transparent'
                             }`;
 
                             // Use Link for children with paths, button for tab changes
@@ -445,12 +447,12 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       </div>
 
         {/* Bottom Actions */}
-        <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t border-white/5 space-y-2`}>
+        <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t border-theme-border space-y-2`}>
           <Link
             to="/settings"
             onClick={() => setIsMobileMenuOpen(false)}
             title={isCollapsed ? 'Settings' : undefined}
-            className={`flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 text-white/40 hover:text-[#f0e226] hover:bg-[#f0e226]/10 transition-colors`}
+            className={`flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 text-theme-foreground-muted hover:text-theme-primary hover:bg-theme-primary/10 transition-colors`}
           >
             <Settings className="w-5 h-5" />
             {!isCollapsed && <span className="text-sm font-medium">Settings</span>}
@@ -459,7 +461,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
             <button
               onClick={logout}
               title="Logout"
-              className="w-full flex items-center justify-center px-2 py-3 text-white/40 hover:text-[#f0e226] hover:bg-[#f0e226]/10 transition-colors"
+              className="w-full flex items-center justify-center px-2 py-3 text-theme-foreground-muted hover:text-theme-primary hover:bg-theme-primary/10 transition-colors"
             >
               <LogOut className="w-5 h-5" />
             </button>

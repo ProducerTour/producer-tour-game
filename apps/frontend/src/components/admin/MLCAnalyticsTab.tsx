@@ -5,12 +5,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Card,
-  Title,
-  Text,
-  Grid,
-} from '@tremor/react';
+// Tremor Card, Title, Text, Grid no longer used - replaced with cassette theme divs
 import {
   BarChart,
   Bar,
@@ -117,8 +112,8 @@ const MOCK_MLC_DATA = {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-[#19181a] border border-white/10 p-4 shadow-2xl">
-        <p className="text-white font-medium text-sm mb-3 pb-2 border-b border-white/5">{label}</p>
+      <div className="bg-theme-card border border-theme-border-strong p-4 shadow-2xl">
+        <p className="text-white font-medium text-sm mb-3 pb-2 border-b border-theme-border">{label}</p>
         <div className="space-y-2">
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex items-center justify-between gap-4">
@@ -127,9 +122,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                   className="w-3 h-3"
                   style={{ backgroundColor: entry.color }}
                 />
-                <span className="text-white/40 text-sm">{entry.name}</span>
+                <span className="text-theme-foreground-muted text-sm">{entry.name}</span>
               </div>
-              <span className="text-[#f0e226] font-light text-sm">
+              <span className="text-theme-primary font-light text-sm">
                 ${entry.value?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -147,16 +142,16 @@ const CustomPieLegend = ({ data }: { data: any[] }) => {
   return (
     <div className="space-y-2 mt-4">
       {data.map((entry: any, index: number) => (
-        <div key={index} className="flex items-center justify-between px-3 py-2 bg-black/30 hover:bg-black/50 transition-colors border border-white/5">
+        <div key={index} className="flex items-center justify-between px-3 py-2 bg-black/30 hover:bg-black/50 transition-colors border border-theme-border">
           <div className="flex items-center gap-2">
             <div
               className="w-3 h-3"
               style={{ backgroundColor: entry.fill }}
             />
-            <span className="text-white/60 text-sm">{entry.name}</span>
+            <span className="text-theme-foreground-secondary text-sm">{entry.name}</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[#f0e226] font-light text-sm">
+            <span className="text-theme-primary font-light text-sm">
               ${entry.value.toLocaleString('en-US', { minimumFractionDigits: 0 })}
             </span>
             <span className="text-white/30 text-xs w-12 text-right">
@@ -260,18 +255,18 @@ const TheaterMode = ({
 
       {/* Content container */}
       <div
-        className="relative z-10 w-[95vw] max-w-7xl h-[85vh] bg-[#19181a] border border-white/5 shadow-2xl overflow-hidden"
+        className="relative z-10 w-[95vw] max-w-7xl h-[85vh] bg-theme-card border border-theme-border shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top accent line */}
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
           <h2 className="text-white text-xl font-light">{title}</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/10 transition-colors text-white/40 hover:text-[#f0e226]"
+            className="p-2 hover:bg-white/10 transition-colors text-theme-foreground-muted hover:text-theme-primary"
           >
             <X className="w-5 h-5" />
           </button>
@@ -290,7 +285,7 @@ const TheaterMode = ({
 const ExpandButton = ({ onClick }: { onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="p-2 hover:bg-[#f0e226]/10 transition-colors text-white/40 hover:text-[#f0e226]"
+    className="p-2 hover:bg-theme-primary/10 transition-colors text-theme-foreground-muted hover:text-theme-primary"
     title="Open in theater mode"
   >
     <Maximize2 className="w-4 h-4" />
@@ -316,7 +311,7 @@ export default function MLCAnalyticsTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
       </div>
     );
   }
@@ -329,14 +324,14 @@ export default function MLCAnalyticsTab() {
           <div className="flex justify-end">
             <button
               onClick={() => setUseMockData(true)}
-              className="px-3 py-1.5 text-xs font-medium transition-all bg-[#f0e226]/20 text-[#f0e226] border border-[#f0e226]/40 hover:bg-[#f0e226]/30"
+              className="px-3 py-1.5 text-xs font-medium transition-all bg-theme-primary/20 text-theme-primary border border-theme-primary hover:bg-theme-primary/30"
             >
               Enable Mock Data
             </button>
           </div>
         )}
-        <div className="bg-white/5 border border-white/10 p-6 text-center">
-          <p className="text-white/40">Failed to load MLC Analytics. Make sure you have MLC statements uploaded.</p>
+        <div className="bg-white/5 border border-theme-border-strong p-6 text-center">
+          <p className="text-theme-foreground-muted">Failed to load MLC Analytics. Make sure you have MLC statements uploaded.</p>
         </div>
       </div>
     );
@@ -474,11 +469,11 @@ export default function MLCAnalyticsTab() {
       <div>
         <div className="flex justify-between items-start">
           <div>
-            <h2 className="text-white text-2xl font-light flex items-center gap-2">
-              <Disc className="w-6 h-6 text-[#f0e226]" />
+            <h2 className="text-theme-foreground text-2xl font-light flex items-center gap-2">
+              <Disc className="w-6 h-6 text-theme-primary" />
               MLC Analytics
             </h2>
-            <p className="text-white/40">Mechanical Licensing Collective statement analysis</p>
+            <p className="text-theme-foreground-muted">Mechanical Licensing Collective statement analysis</p>
           </div>
           <div className="flex items-center gap-3">
             {/* Dev Mode Mock Data Toggle - only visible in development */}
@@ -487,8 +482,8 @@ export default function MLCAnalyticsTab() {
                 onClick={() => setUseMockData(!useMockData)}
                 className={`px-3 py-1.5 text-xs font-medium transition-all ${
                   useMockData
-                    ? 'bg-[#f0e226]/20 text-[#f0e226] border border-[#f0e226]/40'
-                    : 'bg-black text-white/40 border border-white/10 hover:border-[#f0e226]/50'
+                    ? 'bg-theme-primary/20 text-theme-primary border border-theme-primary'
+                    : 'bg-black text-theme-foreground-muted border border-theme-border-strong hover:border-theme-primary-50'
                 }`}
               >
                 {useMockData ? 'Mock Data ON' : 'Live Data'}
@@ -496,14 +491,14 @@ export default function MLCAnalyticsTab() {
             )}
             <div className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all ${
               (kpis?.totalStatements || 0) > 0
-                ? 'bg-[#f0e226]/10 text-[#f0e226] border border-[#f0e226]/30'
-                : 'bg-white/5 text-white/40 border border-white/10'
+                ? 'bg-theme-primary/10 text-theme-primary border border-theme-border-hover'
+                : 'bg-white/5 text-theme-foreground-muted border border-theme-border-strong'
             }`}>
               <div className={`w-2 h-2 rounded-full ${
-                (kpis?.totalStatements || 0) > 0 ? 'bg-[#f0e226] animate-pulse' : 'bg-white/30'
+                (kpis?.totalStatements || 0) > 0 ? 'bg-theme-primary animate-pulse' : 'bg-white/30'
               }`} />
               <span className="font-medium">{kpis?.totalStatements || 0}</span>
-              <span className="text-white/40">Statements Processed</span>
+              <span className="text-theme-foreground-muted">Statements Processed</span>
             </div>
           </div>
         </div>
@@ -511,8 +506,8 @@ export default function MLCAnalyticsTab() {
 
       {/* Mock Data Warning Banner */}
       {useMockData && (
-        <div className="bg-[#f0e226]/10 border border-[#f0e226]/30 px-4 py-2">
-          <p className="text-[#f0e226] text-sm">
+        <div className="bg-theme-primary/10 border border-theme-border-hover px-4 py-2">
+          <p className="text-theme-primary text-sm">
             Dev Mode: Displaying mock data for testing. Toggle off to see real data.
           </p>
         </div>
@@ -520,78 +515,78 @@ export default function MLCAnalyticsTab() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300 border-t-2 border-t-[#f0e226]">
+        <div className="group relative overflow-hidden bg-theme-card border border-theme-border p-4 hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Total Revenue</p>
-              <p className="text-[#f0e226] text-2xl font-light mt-1">{currencyFormat(kpis?.totalRevenue || 0)}</p>
+              <p className="text-theme-foreground-muted text-xs uppercase tracking-[0.2em]">Total Revenue</p>
+              <p className="text-theme-primary text-2xl font-light mt-1">{currencyFormat(kpis?.totalRevenue || 0)}</p>
             </div>
-            <div className="p-2 bg-[#f0e226]/10">
-              <DollarSign className="w-5 h-5 text-[#f0e226]" />
+            <div className="p-2 bg-theme-primary/10">
+              <DollarSign className="w-5 h-5 text-theme-primary" />
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="group relative overflow-hidden bg-theme-card border border-theme-border p-4 hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Net Revenue</p>
-              <p className="text-white text-2xl font-light mt-1">{currencyFormat(kpis?.totalNetRevenue || 0)}</p>
+              <p className="text-theme-foreground-muted text-xs uppercase tracking-[0.2em]">Net Revenue</p>
+              <p className="text-theme-foreground text-2xl font-light mt-1">{currencyFormat(kpis?.totalNetRevenue || 0)}</p>
             </div>
-            <div className="p-2 bg-[#f0e226]/10">
-              <TrendingUp className="w-5 h-5 text-[#f0e226]" />
+            <div className="p-2 bg-theme-primary/10">
+              <TrendingUp className="w-5 h-5 text-theme-primary" />
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="group relative overflow-hidden bg-theme-card border border-theme-border p-4 hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Unique Songs</p>
-              <p className="text-white text-2xl font-light mt-1">{(kpis?.uniqueSongs || 0).toLocaleString()}</p>
+              <p className="text-theme-foreground-muted text-xs uppercase tracking-[0.2em]">Unique Songs</p>
+              <p className="text-theme-foreground text-2xl font-light mt-1">{(kpis?.uniqueSongs || 0).toLocaleString()}</p>
             </div>
-            <div className="p-2 bg-[#f0e226]/10">
-              <Music className="w-5 h-5 text-[#f0e226]" />
+            <div className="p-2 bg-theme-primary/10">
+              <Music className="w-5 h-5 text-theme-primary" />
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="group relative overflow-hidden bg-theme-card border border-theme-border p-4 hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Platforms</p>
-              <p className="text-white text-2xl font-light mt-1">{kpis?.uniquePlatforms || 0}</p>
+              <p className="text-theme-foreground-muted text-xs uppercase tracking-[0.2em]">Platforms</p>
+              <p className="text-theme-foreground text-2xl font-light mt-1">{kpis?.uniquePlatforms || 0}</p>
             </div>
-            <div className="p-2 bg-[#f0e226]/10">
-              <BarChart3 className="w-5 h-5 text-[#f0e226]" />
+            <div className="p-2 bg-theme-primary/10">
+              <BarChart3 className="w-5 h-5 text-theme-primary" />
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden bg-[#19181a] border border-white/5 p-4 hover:border-[#f0e226]/30 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+        <div className="group relative overflow-hidden bg-theme-card border border-theme-border p-4 hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-white/40 text-xs uppercase tracking-[0.2em]">Avg/Item</p>
-              <p className="text-white text-2xl font-light mt-1">{currencyFormat(kpis?.avgRevenuePerItem || 0)}</p>
+              <p className="text-theme-foreground-muted text-xs uppercase tracking-[0.2em]">Avg/Item</p>
+              <p className="text-theme-foreground text-2xl font-light mt-1">{currencyFormat(kpis?.avgRevenuePerItem || 0)}</p>
             </div>
-            <div className="p-2 bg-[#f0e226]/10">
-              <Globe className="w-5 h-5 text-[#f0e226]" />
+            <div className="p-2 bg-theme-primary/10">
+              <Globe className="w-5 h-5 text-theme-primary" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Revenue Timeline Area Chart */}
-      <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-primary-20 transition-all duration-300">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-light text-white mb-1">Revenue Timeline</h3>
-            <p className="text-white/40 text-sm">Monthly gross and net revenue</p>
+            <h3 className="text-lg font-light text-theme-foreground mb-1">Revenue Timeline</h3>
+            <p className="text-theme-foreground-muted text-sm">Monthly gross and net revenue</p>
           </div>
           <div className="flex items-center gap-4">
             {/* Month Navigation */}
@@ -601,14 +596,14 @@ export default function MLCAnalyticsTab() {
                 disabled={!canGoBack}
                 className={`p-1.5 transition-colors ${
                   canGoBack
-                    ? 'hover:bg-[#f0e226]/10 text-white/40 hover:text-[#f0e226]'
+                    ? 'hover:bg-theme-primary/10 text-theme-foreground-muted hover:text-theme-primary'
                     : 'text-white/20 cursor-not-allowed'
                 }`}
                 title="Previous months"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-white/40 text-xs px-2 min-w-[100px] text-center">
+              <span className="text-theme-foreground-muted text-xs px-2 min-w-[100px] text-center">
                 {getMonthRangeLabel()}
               </span>
               <button
@@ -616,7 +611,7 @@ export default function MLCAnalyticsTab() {
                 disabled={!canGoForward}
                 className={`p-1.5 transition-colors ${
                   canGoForward
-                    ? 'hover:bg-[#f0e226]/10 text-white/40 hover:text-[#f0e226]'
+                    ? 'hover:bg-theme-primary/10 text-theme-foreground-muted hover:text-theme-primary'
                     : 'text-white/20 cursor-not-allowed'
                 }`}
                 title="Next months"
@@ -627,12 +622,12 @@ export default function MLCAnalyticsTab() {
             {/* Legend */}
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-[#f0e226]" />
-                <span className="text-white/40 text-xs">Gross</span>
+                <div className="w-3 h-3 bg-theme-primary" />
+                <span className="text-theme-foreground-muted text-xs">Gross</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-white/60" />
-                <span className="text-white/40 text-xs">Net</span>
+                <span className="text-theme-foreground-muted text-xs">Net</span>
               </div>
             </div>
             {/* Theater mode button */}
@@ -701,22 +696,22 @@ export default function MLCAnalyticsTab() {
 
       {/* Platform Breakdown - Custom Shape Bar Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-primary-20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-lg font-light text-white mb-1">Top Platforms by Revenue</h3>
-              <p className="text-white/40 text-sm">Gross vs Net comparison (top 10)</p>
+              <p className="text-theme-foreground-muted text-sm">Gross vs Net comparison (top 10)</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-[#f0e226]" />
-                  <span className="text-white/40 text-xs">Gross</span>
+                  <div className="w-3 h-3 bg-theme-primary" />
+                  <span className="text-theme-foreground-muted text-xs">Gross</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-[#f0e226]/50" />
-                  <span className="text-white/40 text-xs">Net</span>
+                  <div className="w-3 h-3 bg-theme-primary/50" />
+                  <span className="text-theme-foreground-muted text-xs">Net</span>
                 </div>
               </div>
               <ExpandButton onClick={() => setTheaterChart('platforms')} />
@@ -774,12 +769,12 @@ export default function MLCAnalyticsTab() {
         </div>
 
         {/* Service Type Pie Chart - Cassette Theme */}
-        <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-primary-20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-lg font-light text-white mb-1">Service Type Distribution</h3>
-              <p className="text-white/40 text-sm">Revenue by streaming tier/offering</p>
+              <p className="text-theme-foreground-muted text-sm">Revenue by streaming tier/offering</p>
             </div>
             <ExpandButton onClick={() => setTheaterChart('serviceTypes')} />
           </div>
@@ -833,22 +828,22 @@ export default function MLCAnalyticsTab() {
       </div>
 
       {/* Top Songs - Composed Chart - Cassette Theme */}
-      <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-6 group hover:border-[#f0e226]/20 transition-all duration-300">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-primary-20 transition-all duration-300">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-lg font-light text-white mb-1">Top Performing Songs</h3>
-            <p className="text-white/40 text-sm">Revenue and platform distribution (top 10)</p>
+            <p className="text-theme-foreground-muted text-sm">Revenue and platform distribution (top 10)</p>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-[#f0e226]" />
-                <span className="text-white/40 text-xs">Revenue</span>
+                <div className="w-3 h-3 bg-theme-primary" />
+                <span className="text-theme-foreground-muted text-xs">Revenue</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-0.5 bg-white/60" />
-                <span className="text-white/40 text-xs">Platforms</span>
+                <span className="text-theme-foreground-muted text-xs">Platforms</span>
               </div>
             </div>
             <ExpandButton onClick={() => setTheaterChart('topSongs')} />
@@ -905,17 +900,18 @@ export default function MLCAnalyticsTab() {
       </div>
 
       {/* Territory Treemap & Use Type Radial */}
-      <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Territory Treemap */}
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0 overflow-hidden">
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-primary-20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="flex items-center justify-between mb-4">
             <div>
-              <Title className="text-white mb-1">Revenue by Territory</Title>
-              <Text className="text-gray-500 text-sm">Geographic distribution of earnings</Text>
+              <h3 className="text-lg font-light text-white mb-1">Revenue by Territory</h3>
+              <p className="text-theme-foreground-muted text-sm">Geographic distribution of earnings</p>
             </div>
             <ExpandButton onClick={() => setTheaterChart('territory')} />
           </div>
-          <div className="h-72 rounded-xl overflow-hidden">
+          <div className="h-72 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <Treemap
                 data={territoryData}
@@ -929,20 +925,21 @@ export default function MLCAnalyticsTab() {
           {/* Territory mini legend */}
           <div className="flex flex-wrap gap-2 mt-4">
             {territoryData.slice(0, 5).map((t: any, i: number) => (
-              <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-full">
-                <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                <span className="text-gray-400 text-xs">{t.name}</span>
+              <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-black/30 border border-theme-border">
+                <div className="w-2 h-2" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                <span className="text-theme-foreground-muted text-xs">{t.name}</span>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
 
         {/* Use Type Horizontal Bar Chart */}
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-primary-20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="flex items-center justify-between mb-4">
             <div>
-              <Title className="text-white mb-1">Use Type Breakdown</Title>
-              <Text className="text-gray-500 text-sm">Revenue by consumption type</Text>
+              <h3 className="text-lg font-light text-white mb-1">Use Type Breakdown</h3>
+              <p className="text-theme-foreground-muted text-sm">Revenue by consumption type</p>
             </div>
             <ExpandButton onClick={() => setTheaterChart('useType')} />
           </div>
@@ -961,7 +958,7 @@ export default function MLCAnalyticsTab() {
                     </linearGradient>
                   ))}
                   <filter id="useTypeGlow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="0" stdDeviation="2" floodColor="#10b981" floodOpacity="0.3"/>
+                    <feDropShadow dx="0" dy="0" stdDeviation="2" floodColor="#f0e226" floodOpacity="0.3"/>
                   </filter>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} horizontal={false} />
@@ -986,9 +983,8 @@ export default function MLCAnalyticsTab() {
                 <Tooltip
                   formatter={(value: number) => currencyFormat(value)}
                   contentStyle={{
-                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                    backgroundColor: '#19181a',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '12px',
                     padding: '12px',
                   }}
                   itemStyle={{ color: '#fff' }}
@@ -998,7 +994,7 @@ export default function MLCAnalyticsTab() {
                 <Bar
                   dataKey="value"
                   name="Revenue"
-                  radius={[0, 8, 8, 0]}
+                  radius={[0, 4, 4, 0]}
                   barSize={28}
                   filter="url(#useTypeGlow)"
                 >
@@ -1010,22 +1006,23 @@ export default function MLCAnalyticsTab() {
             </ResponsiveContainer>
           </div>
           {/* Total summary */}
-          <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-            <span className="text-gray-400 text-sm">Total Use Type Revenue</span>
-            <span className="text-white font-semibold">
+          <div className="mt-4 pt-4 border-t border-theme-border flex items-center justify-between">
+            <span className="text-theme-foreground-muted text-sm">Total Use Type Revenue</span>
+            <span className="text-theme-primary font-light">
               {currencyFormat(useTypeRadialData.reduce((sum: number, item: any) => sum + item.value, 0))}
             </span>
           </div>
-        </Card>
-      </Grid>
+        </div>
+      </div>
 
       {/* Advanced Charts Row - Platform Radar & Revenue Scatter */}
-      <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Platform Rankings - Simple comparison */}
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-primary-20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="mb-4">
-            <Title className="text-white mb-1">Platform Rankings</Title>
-            <Text className="text-gray-500 text-sm">Top platforms ranked by revenue</Text>
+            <h3 className="text-lg font-light text-white mb-1">Platform Rankings</h3>
+            <p className="text-theme-foreground-muted text-sm">Top platforms ranked by revenue</p>
           </div>
           <div className="space-y-3">
             {platformBarData.slice(0, 6).map((p: any, i: number) => {
@@ -1035,18 +1032,18 @@ export default function MLCAnalyticsTab() {
                 <div key={p.name} className="relative">
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-3">
-                      <span className="w-6 h-6 flex items-center justify-center rounded-full bg-white/10 text-white text-xs font-bold">
+                      <span className="w-6 h-6 flex items-center justify-center bg-theme-primary/10 text-theme-primary text-xs font-medium">
                         {i + 1}
                       </span>
-                      <span className="text-white font-medium text-sm">{p.fullName}</span>
+                      <span className="text-white font-light text-sm">{p.fullName}</span>
                     </div>
-                    <span className="text-emerald-400 font-semibold text-sm">
+                    <span className="text-theme-primary font-light text-sm">
                       ${p.revenue?.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </span>
                   </div>
-                  <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-white/5 overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all duration-500"
+                      className="h-full transition-all duration-500"
                       style={{
                         width: `${percentage}%`,
                         backgroundColor: COLORS[i % COLORS.length],
@@ -1054,30 +1051,31 @@ export default function MLCAnalyticsTab() {
                     />
                   </div>
                   <div className="flex justify-between mt-1">
-                    <span className="text-gray-500 text-xs">
+                    <span className="text-white/30 text-xs">
                       Net: ${p.netRevenue?.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </span>
-                    <span className="text-gray-500 text-xs">{percentage.toFixed(0)}% of top</span>
+                    <span className="text-white/30 text-xs">{percentage.toFixed(0)}% of top</span>
                   </div>
                 </div>
               );
             })}
           </div>
-        </Card>
+        </div>
 
         {/* Revenue Efficiency Scatter - Actual MLC data */}
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-primary-20 transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <div className="mb-4">
-            <Title className="text-white mb-1">Song Revenue Efficiency</Title>
-            <Text className="text-gray-500 text-sm">Revenue vs Performances - bubble size = platform count</Text>
+            <h3 className="text-lg font-light text-white mb-1">Song Revenue Efficiency</h3>
+            <p className="text-theme-foreground-muted text-sm">Revenue vs Performances - bubble size = platform count</p>
           </div>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                 <defs>
                   <linearGradient id="scatterGrad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                    <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.6}/>
+                    <stop offset="0%" stopColor="#f0e226" stopOpacity={0.8}/>
+                    <stop offset="100%" stopColor="#a3a311" stopOpacity={0.6}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" strokeOpacity={0.3} />
@@ -1115,13 +1113,13 @@ export default function MLCAnalyticsTab() {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       return (
-                        <div className="bg-gray-900/95 backdrop-blur-xl border border-white/20 rounded-xl p-4 shadow-2xl">
-                          <p className="text-white font-semibold text-sm mb-2">{data.fullTitle || data.title}</p>
+                        <div className="bg-theme-card border border-theme-border-strong p-4 shadow-2xl">
+                          <p className="text-white font-medium text-sm mb-2">{data.fullTitle || data.title}</p>
                           <div className="space-y-1">
-                            <p className="text-gray-400 text-xs">Revenue: <span className="text-emerald-400 font-medium">${data.revenue?.toLocaleString()}</span></p>
-                            <p className="text-gray-400 text-xs">Performances: <span className="text-blue-400 font-medium">{data.performances?.toLocaleString()}</span></p>
-                            <p className="text-gray-400 text-xs">Platforms: <span className="text-violet-400 font-medium">{data.platforms}</span></p>
-                            <p className="text-gray-400 text-xs">$/Performance: <span className="text-amber-400 font-medium">${((data.revenue || 0) / (data.performances || 1) * 1000).toFixed(3)}</span></p>
+                            <p className="text-theme-foreground-muted text-xs">Revenue: <span className="text-theme-primary font-medium">${data.revenue?.toLocaleString()}</span></p>
+                            <p className="text-theme-foreground-muted text-xs">Performances: <span className="text-white font-medium">{data.performances?.toLocaleString()}</span></p>
+                            <p className="text-theme-foreground-muted text-xs">Platforms: <span className="text-white font-medium">{data.platforms}</span></p>
+                            <p className="text-theme-foreground-muted text-xs">$/Performance: <span className="text-theme-primary font-medium">${((data.revenue || 0) / (data.performances || 1) * 1000).toFixed(3)}</span></p>
                           </div>
                         </div>
                       );
@@ -1133,52 +1131,52 @@ export default function MLCAnalyticsTab() {
                   name="Songs"
                   data={topSongsBarData}
                   fill="url(#scatterGrad)"
-                  stroke="#8b5cf6"
+                  stroke="#f0e226"
                   strokeWidth={1}
                 />
               </ScatterChart>
             </ResponsiveContainer>
           </div>
           {/* Summary stats */}
-          <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-3 gap-4">
+          <div className="mt-4 pt-4 border-t border-theme-border grid grid-cols-3 gap-4">
             <div className="text-center">
-              <p className="text-gray-500 text-xs mb-1">Avg Revenue</p>
-              <p className="text-white font-semibold text-sm">
+              <p className="text-white/30 text-xs mb-1">Avg Revenue</p>
+              <p className="text-white font-light text-sm">
                 {currencyFormat(topSongsBarData.reduce((sum: number, s: any) => sum + (s.revenue || 0), 0) / (topSongsBarData.length || 1))}
               </p>
             </div>
             <div className="text-center">
-              <p className="text-gray-500 text-xs mb-1">Avg Performances</p>
-              <p className="text-white font-semibold text-sm">
+              <p className="text-white/30 text-xs mb-1">Avg Performances</p>
+              <p className="text-white font-light text-sm">
                 {Math.round(topSongsBarData.reduce((sum: number, s: any) => sum + (s.performances || 0), 0) / (topSongsBarData.length || 1)).toLocaleString()}
               </p>
             </div>
             <div className="text-center">
-              <p className="text-gray-500 text-xs mb-1">Avg Platforms</p>
-              <p className="text-white font-semibold text-sm">
+              <p className="text-white/30 text-xs mb-1">Avg Platforms</p>
+              <p className="text-white font-light text-sm">
                 {(topSongsBarData.reduce((sum: number, s: any) => sum + (s.platforms || 0), 0) / (topSongsBarData.length || 1)).toFixed(1)}
               </p>
             </div>
           </div>
-        </Card>
-      </Grid>
+        </div>
+      </div>
 
       {/* Commission Summary */}
-      <div className="relative overflow-hidden bg-[#19181a] border border-[#f0e226]/30 p-6 border-t-2 border-t-[#f0e226]">
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border-hover p-6 border-t-2 border-t-theme-primary">
         {/* Subtle glow effect */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#f0e226]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-theme-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="relative z-10 flex justify-between items-center">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 rounded-full bg-[#f0e226] animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-theme-primary animate-pulse" />
               <h3 className="text-lg font-light text-white">Commission Summary</h3>
             </div>
-            <p className="text-white/40">Total commission earned from MLC statements</p>
+            <p className="text-theme-foreground-muted">Total commission earned from MLC statements</p>
           </div>
           <div className="text-right">
-            <p className="text-[#f0e226] text-3xl font-light">{currencyFormat(kpis?.totalCommission || 0)}</p>
+            <p className="text-theme-primary text-3xl font-light">{currencyFormat(kpis?.totalCommission || 0)}</p>
             <div className="flex items-center justify-end gap-2 mt-1">
-              <span className="px-2 py-0.5 bg-[#f0e226]/20 text-[#f0e226] text-xs font-medium">
+              <span className="px-2 py-0.5 bg-theme-primary/20 text-theme-primary text-xs font-medium">
                 {kpis?.marginPercentage || 0}% margin
               </span>
             </div>

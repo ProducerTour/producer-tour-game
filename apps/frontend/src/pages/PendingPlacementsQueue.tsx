@@ -173,79 +173,82 @@ export default function PendingPlacementsQueue() {
   };
 
   return (
-    <div className="min-h-screen bg-surface p-6">
+    <div className="min-h-screen bg-theme-background p-6">
 
-      {/* Background Effects */}
+      {/* Background Effects - Theme Aware */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-brand-blue/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-green-500/5 rounded-full blur-[100px]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-theme-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-theme-primary/3 rounded-full blur-[100px]" />
+        {/* Grid overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
+            backgroundSize: '100px 100px'
+          }}
+        />
       </div>
 
       {/* Header */}
       <div className="relative mb-8">
         <div className="flex items-center gap-4 mb-4">
-          <motion.div
-            className="p-3 rounded-xl bg-gradient-to-br from-yellow-600 to-orange-600"
-            whileHover={{ scale: 1.05, rotate: 5 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <FileText className="w-8 h-8 text-white" />
-          </motion.div>
+          <div className="w-14 h-14 bg-theme-primary/10 flex items-center justify-center">
+            <FileText className="w-7 h-7 text-theme-primary" />
+          </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Pending Placements Queue</h1>
-            <p className="text-text-secondary mt-1">Review and approve work registration submissions</p>
+            <h1 className="text-3xl font-light text-theme-foreground">Pending Placements Queue</h1>
+            <p className="text-theme-foreground-muted mt-1">Review and approve work registration submissions</p>
           </div>
         </div>
 
         {/* Search */}
         <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-foreground-muted" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by title, artist, or album..."
-            className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+            className="w-full pl-10 pr-4 py-3 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
           />
         </div>
       </div>
 
       {/* Stats */}
       <div className="relative grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <motion.div
-          className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08]"
-          whileHover={{ scale: 1.02 }}
-        >
-          <div className="flex items-center justify-between">
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-text-muted text-sm">Pending Review</p>
-              <p className="text-3xl font-bold text-white">{submissions.length}</p>
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Pending Review</p>
+              <p className="text-3xl font-light text-theme-foreground">{submissions.length}</p>
             </div>
-            <Clock className="w-8 h-8 text-yellow-400" />
+            <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-theme-primary" />
+            </div>
           </div>
-        </motion.div>
-        <motion.div
-          className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08]"
-          whileHover={{ scale: 1.02 }}
-        >
-          <div className="flex items-center justify-between">
+        </div>
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-text-muted text-sm">Awaiting Documents</p>
-              <p className="text-3xl font-bold text-white">
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Awaiting Documents</p>
+              <p className="text-3xl font-light text-theme-foreground">
                 {submissions.filter((s) => s.status === 'DOCUMENTS_REQUESTED').length}
               </p>
             </div>
-            <AlertCircle className="w-8 h-8 text-orange-400" />
+            <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-theme-primary" />
+            </div>
           </div>
-        </motion.div>
-        <motion.div
-          className="p-4 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08]"
-          whileHover={{ scale: 1.02 }}
-        >
-          <div className="flex items-center justify-between">
+        </div>
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300 border-t-2 border-t-theme-primary">
+          <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-text-muted text-sm">Today's Submissions</p>
-              <p className="text-3xl font-bold text-white">
+              <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">Today's Submissions</p>
+              <p className="text-3xl font-light text-theme-foreground">
                 {submissions.filter(
                   (s) =>
                     s.submittedAt &&
@@ -253,35 +256,31 @@ export default function PendingPlacementsQueue() {
                 ).length}
               </p>
             </div>
-            <Calendar className="w-8 h-8 text-blue-400" />
+            <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-theme-primary" />
+            </div>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <motion.div
-            className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          />
+          <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
         </div>
       )}
 
       {/* Empty State */}
       {!isLoading && filteredSubmissions.length === 0 && (
-        <motion.div
-          className="text-center py-20"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <CheckCircle2 className="w-20 h-20 mx-auto mb-4 text-green-600" />
-          <h3 className="text-2xl font-bold text-white mb-2">All Caught Up!</h3>
-          <p className="text-text-muted">
+        <div className="text-center py-20">
+          <div className="w-20 h-20 mx-auto mb-4 bg-theme-primary/10 flex items-center justify-center">
+            <CheckCircle2 className="w-10 h-10 text-theme-primary" />
+          </div>
+          <h3 className="text-2xl font-light text-theme-foreground mb-2">All Caught Up!</h3>
+          <p className="text-theme-foreground-muted">
             {searchQuery ? 'No submissions match your search.' : 'No pending submissions at the moment.'}
           </p>
-        </motion.div>
+        </div>
       )}
 
       {/* Submissions List */}
@@ -290,16 +289,17 @@ export default function PendingPlacementsQueue() {
           {filteredSubmissions.map((submission, index) => (
             <motion.div
               key={submission.id}
-              className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] hover:border-blue-500 transition-all duration-300 overflow-hidden"
+              className="relative overflow-hidden bg-theme-card border border-theme-border hover:border-theme-border-hover transition-all duration-300"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ delay: index * 0.05 }}
               layout
             >
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
               {/* Main Content */}
               <div
-                className="p-6 cursor-pointer hover:bg-white/[0.02] transition-colors rounded-t-xl"
+                className="p-6 cursor-pointer hover:bg-theme-card-hover transition-colors"
                 onClick={() => toggleExpand(submission.id)}
               >
                 <div className="flex items-start gap-6">
@@ -314,8 +314,8 @@ export default function PendingPlacementsQueue() {
                         transition={{ type: "spring", stiffness: 300 }}
                       />
                     ) : (
-                      <div className="w-32 h-32 rounded-lg bg-gradient-to-br from-white/[0.08] to-white/[0.02] flex items-center justify-center shadow-xl">
-                        <Music className="w-16 h-16 text-text-muted" />
+                      <div className="w-32 h-32 rounded-lg bg-gradient-to-br from-theme-border to-theme-background-alt flex items-center justify-center shadow-xl">
+                        <Music className="w-16 h-16 text-theme-foreground-muted" />
                       </div>
                     )}
                   </div>
@@ -325,17 +325,17 @@ export default function PendingPlacementsQueue() {
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-2xl font-bold text-white">{submission.title}</h3>
+                          <h3 className="text-2xl font-bold text-theme-foreground">{submission.title}</h3>
                           {expandedId !== submission.id && (
-                            <span className="text-text-muted text-xs flex items-center gap-1">
+                            <span className="text-theme-foreground-muted text-xs flex items-center gap-1">
                               <ChevronDown className="w-3 h-3" />
                               Click to expand
                             </span>
                           )}
                         </div>
-                        <p className="text-text-secondary text-lg">{submission.artist}</p>
+                        <p className="text-theme-foreground-secondary text-lg">{submission.artist}</p>
                         {submission.albumName && (
-                          <p className="text-text-muted mt-1">Album: {submission.albumName}</p>
+                          <p className="text-theme-foreground-muted mt-1">Album: {submission.albumName}</p>
                         )}
                       </div>
                       <SubmissionStatusBadge status={submission.status} />
@@ -343,7 +343,7 @@ export default function PendingPlacementsQueue() {
 
                     {/* Metadata */}
                     <div className="flex flex-wrap gap-3 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-text-muted">
+                      <div className="flex items-center gap-2 text-sm text-theme-foreground-muted">
                         <Clock className="w-4 h-4" />
                         <span>{formatDate(submission.submittedAt)}</span>
                       </div>
@@ -366,20 +366,18 @@ export default function PendingPlacementsQueue() {
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-3">
-                      <motion.button
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleAction(submission, 'approve');
                         }}
-                        className="px-6 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-semibold shadow-lg shadow-green-600/30 flex items-center gap-2"
-                        whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(16, 185, 129, 0.4)' }}
-                        whileTap={{ scale: 0.95 }}
+                        className="px-6 py-2.5 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium flex items-center gap-2 transition-colors"
                       >
                         <CheckCircle2 className="w-5 h-5" />
                         Approve and send to Claims
-                      </motion.button>
+                      </button>
 
-                      <motion.button
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           if (submission.status !== 'DOCUMENTS_REQUESTED') {
@@ -389,28 +387,24 @@ export default function PendingPlacementsQueue() {
                         disabled={submission.status === 'DOCUMENTS_REQUESTED'}
                         className={`px-6 py-2.5 ${
                           submission.status === 'DOCUMENTS_REQUESTED'
-                            ? 'bg-white/10 cursor-not-allowed opacity-50'
-                            : 'bg-yellow-600 hover:bg-yellow-700'
-                        } text-white rounded-lg font-semibold shadow-lg shadow-yellow-600/30 flex items-center gap-2`}
-                        whileHover={submission.status !== 'DOCUMENTS_REQUESTED' ? { scale: 1.05, boxShadow: '0 10px 30px rgba(234, 179, 8, 0.4)' } : {}}
-                        whileTap={submission.status !== 'DOCUMENTS_REQUESTED' ? { scale: 0.95 } : {}}
+                            ? 'bg-theme-border cursor-not-allowed opacity-50 text-theme-foreground-muted'
+                            : 'bg-theme-border hover:bg-theme-border-hover text-theme-foreground'
+                        } font-medium flex items-center gap-2 transition-colors`}
                       >
                         <FileText className="w-5 h-5" />
                         {submission.status === 'DOCUMENTS_REQUESTED' ? 'Documents Requested' : 'Request Documents'}
-                      </motion.button>
+                      </button>
 
-                      <motion.button
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleAction(submission, 'deny');
                         }}
-                        className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold shadow-lg shadow-red-600/30 flex items-center gap-2"
-                        whileHover={{ scale: 1.05, boxShadow: '0 10px 30px rgba(220, 38, 38, 0.4)' }}
-                        whileTap={{ scale: 0.95 }}
+                        className="px-6 py-2.5 bg-red-600/80 hover:bg-red-600 text-theme-foreground font-medium flex items-center gap-2 transition-colors"
                       >
                         <XCircle className="w-5 h-5" />
                         Deny
-                      </motion.button>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -418,51 +412,51 @@ export default function PendingPlacementsQueue() {
 
               {/* Expanded Details */}
               {expandedId === submission.id && (
-                <div className="px-6 pb-6 border-t border-white/[0.08]">
+                <div className="px-6 pb-6 border-t border-theme-border">
                     <div className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Left Column */}
                       <div className="space-y-4">
-                        <h4 className="text-white font-semibold mb-3">Submission Details</h4>
+                        <h4 className="text-theme-foreground font-semibold mb-3">Submission Details</h4>
                         <div>
-                          <p className="text-text-muted text-sm mb-1">Submitted At</p>
-                          <p className="text-white">{formatDate(submission.submittedAt)}</p>
+                          <p className="text-theme-foreground-muted text-sm mb-1">Submitted At</p>
+                          <p className="text-theme-foreground">{formatDate(submission.submittedAt)}</p>
                         </div>
                         {submission.reviewedAt && (
                           <div>
-                            <p className="text-text-muted text-sm mb-1">Reviewed At</p>
-                            <p className="text-white">{formatDate(submission.reviewedAt)}</p>
+                            <p className="text-theme-foreground-muted text-sm mb-1">Reviewed At</p>
+                            <p className="text-theme-foreground">{formatDate(submission.reviewedAt)}</p>
                           </div>
                         )}
                         {submission.caseNumber && (
                           <div>
-                            <p className="text-text-muted text-sm mb-1">Case Number</p>
-                            <p className="text-white font-mono font-semibold text-green-400">{submission.caseNumber}</p>
+                            <p className="text-theme-foreground-muted text-sm mb-1">Case Number</p>
+                            <p className="text-theme-foreground font-mono font-semibold text-green-400">{submission.caseNumber}</p>
                           </div>
                         )}
                         {submission.isrc && (
                           <div>
-                            <p className="text-text-muted text-sm mb-1">ISRC</p>
-                            <p className="text-white font-mono">{submission.isrc}</p>
+                            <p className="text-theme-foreground-muted text-sm mb-1">ISRC</p>
+                            <p className="text-theme-foreground font-mono">{submission.isrc}</p>
                           </div>
                         )}
                         {submission.spotifyTrackId && (
                           <div>
-                            <p className="text-text-muted text-sm mb-1">Spotify Track ID</p>
-                            <p className="text-white font-mono">{submission.spotifyTrackId}</p>
+                            <p className="text-theme-foreground-muted text-sm mb-1">Spotify Track ID</p>
+                            <p className="text-theme-foreground font-mono">{submission.spotifyTrackId}</p>
                           </div>
                         )}
                         <div>
-                          <p className="text-text-muted text-sm mb-1">Platform</p>
-                          <p className="text-white">{submission.platform || 'SPOTIFY'}</p>
+                          <p className="text-theme-foreground-muted text-sm mb-1">Platform</p>
+                          <p className="text-theme-foreground">{submission.platform || 'SPOTIFY'}</p>
                         </div>
                         <div>
-                          <p className="text-text-muted text-sm mb-1">Release Date</p>
-                          <p className="text-white">{formatDate(submission.releaseDate)}</p>
+                          <p className="text-theme-foreground-muted text-sm mb-1">Release Date</p>
+                          <p className="text-theme-foreground">{formatDate(submission.releaseDate)}</p>
                         </div>
                         {(submission.streams !== undefined || submission.estimatedStreams !== undefined) && (
                           <div>
-                            <p className="text-text-muted text-sm mb-1">Streams</p>
-                            <p className="text-white">
+                            <p className="text-theme-foreground-muted text-sm mb-1">Streams</p>
+                            <p className="text-theme-foreground">
                               {submission.streams ? submission.streams.toLocaleString() :
                                submission.estimatedStreams ? `~${submission.estimatedStreams.toLocaleString()} (estimated)` :
                                'N/A'}
@@ -473,41 +467,41 @@ export default function PendingPlacementsQueue() {
 
                       {/* Right Column */}
                       <div className="space-y-4">
-                        <h4 className="text-white font-semibold mb-3">Track Metadata</h4>
+                        <h4 className="text-theme-foreground font-semibold mb-3">Track Metadata</h4>
                         {submission.genre && (
                           <div>
-                            <p className="text-text-muted text-sm mb-1">Genre</p>
-                            <p className="text-white">{submission.genre}</p>
+                            <p className="text-theme-foreground-muted text-sm mb-1">Genre</p>
+                            <p className="text-theme-foreground">{submission.genre}</p>
                           </div>
                         )}
                         {submission.label && (
                           <div>
-                            <p className="text-text-muted text-sm mb-1">Label</p>
-                            <p className="text-white">{submission.label}</p>
+                            <p className="text-theme-foreground-muted text-sm mb-1">Label</p>
+                            <p className="text-theme-foreground">{submission.label}</p>
                           </div>
                         )}
                         {submission.releaseYear && (
                           <div>
-                            <p className="text-text-muted text-sm mb-1">Release Year</p>
-                            <p className="text-white">{submission.releaseYear}</p>
+                            <p className="text-theme-foreground-muted text-sm mb-1">Release Year</p>
+                            <p className="text-theme-foreground">{submission.releaseYear}</p>
                           </div>
                         )}
                         {submission.musicbrainzId && (
                           <div>
-                            <p className="text-text-muted text-sm mb-1">MusicBrainz ID</p>
-                            <p className="text-white font-mono text-sm">{submission.musicbrainzId}</p>
+                            <p className="text-theme-foreground-muted text-sm mb-1">MusicBrainz ID</p>
+                            <p className="text-theme-foreground font-mono text-sm">{submission.musicbrainzId}</p>
                           </div>
                         )}
                         {submission.audioDbArtistId && (
                           <div>
-                            <p className="text-text-muted text-sm mb-1">AudioDB Artist ID</p>
-                            <p className="text-white font-mono text-sm">{submission.audioDbArtistId}</p>
+                            <p className="text-theme-foreground-muted text-sm mb-1">AudioDB Artist ID</p>
+                            <p className="text-theme-foreground font-mono text-sm">{submission.audioDbArtistId}</p>
                           </div>
                         )}
                         {submission.audioDbAlbumId && (
                           <div>
-                            <p className="text-text-muted text-sm mb-1">AudioDB Album ID</p>
-                            <p className="text-white font-mono text-sm">{submission.audioDbAlbumId}</p>
+                            <p className="text-theme-foreground-muted text-sm mb-1">AudioDB Album ID</p>
+                            <p className="text-theme-foreground font-mono text-sm">{submission.audioDbAlbumId}</p>
                           </div>
                         )}
                       </div>
@@ -515,18 +509,18 @@ export default function PendingPlacementsQueue() {
 
                     {/* Notes Section */}
                     {submission.notes && (
-                      <div className="mt-6 pt-6 border-t border-white/[0.08]">
-                        <h4 className="text-white font-semibold mb-3">Submission Notes</h4>
-                        <div className="p-4 bg-white/[0.04] rounded-lg border border-white/[0.08]">
-                          <p className="text-text-secondary whitespace-pre-wrap">{submission.notes}</p>
+                      <div className="mt-6 pt-6 border-t border-theme-border">
+                        <h4 className="text-theme-foreground font-semibold mb-3">Submission Notes</h4>
+                        <div className="p-4 bg-theme-card rounded-lg border border-theme-border">
+                          <p className="text-theme-foreground-secondary whitespace-pre-wrap">{submission.notes}</p>
                         </div>
                       </div>
                     )}
 
                     {/* Documents Requested Section */}
                     {submission.documentsRequested && (
-                      <div className="mt-6 pt-6 border-t border-white/[0.08]">
-                        <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                      <div className="mt-6 pt-6 border-t border-theme-border">
+                        <h4 className="text-theme-foreground font-semibold mb-3 flex items-center gap-2">
                           <AlertCircle className="w-5 h-5 text-yellow-400" />
                           Documents Requested
                         </h4>
@@ -538,8 +532,8 @@ export default function PendingPlacementsQueue() {
 
                     {/* Denial Reason Section */}
                     {submission.denialReason && (
-                      <div className="mt-6 pt-6 border-t border-white/[0.08]">
-                        <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                      <div className="mt-6 pt-6 border-t border-theme-border">
+                        <h4 className="text-theme-foreground font-semibold mb-3 flex items-center gap-2">
                           <XCircle className="w-5 h-5 text-red-400" />
                           Denial Reason
                         </h4>
@@ -551,17 +545,17 @@ export default function PendingPlacementsQueue() {
 
                     {/* Credits/Collaborators Section */}
                     {submission.credits && submission.credits.length > 0 && (
-                      <div className="mt-6 pt-6 border-t border-white/[0.08]">
-                        <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+                      <div className="mt-6 pt-6 border-t border-theme-border">
+                        <h4 className="text-theme-foreground font-semibold mb-4 flex items-center gap-2">
                           <Users className="w-5 h-5 text-purple-400" />
                           Collaborators & Credits ({submission.credits.length})
                         </h4>
                         <div className="space-y-3">
                           {submission.credits.map((credit, idx) => (
-                            <div key={credit.id || idx} className="flex items-center justify-between p-4 bg-white/[0.04] rounded-lg border border-white/[0.08]">
+                            <div key={credit.id || idx} className="flex items-center justify-between p-4 bg-theme-card rounded-lg border border-theme-border">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <p className="text-white font-semibold">
+                                  <p className="text-theme-foreground font-semibold">
                                     {credit.firstName} {credit.lastName}
                                   </p>
                                   {credit.isPrimary && (
@@ -569,26 +563,26 @@ export default function PendingPlacementsQueue() {
                                   )}
                                 </div>
                                 <div className="flex flex-wrap gap-3 text-sm">
-                                  <span className="text-text-muted">{credit.role}</span>
+                                  <span className="text-theme-foreground-muted">{credit.role}</span>
                                   {credit.pro && (
-                                    <span className="text-text-muted">PRO: {credit.pro}</span>
+                                    <span className="text-theme-foreground-muted">PRO: {credit.pro}</span>
                                   )}
                                   {credit.ipiNumber && (
-                                    <span className="text-text-muted font-mono">IPI: {credit.ipiNumber}</span>
+                                    <span className="text-theme-foreground-muted font-mono">IPI: {credit.ipiNumber}</span>
                                   )}
                                 </div>
                                 {credit.notes && (
-                                  <p className="text-text-muted text-sm mt-1">{credit.notes}</p>
+                                  <p className="text-theme-foreground-muted text-sm mt-1">{credit.notes}</p>
                                 )}
                               </div>
                               <div className="text-right">
                                 <p className="text-2xl font-bold text-green-400">{credit.splitPercentage}%</p>
-                                <p className="text-xs text-text-muted">Split</p>
+                                <p className="text-xs text-theme-foreground-muted">Split</p>
                               </div>
                             </div>
                           ))}
                         </div>
-                        <div className="mt-3 text-sm text-text-muted">
+                        <div className="mt-3 text-sm text-theme-foreground-muted">
                           Total Split: <span className={`font-semibold ${submission.credits.reduce((sum, c) => sum + Number(c.splitPercentage), 0) === 100 ? 'text-green-400' : 'text-yellow-400'}`}>
                             {Number(submission.credits.reduce((sum, c) => sum + Number(c.splitPercentage), 0)).toFixed(2)}%
                           </span>
@@ -598,25 +592,25 @@ export default function PendingPlacementsQueue() {
 
                     {/* Documents Section */}
                     {submission.documents && submission.documents.length > 0 && (
-                      <div className="mt-6 pt-6 border-t border-white/[0.08]">
-                        <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+                      <div className="mt-6 pt-6 border-t border-theme-border">
+                        <h4 className="text-theme-foreground font-semibold mb-4 flex items-center gap-2">
                           <Paperclip className="w-5 h-5 text-blue-400" />
                           Uploaded Documents ({submission.documents.length})
                         </h4>
                         <div className="space-y-2">
                           {submission.documents.map((doc, idx) => (
-                            <div key={doc.id || idx} className="flex items-center justify-between p-4 bg-white/[0.04] rounded-lg border border-white/[0.08] hover:border-brand-blue/50 transition-colors group">
+                            <div key={doc.id || idx} className="flex items-center justify-between p-4 bg-theme-card rounded-lg border border-theme-border hover:border-theme-primary/50 transition-colors group">
                               <div className="flex-1 min-w-0 mr-4">
-                                <p className="text-white font-medium truncate">{doc.originalName}</p>
+                                <p className="text-theme-foreground font-medium truncate">{doc.originalName}</p>
                                 <div className="flex flex-wrap gap-3 mt-1">
                                   <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs border border-blue-500/30">
                                     {doc.category}
                                   </span>
-                                  <span className="text-text-muted text-xs">{formatFileSize(doc.fileSize)}</span>
-                                  <span className="text-text-muted text-xs">{formatDate(doc.uploadedAt)}</span>
+                                  <span className="text-theme-foreground-muted text-xs">{formatFileSize(doc.fileSize)}</span>
+                                  <span className="text-theme-foreground-muted text-xs">{formatDate(doc.uploadedAt)}</span>
                                 </div>
                                 {doc.description && (
-                                  <p className="text-text-muted text-sm mt-1">{doc.description}</p>
+                                  <p className="text-theme-foreground-muted text-sm mt-1">{doc.description}</p>
                                 )}
                               </div>
                               <motion.button
@@ -688,18 +682,18 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <motion.div
-        className="bg-surface rounded-2xl w-full max-w-2xl border border-white/[0.08] overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="bg-theme-card rounded-2xl w-full max-w-2xl border border-theme-border overflow-hidden max-h-[90vh] overflow-y-auto"
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
       >
         {/* Header */}
-        <div className="p-6 border-b border-white/[0.08] bg-gradient-to-r from-green-600/20 to-emerald-600/20">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+        <div className="p-6 border-b border-theme-border bg-gradient-to-r from-green-600/20 to-emerald-600/20">
+          <h2 className="text-2xl font-bold text-theme-foreground flex items-center gap-3">
             <CheckCircle2 className="w-6 h-6 text-green-400" />
             Approve Submission
           </h2>
-          <p className="text-text-secondary mt-2">
+          <p className="text-theme-foreground-secondary mt-2">
             <span className="font-semibold">{submission.title}</span> by {submission.artist}
           </p>
         </div>
@@ -708,14 +702,14 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
         <div className="p-6 space-y-6">
           {/* Deal Terms */}
           <div>
-            <label className="block text-text-secondary font-semibold mb-2">
+            <label className="block text-theme-foreground-secondary font-semibold mb-2">
               Deal Terms <span className="text-red-400">*</span>
             </label>
             <textarea
               value={dealTerms}
               onChange={(e) => setDealTerms(e.target.value)}
               placeholder="Enter the deal terms and agreements for this placement..."
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-green-500/50 min-h-[120px]"
+              className="w-full px-4 py-3 bg-theme-input border border-theme-border-strong rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-green-500/50 min-h-[120px]"
               rows={5}
             />
           </div>
@@ -723,7 +717,7 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
           {/* Financial Terms */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-text-secondary font-semibold mb-2 flex items-center gap-2">
+              <label className="block text-theme-foreground-secondary font-semibold mb-2 flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
                 Advance Amount (Optional)
               </label>
@@ -734,12 +728,12 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
                 placeholder="0.00"
                 step="0.01"
                 min="0"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                className="w-full px-4 py-3 bg-theme-input border border-theme-border-strong rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-green-500/50"
               />
             </div>
 
             <div>
-              <label className="block text-text-secondary font-semibold mb-2 flex items-center gap-2">
+              <label className="block text-theme-foreground-secondary font-semibold mb-2 flex items-center gap-2">
                 <Percent className="w-4 h-4" />
                 Royalty Percentage (Optional)
               </label>
@@ -751,7 +745,7 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
                 step="0.01"
                 min="0"
                 max="100"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                className="w-full px-4 py-3 bg-theme-input border border-theme-border-strong rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-green-500/50"
               />
             </div>
           </div>
@@ -791,7 +785,7 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
             <motion.button
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-6 py-3 bg-white/5 hover:bg-white/10 disabled:bg-white/5 text-white rounded-xl font-semibold"
+              className="px-6 py-3 bg-theme-border hover:bg-theme-border-hover disabled:bg-theme-border text-theme-foreground rounded-xl font-semibold"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -832,18 +826,18 @@ function DenyModal({ submission, onClose, onSubmit }: DenyModalProps) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <motion.div
-        className="bg-surface rounded-2xl w-full max-w-2xl border border-white/[0.08] overflow-hidden"
+        className="bg-theme-card rounded-2xl w-full max-w-2xl border border-theme-border overflow-hidden"
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
       >
         {/* Header */}
-        <div className="p-6 border-b border-white/[0.08] bg-gradient-to-r from-red-600/20 to-rose-600/20">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+        <div className="p-6 border-b border-theme-border bg-gradient-to-r from-red-600/20 to-rose-600/20">
+          <h2 className="text-2xl font-bold text-theme-foreground flex items-center gap-3">
             <XCircle className="w-6 h-6 text-red-400" />
             Deny Submission
           </h2>
-          <p className="text-text-secondary mt-2">
+          <p className="text-theme-foreground-secondary mt-2">
             <span className="font-semibold">{submission.title}</span> by {submission.artist}
           </p>
         </div>
@@ -852,14 +846,14 @@ function DenyModal({ submission, onClose, onSubmit }: DenyModalProps) {
         <div className="p-6 space-y-6">
           {/* Reason */}
           <div>
-            <label className="block text-text-secondary font-semibold mb-2">
+            <label className="block text-theme-foreground-secondary font-semibold mb-2">
               Reason for Denial <span className="text-red-400">*</span>
             </label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Provide a clear reason for denying this submission..."
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-red-500/50 min-h-[120px]"
+              className="w-full px-4 py-3 bg-theme-input border border-theme-border-strong rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-red-500/50 min-h-[120px]"
               rows={5}
             />
           </div>
@@ -899,7 +893,7 @@ function DenyModal({ submission, onClose, onSubmit }: DenyModalProps) {
             <motion.button
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-6 py-3 bg-white/5 hover:bg-white/10 disabled:bg-white/5 text-white rounded-xl font-semibold"
+              className="px-6 py-3 bg-theme-border hover:bg-theme-border-hover disabled:bg-theme-border text-theme-foreground rounded-xl font-semibold"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -982,18 +976,18 @@ function RequestDocumentsModal({ submission, onClose, onSubmit }: RequestDocumen
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <motion.div
-        className="bg-surface rounded-2xl w-full max-w-2xl border border-white/[0.08] overflow-hidden"
+        className="bg-theme-card rounded-2xl w-full max-w-2xl border border-theme-border overflow-hidden"
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
       >
         {/* Header */}
-        <div className="p-6 border-b border-white/[0.08] bg-gradient-to-r from-yellow-600/20 to-orange-600/20">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+        <div className="p-6 border-b border-theme-border bg-gradient-to-r from-yellow-600/20 to-orange-600/20">
+          <h2 className="text-2xl font-bold text-theme-foreground flex items-center gap-3">
             <FileText className="w-6 h-6 text-yellow-400" />
             Request Documents
           </h2>
-          <p className="text-text-secondary mt-2">
+          <p className="text-theme-foreground-secondary mt-2">
             <span className="font-semibold">{submission.title}</span> by {submission.artist}
           </p>
         </div>
@@ -1002,7 +996,7 @@ function RequestDocumentsModal({ submission, onClose, onSubmit }: RequestDocumen
         <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
           {/* Quick Select Checklist */}
           <div>
-            <label className="block text-text-secondary font-semibold mb-3">
+            <label className="block text-theme-foreground-secondary font-semibold mb-3">
               Quick Select Common Documents
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1014,13 +1008,13 @@ function RequestDocumentsModal({ submission, onClose, onSubmit }: RequestDocumen
                   className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all ${
                     selectedDocs.includes(doc.id)
                       ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300'
-                      : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                      : 'bg-theme-input border-theme-border-strong text-theme-foreground hover:bg-theme-card-hover'
                   }`}
                 >
                   <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
                     selectedDocs.includes(doc.id)
                       ? 'border-yellow-500 bg-yellow-500'
-                      : 'border-white/30'
+                      : 'border-theme-foreground-muted'
                   }`}>
                     {selectedDocs.includes(doc.id) && (
                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1030,7 +1024,7 @@ function RequestDocumentsModal({ submission, onClose, onSubmit }: RequestDocumen
                   </div>
                   <div>
                     <p className="font-medium text-sm">{doc.label}</p>
-                    <p className="text-xs text-text-muted mt-0.5">{doc.description}</p>
+                    <p className="text-xs text-theme-foreground-muted mt-0.5">{doc.description}</p>
                   </div>
                 </button>
               ))}
@@ -1039,17 +1033,17 @@ function RequestDocumentsModal({ submission, onClose, onSubmit }: RequestDocumen
 
           {/* Custom Documents field */}
           <div>
-            <label className="block text-text-secondary font-semibold mb-2">
+            <label className="block text-theme-foreground-secondary font-semibold mb-2">
               Document Request Details <span className="text-red-400">*</span>
             </label>
             <textarea
               value={documentsRequested}
               onChange={(e) => setDocumentsRequested(e.target.value)}
               placeholder="Selected documents appear here. Add any custom requirements or specific instructions..."
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-yellow-500/50 min-h-[100px]"
+              className="w-full px-4 py-3 bg-theme-input border border-theme-border-strong rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-yellow-500/50 min-h-[100px]"
               rows={4}
             />
-            <p className="text-xs text-text-muted mt-1">
+            <p className="text-xs text-theme-foreground-muted mt-1">
               {selectedDocs.length} document type{selectedDocs.length !== 1 ? 's' : ''} selected
             </p>
           </div>
@@ -1089,7 +1083,7 @@ function RequestDocumentsModal({ submission, onClose, onSubmit }: RequestDocumen
             <motion.button
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-6 py-3 bg-white/5 hover:bg-white/10 disabled:bg-white/5 text-white rounded-xl font-semibold"
+              className="px-6 py-3 bg-theme-border hover:bg-theme-border-hover disabled:bg-theme-border text-theme-foreground rounded-xl font-semibold"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >

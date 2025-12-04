@@ -115,7 +115,7 @@ export default function AffiliatesDashboard() {
 
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Affiliate Program</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-theme-foreground mb-2">Affiliate Program</h1>
               <p className="text-text-secondary">
                 Earn Tour Miles and commissions by referring new artists to Producer Tour.
               </p>
@@ -128,7 +128,7 @@ export default function AffiliatesDashboard() {
                   <LinkIcon className="w-6 h-6 text-blue-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Your Referral Link</h2>
+                  <h2 className="text-lg font-semibold text-theme-foreground">Your Referral Link</h2>
                   <p className="text-sm text-text-secondary">Share this link to earn rewards</p>
                 </div>
               </div>
@@ -189,7 +189,7 @@ export default function AffiliatesDashboard() {
                     <Users className="w-6 h-6 text-blue-400" />
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">{affiliateStats.totalReferrals}</p>
+                <p className="text-3xl font-bold text-theme-foreground mb-1">{affiliateStats.totalReferrals}</p>
                 <p className="text-sm text-text-secondary">Total Referrals</p>
               </div>
 
@@ -199,7 +199,7 @@ export default function AffiliatesDashboard() {
                     <CheckCircle className="w-6 h-6 text-green-400" />
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">{affiliateStats.activeReferrals}</p>
+                <p className="text-3xl font-bold text-theme-foreground mb-1">{affiliateStats.activeReferrals}</p>
                 <p className="text-sm text-text-secondary">Active Referrals</p>
               </div>
 
@@ -209,7 +209,7 @@ export default function AffiliatesDashboard() {
                     <DollarSign className="w-6 h-6 text-amber-400" />
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">{affiliateStats.totalPointsEarned.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-theme-foreground mb-1">{affiliateStats.totalPointsEarned.toLocaleString()}</p>
                 <p className="text-sm text-text-secondary">Tour Miles Earned</p>
               </div>
 
@@ -219,21 +219,21 @@ export default function AffiliatesDashboard() {
                     <TrendingUp className="w-6 h-6 text-purple-400" />
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-white mb-1">{affiliateStats.conversionRate}%</p>
+                <p className="text-3xl font-bold text-theme-foreground mb-1">{affiliateStats.conversionRate}%</p>
                 <p className="text-sm text-text-secondary">Conversion Rate</p>
               </div>
             </div>
 
             {/* How It Works */}
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8">
-              <h2 className="text-lg font-semibold text-white mb-4">How It Works</h2>
+              <h2 className="text-lg font-semibold text-theme-foreground mb-4">How It Works</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                     <span className="text-blue-400 font-bold">1</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white mb-1">Share Your Link</h3>
+                    <h3 className="font-semibold text-theme-foreground mb-1">Share Your Link</h3>
                     <p className="text-sm text-text-secondary">Share your unique referral link with other artists and producers.</p>
                   </div>
                 </div>
@@ -242,7 +242,7 @@ export default function AffiliatesDashboard() {
                     <span className="text-green-400 font-bold">2</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white mb-1">They Sign Up</h3>
+                    <h3 className="font-semibold text-theme-foreground mb-1">They Sign Up</h3>
                     <p className="text-sm text-text-secondary">When someone signs up using your link, you earn +100 Tour Miles.</p>
                   </div>
                 </div>
@@ -251,7 +251,7 @@ export default function AffiliatesDashboard() {
                     <span className="text-purple-400 font-bold">3</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white mb-1">Earn Commissions</h3>
+                    <h3 className="font-semibold text-theme-foreground mb-1">Earn Commissions</h3>
                     <p className="text-sm text-text-secondary">Earn +250 Tour Miles when they make their first contribution.</p>
                   </div>
                 </div>
@@ -260,7 +260,7 @@ export default function AffiliatesDashboard() {
 
             {/* Recent Referrals */}
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Recent Referrals</h2>
+              <h2 className="text-lg font-semibold text-theme-foreground mb-4">Recent Referrals</h2>
               {recentReferrals.length > 0 ? (
                 <div className="space-y-4">
                   {recentReferrals.map((referral: any, index: number) => (
@@ -273,7 +273,7 @@ export default function AffiliatesDashboard() {
                           <UserPlus className="w-5 h-5 text-text-secondary" />
                         </div>
                         <div>
-                          <p className="text-white">{referral.name}</p>
+                          <p className="text-theme-foreground">{referral.name}</p>
                           <p className="text-xs text-text-secondary">{referral.date}</p>
                         </div>
                       </div>

@@ -1,6 +1,7 @@
 /**
  * Shop Page - Public product browsing and add to cart
- * Styled with cassette theme (black bg, yellow accents)
+ * Uses hardcoded Cassette theme (black bg, yellow #f0e226 accents)
+ * This page is NOT theme-aware - it always uses Cassette styling
  */
 
 import { useEffect, useState } from 'react';
@@ -170,7 +171,7 @@ export default function ShopPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products..."
-                className="w-full pl-12 pr-4 h-12 bg-[#19181a] border border-white/10 text-white placeholder:text-white/40 focus:border-[#f0e226]/50 focus:outline-none transition-colors"
+                className="w-full pl-12 pr-4 h-12 bg-[#19181a] border border-white/5 text-white placeholder:text-white/40 focus:border-[#f0e226]/50 focus:outline-none transition-colors"
               />
             </div>
 
@@ -178,7 +179,7 @@ export default function ShopPage() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="h-12 px-4 bg-[#19181a] border border-white/10 text-white focus:border-[#f0e226]/50 focus:outline-none transition-colors appearance-none cursor-pointer"
+              className="h-12 px-4 bg-[#19181a] border border-white/5 text-white focus:border-[#f0e226]/50 focus:outline-none transition-colors appearance-none cursor-pointer"
             >
               <option value="all">All Types</option>
               <option value="SUBSCRIPTION">Subscriptions</option>
@@ -249,7 +250,7 @@ export default function ShopPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: index * 0.05 }}
                     whileHover={{ y: -6, boxShadow: '0 25px 50px -12px rgba(240, 226, 38, 0.15)' }}
-                    className="group relative bg-[#19181a] border border-white/10 overflow-hidden hover:border-[#f0e226]/30 transition-all duration-300"
+                    className="group relative bg-[#19181a] border border-white/5 overflow-hidden hover:border-[#f0e226]/30 transition-all duration-300"
                   >
                     {/* Clickable Link to Product Page */}
                     <Link to={`/shop/${product.slug}`} className="block">
@@ -285,7 +286,7 @@ export default function ShopPage() {
                         )}
 
                         {/* Type Badge */}
-                        <span className="absolute bottom-4 left-4 px-3 py-1 bg-black/80 border border-white/20 text-white/80 text-xs uppercase tracking-wider">
+                        <span className="absolute bottom-4 left-4 px-3 py-1 bg-black/50 border border-white/5 text-white/60 text-xs uppercase tracking-wider">
                           <TypeIcon className="w-3 h-3 mr-1 inline" />
                           {PRODUCT_TYPE_LABELS[product.type]}
                         </span>
@@ -347,7 +348,7 @@ export default function ShopPage() {
                         className={`w-full h-12 font-semibold uppercase tracking-wider text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
                           inCart && product.type === 'SUBSCRIPTION'
                             ? 'bg-[#f0e226]/10 text-[#f0e226] border border-[#f0e226]/30'
-                            : 'bg-[#f0e226] text-black hover:bg-white'
+                            : 'bg-[#f0e226] text-black hover:bg-[#d9cc22]'
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         {isAdding ? (
@@ -381,7 +382,7 @@ export default function ShopPage() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="mt-24 text-center"
           >
-            <div className="bg-[#19181a] border border-white/10 p-10 md:p-14 max-w-2xl mx-auto">
+            <div className="bg-[#19181a] border border-white/5 p-10 md:p-14 max-w-2xl mx-auto">
               <div className="w-14 h-14 border border-[#f0e226]/30 flex items-center justify-center mx-auto mb-6">
                 <Zap className="w-7 h-7 text-[#f0e226]" />
               </div>
@@ -391,7 +392,7 @@ export default function ShopPage() {
               </p>
               <Link
                 to="/pricing"
-                className="inline-block px-8 py-4 bg-[#f0e226] text-black font-semibold uppercase tracking-wider hover:bg-white transition-all"
+                className="inline-block px-8 py-4 bg-[#f0e226] text-black font-semibold uppercase tracking-wider hover:bg-[#d9cc22] transition-all"
               >
                 View Pricing Plans
               </Link>

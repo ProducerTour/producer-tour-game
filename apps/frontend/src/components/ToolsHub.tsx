@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, FileCheck, Loader2, Coins } from 'lucide-react';
+import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, FileCheck, Coins } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { gamificationApi, toolPermissionsApi } from '../lib/api';
 
@@ -163,8 +163,8 @@ export default function ToolsHub() {
   if (permissionsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        <span className="ml-3 text-text-muted">Loading tools...</span>
+        <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
+        <span className="ml-3 text-theme-foreground-muted">Loading tools...</span>
       </div>
     );
   }
@@ -211,17 +211,17 @@ export default function ToolsHub() {
     <div className="space-y-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-white/[0.08] border border-white/[0.08] flex items-center justify-center">
-            <Wrench className="w-6 h-6 text-white" />
+        <h1 className="text-4xl font-light text-theme-foreground mb-2 flex items-center gap-3">
+          <div className="w-12 h-12 bg-theme-primary-10 flex items-center justify-center">
+            <Wrench className="w-6 h-6 text-theme-primary" />
           </div>
           Tools Hub
         </h1>
-        <p className="text-text-muted text-lg">Access all your productivity tools and resources in one place</p>
+        <p className="text-theme-foreground-muted text-lg">Access all your productivity tools and resources in one place</p>
         {userRole !== 'ADMIN' && (
-          <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-center gap-3">
-            <Info className="w-5 h-5 text-blue-400 flex-shrink-0" />
-            <p className="text-sm text-blue-300">
+          <div className="mt-4 bg-theme-primary-10 border border-theme-border-hover p-4 flex items-center gap-3">
+            <Info className="w-5 h-5 text-theme-primary flex-shrink-0" />
+            <p className="text-sm text-theme-primary">
               You're viewing tools available to <span className="font-semibold">{userRole}</span> role.
               Contact your administrator for access to additional tools.
             </p>
@@ -231,12 +231,13 @@ export default function ToolsHub() {
 
       {/* Empty State */}
       {filteredTools.length === 0 ? (
-        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-12 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-white/[0.08] border border-white/[0.08] flex items-center justify-center">
-            <Lock className="w-8 h-8 text-gray-400" />
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-12 text-center">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+          <div className="w-16 h-16 mx-auto mb-4 bg-theme-primary-10 flex items-center justify-center">
+            <Lock className="w-8 h-8 text-theme-foreground-muted" />
           </div>
-          <h3 className="text-2xl font-bold text-white mb-2">No Tools Available</h3>
-          <p className="text-text-muted mb-6">
+          <h3 className="text-2xl font-light text-theme-foreground mb-2">No Tools Available</h3>
+          <p className="text-theme-foreground-muted mb-6">
             {selectedCategory === 'All'
               ? "You don't have access to any tools yet. Please contact your administrator."
               : `No tools available in the "${selectedCategory}" category for your role.`
@@ -245,7 +246,7 @@ export default function ToolsHub() {
           {selectedCategory !== 'All' && (
             <button
               onClick={() => setSelectedCategory('All')}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              className="px-6 py-3 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium transition-colors"
             >
               View All Categories
             </button>
@@ -255,7 +256,7 @@ export default function ToolsHub() {
         <>
 
       {/* Category Filter */}
-      <div className="flex gap-3 flex-wrap">
+      <div className="flex gap-1 flex-wrap">
         {categories.map((category) => (
           <button
             key={category}
@@ -263,10 +264,10 @@ export default function ToolsHub() {
               setSelectedCategory(category);
               setCurrentIndex(0);
             }}
-            className={`px-6 py-3 rounded-lg font-medium transition-all ${
+            className={`px-4 py-2 text-sm font-medium uppercase tracking-wider transition-all ${
               selectedCategory === category
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/50'
-                : 'bg-white/5 text-text-secondary hover:bg-white/10'
+                ? 'bg-theme-primary text-theme-primary-foreground'
+                : 'text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-card-hover'
             }`}
           >
             {category}
@@ -276,7 +277,7 @@ export default function ToolsHub() {
 
       {/* Main Carousel */}
       <div className="relative">
-        <div className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] rounded-2xl overflow-hidden shadow-2xl border border-white/[0.08]">
+        <div className="bg-theme-card rounded-2xl overflow-hidden shadow-2xl border border-theme-border">
           {/* Tool Display */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 md:p-12 min-h-96">
             {/* Left Side - Visual */}
@@ -301,15 +302,15 @@ export default function ToolsHub() {
                   <currentTool.icon className="w-12 h-12 text-white" />
                 )}
               </div>
-              <h2 className="text-white text-2xl font-bold">{currentTool.name}</h2>
+              <h2 className="text-white text-2xl font-bold drop-shadow-md">{currentTool.name}</h2>
               <p className="text-white/80 text-sm mt-2 font-medium">{currentTool.category}</p>
             </div>
 
             {/* Right Side - Info & Action */}
             <div className="flex flex-col justify-between">
               <div>
-                <h3 className="text-2xl font-bold text-white mb-4">{currentTool.name}</h3>
-                <p className="text-text-secondary text-lg leading-relaxed mb-6">
+                <h3 className="text-2xl font-bold text-theme-foreground mb-4">{currentTool.name}</h3>
+                <p className="text-theme-foreground-secondary text-lg leading-relaxed mb-6">
                   {currentTool.description}
                 </p>
 
@@ -319,15 +320,15 @@ export default function ToolsHub() {
                     <>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Calculate royalty splits and earnings</span>
+                        <span className="text-theme-foreground-secondary">Calculate royalty splits and earnings</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Scenario modeling and comparisons</span>
+                        <span className="text-theme-foreground-secondary">Scenario modeling and comparisons</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Export detailed reports</span>
+                        <span className="text-theme-foreground-secondary">Export detailed reports</span>
                       </div>
                     </>
                   )}
@@ -335,15 +336,15 @@ export default function ToolsHub() {
                     <>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Schedule appointments</span>
+                        <span className="text-theme-foreground-secondary">Schedule appointments</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Collect producer details</span>
+                        <span className="text-theme-foreground-secondary">Collect producer details</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Automated confirmations</span>
+                        <span className="text-theme-foreground-secondary">Automated confirmations</span>
                       </div>
                     </>
                   )}
@@ -351,15 +352,15 @@ export default function ToolsHub() {
                     <>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Real producer success stories</span>
+                        <span className="text-theme-foreground-secondary">Real producer success stories</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Actionable insights and strategies</span>
+                        <span className="text-theme-foreground-secondary">Actionable insights and strategies</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Downloadable resources</span>
+                        <span className="text-theme-foreground-secondary">Downloadable resources</span>
                       </div>
                     </>
                   )}
@@ -367,15 +368,15 @@ export default function ToolsHub() {
                     <>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Calculate potential funding amounts</span>
+                        <span className="text-theme-foreground-secondary">Calculate potential funding amounts</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Model different contract scenarios</span>
+                        <span className="text-theme-foreground-secondary">Model different contract scenarios</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Save and compare scenarios</span>
+                        <span className="text-theme-foreground-secondary">Save and compare scenarios</span>
                       </div>
                     </>
                   )}
@@ -383,19 +384,19 @@ export default function ToolsHub() {
                     <>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Spotify search integration</span>
+                        <span className="text-theme-foreground-secondary">Spotify search integration</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">AudioDB metadata enrichment</span>
+                        <span className="text-theme-foreground-secondary">AudioDB metadata enrichment</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Album art and visual previews</span>
+                        <span className="text-theme-foreground-secondary">Album art and visual previews</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Track submission status</span>
+                        <span className="text-theme-foreground-secondary">Track submission status</span>
                       </div>
                     </>
                   )}
@@ -403,19 +404,19 @@ export default function ToolsHub() {
                     <>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">ISRC/UPC code search & verification</span>
+                        <span className="text-theme-foreground-secondary">ISRC/UPC code search & verification</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Spotify & MusicBrainz cross-reference</span>
+                        <span className="text-theme-foreground-secondary">Spotify & MusicBrainz cross-reference</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Save tracks to custom research lists</span>
+                        <span className="text-theme-foreground-secondary">Save tracks to custom research lists</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Export data to CSV & JSON</span>
+                        <span className="text-theme-foreground-secondary">Export data to CSV & JSON</span>
                       </div>
                     </>
                   )}
@@ -423,19 +424,19 @@ export default function ToolsHub() {
                     <>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Combine beats with images into videos</span>
+                        <span className="text-theme-foreground-secondary">Combine beats with images into videos</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Batch process multiple beats at once</span>
+                        <span className="text-theme-foreground-secondary">Batch process multiple beats at once</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Auto-upload directly to YouTube</span>
+                        <span className="text-theme-foreground-secondary">Auto-upload directly to YouTube</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Support for 16:9 and 9:16 formats</span>
+                        <span className="text-theme-foreground-secondary">Support for 16:9 and 9:16 formats</span>
                       </div>
                     </>
                   )}
@@ -443,19 +444,19 @@ export default function ToolsHub() {
                     <>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Submit session metadata and asset links</span>
+                        <span className="text-theme-foreground-secondary">Submit session metadata and asset links</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Calculate engineer payments automatically</span>
+                        <span className="text-theme-foreground-secondary">Calculate engineer payments automatically</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Track session files and deliverables</span>
+                        <span className="text-theme-foreground-secondary">Track session files and deliverables</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <span className="text-green-400 text-xl">✓</span>
-                        <span className="text-text-secondary">Auto-generated work order numbers</span>
+                        <span className="text-theme-foreground-secondary">Auto-generated work order numbers</span>
                       </div>
                     </>
                   )}
@@ -463,15 +464,15 @@ export default function ToolsHub() {
                     <>
                       <div className="flex items-start gap-3">
                         <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
-                        <span className="text-text-secondary">Real-time data and analytics</span>
+                        <span className="text-theme-foreground-secondary">Real-time data and analytics</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
-                        <span className="text-text-secondary">Comprehensive reporting</span>
+                        <span className="text-theme-foreground-secondary">Comprehensive reporting</span>
                       </div>
                       <div className="flex items-start gap-3">
                         <Check className="w-5 h-5 text-green-400 flex-shrink-0" />
-                        <span className="text-text-secondary">Easy integration</span>
+                        <span className="text-theme-foreground-secondary">Easy integration</span>
                       </div>
                     </>
                   )}
@@ -526,7 +527,7 @@ export default function ToolsHub() {
             className={`h-3 rounded-full transition-all ${
               index === currentIndex
                 ? 'bg-gradient-to-r from-blue-500 to-blue-600 w-8'
-                : 'bg-white/10 hover:bg-white/20 w-3'
+                : 'bg-theme-input hover:bg-theme-card-hover w-3'
             }`}
           />
         ))}
@@ -534,7 +535,7 @@ export default function ToolsHub() {
 
       {/* All Tools Grid (Optional - below carousel) */}
       <div className="mt-12">
-        <h3 className="text-2xl font-bold text-white mb-6">All Tools</h3>
+        <h3 className="text-2xl font-bold text-theme-foreground mb-6">All Tools</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTools.map((tool, index) => {
             const isLocked = !hasToolAccess(tool);
@@ -543,10 +544,10 @@ export default function ToolsHub() {
                 key={tool.id}
                 className={`group cursor-pointer p-6 rounded-xl border-2 transition-all hover:scale-105 relative ${
                   index === currentIndex
-                    ? 'border-blue-500 bg-gradient-to-br from-white/[0.08] to-white/[0.04] shadow-xl'
+                    ? 'border-blue-500 bg-theme-card shadow-xl'
                     : isLocked && tool.requiresPurchase
-                      ? 'border-yellow-500/30 bg-gradient-to-br from-yellow-500/5 to-white/[0.02] hover:border-yellow-500/50'
-                      : 'border-white/[0.08] bg-white/[0.04] hover:border-white/20'
+                      ? 'border-yellow-500/30 bg-theme-card hover:border-yellow-500/50'
+                      : 'border-theme-border bg-theme-card hover:border-theme-border-hover'
                 }`}
                 onClick={() => openTool(tool)}
               >
@@ -562,17 +563,17 @@ export default function ToolsHub() {
                     <Check className="w-3 h-3 text-green-400" />
                   </div>
                 )}
-                <div className={`w-14 h-14 rounded-xl bg-white/[0.08] border border-white/[0.08] flex items-center justify-center mb-3 relative ${
+                <div className={`w-14 h-14 rounded-xl bg-theme-input border border-theme-border flex items-center justify-center mb-3 relative ${
                   isLocked && tool.requiresPurchase ? 'opacity-60' : ''
                 }`}>
                   {isLocked && tool.requiresPurchase ? (
-                    <Lock className="w-7 h-7 text-white/60" />
+                    <Lock className="w-7 h-7 text-theme-foreground-muted" />
                   ) : (
-                    <tool.icon className="w-7 h-7 text-white" />
+                    <tool.icon className="w-7 h-7 text-theme-foreground" />
                   )}
                 </div>
-                <h4 className="text-white font-bold text-base sm:text-lg mb-2 break-words">{tool.name}</h4>
-                <p className="text-text-muted text-sm mb-3 line-clamp-2">{tool.description}</p>
+                <h4 className="text-theme-foreground font-bold text-base sm:text-lg mb-2 break-words">{tool.name}</h4>
+                <p className="text-theme-foreground-muted text-sm mb-3 line-clamp-2">{tool.description}</p>
                 <div className="flex items-center justify-between">
                   <span className={`text-xs font-semibold ${isLocked && tool.requiresPurchase ? 'text-yellow-400' : 'text-blue-400'}`}>
                     {isLocked && tool.requiresPurchase ? 'Premium Tool' : tool.category}
@@ -589,17 +590,20 @@ export default function ToolsHub() {
 
       {/* Stats Footer */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12">
-        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6 text-center border border-white/[0.08]">
-          <div className="text-4xl font-bold text-blue-400 mb-2">{roleBasedTools.length}</div>
-          <p className="text-text-muted">Tools Available to You</p>
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 text-center group hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+          <div className="text-4xl font-light text-theme-primary mb-2">{roleBasedTools.length}</div>
+          <p className="text-theme-foreground-muted">Tools Available to You</p>
         </div>
-        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6 text-center border border-white/[0.08]">
-          <div className="text-4xl font-bold text-green-400 mb-2">{categories.length - 1}</div>
-          <p className="text-text-muted">Categories</p>
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 text-center group hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+          <div className="text-4xl font-light text-theme-foreground mb-2">{categories.length - 1}</div>
+          <p className="text-theme-foreground-muted">Categories</p>
         </div>
-        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6 text-center border border-white/[0.08]">
-          <div className="text-4xl font-bold text-purple-400 mb-2">100%</div>
-          <p className="text-text-muted">Productivity Boost</p>
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 text-center group hover:border-theme-border-hover transition-all duration-300">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+          <div className="text-4xl font-light text-theme-foreground mb-2">100%</div>
+          <p className="text-theme-foreground-muted">Productivity Boost</p>
         </div>
       </div>
       </>

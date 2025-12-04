@@ -214,7 +214,7 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Collaborators & Credits</h3>
+        <h3 className="text-lg font-semibold text-theme-foreground">Collaborators & Credits</h3>
         <div className="text-sm">
           <span className={`font-medium ${isValidSplit ? 'text-emerald-400' : 'text-red-400'}`}>
             Total: {totalSplit.toFixed(2)}%
@@ -292,7 +292,7 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* First Name */}
               <div className="relative">
-                <label className="block text-sm font-medium text-gray-400 mb-1">
+                <label className="block text-sm font-medium text-theme-foreground-muted mb-1">
                   First Name *
                 </label>
                 <input
@@ -302,7 +302,7 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
                     updateCollaborator(index, 'firstName', e.target.value);
                     handleSearch(e.target.value, index);
                   }}
-                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
+                  className="w-full px-3 py-2 bg-white/[0.04] border border-theme-border-strong rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
                   placeholder="First name"
                   disabled={collab.isPrimary}
                 />
@@ -329,14 +329,14 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
 
               {/* Last Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
+                <label className="block text-sm font-medium text-theme-foreground-muted mb-1">
                   Last Name *
                 </label>
                 <input
                   type="text"
                   value={collab.lastName}
                   onChange={(e) => updateCollaborator(index, 'lastName', e.target.value)}
-                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
+                  className="w-full px-3 py-2 bg-white/[0.04] border border-theme-border-strong rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
                   placeholder="Last name"
                   disabled={collab.isPrimary}
                 />
@@ -344,13 +344,13 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
 
               {/* Role */}
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
+                <label className="block text-sm font-medium text-theme-foreground-muted mb-1">
                   Role *
                 </label>
                 <select
                   value={collab.role}
                   onChange={(e) => updateCollaborator(index, 'role', e.target.value)}
-                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-white focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
+                  className="w-full px-3 py-2 bg-white/[0.04] border border-theme-border-strong rounded-lg text-theme-foreground focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
                 >
                   {ROLES.map(role => (
                     <option key={role} value={role} className="bg-slate-800 text-white">{role}</option>
@@ -360,7 +360,7 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
 
               {/* Split % */}
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
+                <label className="block text-sm font-medium text-theme-foreground-muted mb-1">
                   Split % *
                 </label>
                 <input
@@ -370,20 +370,20 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
                   step="0.01"
                   value={collab.splitPercentage}
                   onChange={(e) => updateCollaborator(index, 'splitPercentage', parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-white focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
+                  className="w-full px-3 py-2 bg-white/[0.04] border border-theme-border-strong rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
                   placeholder="0.00"
                 />
               </div>
 
               {/* PRO */}
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
+                <label className="block text-sm font-medium text-theme-foreground-muted mb-1">
                   PRO
                 </label>
                 <select
                   value={collab.pro || ''}
                   onChange={(e) => updateCollaborator(index, 'pro', e.target.value)}
-                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-white focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
+                  className="w-full px-3 py-2 bg-white/[0.04] border border-theme-border-strong rounded-lg text-theme-foreground focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
                 >
                   <option value="" className="bg-slate-800 text-white">Select PRO</option>
                   {PROS.map(pro => (
@@ -394,28 +394,28 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
 
               {/* IPI Number */}
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">
+                <label className="block text-sm font-medium text-theme-foreground-muted mb-1">
                   IPI Number
                 </label>
                 <input
                   type="text"
                   value={collab.ipiNumber || ''}
                   onChange={(e) => updateCollaborator(index, 'ipiNumber', e.target.value)}
-                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
+                  className="w-full px-3 py-2 bg-white/[0.04] border border-theme-border-strong rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
                   placeholder="000000000"
                 />
               </div>
 
               {/* Notes (optional) */}
               <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-400 mb-1">
+                <label className="block text-sm font-medium text-theme-foreground-muted mb-1">
                   Notes (optional)
                 </label>
                 <input
                   type="text"
                   value={collab.notes || ''}
                   onChange={(e) => updateCollaborator(index, 'notes', e.target.value)}
-                  className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
+                  className="w-full px-3 py-2 bg-white/[0.04] border border-theme-border-strong rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
                   placeholder="Additional notes"
                 />
               </div>
@@ -427,7 +427,7 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
       <button
         type="button"
         onClick={addCollaborator}
-        className="w-full px-4 py-3 bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.08] text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+        className="w-full px-4 py-3 bg-white/[0.08] hover:bg-white/[0.12] border border-theme-border-strong text-theme-foreground rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
       >
         <span className="text-xl">+</span>
         Add Collaborator
@@ -464,7 +464,7 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
                   value={userSearchQuery}
                   onChange={(e) => setUserSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && searchUsers()}
-                  className="flex-1 px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
+                  className="flex-1 px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:ring-2 focus:ring-white/20 focus:border-white/20 transition-all"
                   placeholder="Search by name, IPI, or email..."
                   autoFocus
                 />
@@ -490,10 +490,10 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="text-white font-medium">
+                          <div className="text-theme-foreground font-medium">
                             {user.firstName} {user.lastName}
                           </div>
-                          <div className="text-gray-400 text-sm">{user.email}</div>
+                          <div className="text-theme-foreground-muted text-sm">{user.email}</div>
                         </div>
                         <div className="text-right text-sm">
                           {user.proAffiliation && (
@@ -511,14 +511,14 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
                     </button>
                   ))
                 ) : userSearchQuery.length >= 2 && !isSearchingUsers ? (
-                  <div className="text-center py-8 text-gray-400">
+                  <div className="text-center py-8 text-theme-foreground-muted">
                     <p>No PT accounts found for "{userSearchQuery}"</p>
                     <p className="text-sm mt-2">
                       This collaborator may be an external writer not registered with Producer Tour.
                     </p>
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-400">
+                  <div className="text-center py-8 text-theme-foreground-muted">
                     <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p>Search for a PT user to autofill</p>
                     <p className="text-sm mt-1">

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { commissionApi } from '@/lib/api';
+import { Percent, Save, Loader2 } from 'lucide-react';
 
 type Settings = {
   id?: string;
@@ -88,49 +89,59 @@ export default function CommissionSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Commission Settings</h1>
-        <p className="text-text-muted mt-1">Changes apply only to statements published after the update.</p>
+        <h1 className="text-2xl font-light text-theme-foreground flex items-center gap-3">
+          <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+            <Percent className="w-5 h-5 text-theme-primary" />
+          </div>
+          Commission Settings
+        </h1>
+        <p className="text-theme-foreground-muted mt-2">Changes apply only to statements published after the update.</p>
       </div>
 
       {message.text && (
-        <div className={`p-3 rounded border ${
-          message.type === 'success' ? 'bg-green-500/10 border-green-600 text-green-300' : 'bg-red-500/10 border-red-600 text-red-300'
+        <div className={`p-4 border ${
+          message.type === 'success' ? 'bg-theme-primary/5 border-theme-primary/20 text-theme-primary' : 'bg-theme-error-bg border-theme-error/30 text-theme-error'
         }`}>
           {message.text}
         </div>
       )}
 
       {/* Current Settings */}
-      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
-        <h2 className="text-white font-semibold mb-4">Current Settings</h2>
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary/50 to-transparent" />
+        <h2 className="text-lg font-light text-theme-foreground mb-4">Current Settings</h2>
         {loadingSettings ? (
-          <div className="text-text-muted">Loading current settings...</div>
+          <div className="flex items-center gap-3 text-theme-foreground-muted">
+            <div className="w-6 h-6 border-2 border-theme-primary/20 border-t-theme-primary rounded-full animate-spin" />
+            Loading current settings...
+          </div>
         ) : settingsData ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <div className="text-text-muted text-sm">Commission Rate</div>
-              <div className="text-2xl text-blue-400 font-bold">{Number(settingsData.commissionRate).toFixed(2)}%</div>
+              <div className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Commission Rate</div>
+              <div className="text-2xl text-theme-primary font-light">{Number(settingsData.commissionRate).toFixed(2)}%</div>
             </div>
             <div>
-              <div className="text-text-muted text-sm">Recipient</div>
-              <div className="text-white font-medium">{settingsData.recipientName}</div>
+              <div className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Recipient</div>
+              <div className="text-theme-foreground font-medium">{settingsData.recipientName}</div>
             </div>
             <div>
-              <div className="text-text-muted text-sm">Effective Date</div>
-              <div className="text-white font-medium">{formatDate(settingsData.effectiveDate)}</div>
+              <div className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Effective Date</div>
+              <div className="text-theme-foreground font-medium">{formatDate(settingsData.effectiveDate)}</div>
             </div>
           </div>
         ) : (
-          <div className="text-text-muted">No settings found. Using defaults (0%).</div>
+          <div className="text-theme-foreground-muted">No settings found. Using defaults (0%).</div>
         )}
       </div>
 
       {/* Update Form */}
-      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
-        <h2 className="text-white font-semibold mb-4">Update Settings</h2>
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 group hover:border-theme-border-hover transition-all duration-300">
+        <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+        <h2 className="text-lg font-light text-theme-foreground mb-4">Update Settings</h2>
         <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-text-muted text-sm mb-2">Commission Rate (%)</label>
+            <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">Commission Rate (%)</label>
             <input
               type="number"
               min="0"
@@ -138,26 +149,26 @@ export default function CommissionSettingsPage() {
               step="0.01"
               value={form.commissionRate}
               onChange={(e) => setForm({ ...form, commissionRate: e.target.value })}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+              className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus transition-colors"
             />
           </div>
           <div>
-            <label className="block text-text-muted text-sm mb-2">Recipient Name</label>
+            <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">Recipient Name</label>
             <input
               type="text"
               value={form.recipientName}
               onChange={(e) => setForm({ ...form, recipientName: e.target.value })}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+              className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
               placeholder="e.g., Producer Tour"
             />
           </div>
           <div>
-            <label className="block text-text-muted text-sm mb-2">Description (optional)</label>
+            <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">Description (optional)</label>
             <input
               type="text"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-brand-blue/50"
+              className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
               placeholder="Reason for change"
             />
           </div>
@@ -165,42 +176,58 @@ export default function CommissionSettingsPage() {
             <button
               type="submit"
               disabled={updateMutation.isPending}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium disabled:opacity-60"
+              className="px-5 py-2.5 bg-theme-primary hover:bg-theme-primary-hover text-theme-primary-foreground font-medium disabled:opacity-60 transition-colors flex items-center gap-2"
             >
-              {updateMutation.isPending ? 'Saving...' : 'Save Settings'}
+              {updateMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save Settings
+                </>
+              )}
             </button>
           </div>
         </form>
 
-        <p className="text-xs text-text-muted mt-3">Note: Changes only affect statements published after this update. Historical statement items remain unchanged.</p>
+        <p className="text-xs text-theme-foreground-muted mt-3">Note: Changes only affect statements published after this update. Historical statement items remain unchanged.</p>
       </div>
 
       {/* History Table */}
-      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
-        <h2 className="text-white font-semibold mb-4">Rate Change History</h2>
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary/50 to-transparent" />
+        <div className="p-6 border-b border-theme-border">
+          <h2 className="text-lg font-light text-theme-foreground">Rate Change History</h2>
+        </div>
         {loadingHistory ? (
-          <div className="text-text-muted">Loading history...</div>
+          <div className="p-6 flex items-center gap-3 text-theme-foreground-muted">
+            <div className="w-6 h-6 border-2 border-theme-primary/20 border-t-theme-primary rounded-full animate-spin" />
+            Loading history...
+          </div>
         ) : historyData && historyData.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/[0.08] text-text-muted">
-                  <th className="text-left py-2">Effective</th>
-                  <th className="text-left py-2">Rate</th>
-                  <th className="text-left py-2">Recipient</th>
-                  <th className="text-left py-2">Description</th>
-                  <th className="text-left py-2">Active</th>
+              <thead className="bg-theme-border-strong">
+                <tr>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Effective</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Rate</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Recipient</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Description</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-theme-border">
                 {historyData.map((row) => (
-                  <tr key={row.id} className="border-b border-white/[0.04]">
-                    <td className="py-2 text-white">{formatDate(row.effectiveDate)}</td>
-                    <td className="py-2 text-white">{Number(row.commissionRate).toFixed(2)}%</td>
-                    <td className="py-2 text-text-secondary">{row.recipientName}</td>
-                    <td className="py-2 text-text-secondary">{row.description || '-'}</td>
-                    <td className="py-2">
-                      <span className={`px-2 py-1 rounded text-xs ${row.isActive ? 'bg-green-500/20 text-green-400' : 'bg-white/[0.08] text-text-secondary'}`}>
+                  <tr key={row.id} className="hover:bg-theme-card-hover transition-colors">
+                    <td className="px-6 py-3 text-theme-foreground">{formatDate(row.effectiveDate)}</td>
+                    <td className="px-6 py-3 text-theme-primary">{Number(row.commissionRate).toFixed(2)}%</td>
+                    <td className="px-6 py-3 text-theme-foreground-secondary">{row.recipientName}</td>
+                    <td className="px-6 py-3 text-theme-foreground-secondary">{row.description || '-'}</td>
+                    <td className="px-6 py-3">
+                      <span className={`px-2 py-1 text-xs ${row.isActive ? 'bg-theme-primary/10 text-theme-primary border border-theme-primary/30' : 'bg-theme-border-strong text-theme-foreground-muted border border-theme-border'}`}>
                         {row.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
@@ -210,7 +237,7 @@ export default function CommissionSettingsPage() {
             </table>
           </div>
         ) : (
-          <div className="text-text-muted">No history available.</div>
+          <div className="p-6 text-theme-foreground-muted">No history available.</div>
         )}
       </div>
     </div>

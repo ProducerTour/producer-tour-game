@@ -12,7 +12,6 @@ import {
   Download,
   Eye,
   Filter,
-  Loader2,
   X,
   Printer,
 } from 'lucide-react';
@@ -76,7 +75,7 @@ interface SessionPayout {
 type StatusFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'DISPUTED' | 'PROCESSING' | 'COMPLETED';
 
 const statusColors: Record<string, string> = {
-  PENDING: 'bg-[#f0e226]/15 text-[#f0e226] border-[#f0e226]/30',
+  PENDING: 'bg-theme-primary-15 text-theme-primary border-theme-border-hover',
   APPROVED: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   REJECTED: 'bg-red-500/20 text-red-400 border-red-500/30',
   DISPUTED: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
@@ -306,7 +305,7 @@ export default function RecordingSessionsTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
       </div>
     );
   }
@@ -319,10 +318,10 @@ export default function RecordingSessionsTab() {
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-2xl font-light text-white mb-2">Recording Sessions</h2>
-        <p className="text-white/40">
+        <p className="text-theme-foreground-muted">
           Manage session payout requests from engineers
           {pendingCount > 0 && (
-            <span className="ml-2 px-2 py-0.5 bg-[#f0e226]/15 text-[#f0e226] text-sm border border-[#f0e226]/30">
+            <span className="ml-2 px-2 py-0.5 bg-theme-primary-15 text-theme-primary text-sm border border-theme-border-hover">
               {pendingCount} pending
             </span>
           )}
@@ -332,8 +331,8 @@ export default function RecordingSessionsTab() {
       {/* Filters */}
       <div className="flex items-center gap-4 mb-6">
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-white/40" />
-          <span className="text-sm text-white/40">Status:</span>
+          <Filter className="w-4 h-4 text-theme-foreground-muted" />
+          <span className="text-sm text-theme-foreground-muted">Status:</span>
         </div>
         <div className="flex flex-wrap gap-2">
           {(['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'DISPUTED', 'PROCESSING', 'COMPLETED'] as StatusFilter[]).map(
@@ -343,8 +342,8 @@ export default function RecordingSessionsTab() {
                 onClick={() => setStatusFilter(status)}
                 className={`px-3 py-1.5 text-sm transition-colors ${
                   statusFilter === status
-                    ? 'bg-[#f0e226] text-black'
-                    : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                    ? 'bg-theme-primary text-black'
+                    : 'bg-white/5 text-theme-foreground-secondary hover:bg-white/10 border border-theme-border-strong'
                 }`}
               >
                 {status === 'ALL' ? 'All' : status}
@@ -356,9 +355,9 @@ export default function RecordingSessionsTab() {
 
       {/* Session Payouts List */}
       {payouts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 text-white/40">
-          <div className="w-16 h-16 mb-4 bg-[#f0e226]/10 flex items-center justify-center">
-            <Music className="w-8 h-8 text-[#f0e226]" />
+        <div className="flex flex-col items-center justify-center h-64 text-theme-foreground-muted">
+          <div className="w-16 h-16 mb-4 bg-theme-primary/10 flex items-center justify-center">
+            <Music className="w-8 h-8 text-theme-primary" />
           </div>
           <div className="text-lg mb-2">No recording sessions found</div>
           <div className="text-sm text-white/30">
@@ -370,15 +369,15 @@ export default function RecordingSessionsTab() {
           {payouts.map((payout) => (
             <div
               key={payout.id}
-              className="group relative overflow-hidden bg-[#19181a] p-6 border border-white/5 hover:border-[#f0e226]/30 transition-all duration-300"
+              className="group relative overflow-hidden bg-theme-card p-6 border border-theme-border hover:border-theme-border-hover transition-all duration-300"
             >
-              <div className="absolute top-0 left-0 w-0 h-[2px] bg-[#f0e226] group-hover:w-full transition-all duration-500" />
+              <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   {/* Header Row */}
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center">
-                      <Music className="w-5 h-5 text-[#f0e226]" />
+                    <div className="w-10 h-10 bg-theme-primary/10 flex items-center justify-center">
+                      <Music className="w-5 h-5 text-theme-primary" />
                     </div>
                     <h3 className="text-lg font-medium text-white">{payout.artistName || 'Untitled Session'}</h3>
                     <span className={`px-2 py-0.5 text-xs border ${statusColors[payout.status]}`}>
@@ -390,32 +389,32 @@ export default function RecordingSessionsTab() {
                   {/* Info Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div>
-                      <div className="text-xs text-white/40 uppercase tracking-wider mb-1">Submitted By</div>
+                      <div className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Submitted By</div>
                       <div className="text-sm text-white">{payout.submittedByName}</div>
-                      <div className="text-xs text-white/40">{payout.submittedByEmail}</div>
+                      <div className="text-xs text-theme-foreground-muted">{payout.submittedByEmail}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-white/40 uppercase tracking-wider mb-1">Session Date</div>
+                      <div className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Session Date</div>
                       <div className="text-sm text-white">{formatDate(payout.sessionDate)}</div>
-                      <div className="text-xs text-white/40">
+                      <div className="text-xs text-theme-foreground-muted">
                         {payout.startTime} - {payout.finishTime}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-white/40 uppercase tracking-wider mb-1">Studio</div>
+                      <div className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Studio</div>
                       <div className="text-sm text-white">{payout.studioName || '-'}</div>
-                      <div className="text-xs text-white/40">{payout.totalHours} hours</div>
+                      <div className="text-xs text-theme-foreground-muted">{payout.totalHours} hours</div>
                     </div>
                     <div>
-                      <div className="text-xs text-white/40 uppercase tracking-wider mb-1">Payout Amount</div>
-                      <div className="text-lg font-light text-[#f0e226]">{formatCurrency(payout.payoutAmount)}</div>
+                      <div className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-1">Payout Amount</div>
+                      <div className="text-lg font-light text-theme-primary">{formatCurrency(payout.payoutAmount)}</div>
                     </div>
                   </div>
 
                   {/* Song Titles */}
                   {payout.songTitles && (
-                    <div className="text-sm text-white/60 mb-4">
-                      <span className="text-white/40">Songs:</span> {payout.songTitles}
+                    <div className="text-sm text-theme-foreground-secondary mb-4">
+                      <span className="text-theme-foreground-muted">Songs:</span> {payout.songTitles}
                     </div>
                   )}
 
@@ -426,7 +425,7 @@ export default function RecordingSessionsTab() {
                     </div>
                   )}
                   {payout.adminNotes && (
-                    <div className="text-sm text-white/40 bg-white/5 px-3 py-2 border border-white/10 mb-4">
+                    <div className="text-sm text-theme-foreground-muted bg-white/5 px-3 py-2 border border-theme-border-strong mb-4">
                       <strong>Admin Notes:</strong> {payout.adminNotes}
                     </div>
                   )}
@@ -434,10 +433,10 @@ export default function RecordingSessionsTab() {
               </div>
 
               {/* Actions */}
-              <div className="flex flex-wrap gap-3 pt-4 border-t border-white/5">
+              <div className="flex flex-wrap gap-3 pt-4 border-t border-theme-border">
                 <button
                   onClick={() => openDetailModal(payout)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white hover:bg-white/10 border border-theme-border-strong transition-colors"
                 >
                   <Eye className="w-4 h-4" />
                   View Details
@@ -447,14 +446,14 @@ export default function RecordingSessionsTab() {
                   <>
                     <button
                       onClick={() => openActionModal(payout, 'approve')}
-                      className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black hover:bg-theme-primary-hover transition-colors"
                     >
                       <CheckCircle className="w-4 h-4" />
                       Approve
                     </button>
                     <button
                       onClick={() => openActionModal(payout, 'reject')}
-                      className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white hover:bg-white/20 border border-white/10 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white hover:bg-white/20 border border-theme-border-strong transition-colors"
                     >
                       <XCircle className="w-4 h-4" />
                       Reject
@@ -466,7 +465,7 @@ export default function RecordingSessionsTab() {
                   <button
                     onClick={() => processPaymentMutation.mutate(payout.id)}
                     disabled={processPaymentMutation.isPending}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black hover:bg-theme-primary-hover transition-colors disabled:opacity-50"
                   >
                     {processPaymentMutation.isPending ? (
                       <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
@@ -479,7 +478,7 @@ export default function RecordingSessionsTab() {
 
                 <button
                   onClick={() => openInvoiceModal(payout)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white hover:bg-white/10 border border-white/10 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-white/5 text-white hover:bg-white/10 border border-theme-border-strong transition-colors"
                 >
                   <FileText className="w-4 h-4" />
                   Generate Invoice
@@ -493,13 +492,13 @@ export default function RecordingSessionsTab() {
       {/* Detail Modal */}
       {showDetailModal && selectedPayout && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="relative overflow-hidden bg-[#19181a] max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 border border-white/10">
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+          <div className="relative overflow-hidden bg-theme-card max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 border border-theme-border-strong">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-light text-white">
                 Session Details - {selectedPayout.workOrderNumber}
               </h3>
-              <button onClick={() => setShowDetailModal(false)} className="text-white/40 hover:text-white transition-colors">
+              <button onClick={() => setShowDetailModal(false)} className="text-theme-foreground-muted hover:text-white transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -514,48 +513,48 @@ export default function RecordingSessionsTab() {
             {/* Session Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="space-y-4">
-                <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Session Information</h4>
+                <h4 className="text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider">Session Information</h4>
                 <div className="space-y-2 text-sm">
-                  <div><span className="text-white/40">Artist:</span> <span className="text-white">{selectedPayout.artistName || '-'}</span></div>
-                  <div><span className="text-white/40">Songs:</span> <span className="text-white">{selectedPayout.songTitles || '-'}</span></div>
-                  <div><span className="text-white/40">Date:</span> <span className="text-white">{formatDate(selectedPayout.sessionDate)}</span></div>
-                  <div><span className="text-white/40">Time:</span> <span className="text-white">{selectedPayout.startTime} - {selectedPayout.finishTime} ({selectedPayout.totalHours}h)</span></div>
-                  <div><span className="text-white/40">Studio:</span> <span className="text-white">{selectedPayout.studioName || '-'}</span></div>
+                  <div><span className="text-theme-foreground-muted">Artist:</span> <span className="text-white">{selectedPayout.artistName || '-'}</span></div>
+                  <div><span className="text-theme-foreground-muted">Songs:</span> <span className="text-white">{selectedPayout.songTitles || '-'}</span></div>
+                  <div><span className="text-theme-foreground-muted">Date:</span> <span className="text-white">{formatDate(selectedPayout.sessionDate)}</span></div>
+                  <div><span className="text-theme-foreground-muted">Time:</span> <span className="text-white">{selectedPayout.startTime} - {selectedPayout.finishTime} ({selectedPayout.totalHours}h)</span></div>
+                  <div><span className="text-theme-foreground-muted">Studio:</span> <span className="text-white">{selectedPayout.studioName || '-'}</span></div>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Team</h4>
+                <h4 className="text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider">Team</h4>
                 <div className="space-y-2 text-sm">
-                  <div><span className="text-white/40">Tracking Engineer:</span> <span className="text-white">{selectedPayout.trackingEngineer || '-'}</span></div>
-                  <div><span className="text-white/40">Assistant Engineer:</span> <span className="text-white">{selectedPayout.assistantEngineer || '-'}</span></div>
-                  <div><span className="text-white/40">Mix Engineer:</span> <span className="text-white">{selectedPayout.mixEngineer || '-'}</span></div>
-                  <div><span className="text-white/40">Mastering Engineer:</span> <span className="text-white">{selectedPayout.masteringEngineer || '-'}</span></div>
+                  <div><span className="text-theme-foreground-muted">Tracking Engineer:</span> <span className="text-white">{selectedPayout.trackingEngineer || '-'}</span></div>
+                  <div><span className="text-theme-foreground-muted">Assistant Engineer:</span> <span className="text-white">{selectedPayout.assistantEngineer || '-'}</span></div>
+                  <div><span className="text-theme-foreground-muted">Mix Engineer:</span> <span className="text-white">{selectedPayout.mixEngineer || '-'}</span></div>
+                  <div><span className="text-theme-foreground-muted">Mastering Engineer:</span> <span className="text-white">{selectedPayout.masteringEngineer || '-'}</span></div>
                 </div>
               </div>
             </div>
 
             {/* Links */}
             <div className="mb-6">
-              <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4">Deliverables</h4>
+              <h4 className="text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider mb-4">Deliverables</h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {selectedPayout.masterLink && (
-                  <a href={selectedPayout.masterLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-white/5 text-[#f0e226] text-sm hover:bg-white/10 border border-white/10 transition-colors">
+                  <a href={selectedPayout.masterLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-white/5 text-theme-primary text-sm hover:bg-white/10 border border-theme-border-strong transition-colors">
                     <Download className="w-4 h-4" /> Master
                   </a>
                 )}
                 {selectedPayout.sessionFilesLink && (
-                  <a href={selectedPayout.sessionFilesLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-white/5 text-[#f0e226] text-sm hover:bg-white/10 border border-white/10 transition-colors">
+                  <a href={selectedPayout.sessionFilesLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-white/5 text-theme-primary text-sm hover:bg-white/10 border border-theme-border-strong transition-colors">
                     <Download className="w-4 h-4" /> Session Files
                   </a>
                 )}
                 {selectedPayout.beatStemsLink && (
-                  <a href={selectedPayout.beatStemsLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-white/5 text-[#f0e226] text-sm hover:bg-white/10 border border-white/10 transition-colors">
+                  <a href={selectedPayout.beatStemsLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-white/5 text-theme-primary text-sm hover:bg-white/10 border border-theme-border-strong transition-colors">
                     <Download className="w-4 h-4" /> Beat Stems
                   </a>
                 )}
                 {selectedPayout.beatLink && (
-                  <a href={selectedPayout.beatLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-white/5 text-[#f0e226] text-sm hover:bg-white/10 border border-white/10 transition-colors">
+                  <a href={selectedPayout.beatLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-3 py-2 bg-white/5 text-theme-primary text-sm hover:bg-white/10 border border-theme-border-strong transition-colors">
                     <Download className="w-4 h-4" /> Beat
                   </a>
                 )}
@@ -564,15 +563,15 @@ export default function RecordingSessionsTab() {
 
             {/* Payment Details */}
             <div className="mb-6">
-              <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4">Payment Details</h4>
-              <div className="bg-black p-4 border border-white/5">
+              <h4 className="text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider mb-4">Payment Details</h4>
+              <div className="bg-black p-4 border border-theme-border">
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-white/40">Payment Split:</span> <span className="text-white capitalize">{selectedPayout.paymentSplit}</span></div>
-                  <div><span className="text-white/40">Deposit Paid:</span> <span className="text-white">{formatCurrency(selectedPayout.depositPaid)}</span></div>
-                  <div><span className="text-white/40">Studio Cost:</span> <span className="text-white">{formatCurrency(selectedPayout.studioCost)}</span></div>
-                  <div><span className="text-white/40">Engineer Fee:</span> <span className="text-white">{formatCurrency(selectedPayout.engineerFee)}</span></div>
-                  <div><span className="text-white/40">Total Session Cost:</span> <span className="text-white">{formatCurrency(selectedPayout.totalSessionCost)}</span></div>
-                  <div><span className="text-white/40 font-semibold">Payout Amount:</span> <span className="text-[#f0e226] font-light text-lg">{formatCurrency(selectedPayout.payoutAmount)}</span></div>
+                  <div><span className="text-theme-foreground-muted">Payment Split:</span> <span className="text-white capitalize">{selectedPayout.paymentSplit}</span></div>
+                  <div><span className="text-theme-foreground-muted">Deposit Paid:</span> <span className="text-white">{formatCurrency(selectedPayout.depositPaid)}</span></div>
+                  <div><span className="text-theme-foreground-muted">Studio Cost:</span> <span className="text-white">{formatCurrency(selectedPayout.studioCost)}</span></div>
+                  <div><span className="text-theme-foreground-muted">Engineer Fee:</span> <span className="text-white">{formatCurrency(selectedPayout.engineerFee)}</span></div>
+                  <div><span className="text-theme-foreground-muted">Total Session Cost:</span> <span className="text-white">{formatCurrency(selectedPayout.totalSessionCost)}</span></div>
+                  <div><span className="text-theme-foreground-muted font-semibold">Payout Amount:</span> <span className="text-theme-primary font-light text-lg">{formatCurrency(selectedPayout.payoutAmount)}</span></div>
                 </div>
               </div>
             </div>
@@ -580,10 +579,10 @@ export default function RecordingSessionsTab() {
             {/* Stripe Info */}
             {selectedPayout.submittedBy && (
               <div className="mb-6">
-                <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4">Stripe Status</h4>
-                <div className="bg-black p-4 text-sm border border-white/5">
+                <h4 className="text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider mb-4">Stripe Status</h4>
+                <div className="bg-black p-4 text-sm border border-theme-border">
                   {selectedPayout.submittedBy.stripeOnboardingComplete ? (
-                    <div className="flex items-center gap-2 text-[#f0e226]">
+                    <div className="flex items-center gap-2 text-theme-primary">
                       <CheckCircle className="w-4 h-4" />
                       Stripe account connected
                     </div>
@@ -594,12 +593,12 @@ export default function RecordingSessionsTab() {
                     </div>
                   )}
                   {selectedPayout.stripeTransferId && (
-                    <div className="mt-2 text-white/40">
+                    <div className="mt-2 text-theme-foreground-muted">
                       Transfer ID: {selectedPayout.stripeTransferId}
                     </div>
                   )}
                   {selectedPayout.paidAt && (
-                    <div className="mt-2 text-white/40">
+                    <div className="mt-2 text-theme-foreground-muted">
                       Paid at: {formatDate(selectedPayout.paidAt)}
                     </div>
                   )}
@@ -610,18 +609,18 @@ export default function RecordingSessionsTab() {
             {/* Session Notes */}
             {selectedPayout.sessionNotes && (
               <div className="mb-6">
-                <h4 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-4">Session Notes</h4>
-                <div className="bg-black p-4 text-sm text-white/60 border border-white/5">
+                <h4 className="text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider mb-4">Session Notes</h4>
+                <div className="bg-black p-4 text-sm text-theme-foreground-secondary border border-theme-border">
                   {selectedPayout.sessionNotes}
                 </div>
               </div>
             )}
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+            <div className="flex justify-end gap-3 pt-4 border-t border-theme-border">
               <button
                 onClick={() => setShowDetailModal(false)}
-                className="px-4 py-2 border border-white/10 text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                className="px-4 py-2 border border-theme-border-strong text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors"
               >
                 Close
               </button>
@@ -630,7 +629,7 @@ export default function RecordingSessionsTab() {
                   setShowDetailModal(false);
                   openInvoiceModal(selectedPayout);
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-[#f0e226] text-black hover:bg-[#d9cc22] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-black hover:bg-theme-primary-hover transition-colors"
               >
                 <FileText className="w-4 h-4" />
                 Generate Invoice
@@ -643,26 +642,26 @@ export default function RecordingSessionsTab() {
       {/* Action Modal (Approve/Reject) */}
       {showActionModal && selectedPayout && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="relative overflow-hidden bg-[#19181a] max-w-md w-full p-6 border border-white/10">
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+          <div className="relative overflow-hidden bg-theme-card max-w-md w-full p-6 border border-theme-border-strong">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
             <h3 className="text-xl font-light text-white mb-4">
               {modalAction === 'approve' ? 'Approve' : modalAction === 'reject' ? 'Reject' : 'Dispute'} Session Payout
             </h3>
-            <p className="text-white/60 mb-4">
+            <p className="text-theme-foreground-secondary mb-4">
               {modalAction === 'approve'
-                ? <>Approve payout of <span className="text-[#f0e226]">{formatCurrency(selectedPayout.payoutAmount)}</span> to <span className="text-white">{selectedPayout.submittedByName}</span>?</>
+                ? <>Approve payout of <span className="text-theme-primary">{formatCurrency(selectedPayout.payoutAmount)}</span> to <span className="text-white">{selectedPayout.submittedByName}</span>?</>
                 : <>Reject payout request from <span className="text-white">{selectedPayout.submittedByName}</span>?</>}
             </p>
 
             {modalAction === 'reject' && (
               <div className="mb-4">
-                <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">
+                <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">
                   Rejection Reason <span className="text-red-400">*</span>
                 </label>
                 <textarea
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  className="w-full px-3 py-2 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-red-500/50"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-red-500/50"
                   rows={3}
                   placeholder="Provide reason for rejection..."
                 />
@@ -670,11 +669,11 @@ export default function RecordingSessionsTab() {
             )}
 
             <div className="mb-6">
-              <label className="block text-xs text-white/40 uppercase tracking-wider mb-2">Admin Notes (Optional)</label>
+              <label className="block text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Admin Notes (Optional)</label>
               <textarea
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
-                className="w-full px-3 py-2 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50"
+                className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
                 rows={2}
                 placeholder="Additional notes..."
               />
@@ -683,7 +682,7 @@ export default function RecordingSessionsTab() {
             <div className="flex space-x-3">
               <button
                 onClick={closeActionModal}
-                className="flex-1 px-4 py-2 border border-white/10 text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                className="flex-1 px-4 py-2 border border-theme-border-strong text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors"
               >
                 Cancel
               </button>
@@ -696,8 +695,8 @@ export default function RecordingSessionsTab() {
                 }
                 className={`flex-1 px-4 py-2 transition-colors ${
                   modalAction === 'approve'
-                    ? 'bg-[#f0e226] text-black hover:bg-[#d9cc22]'
-                    : 'bg-white/10 text-white hover:bg-white/20 border border-white/10'
+                    ? 'bg-theme-primary text-black hover:bg-theme-primary-hover'
+                    : 'bg-white/10 text-white hover:bg-white/20 border border-theme-border-strong'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {approveMutation.isPending || rejectMutation.isPending ? (

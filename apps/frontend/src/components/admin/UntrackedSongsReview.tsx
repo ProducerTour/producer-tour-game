@@ -111,19 +111,19 @@ export function UntrackedSongsReview({
 
   if (remainingSongs.length === 0) {
     return (
-      <div className="relative overflow-hidden bg-[#19181a] border border-white/5 p-8 text-center">
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
-        <div className="w-16 h-16 bg-[#f0e226]/10 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle className="w-8 h-8 text-[#f0e226]" />
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-8 text-center">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+        <div className="w-16 h-16 bg-theme-primary-10 flex items-center justify-center mx-auto mb-4">
+          <CheckCircle className="w-8 h-8 text-theme-primary" />
         </div>
-        <h3 className="text-xl font-light text-white mb-2">All Songs Reviewed</h3>
-        <p className="text-white/40 mb-6">
+        <h3 className="text-xl font-light text-theme-foreground mb-2">All Songs Reviewed</h3>
+        <p className="text-theme-foreground-muted mb-6">
           All untracked songs have been processed. You can now continue with statement processing.
         </p>
         {onClose && (
           <button
             onClick={onClose}
-            className="px-6 py-3 bg-[#f0e226] text-black font-medium hover:bg-[#d9cc22] transition-colors"
+            className="px-6 py-3 bg-theme-primary text-black font-medium hover:bg-theme-primary-hover transition-colors"
           >
             Continue
           </button>
@@ -133,27 +133,27 @@ export function UntrackedSongsReview({
   }
 
   return (
-    <div className="relative overflow-hidden bg-[#19181a] border border-white/5">
-      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#f0e226] via-[#f0e226]/50 to-transparent" />
+    <div className="relative overflow-hidden bg-theme-card border border-theme-border">
+      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
       {/* Header */}
-      <div className="p-6 border-b border-white/5">
+      <div className="p-6 border-b border-theme-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-[#f0e226]/10 flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-[#f0e226]" />
+            <div className="w-12 h-12 bg-theme-primary-10 flex items-center justify-center">
+              <AlertCircle className="w-6 h-6 text-theme-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-light text-white">Untracked Songs</h2>
-              <p className="text-white/40 text-sm">
+              <h2 className="text-xl font-light text-theme-foreground">Untracked Songs</h2>
+              <p className="text-theme-foreground-muted text-sm">
                 {remainingSongs.length} songs couldn't be matched to Manage Placements
               </p>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-light text-[#f0e226]">
+            <div className="text-2xl font-light text-theme-primary">
               ${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-            <div className="text-sm text-white/40">Total unassigned revenue</div>
+            <div className="text-sm text-theme-foreground-muted">Total unassigned revenue</div>
           </div>
         </div>
       </div>
@@ -166,20 +166,20 @@ export function UntrackedSongsReview({
               {/* Song Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#f0e226]/10 flex items-center justify-center shrink-0">
-                    <Music className="w-5 h-5 text-[#f0e226]" />
+                  <div className="w-10 h-10 bg-theme-primary-10 flex items-center justify-center shrink-0">
+                    <Music className="w-5 h-5 text-theme-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-white truncate">{song.workTitle}</h4>
-                    <p className="text-white/30 text-sm">{song.reason}</p>
+                    <h4 className="text-theme-foreground truncate">{song.workTitle}</h4>
+                    <p className="text-theme-foreground-muted text-sm">{song.reason}</p>
                   </div>
                 </div>
               </div>
 
               {/* Revenue */}
               <div className="text-right shrink-0">
-                <div className="flex items-center gap-1 text-[#f0e226] font-light">
-                  <DollarSign className="w-4 h-4 text-[#f0e226]/60" />
+                <div className="flex items-center gap-1 text-theme-primary font-light">
+                  <DollarSign className="w-4 h-4 text-theme-primary/60" />
                   {song.revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
@@ -188,14 +188,14 @@ export function UntrackedSongsReview({
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => openSearchForSong(index)}
-                  className="px-3 py-2 bg-[#f0e226] text-black text-sm flex items-center gap-2 hover:bg-[#d9cc22] transition-colors"
+                  className="px-3 py-2 bg-theme-primary text-black text-sm flex items-center gap-2 hover:bg-theme-primary-hover transition-colors"
                 >
                   <Link2 className="w-4 h-4" />
                   Link
                 </button>
                 <button
                   onClick={() => handleMarkForFollowUp(song)}
-                  className="px-3 py-2 bg-white/10 border border-white/10 text-white text-sm flex items-center gap-2 hover:bg-white/20 transition-colors"
+                  className="px-3 py-2 bg-white/10 border border-theme-border-strong text-white text-sm flex items-center gap-2 hover:bg-white/20 transition-colors"
                   title="Mark for writer follow-up"
                 >
                   <Users className="w-4 h-4" />
@@ -203,7 +203,7 @@ export function UntrackedSongsReview({
                 </button>
                 <button
                   onClick={() => handleSkip(song)}
-                  className="px-3 py-2 bg-white/5 border border-white/10 text-white/40 hover:text-white text-sm transition-colors"
+                  className="px-3 py-2 bg-white/5 border border-theme-border-strong text-theme-foreground-muted hover:text-white text-sm transition-colors"
                   title="Skip this song"
                 >
                   <XCircle className="w-4 h-4" />
@@ -213,23 +213,23 @@ export function UntrackedSongsReview({
 
             {/* Expanded Search Panel */}
             {activeSongIndex === index && (
-              <div className="mt-4 p-4 bg-black/30 border border-white/5">
+              <div className="mt-4 p-4 bg-black/30 border border-theme-border">
                 {/* Search Input */}
                 <div className="flex gap-2 mb-4">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-foreground-muted" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-black border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-[#f0e226]/50 transition-colors"
+                      className="w-full pl-10 pr-4 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                       placeholder="Search placements by title..."
                       autoFocus
                     />
                   </div>
                   <button
                     onClick={() => setActiveSongIndex(null)}
-                    className="px-4 py-2 border border-white/10 text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+                    className="px-4 py-2 border border-theme-border-strong text-theme-foreground-muted hover:text-white hover:bg-white/5 transition-colors"
                   >
                     Cancel
                   </button>
@@ -238,8 +238,8 @@ export function UntrackedSongsReview({
                 {/* Search Results */}
                 <div className="max-h-48 overflow-y-auto space-y-2">
                   {isSearching ? (
-                    <div className="text-center py-4 text-white/40">
-                      <div className="w-6 h-6 border-2 border-[#f0e226]/20 border-t-[#f0e226] rounded-full animate-spin mx-auto mb-2" />
+                    <div className="text-center py-4 text-theme-foreground-muted">
+                      <div className="w-6 h-6 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin mx-auto mb-2" />
                       Searching placements...
                     </div>
                   ) : searchResults.length > 0 ? (
@@ -247,20 +247,20 @@ export function UntrackedSongsReview({
                       <button
                         key={placement.id}
                         onClick={() => handleLinkToPlacement(song, placement.id)}
-                        className="w-full p-3 bg-black/50 hover:bg-[#f0e226]/10 border border-white/5 hover:border-[#f0e226]/30 text-left transition-colors"
+                        className="w-full p-3 bg-black/50 hover:bg-theme-primary-10 border border-theme-border hover:border-theme-border-hover text-left transition-colors"
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <div className="text-white">{placement.title}</div>
-                            <div className="text-white/40 text-sm">{placement.artist}</div>
+                            <div className="text-theme-foreground">{placement.title}</div>
+                            <div className="text-theme-foreground-muted text-sm">{placement.artist}</div>
                           </div>
                           <div className="text-right">
                             {placement.caseNumber && (
-                              <span className="px-2 py-0.5 bg-[#f0e226]/15 text-[#f0e226] text-xs border border-[#f0e226]/30 font-mono">
+                              <span className="px-2 py-0.5 bg-theme-primary-15 text-theme-primary text-xs border border-theme-border-hover font-mono">
                                 {placement.caseNumber}
                               </span>
                             )}
-                            <div className="text-xs text-white/30 mt-1">
+                            <div className="text-xs text-theme-foreground-muted mt-1">
                               {placement.credits.length} collaborator{placement.credits.length !== 1 ? 's' : ''}
                             </div>
                           </div>
@@ -268,12 +268,12 @@ export function UntrackedSongsReview({
                         {placement.credits.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1">
                             {placement.credits.slice(0, 3).map((credit, i) => (
-                              <span key={i} className="px-2 py-0.5 bg-white/5 border border-white/10 text-xs text-white/40">
+                              <span key={i} className="px-2 py-0.5 bg-white/5 border border-theme-border-strong text-xs text-theme-foreground-muted">
                                 {credit.firstName} {credit.lastName} ({credit.splitPercentage}%)
                               </span>
                             ))}
                             {placement.credits.length > 3 && (
-                              <span className="px-2 py-0.5 bg-white/5 border border-white/10 text-xs text-white/30">
+                              <span className="px-2 py-0.5 bg-white/5 border border-theme-border-strong text-xs text-theme-foreground-muted">
                                 +{placement.credits.length - 3} more
                               </span>
                             )}
@@ -282,14 +282,14 @@ export function UntrackedSongsReview({
                       </button>
                     ))
                   ) : searchQuery.length >= 2 ? (
-                    <div className="text-center py-4 text-white/40">
+                    <div className="text-center py-4 text-theme-foreground-muted">
                       <p>No placements found for "{searchQuery}"</p>
-                      <p className="text-sm mt-1 text-white/30">
+                      <p className="text-sm mt-1 text-theme-foreground-muted">
                         This song may need to be registered in Manage Placements first.
                       </p>
                     </div>
                   ) : (
-                    <div className="text-center py-4 text-white/30">
+                    <div className="text-center py-4 text-theme-foreground-muted">
                       <p className="text-sm">Enter at least 2 characters to search</p>
                     </div>
                   )}
@@ -301,22 +301,22 @@ export function UntrackedSongsReview({
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-white/5 bg-black/30">
+      <div className="p-4 border-t border-theme-border bg-black/30">
         <div className="flex items-center justify-between">
-          <div className="text-sm text-white/40">
-            <span className="text-[#f0e226]">{processedSongs.size}</span> of{' '}
-            <span className="text-white">{songs.length}</span> songs reviewed
+          <div className="text-sm text-theme-foreground-muted">
+            <span className="text-theme-primary">{processedSongs.size}</span> of{' '}
+            <span className="text-theme-foreground">{songs.length}</span> songs reviewed
           </div>
           <div className="flex gap-3">
             <button
               onClick={() => remainingSongs.forEach(handleSkip)}
-              className="px-4 py-2 border border-white/10 text-white/60 hover:text-white hover:bg-white/5 text-sm transition-colors"
+              className="px-4 py-2 border border-theme-border-strong text-theme-foreground-secondary hover:text-white hover:bg-white/5 text-sm transition-colors"
             >
               Skip All Remaining
             </button>
             <button
               onClick={() => remainingSongs.forEach(handleMarkForFollowUp)}
-              className="px-4 py-2 bg-[#f0e226] text-black text-sm font-medium hover:bg-[#d9cc22] transition-colors"
+              className="px-4 py-2 bg-theme-primary text-black text-sm font-medium hover:bg-theme-primary-hover transition-colors"
             >
               Follow Up on All
             </button>
