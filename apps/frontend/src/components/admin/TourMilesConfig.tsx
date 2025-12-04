@@ -14,8 +14,6 @@ import {
   X,
   RefreshCw,
   Search,
-  ChevronDown,
-  ChevronUp,
   Trophy,
 } from 'lucide-react';
 
