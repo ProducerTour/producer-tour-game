@@ -199,7 +199,7 @@ const InsightsTab: React.FC = () => {
               <button
                 onClick={() => seedMutation.mutate()}
                 disabled={seedMutation.isPending}
-                className="flex items-center gap-2 px-3 py-2 bg-theme-card hover:bg-white/10 border border-theme-border text-sm text-theme-foreground-secondary hover:text-white transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-2 bg-theme-card hover:bg-theme-card-hover border border-theme-border text-sm text-theme-foreground-secondary hover:text-theme-foreground transition-all disabled:opacity-50"
               >
                 <Rss className="w-4 h-4" />
                 Seed Feeds
@@ -231,7 +231,7 @@ const InsightsTab: React.FC = () => {
           className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all ${
             viewMode === 'feed'
               ? 'bg-theme-primary-15 text-theme-primary'
-              : 'text-theme-foreground-muted hover:text-white'
+              : 'text-theme-foreground-muted hover:text-theme-foreground'
           }`}
         >
           <Newspaper className="w-4 h-4" />
@@ -242,7 +242,7 @@ const InsightsTab: React.FC = () => {
           className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all ${
             viewMode === 'sources'
               ? 'bg-theme-primary-15 text-theme-primary'
-              : 'text-theme-foreground-muted hover:text-white'
+              : 'text-theme-foreground-muted hover:text-theme-foreground'
           }`}
         >
           <Globe className="w-4 h-4" />
@@ -265,12 +265,12 @@ const InsightsTab: React.FC = () => {
               className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium transition-all ${
                 isActive
                   ? 'bg-theme-primary-15 text-theme-primary border border-theme-border-hover'
-                  : 'bg-theme-card text-theme-foreground-muted hover:bg-white/10 hover:text-white border border-theme-border'
+                  : 'bg-theme-card text-theme-foreground-muted hover:bg-theme-card-hover hover:text-theme-foreground border border-theme-border'
               }`}
             >
               <span className={config.color}>{config.icon}</span>
               {config.label}
-              <span className="text-xs text-white/30">({count})</span>
+              <span className="text-xs text-theme-foreground-muted opacity-50">({count})</span>
             </button>
           );
         })}
@@ -286,8 +286,8 @@ const InsightsTab: React.FC = () => {
           ) : articles.length === 0 ? (
             <div className="text-center py-12 bg-theme-card border border-theme-border">
               <Rss className="w-12 h-12 text-theme-primary-30 mx-auto mb-4" />
-              <h3 className="text-lg font-normal text-white mb-2">No Articles Yet</h3>
-              <p className="text-white/40 mb-4">
+              <h3 className="text-lg font-normal text-theme-foreground mb-2">No Articles Yet</h3>
+              <p className="text-theme-foreground-muted mb-4">
                 Click "Seed Feeds" to set up sources, then "Refresh Feeds" to fetch articles.
               </p>
             </div>
@@ -319,7 +319,7 @@ const InsightsTab: React.FC = () => {
                 <div key={cat}>
                   <div className="flex items-center gap-2 mb-4">
                     <span className={config.color}>{config.icon}</span>
-                    <h2 className="text-lg font-semibold text-white">{config.label}</h2>
+                    <h2 className="text-lg font-semibold text-theme-foreground">{config.label}</h2>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {catSources.map((source) => (
@@ -386,13 +386,13 @@ const ArticleCard: React.FC<{
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               {article.isPinned && <Pin className="w-3.5 h-3.5 text-theme-primary" />}
-              <span className="text-xs text-white/30 uppercase tracking-wider">{article.source}</span>
+              <span className="text-xs text-theme-foreground-muted uppercase tracking-wider">{article.source}</span>
             </div>
             <a
               href={article.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white font-medium hover:text-theme-primary transition-colors line-clamp-2"
+              className="text-theme-foreground font-medium hover:text-theme-primary transition-colors line-clamp-2"
             >
               {article.title}
             </a>
@@ -411,22 +411,22 @@ const ArticleCard: React.FC<{
             </button>
             <button
               onClick={onHide}
-              className="p-1.5 hover:bg-white/10 transition-colors"
+              className="p-1.5 hover:bg-theme-card-hover transition-colors"
               title="Hide"
             >
-              <EyeOff className="w-4 h-4 text-white/40 hover:text-white" />
+              <EyeOff className="w-4 h-4 text-theme-foreground-muted hover:text-theme-foreground" />
             </button>
           </div>
         </div>
         {article.description && (
-          <p className="text-sm text-white/40 line-clamp-2 mb-3">{article.description}</p>
+          <p className="text-sm text-theme-foreground-muted line-clamp-2 mb-3">{article.description}</p>
         )}
         <div className="flex items-center justify-between">
           <span className="text-xs text-theme-primary bg-theme-primary-10 px-2 py-1 flex items-center gap-1">
             {article.category}
           </span>
           {publishedDate && (
-            <span className="text-xs text-white/30 flex items-center gap-1">
+            <span className="text-xs text-theme-foreground-muted flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {publishedDate}
             </span>
@@ -442,16 +442,16 @@ const SourceCard: React.FC<{ source: Source }> = ({ source }) => (
       href={source.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative block bg-theme-card hover:bg-white/5 border border-theme-border hover:border-theme-border-hover p-4 transition-all duration-300"
+      className="group relative block bg-theme-card hover:bg-theme-card-hover border border-theme-border hover:border-theme-border-hover p-4 transition-all duration-300"
     >
       <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
       <div className="flex items-center gap-2 mb-2">
-        <h3 className="text-white font-medium group-hover:text-theme-primary transition-colors">
+        <h3 className="text-theme-foreground font-medium group-hover:text-theme-primary transition-colors">
           {source.name}
         </h3>
-        <ExternalLink className="w-3.5 h-3.5 text-white/30 group-hover:text-theme-primary transition-colors" />
+        <ExternalLink className="w-3.5 h-3.5 text-theme-foreground-muted group-hover:text-theme-primary transition-colors" />
       </div>
-      <p className="text-sm text-white/40 mb-3">{source.description}</p>
+      <p className="text-sm text-theme-foreground-muted mb-3">{source.description}</p>
       <span className="text-xs text-theme-primary bg-theme-primary-10 px-2 py-1 inline-flex items-center gap-1">
         {source.category}
       </span>
@@ -511,8 +511,8 @@ const AddArticleModal: React.FC<{
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="relative bg-theme-card border border-theme-border w-full max-w-md">
         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
-        <div className="flex items-center justify-between p-4 border-b border-white/5">
-          <h2 className="text-lg font-light text-white">Add Article</h2>
+        <div className="flex items-center justify-between p-4 border-b border-theme-border">
+          <h2 className="text-lg font-light text-theme-foreground">Add Article</h2>
           <button onClick={onClose} className="p-2 hover:bg-theme-primary-10 transition-colors">
             <X className="w-5 h-5 text-theme-foreground-muted hover:text-theme-primary" />
           </button>
@@ -525,7 +525,7 @@ const AddArticleModal: React.FC<{
               required
               value={formData.url}
               onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-              className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+              className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
               placeholder="https://..."
             />
           </div>
@@ -536,7 +536,7 @@ const AddArticleModal: React.FC<{
               required
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+              className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
               placeholder="Article title"
             />
           </div>
@@ -547,7 +547,7 @@ const AddArticleModal: React.FC<{
               required
               value={formData.source}
               onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-              className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+              className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
               placeholder="e.g., Billboard, Pitchfork"
             />
           </div>
@@ -556,7 +556,7 @@ const AddArticleModal: React.FC<{
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-              className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white focus:outline-none focus:border-theme-input-focus"
+              className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
             >
               {(Object.keys(categoryLabels) as Exclude<Category, 'all'>[]).map((cat) => (
                 <option key={cat} value={cat}>
@@ -570,7 +570,7 @@ const AddArticleModal: React.FC<{
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus resize-none"
+              className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus resize-none"
               rows={3}
               placeholder="Brief description (optional)"
             />
@@ -579,7 +579,7 @@ const AddArticleModal: React.FC<{
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-theme-foreground-muted hover:text-white transition-colors"
+              className="px-4 py-2 text-theme-foreground-muted hover:text-theme-foreground transition-colors"
             >
               Cancel
             </button>
