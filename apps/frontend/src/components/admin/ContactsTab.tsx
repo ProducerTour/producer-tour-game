@@ -207,11 +207,11 @@ const ContactsTab: React.FC = () => {
       case 'distributor': return 'bg-theme-primary-15 text-theme-primary border-theme-border-hover';
       case 'attorney': return 'bg-theme-primary-15 text-theme-primary border-theme-border-hover';
       case 'manager': return 'bg-theme-primary-15 text-theme-primary border-theme-border-hover';
-      default: return 'bg-white/10 text-theme-foreground-secondary border-theme-border-strong';
+      default: return 'bg-theme-card-hover text-theme-foreground-secondary border-theme-border-strong';
     }
   };
 
-  const inputClass = "block w-full py-2.5 px-3 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus";
+  const inputClass = "block w-full py-2.5 px-3 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus";
   const labelClass = "block mb-1 text-xs font-medium text-theme-foreground-muted uppercase tracking-[0.2em]";
 
   return (
@@ -224,7 +224,7 @@ const ContactsTab: React.FC = () => {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-theme-primary text-black text-sm font-medium hover:bg-theme-primary-hover transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-theme-primary text-theme-primary-foreground text-sm font-medium hover:bg-theme-primary-hover transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Contact
@@ -234,7 +234,7 @@ const ContactsTab: React.FC = () => {
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-foreground-muted" />
           <input
             type="text"
             placeholder="Search contacts..."
@@ -277,7 +277,7 @@ const ContactsTab: React.FC = () => {
           {!searchQuery && categoryFilter === 'all' && (
             <button
               onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-theme-primary text-black text-sm font-medium hover:bg-theme-primary-hover"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-theme-primary text-theme-primary-foreground text-sm font-medium hover:bg-theme-primary-hover"
             >
               <Plus className="w-4 h-4" />
               Add Contact
@@ -311,24 +311,24 @@ const ContactsTab: React.FC = () => {
 
               <div className="space-y-2 text-sm">
                 {contact.email && (
-                  <div className="flex items-center gap-2 text-white/60">
-                    <Mail className="w-4 h-4 text-white/30 flex-shrink-0" />
+                  <div className="flex items-center gap-2 text-theme-foreground-secondary">
+                    <Mail className="w-4 h-4 text-theme-foreground-muted flex-shrink-0" />
                     <a href={`mailto:${contact.email}`} className="truncate hover:text-theme-primary">
                       {contact.email}
                     </a>
                   </div>
                 )}
                 {contact.phone && (
-                  <div className="flex items-center gap-2 text-white/60">
-                    <Phone className="w-4 h-4 text-white/30 flex-shrink-0" />
+                  <div className="flex items-center gap-2 text-theme-foreground-secondary">
+                    <Phone className="w-4 h-4 text-theme-foreground-muted flex-shrink-0" />
                     <a href={`tel:${contact.phone}`} className="hover:text-theme-primary">
                       {contact.phone}
                     </a>
                   </div>
                 )}
                 {(contact.address || contact.city) && (
-                  <div className="flex items-start gap-2 text-white/60">
-                    <MapPin className="w-4 h-4 text-white/30 flex-shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-2 text-theme-foreground-secondary">
+                    <MapPin className="w-4 h-4 text-theme-foreground-muted flex-shrink-0 mt-0.5" />
                     <span className="truncate">
                       {[contact.address, contact.city, contact.state, contact.zipCode]
                         .filter(Boolean)
@@ -339,10 +339,10 @@ const ContactsTab: React.FC = () => {
               </div>
 
               {contact.notes && (
-                <p className="mt-3 text-xs text-white/30 line-clamp-2">{contact.notes}</p>
+                <p className="mt-3 text-xs text-theme-foreground-muted line-clamp-2">{contact.notes}</p>
               )}
 
-              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
+              <div className="flex items-center gap-2 mt-4 pt-4 border-t border-theme-border">
                 <button
                   onClick={() => handleEdit(contact)}
                   className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 text-sm text-theme-foreground-secondary hover:text-theme-primary hover:bg-theme-primary-10 transition-colors"
@@ -352,7 +352,7 @@ const ContactsTab: React.FC = () => {
                 </button>
                 <button
                   onClick={() => handleDelete(contact.id)}
-                  className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 text-sm text-theme-foreground-muted hover:text-white hover:bg-white/10 transition-colors"
+                  className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 text-sm text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-card-hover transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Delete
@@ -368,7 +368,7 @@ const ContactsTab: React.FC = () => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="relative bg-theme-card p-6 shadow-xl border border-theme-border w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
-            <h2 className="text-xl font-light text-white mb-6">
+            <h2 className="text-xl font-normal text-theme-foreground mb-6">
               {editingContact ? 'Edit Contact' : 'Add New Contact'}
             </h2>
 
@@ -500,18 +500,18 @@ const ContactsTab: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+              <div className="flex justify-end gap-3 pt-4 border-t border-theme-border">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-4 py-2 text-sm font-medium text-theme-foreground-muted hover:text-white hover:bg-white/10 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-card-hover transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
-                  className="px-4 py-2 bg-theme-primary text-black text-sm font-medium hover:bg-theme-primary-hover disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 bg-theme-primary text-theme-primary-foreground text-sm font-medium hover:bg-theme-primary-hover disabled:opacity-50 transition-colors"
                 >
                   {createMutation.isPending || updateMutation.isPending
                     ? 'Saving...'

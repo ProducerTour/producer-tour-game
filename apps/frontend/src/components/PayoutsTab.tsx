@@ -1268,20 +1268,20 @@ const PayoutsTab: React.FC = () => {
       {activeSubTab === 'overview' && (
       <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6">
         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
-        <h3 className="text-lg font-light text-white mb-4">Export & Reconciliation</h3>
+        <h3 className="text-lg font-light text-theme-foreground mb-4">Export & Reconciliation</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={() => statementApi.exportUnpaidSummary()}
-            className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-medium flex items-center justify-center gap-2 transition-colors"
+            className="px-4 py-3 border border-theme-border bg-theme-card-hover hover:border-theme-border-hover hover:bg-theme-border-hover text-theme-foreground font-medium flex items-center justify-center gap-2 transition-all"
           >
             <Download className="h-4 w-4" />
             Export Payment Queue (CSV)
           </button>
-          <button className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-medium flex items-center justify-center gap-2 transition-colors">
+          <button className="px-4 py-3 border border-theme-border bg-theme-card-hover hover:border-theme-border-hover hover:bg-theme-border-hover text-theme-foreground font-medium flex items-center justify-center gap-2 transition-all">
             <Download className="h-4 w-4" />
             Export Payment History (CSV)
           </button>
-          <button className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-medium flex items-center justify-center gap-2 transition-colors">
+          <button className="px-4 py-3 border border-theme-border bg-theme-card-hover hover:border-theme-border-hover hover:bg-theme-border-hover text-theme-foreground font-medium flex items-center justify-center gap-2 transition-all">
             <Download className="h-4 w-4" />
             QuickBooks Format
           </button>
