@@ -373,7 +373,7 @@ export default function WriterTourHubPage() {
                     />
                   ) : (
                     <a
-                      href={writer.website}
+                      href={writer.website || undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors border border-white/5"
@@ -398,7 +398,7 @@ export default function WriterTourHubPage() {
                     />
                   ) : (
                     <a
-                      href={writer.spotifyArtistUrl}
+                      href={writer.spotifyArtistUrl || undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-4 py-2 bg-green-600/20 hover:bg-green-600/30 rounded-lg text-green-400 hover:text-green-300 transition-colors border border-green-600/20"
@@ -471,7 +471,7 @@ export default function WriterTourHubPage() {
                     />
                   ) : (
                     <a
-                      href={writer.linkedinUrl}
+                      href={writer.linkedinUrl || undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg text-blue-400 hover:text-blue-300 transition-colors border border-blue-600/20"
@@ -520,7 +520,7 @@ export default function WriterTourHubPage() {
                     />
                   ) : (
                     <a
-                      href={writer.youtubeChannelUrl}
+                      href={writer.youtubeChannelUrl || undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 rounded-lg text-red-400 hover:text-red-300 transition-colors border border-red-600/20"
@@ -545,7 +545,7 @@ export default function WriterTourHubPage() {
                     />
                   ) : (
                     <a
-                      href={writer.appleMusicUrl}
+                      href={writer.appleMusicUrl || undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 rounded-lg text-rose-400 hover:text-rose-300 transition-colors border border-rose-600/20"
@@ -570,7 +570,7 @@ export default function WriterTourHubPage() {
                     />
                   ) : (
                     <a
-                      href={writer.soundcloudUrl}
+                      href={writer.soundcloudUrl || undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-4 py-2 bg-orange-600/20 hover:bg-orange-600/30 rounded-lg text-orange-400 hover:text-orange-300 transition-colors border border-orange-600/20"
