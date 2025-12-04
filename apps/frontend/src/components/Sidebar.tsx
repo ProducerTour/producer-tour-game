@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/auth.store';
 import { useQuery } from '@tanstack/react-query';
 import { getNavigationForRole, type NavSection, type NavItem } from '../config/navigation.config';
 import { SaasIcon, IconName } from './ui/SaasIcon';
-import { LogOut, Settings, ChevronDown, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
+import { LogOut, Settings, ChevronDown, ChevronLeft, ChevronRight, Menu, X, UserCircle } from 'lucide-react';
 import { getAuthToken, gamificationApi } from '../lib/api';
 import { AnimatedBorder, parseBorderConfig } from './AnimatedBorder';
 import { ProfileBadge, parseBadgeConfig } from './ProfileBadge';
@@ -31,6 +31,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   const isLightTheme = themeContext?.themeId === 'light';
   const [expandedSections, setExpandedSections] = useState<string[]>(['main']);
   const [expandedTabs, setExpandedTabs] = useState<string[]>(['placement-deals']); // Auto-expand placement tracker
+  const [showProfilePrompt, setShowProfilePrompt] = useState(false);
 
   // Sidebar collapse state - persisted to localStorage (desktop only)
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -211,8 +212,18 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       {/* User Profile Section */}
       <div className={`${isCollapsed ? 'px-3 py-4' : 'px-6 py-4'} border-b border-theme-border bg-theme-card/50`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
-          {/* Profile Photo with Animated Border */}
-          <div className="relative flex-shrink-0">
+          {/* Profile Photo with Animated Border - Clickable to navigate to profile */}
+          <div
+            onClick={() => {
+              if (user?.profileSlug) {
+                navigate('/my-profile');
+              } else {
+                setShowProfilePrompt(true);
+              }
+            }}
+            className="relative flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity group"
+            title={user?.profileSlug ? "Go to your profile hub" : "Set up your profile"}
+          >
             <AnimatedBorder
               border={customizations?.border ? parseBorderConfig(customizations.border) : null}
               size="sm"
@@ -468,6 +479,46 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
           )}
         </div>
       </div>
+
+      {/* Profile Setup Prompt Modal */}
+      {showProfilePrompt && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]" onClick={() => setShowProfilePrompt(false)}>
+          <div
+            className="bg-theme-card border border-theme-border rounded-2xl p-6 max-w-md mx-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-theme-primary/10 rounded-full">
+                <UserCircle className="w-8 h-8 text-theme-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-theme-foreground">Set Up Your Profile</h3>
+                <p className="text-sm text-theme-foreground-muted">Create your public tour profile</p>
+              </div>
+            </div>
+
+            <p className="text-theme-foreground-secondary mb-6">
+              Your tour profile lets other writers discover you and view your work. Enable it in settings to get a shareable profile link.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowProfilePrompt(false)}
+                className="flex-1 px-4 py-2 border border-theme-border rounded-lg text-theme-foreground-secondary hover:bg-theme-border-strong transition-colors"
+              >
+                Maybe Later
+              </button>
+              <Link
+                to="/settings?section=tourhub"
+                onClick={() => setShowProfilePrompt(false)}
+                className="flex-1 px-4 py-2 bg-theme-primary text-theme-primary-foreground rounded-lg hover:bg-theme-primary/90 transition-colors text-center font-medium"
+              >
+                Go to Settings
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

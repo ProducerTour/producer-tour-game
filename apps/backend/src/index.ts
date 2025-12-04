@@ -45,6 +45,8 @@ import sessionPayoutRoutes from './routes/session-payout.routes';
 import toolPermissionsRoutes from './routes/tool-permissions.routes';
 import invoiceRoutes from './routes/invoice.routes';
 import insightsRoutes from './routes/insights.routes';
+import feedRoutes from './routes/feed.routes';
+import marketplaceRoutes from './routes/marketplace.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -176,6 +178,8 @@ app.use('/api/session-payouts', sessionPayoutRoutes);
 app.use('/api/tool-permissions', toolPermissionsRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/insights', insightsRoutes);
+app.use('/api/feed', feedRoutes);
+app.use('/api/marketplace', marketplaceRoutes);
 
 // Error handling
 app.use(notFoundHandler);

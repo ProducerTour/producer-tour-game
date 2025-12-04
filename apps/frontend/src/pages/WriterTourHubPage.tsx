@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import {
   MapPin,
   Globe,
@@ -17,9 +18,15 @@ import {
   Lock,
   Youtube,
   CloudRain,
-  Smartphone
+  Smartphone,
+  Edit,
+  X,
+  Store
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { api, gamificationApi } from '../lib/api';
+import { useAuthStore } from '../store/auth.store';
+import { EditableField } from '../components/profile/EditableField';
 import { AnimatedBorder, parseBorderConfig } from '../components/AnimatedBorder';
 
 interface Placement {
@@ -81,6 +88,8 @@ const formatDate = (dateString: string | null) => {
 
 export default function WriterTourHubPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
 
   const { data: writer, isLoading, error } = useQuery<WriterProfile>({
     queryKey: ['writer-profile', slug],
@@ -102,6 +111,64 @@ export default function WriterTourHubPage() {
     enabled: !!writer?.id,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
+
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState({
+    bio: '',
+    location: '',
+    website: '',
+    spotifyArtistUrl: '',
+    instagramHandle: '',
+    twitterHandle: '',
+    linkedinUrl: '',
+    tiktokHandle: '',
+    soundcloudUrl: '',
+    youtubeChannelUrl: '',
+    appleMusicUrl: '',
+  });
+
+  // Detect if viewing own profile
+  const isOwnProfile = user?.id === writer?.id;
+
+  // Initialize edited data when writer loads
+  useEffect(() => {
+    if (writer && isOwnProfile) {
+      setEditedData({
+        bio: writer.bio || '',
+        location: writer.location || '',
+        website: writer.website || '',
+        spotifyArtistUrl: writer.spotifyArtistUrl || '',
+        instagramHandle: writer.instagramHandle || '',
+        twitterHandle: writer.twitterHandle || '',
+        linkedinUrl: writer.linkedinUrl || '',
+        tiktokHandle: writer.tiktokHandle || '',
+        soundcloudUrl: writer.soundcloudUrl || '',
+        youtubeChannelUrl: writer.youtubeChannelUrl || '',
+        appleMusicUrl: writer.appleMusicUrl || '',
+      });
+    }
+  }, [writer, isOwnProfile]);
+
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: Partial<typeof editedData>) =>
+      api.put('/profile/hub', data),
+    onSuccess: () => {
+      toast.success('Profile updated successfully!');
+      queryClient.invalidateQueries({ queryKey: ['writer-profile', slug] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to update profile');
+    }
+  });
+
+  const handleFieldBlur = (field: keyof typeof editedData, value: string) => {
+    // Only save if value changed
+    if (writer && writer[field] !== value) {
+      updateProfileMutation.mutate({ [field]: value });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -171,6 +238,28 @@ export default function WriterTourHubPage() {
 
       {/* Profile Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
+        {/* Edit Mode Toggle - Only for own profile */}
+        {isOwnProfile && (
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {isEditing ? (
+                <>
+                  <X className="w-4 h-4" />
+                  Cancel Editing
+                </>
+              ) : (
+                <>
+                  <Edit className="w-4 h-4" />
+                  Edit Profile
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
         {/* Profile Header */}
         <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden mb-8">
           {/* Cover gradient */}
@@ -209,11 +298,24 @@ export default function WriterTourHubPage() {
 
               <div className="text-center sm:text-left flex-1 min-w-0">
                 <h1 className="text-2xl sm:text-3xl font-bold text-white break-words">{fullName}</h1>
-                {writer.location && (
-                  <div className="flex items-center gap-1 text-slate-400 mt-1 justify-center sm:justify-start">
+                {isEditing ? (
+                  <div className="flex items-center gap-2 text-sm text-slate-400 mt-1 justify-center sm:justify-start">
                     <MapPin className="w-4 h-4 flex-shrink-0" />
-                    <span className="break-words">{writer.location}</span>
+                    <EditableField
+                      value={editedData.location}
+                      onChange={(value) => setEditedData({ ...editedData, location: value })}
+                      onBlur={() => handleFieldBlur('location', editedData.location)}
+                      placeholder="Add your location"
+                      className="text-sm"
+                    />
                   </div>
+                ) : (
+                  writer.location && (
+                    <div className="flex items-center gap-1 text-slate-400 mt-1 justify-center sm:justify-start">
+                      <MapPin className="w-4 h-4 flex-shrink-0" />
+                      <span className="break-words">{writer.location}</span>
+                    </div>
+                  )
                 )}
               </div>
 
@@ -237,120 +339,276 @@ export default function WriterTourHubPage() {
             </div>
 
             {/* Bio */}
-            {writer.bio && (
-              <p className="text-slate-300 leading-relaxed mb-6 max-w-3xl break-words">
-                {writer.bio}
-              </p>
+            {isEditing ? (
+              <div className="mb-6 max-w-3xl">
+                <EditableField
+                  value={editedData.bio}
+                  onChange={(value) => setEditedData({ ...editedData, bio: value })}
+                  onBlur={() => handleFieldBlur('bio', editedData.bio)}
+                  placeholder="Tell us about yourself..."
+                  multiline={true}
+                  className="text-sm text-slate-300"
+                />
+              </div>
+            ) : (
+              writer.bio && (
+                <p className="text-slate-300 leading-relaxed mb-6 max-w-3xl break-words">
+                  {writer.bio}
+                </p>
+              )
             )}
 
             {/* Social Links */}
             <div className="flex flex-wrap gap-3">
-              {writer.website && (
-                <a
-                  href={writer.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors border border-white/5"
-                >
-                  <Globe className="w-4 h-4" />
-                  <span>Website</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+              {(isEditing || writer.website) && (
+                <div className="inline-flex">
+                  {isEditing ? (
+                    <EditableField
+                      value={editedData.website}
+                      onChange={(value) => setEditedData({ ...editedData, website: value })}
+                      onBlur={() => handleFieldBlur('website', editedData.website)}
+                      placeholder="https://yourwebsite.com"
+                      className="text-sm w-full min-w-[200px]"
+                      prefix={<Globe className="w-4 h-4 text-slate-400" />}
+                    />
+                  ) : (
+                    <a
+                      href={writer.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-slate-300 hover:text-white transition-colors border border-white/5"
+                    >
+                      <Globe className="w-4 h-4" />
+                      <span>Website</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
               )}
-              {writer.spotifyArtistUrl && (
-                <a
-                  href={writer.spotifyArtistUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600/20 hover:bg-green-600/30 rounded-lg text-green-400 hover:text-green-300 transition-colors border border-green-600/20"
-                >
-                  <Music className="w-4 h-4" />
-                  <span>Spotify</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+              {(isEditing || writer.spotifyArtistUrl) && (
+                <div className="inline-flex">
+                  {isEditing ? (
+                    <EditableField
+                      value={editedData.spotifyArtistUrl}
+                      onChange={(value) => setEditedData({ ...editedData, spotifyArtistUrl: value })}
+                      onBlur={() => handleFieldBlur('spotifyArtistUrl', editedData.spotifyArtistUrl)}
+                      placeholder="Spotify artist URL"
+                      className="text-sm w-full min-w-[200px]"
+                      prefix={<Music className="w-4 h-4 text-green-400" />}
+                    />
+                  ) : (
+                    <a
+                      href={writer.spotifyArtistUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600/20 hover:bg-green-600/30 rounded-lg text-green-400 hover:text-green-300 transition-colors border border-green-600/20"
+                    >
+                      <Music className="w-4 h-4" />
+                      <span>Spotify</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
               )}
-              {writer.instagramHandle && (
-                <a
-                  href={`https://instagram.com/${writer.instagramHandle}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-pink-600/20 hover:bg-pink-600/30 rounded-lg text-pink-400 hover:text-pink-300 transition-colors border border-pink-600/20 max-w-[200px] sm:max-w-none"
-                >
-                  <Instagram className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">@{writer.instagramHandle}</span>
-                </a>
+              {(isEditing || writer.instagramHandle) && (
+                <div className="inline-flex">
+                  {isEditing ? (
+                    <EditableField
+                      value={editedData.instagramHandle}
+                      onChange={(value) => setEditedData({ ...editedData, instagramHandle: value })}
+                      onBlur={() => handleFieldBlur('instagramHandle', editedData.instagramHandle)}
+                      placeholder="Instagram handle (no @)"
+                      className="text-sm w-full min-w-[200px]"
+                      prefix={<Instagram className="w-4 h-4 text-pink-400" />}
+                    />
+                  ) : (
+                    <a
+                      href={`https://instagram.com/${writer.instagramHandle}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-pink-600/20 hover:bg-pink-600/30 rounded-lg text-pink-400 hover:text-pink-300 transition-colors border border-pink-600/20 max-w-[200px] sm:max-w-none"
+                    >
+                      <Instagram className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">@{writer.instagramHandle}</span>
+                    </a>
+                  )}
+                </div>
               )}
-              {writer.twitterHandle && (
-                <a
-                  href={`https://twitter.com/${writer.twitterHandle}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-sky-600/20 hover:bg-sky-600/30 rounded-lg text-sky-400 hover:text-sky-300 transition-colors border border-sky-600/20 max-w-[200px] sm:max-w-none"
-                >
-                  <Twitter className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">@{writer.twitterHandle}</span>
-                </a>
+              {(isEditing || writer.twitterHandle) && (
+                <div className="inline-flex">
+                  {isEditing ? (
+                    <EditableField
+                      value={editedData.twitterHandle}
+                      onChange={(value) => setEditedData({ ...editedData, twitterHandle: value })}
+                      onBlur={() => handleFieldBlur('twitterHandle', editedData.twitterHandle)}
+                      placeholder="Twitter handle (no @)"
+                      className="text-sm w-full min-w-[200px]"
+                      prefix={<Twitter className="w-4 h-4 text-sky-400" />}
+                    />
+                  ) : (
+                    <a
+                      href={`https://twitter.com/${writer.twitterHandle}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-sky-600/20 hover:bg-sky-600/30 rounded-lg text-sky-400 hover:text-sky-300 transition-colors border border-sky-600/20 max-w-[200px] sm:max-w-none"
+                    >
+                      <Twitter className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">@{writer.twitterHandle}</span>
+                    </a>
+                  )}
+                </div>
               )}
-              {writer.linkedinUrl && (
-                <a
-                  href={writer.linkedinUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg text-blue-400 hover:text-blue-300 transition-colors border border-blue-600/20"
-                >
-                  <Linkedin className="w-4 h-4" />
-                  <span>LinkedIn</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+              {(isEditing || writer.linkedinUrl) && (
+                <div className="inline-flex">
+                  {isEditing ? (
+                    <EditableField
+                      value={editedData.linkedinUrl}
+                      onChange={(value) => setEditedData({ ...editedData, linkedinUrl: value })}
+                      onBlur={() => handleFieldBlur('linkedinUrl', editedData.linkedinUrl)}
+                      placeholder="LinkedIn profile URL"
+                      className="text-sm w-full min-w-[200px]"
+                      prefix={<Linkedin className="w-4 h-4 text-blue-400" />}
+                    />
+                  ) : (
+                    <a
+                      href={writer.linkedinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-lg text-blue-400 hover:text-blue-300 transition-colors border border-blue-600/20"
+                    >
+                      <Linkedin className="w-4 h-4" />
+                      <span>LinkedIn</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
               )}
-              {writer.tiktokHandle && (
-                <a
-                  href={`https://tiktok.com/@${writer.tiktokHandle}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-600/20 hover:bg-slate-600/30 rounded-lg text-slate-300 hover:text-white transition-colors border border-slate-600/20 max-w-[200px] sm:max-w-none"
-                >
-                  <Smartphone className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">@{writer.tiktokHandle}</span>
-                </a>
+              {(isEditing || writer.tiktokHandle) && (
+                <div className="inline-flex">
+                  {isEditing ? (
+                    <EditableField
+                      value={editedData.tiktokHandle}
+                      onChange={(value) => setEditedData({ ...editedData, tiktokHandle: value })}
+                      onBlur={() => handleFieldBlur('tiktokHandle', editedData.tiktokHandle)}
+                      placeholder="TikTok handle (no @)"
+                      className="text-sm w-full min-w-[200px]"
+                      prefix={<Smartphone className="w-4 h-4 text-slate-300" />}
+                    />
+                  ) : (
+                    <a
+                      href={`https://tiktok.com/@${writer.tiktokHandle}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-600/20 hover:bg-slate-600/30 rounded-lg text-slate-300 hover:text-white transition-colors border border-slate-600/20 max-w-[200px] sm:max-w-none"
+                    >
+                      <Smartphone className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">@{writer.tiktokHandle}</span>
+                    </a>
+                  )}
+                </div>
               )}
-              {writer.youtubeChannelUrl && (
-                <a
-                  href={writer.youtubeChannelUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 rounded-lg text-red-400 hover:text-red-300 transition-colors border border-red-600/20"
-                >
-                  <Youtube className="w-4 h-4" />
-                  <span>YouTube</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+              {(isEditing || writer.youtubeChannelUrl) && (
+                <div className="inline-flex">
+                  {isEditing ? (
+                    <EditableField
+                      value={editedData.youtubeChannelUrl}
+                      onChange={(value) => setEditedData({ ...editedData, youtubeChannelUrl: value })}
+                      onBlur={() => handleFieldBlur('youtubeChannelUrl', editedData.youtubeChannelUrl)}
+                      placeholder="YouTube channel URL"
+                      className="text-sm w-full min-w-[200px]"
+                      prefix={<Youtube className="w-4 h-4 text-red-400" />}
+                    />
+                  ) : (
+                    <a
+                      href={writer.youtubeChannelUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 rounded-lg text-red-400 hover:text-red-300 transition-colors border border-red-600/20"
+                    >
+                      <Youtube className="w-4 h-4" />
+                      <span>YouTube</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
               )}
-              {writer.appleMusicUrl && (
-                <a
-                  href={writer.appleMusicUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 rounded-lg text-rose-400 hover:text-rose-300 transition-colors border border-rose-600/20"
-                >
-                  <Music className="w-4 h-4" />
-                  <span>Apple Music</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+              {(isEditing || writer.appleMusicUrl) && (
+                <div className="inline-flex">
+                  {isEditing ? (
+                    <EditableField
+                      value={editedData.appleMusicUrl}
+                      onChange={(value) => setEditedData({ ...editedData, appleMusicUrl: value })}
+                      onBlur={() => handleFieldBlur('appleMusicUrl', editedData.appleMusicUrl)}
+                      placeholder="Apple Music artist URL"
+                      className="text-sm w-full min-w-[200px]"
+                      prefix={<Music className="w-4 h-4 text-rose-400" />}
+                    />
+                  ) : (
+                    <a
+                      href={writer.appleMusicUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-rose-600/20 hover:bg-rose-600/30 rounded-lg text-rose-400 hover:text-rose-300 transition-colors border border-rose-600/20"
+                    >
+                      <Music className="w-4 h-4" />
+                      <span>Apple Music</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
               )}
-              {writer.soundcloudUrl && (
-                <a
-                  href={writer.soundcloudUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-600/20 hover:bg-orange-600/30 rounded-lg text-orange-400 hover:text-orange-300 transition-colors border border-orange-600/20"
-                >
-                  <CloudRain className="w-4 h-4" />
-                  <span>SoundCloud</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+              {(isEditing || writer.soundcloudUrl) && (
+                <div className="inline-flex">
+                  {isEditing ? (
+                    <EditableField
+                      value={editedData.soundcloudUrl}
+                      onChange={(value) => setEditedData({ ...editedData, soundcloudUrl: value })}
+                      onBlur={() => handleFieldBlur('soundcloudUrl', editedData.soundcloudUrl)}
+                      placeholder="SoundCloud profile URL"
+                      className="text-sm w-full min-w-[200px]"
+                      prefix={<CloudRain className="w-4 h-4 text-orange-400" />}
+                    />
+                  ) : (
+                    <a
+                      href={writer.soundcloudUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-orange-600/20 hover:bg-orange-600/30 rounded-lg text-orange-400 hover:text-orange-300 transition-colors border border-orange-600/20"
+                    >
+                      <CloudRain className="w-4 h-4" />
+                      <span>SoundCloud</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Marketplace Shop Link */}
+        <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl border border-purple-500/30 p-6 mb-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-purple-600/30 flex items-center justify-center">
+                <Store className="w-6 h-6 text-purple-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white mb-1">
+                  {isOwnProfile ? 'Your Marketplace Shop' : `${fullName}'s Shop`}
+                </h3>
+                <p className="text-sm text-slate-300">
+                  Browse beats, samples, and digital products
+                </p>
+              </div>
+            </div>
+            <Link
+              to={`/user/${slug}/shop`}
+              className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium shadow-lg"
+            >
+              <Store className="w-4 h-4" />
+              <span>View Shop</span>
+            </Link>
           </div>
         </div>
 

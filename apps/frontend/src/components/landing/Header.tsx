@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ShoppingCart } from 'lucide-react';
+import { Menu, X, ShoppingCart, LogOut } from 'lucide-react';
 import { Container, Button } from './ui';
 import { navLinks } from './data';
 import { useCartStore } from '../../store/cart.store';
+import { useAuthStore } from '../../store/auth.store';
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const cartItemCount = useCartStore((state) => state.getItemCount());
+  const { user, logout } = useAuthStore();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -103,12 +105,29 @@ export function Header() {
                   </span>
                 )}
               </Link>
-              <Button to="/login" variant="cassette" size="sm">
-                Log In
-              </Button>
-              <Button to="/apply" variant="primary" size="sm">
-                Get Started
-              </Button>
+              {user ? (
+                <>
+                  <Button to="/dashboard" variant="cassette" size="sm">
+                    Dashboard
+                  </Button>
+                  <button
+                    onClick={logout}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:text-white transition-colors rounded-lg hover:bg-white/5"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Button to="/login" variant="cassette" size="sm">
+                    Log In
+                  </Button>
+                  <Button to="/apply" variant="primary" size="sm">
+                    Get Started
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -205,24 +224,50 @@ export function Header() {
                     </span>
                   )}
                 </Link>
-                <Button
-                  to="/login"
-                  variant="cassette"
-                  size="lg"
-                  className="w-full"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Log In
-                </Button>
-                <Button
-                  to="/apply"
-                  variant="primary"
-                  size="lg"
-                  className="w-full"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Get Started
-                </Button>
+                {user ? (
+                  <>
+                    <Button
+                      to="/dashboard"
+                      variant="cassette"
+                      size="lg"
+                      className="w-full"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Dashboard
+                    </Button>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-white/5 text-white font-medium border border-white/10 hover:bg-red-500/20 hover:border-red-500/30 transition-colors"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      to="/login"
+                      variant="cassette"
+                      size="lg"
+                      className="w-full"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Log In
+                    </Button>
+                    <Button
+                      to="/apply"
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Get Started
+                    </Button>
+                  </>
+                )}
               </motion.div>
             </motion.nav>
           </motion.div>
@@ -231,7 +276,7 @@ export function Header() {
 
       {/* Mobile Sticky CTA - shows on scroll */}
       <AnimatePresence>
-        {isScrolled && !isMobileMenuOpen && (
+        {isScrolled && !isMobileMenuOpen && !user && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

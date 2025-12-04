@@ -10,6 +10,7 @@ interface User {
   writerIpiNumber?: string;
   publisherIpiNumber?: string;
   canUploadStatements?: boolean;
+  profileSlug?: string;
   producer?: any;
 }
 

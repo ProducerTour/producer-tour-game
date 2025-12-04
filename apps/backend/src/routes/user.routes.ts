@@ -509,7 +509,7 @@ router.get('/search-writers', async (req: AuthRequest, res: Response) => {
 
     const users = await prisma.user.findMany({
       where: {
-        role: 'WRITER',
+        role: { in: ['WRITER', 'ADMIN', 'CUSTOMER'] },
         OR: searchConditions,
       },
       take: 10,
@@ -519,8 +519,18 @@ router.get('/search-writers', async (req: AuthRequest, res: Response) => {
         firstName: true,
         middleName: true,
         lastName: true,
+        role: true,
+        profilePhotoUrl: true,
+        profileSlug: true,
+        location: true,
+        bio: true,
         writerIpiNumber: true,
         publisherIpiNumber: true,
+        gamificationPoints: {
+          select: {
+            tier: true,
+          }
+        },
         producer: {
           select: {
             proAffiliation: true,
@@ -542,6 +552,12 @@ router.get('/search-writers', async (req: AuthRequest, res: Response) => {
       middleName: user.middleName || '',
       lastName: user.lastName || '',
       fullName: `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.replace(/\s+/g, ' ').trim(),
+      role: user.role,
+      profilePhotoUrl: user.profilePhotoUrl || null,
+      profileSlug: user.profileSlug || null,
+      location: user.location || null,
+      bio: user.bio || null,
+      gamificationPoints: user.gamificationPoints || null,
       writerIpiNumber: user.writerIpiNumber || null,
       publisherIpiNumber: user.publisherIpiNumber || null,
       proAffiliation: user.producer?.proAffiliation || null,

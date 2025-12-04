@@ -40,6 +40,74 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
       isOnline: isUserOnline(contact.contactId),
     }));
 
+    // If no contacts, return mock data for testing
+    if (contactsWithDetails.length === 0) {
+      const mockContacts = [
+        {
+          id: 'mock-contact-1',
+          userId: userId,
+          firstName: 'Alex',
+          lastName: 'Producer',
+          email: 'alex.producer@example.com',
+          role: 'WRITER',
+          profilePhotoUrl: 'https://i.pravatar.cc/150?img=33',
+          profileSlug: 'alex-producer',
+          phone: '+1 (555) 123-4567',
+          gamificationPoints: { tier: 'GOLD' }
+        },
+        {
+          id: 'mock-contact-2',
+          userId: userId,
+          firstName: 'Jordan',
+          lastName: 'Beats',
+          email: 'jordan.beats@example.com',
+          role: 'WRITER',
+          profilePhotoUrl: 'https://i.pravatar.cc/150?img=12',
+          profileSlug: 'jordan-beats',
+          phone: '+1 (555) 234-5678',
+          gamificationPoints: { tier: 'PLATINUM' }
+        },
+        {
+          id: 'mock-contact-3',
+          userId: userId,
+          firstName: 'Taylor',
+          lastName: 'Music',
+          email: 'taylor.music@example.com',
+          role: 'WRITER',
+          profilePhotoUrl: 'https://i.pravatar.cc/150?img=45',
+          profileSlug: 'taylor-music',
+          phone: null,
+          gamificationPoints: { tier: 'SILVER' }
+        },
+        {
+          id: 'mock-contact-4',
+          userId: userId,
+          firstName: 'Chris',
+          lastName: 'Studio',
+          email: 'chris.studio@example.com',
+          role: 'WRITER',
+          profilePhotoUrl: null,
+          profileSlug: 'chris-studio',
+          phone: '+1 (555) 345-6789',
+          gamificationPoints: { tier: 'BRONZE' }
+        },
+        {
+          id: 'mock-contact-5',
+          userId: userId,
+          firstName: 'Morgan',
+          lastName: 'Sound',
+          email: 'morgan.sound@example.com',
+          role: 'CUSTOMER',
+          profilePhotoUrl: 'https://i.pravatar.cc/150?img=27',
+          profileSlug: 'morgan-sound',
+          phone: null,
+          gamificationPoints: null
+        }
+      ];
+
+      return res.json({ contacts: mockContacts });
+    }
+
     res.json(contactsWithDetails);
   } catch (error) {
     console.error('Error fetching contacts:', error);

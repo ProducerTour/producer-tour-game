@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen, Camera, Trash2, Loader2, Plane, Globe, Music, Instagram, Twitter, Linkedin, ExternalLink, Copy, Check, ArrowLeft, Youtube, CloudRain, Smartphone, MessageCircle, Volume2, VolumeX, Eye, EyeOff, BellRing, ChevronDown, ChevronUp, Palette } from 'lucide-react';
+import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen, Camera, Trash2, Loader2, Plane, Globe, Music, Instagram, Twitter, Linkedin, ExternalLink, Copy, Check, ArrowLeft, Youtube, CloudRain, Smartphone, MessageCircle, Volume2, VolumeX, Eye, EyeOff, BellRing, ChevronDown, ChevronUp, Palette, CheckCircle, XCircle, LogOut } from 'lucide-react';
 import { userApi, settingsApi, preferencesApi, systemSettingsApi, chatSettingsApi, api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import AdminGuide from '../components/AdminGuide';
@@ -25,7 +25,7 @@ import {
 type SettingsSection = 'profile' | 'password' | 'payments' | 'notifications' | 'chat' | 'publishers' | 'documentation' | 'system' | 'tourhub' | 'appearance';
 
 export default function SettingsPage() {
-  const { user, updateUser } = useAuthStore();
+  const { user, updateUser, logout } = useAuthStore();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
 
@@ -109,6 +109,7 @@ export default function SettingsPage() {
     profileSlug: ''
   });
   const [slugCopied, setSlugCopied] = useState(false);
+  const [slugCheckQuery, setSlugCheckQuery] = useState('');
 
   // Collapsible section state for Tour Profile
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -159,6 +160,16 @@ export default function SettingsPage() {
     enabled: activeSection === 'tourhub',
   });
 
+  // Slug availability check query
+  const { data: slugAvailability, isLoading: isCheckingSlug } = useQuery<{ available: boolean; reason: string | null }>({
+    queryKey: ['slug-availability', slugCheckQuery],
+    queryFn: async () => {
+      const response = await api.get(`/profile/slug/${slugCheckQuery}/check`);
+      return response.data;
+    },
+    enabled: slugCheckQuery.length >= 2 && activeSection === 'tourhub',
+  });
+
   // Update Tour Hub form when profile data loads
   useEffect(() => {
     if (tourHubProfileData) {
@@ -179,6 +190,18 @@ export default function SettingsPage() {
       });
     }
   }, [tourHubProfileData]);
+
+  // Debounce slug availability check
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (tourHubForm.profileSlug && tourHubForm.profileSlug.length >= 2) {
+        setSlugCheckQuery(tourHubForm.profileSlug);
+      } else {
+        setSlugCheckQuery('');
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [tourHubForm.profileSlug]);
 
   // Update chat settings when data loads
   useEffect(() => {
@@ -328,7 +351,7 @@ export default function SettingsPage() {
 
   const copyProfileUrl = () => {
     if (tourHubForm.profileSlug) {
-      const url = `${window.location.origin}/writer/${tourHubForm.profileSlug}`;
+      const url = `${window.location.origin}/user/${tourHubForm.profileSlug}`;
       navigator.clipboard.writeText(url);
       setSlugCopied(true);
       toast.success('Profile URL copied to clipboard!');
@@ -698,6 +721,19 @@ export default function SettingsPage() {
                   </button>
                 </>
               )}
+
+              {/* Logout Button */}
+              <div className="mt-4 pt-4 border-t border-theme-border">
+                <button
+                  onClick={logout}
+                  className="w-full text-left px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 transition-colors border-l-2 border-transparent"
+                >
+                  <div className="flex items-center gap-3">
+                    <LogOut className="w-4 h-4" />
+                    <span className="font-medium">Log Out</span>
+                  </div>
+                </button>
+              </div>
             </nav>
           </div>
 
@@ -1271,7 +1307,7 @@ export default function SettingsPage() {
                       </label>
                       <div className="flex gap-3">
                         <div className="flex-1 flex items-center gap-2 px-4 py-2 bg-theme-input border border-theme-border-strong">
-                          <span className="text-theme-foreground-muted">{window.location.origin}/writer/</span>
+                          <span className="text-theme-foreground-muted">{window.location.origin}/user/</span>
                           <input
                             type="text"
                             value={tourHubForm.profileSlug}
@@ -1301,17 +1337,38 @@ export default function SettingsPage() {
                       <p className="text-xs text-theme-foreground-muted mt-2">
                         Only lowercase letters, numbers, and hyphens allowed
                       </p>
-                      {tourHubForm.profileSlug && (
-                        <a
-                          href={`/writer/${tourHubForm.profileSlug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm text-theme-primary hover:opacity-80 mt-2"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          Preview your public profile
-                        </a>
+                      {/* Slug availability indicator */}
+                      {tourHubForm.profileSlug && tourHubForm.profileSlug.length >= 2 && (
+                        <div className="flex items-center gap-2 mt-2">
+                          {isCheckingSlug ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin text-theme-foreground-muted" />
+                              <span className="text-sm text-theme-foreground-muted">Checking availability...</span>
+                            </>
+                          ) : slugAvailability?.available ? (
+                            <>
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                              <span className="text-sm text-green-600">This URL is available!</span>
+                            </>
+                          ) : slugAvailability ? (
+                            <>
+                              <XCircle className="w-4 h-4 text-red-500" />
+                              <span className="text-sm text-red-600">
+                                {slugAvailability.reason === 'invalid_format'
+                                  ? 'Invalid format - use only lowercase letters, numbers, and hyphens'
+                                  : 'This URL is already taken'}
+                              </span>
+                            </>
+                          ) : null}
+                        </div>
                       )}
+                      <Link
+                        to="/my-profile"
+                        className="inline-flex items-center gap-1 text-sm text-theme-primary hover:opacity-80 mt-2"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Go to your profile hub
+                      </Link>
                     </div>
 
                     {/* Public Profile Toggle */}

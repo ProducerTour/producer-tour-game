@@ -33,7 +33,7 @@ export const writerNavigation: NavSection[] = [
     id: 'main',
     label: 'Main',
     items: [
-      { id: 'tour-profile', label: 'My Tour Profile', icon: 'plane', path: '/settings?section=tourhub' },
+      { id: 'tour-profile', label: 'My Tour Profile', icon: 'plane', path: '/my-profile' },
       { id: 'overview', label: 'Dashboard', icon: 'dashboard' },
       { id: 'songs', label: 'My Songs', icon: 'music' },
       { id: 'statements', label: 'My Statements', icon: 'chart' },
@@ -102,6 +102,7 @@ export const adminNavigation: NavSection[] = [
           { id: 'tour-miles', label: 'Tour Miles', icon: 'target', path: '/tour-miles' },
           { id: 'gamification-analytics', label: 'Gamification KPIs', icon: 'chart' },
           { id: 'reward-redemptions', label: 'Reward Redemptions', icon: 'gift' },
+          { id: 'tour-billing', label: 'Tour Billing', icon: 'credit-card' },
         ],
       },
       { id: 'statements', label: 'Statements', icon: 'chart' },
@@ -142,7 +143,7 @@ export const customerNavigation: NavSection[] = [
     label: 'Main',
     items: [
       { id: 'overview', label: 'Dashboard', icon: 'dashboard' },
-      { id: 'tour-profile', label: 'My Tour Profile', icon: 'plane', path: '/settings?section=tourhub' },
+      { id: 'tour-profile', label: 'My Tour Profile', icon: 'plane', path: '/my-profile' },
       { id: 'orders', label: 'My Orders', icon: 'shopping-cart', path: '/customer/orders' },
     ],
   },

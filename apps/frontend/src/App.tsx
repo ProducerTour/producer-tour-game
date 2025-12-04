@@ -31,12 +31,17 @@ import WorkRegistrationTool from './pages/WorkRegistrationTool';
 import MySubmissions from './pages/MySubmissions';
 import ProducerTourMilesPage from './pages/ProducerTourMilesPage';
 import WriterTourHubPage from './pages/WriterTourHubPage';
+import WriterMarketplacePage from './pages/WriterMarketplacePage';
+import ActivityFeedPage from './pages/ActivityFeedPage';
+import WriterProfilePage from './pages/WriterProfilePage';
 import MetadataIndexPage from './pages/MetadataIndexPage';
 import PricingPage from './pages/PricingPage';
 import TypeBeatVideoMakerPage from './pages/TypeBeatVideoMakerPage';
 import SessionPayoutTool from './pages/SessionPayoutTool';
 import AffiliatesDashboard from './pages/AffiliatesDashboard';
 import AffiliateManagement from './pages/AffiliateManagement';
+import MyStorePage from './pages/MyStorePage';
+import InsightsPage from './pages/InsightsPage';
 import CustomerSupportPage from './pages/CustomerSupportPage';
 import ShopPage from './pages/ShopPage';
 import ProductPage from './pages/ProductPage';
@@ -259,8 +264,42 @@ function App() {
           }
         />
 
-        {/* Public Writer Profile */}
-        <Route path="/writer/:slug" element={<WriterTourHubPage />} />
+        {/* My Profile - Activity Feed */}
+        <Route
+          path="/my-profile"
+          element={
+            <PrivateRoute roles={['WRITER', 'CUSTOMER', 'ADMIN']}>
+              <ActivityFeedPage />
+            </PrivateRoute>
+          }
+        />
+
+        {/* My Store - Marketplace management */}
+        <Route
+          path="/my-store"
+          element={
+            <PrivateRoute roles={['WRITER', 'CUSTOMER', 'ADMIN']}>
+              <MyStorePage />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Insights Page - Industry news and sources */}
+        <Route
+          path="/insights"
+          element={
+            <PrivateRoute roles={['WRITER', 'CUSTOMER', 'ADMIN']}>
+              <InsightsPage />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Public User Profile (by slug or ID) */}
+        <Route path="/user/:slug" element={<WriterProfilePage />} />
+        <Route path="/user/id/:userId" element={<WriterProfilePage />} />
+
+        {/* User Marketplace Shop */}
+        <Route path="/user/:slug/shop" element={<WriterMarketplacePage />} />
 
         <Route path="/" element={<LandingPage />} />
 

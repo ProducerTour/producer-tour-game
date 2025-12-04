@@ -120,7 +120,7 @@ export function ChatWidget() {
 
   // Hide chat on landing page and public pages
   const hiddenPaths = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
-  const isHiddenPage = hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/writer/');
+  const isHiddenPage = hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/user/');
 
   // Early return check - before hooks that make API calls
   // CUSTOMER role doesn't have access to chat

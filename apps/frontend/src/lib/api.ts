@@ -45,7 +45,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Prevent redirect loop - only redirect if not already on login page
       const isLoginPage = window.location.pathname === '/login';
-      const isPublicPage = ['/login', '/forgot-password', '/reset-password', '/apply', '/pricing', '/'].includes(window.location.pathname);
+      const pathname = window.location.pathname;
+      // Public pages that shouldn't trigger logout redirect on 401
+      const isPublicPage = ['/login', '/forgot-password', '/reset-password', '/apply', '/pricing', '/', '/contact', '/shop', '/cart'].includes(pathname) ||
+                           pathname.startsWith('/user/') ||
+                           pathname.startsWith('/product/');
 
       if (!isLoginPage && !isPublicPage) {
         // Clear tokens from both storages
@@ -837,4 +841,111 @@ export const invoiceApi = {
   // Process Stripe payment for approved invoice (admin only)
   processPayment: (id: string) =>
     api.post(`/invoices/${id}/process-payment`),
+};
+
+// Feed API - Activity feed and social features
+export const feedApi = {
+  // Get paginated activity feed (network activity from followed users + own activity)
+  getActivity: (params?: {
+    limit?: number;
+    offset?: number;
+    userId?: string;
+  }) => api.get('/feed/activity', { params }),
+
+  // Get user-specific activity timeline
+  getUserFeed: (userId: string, params?: {
+    limit?: number;
+    offset?: number;
+  }) => api.get(`/feed/user/${userId}`, { params }),
+
+  // Follow a user
+  follow: (userId: string) =>
+    api.post(`/feed/follow/${userId}`),
+
+  // Unfollow a user
+  unfollow: (userId: string) =>
+    api.delete(`/feed/unfollow/${userId}`),
+
+  // Get user's followers
+  getFollowers: (userId: string, params?: {
+    limit?: number;
+    offset?: number;
+  }) => api.get(`/feed/followers/${userId}`, { params }),
+
+  // Get users that user is following
+  getFollowing: (userId: string, params?: {
+    limit?: number;
+    offset?: number;
+  }) => api.get(`/feed/following/${userId}`, { params }),
+};
+
+// Marketplace API - Personal marketplace features
+export const marketplaceApi = {
+  // Browse all marketplace listings
+  getListings: (params?: {
+    limit?: number;
+    offset?: number;
+    category?: string;
+    search?: string;
+    userId?: string;
+  }) => api.get('/marketplace/listings', { params }),
+
+  // Get single listing by slug
+  getListing: (slug: string) =>
+    api.get(`/marketplace/listings/${slug}`),
+
+  // Get user's marketplace listings (for shop page)
+  getUserListings: (userSlug: string, params?: {
+    limit?: number;
+    offset?: number;
+    search?: string;
+  }) => api.get(`/marketplace/user/${userSlug}`, { params }),
+
+  // Create new listing
+  createListing: (data: {
+    title: string;
+    description: string;
+    category: string;
+    price: number;
+    coverImageUrl?: string;
+    audioPreviewUrl?: string;
+    fileUrl?: string;
+    slug: string;
+    tags?: string[];
+  }) => api.post('/marketplace/listings', data),
+
+  // Update listing
+  updateListing: (id: string, data: {
+    title?: string;
+    description?: string;
+    category?: string;
+    price?: number;
+    coverImageUrl?: string;
+    audioPreviewUrl?: string;
+    fileUrl?: string;
+    tags?: string[];
+    status?: string;
+  }) => api.put(`/marketplace/listings/${id}`, data),
+
+  // Delete listing
+  deleteListing: (id: string) =>
+    api.delete(`/marketplace/listings/${id}`),
+
+  // Purchase a listing
+  purchase: (data: {
+    listingId: string;
+    stripePaymentIntentId: string;
+  }) => api.post('/marketplace/purchase', data),
+
+  // Get user's sales
+  getSales: (params?: {
+    limit?: number;
+    offset?: number;
+  }) => api.get('/marketplace/sales', { params }),
+
+  // Get user's purchases
+  getPurchases: (params?: {
+    limit?: number;
+    offset?: number;
+  }) => api.get('/marketplace/purchases', { params }),
 };
