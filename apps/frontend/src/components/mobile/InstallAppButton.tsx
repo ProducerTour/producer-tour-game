@@ -27,7 +27,7 @@ export function InstallAppButton({
   variant?: 'default' | 'banner' | 'minimal';
   className?: string;
 }) {
-  const { isNative, isPWA, platform } = usePlatform();
+  const { isNative, isPWA } = usePlatform();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIOSModal, setShowIOSModal] = useState(false);
   const [isInstallable, setIsInstallable] = useState(false);
