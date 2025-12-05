@@ -184,63 +184,66 @@ export default function Leaderboard() {
                 hover:bg-slate-800/60
               `}
             >
-              <div className="flex items-center gap-4">
-                {/* Rank */}
-                <div className="flex-shrink-0">
-                  {getRankBadge(index)}
-                </div>
-
-                {/* Rank Icon (for top 3) */}
-                {index < 3 && (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                {/* Top row on mobile: Rank + Avatar + Points */}
+                <div className="flex items-center gap-3 sm:gap-4">
+                  {/* Rank */}
                   <div className="flex-shrink-0">
-                    {getRankIcon(index)}
+                    {getRankBadge(index)}
                   </div>
-                )}
 
-                {/* User Avatar with Border */}
-                <UserAvatarWithBorder
-                  userId={entry.user.id}
-                  firstName={entry.user.firstName || undefined}
-                  lastName={entry.user.lastName || undefined}
-                  profilePhotoUrl={entry.user.profilePhotoUrl}
-                  size="sm"
-                />
+                  {/* Rank Icon (for top 3) */}
+                  {index < 3 && (
+                    <div className="flex-shrink-0 hidden sm:block">
+                      {getRankIcon(index)}
+                    </div>
+                  )}
 
-                {/* User Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-semibold text-white truncate">
-                      {getUserDisplayName(entry)}
-                    </h4>
-                    <div className="flex items-center gap-1">
-                      <span className="text-lg">{TIER_EMOJIS[entry.tier as keyof typeof TIER_EMOJIS]}</span>
-                      <span
-                        className="text-xs font-bold px-2 py-0.5 rounded"
-                        style={{
-                          backgroundColor: `${TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]}20`,
-                          color: TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]
-                        }}
-                      >
-                        {entry.tier}
-                      </span>
+                  {/* User Avatar with Border */}
+                  <UserAvatarWithBorder
+                    userId={entry.user.id}
+                    firstName={entry.user.firstName || undefined}
+                    lastName={entry.user.lastName || undefined}
+                    profilePhotoUrl={entry.user.profilePhotoUrl}
+                    size="sm"
+                  />
+
+                  {/* User Info - Mobile condensed */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h4 className="font-semibold text-white truncate text-sm sm:text-base">
+                        {getUserDisplayName(entry)}
+                      </h4>
+                      <div className="flex items-center gap-1">
+                        <span className="text-base sm:text-lg">{TIER_EMOJIS[entry.tier as keyof typeof TIER_EMOJIS]}</span>
+                        <span
+                          className="text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded hidden sm:inline"
+                          style={{
+                            backgroundColor: `${TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]}20`,
+                            color: TIER_COLORS[entry.tier as keyof typeof TIER_COLORS]
+                          }}
+                        >
+                          {entry.tier}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 sm:gap-4 text-xs text-slate-400">
+                      <span className="truncate">Lifetime: {entry.totalEarned.toLocaleString()} TM</span>
+                      {entry.currentStreak > 0 && (
+                        <span className="flex items-center gap-1 flex-shrink-0">
+                          🔥 {entry.currentStreak}d
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-slate-400">
-                    <span>Lifetime: {entry.totalEarned.toLocaleString()} TM</span>
-                    {entry.currentStreak > 0 && (
-                      <span className="flex items-center gap-1">
-                        🔥 {entry.currentStreak} day streak
-                      </span>
-                    )}
-                  </div>
-                </div>
 
-                {/* Points */}
-                <div className="text-right flex-shrink-0">
-                  <div className="text-2xl font-bold text-yellow-400">
-                    {entry.points.toLocaleString()}
+                  {/* Points */}
+                  <div className="text-right flex-shrink-0 ml-auto">
+                    <div className="text-xl sm:text-2xl font-bold text-yellow-400">
+                      {entry.points.toLocaleString()}
+                    </div>
+                    <div className="text-xs text-slate-400 hidden sm:block">Tour Miles</div>
                   </div>
-                  <div className="text-xs text-slate-400">Tour Miles</div>
                 </div>
               </div>
             </div>

@@ -10,6 +10,7 @@ import { ProfileBadge, parseBadgeConfig } from './ProfileBadge';
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 import blackLogo from '@/assets/images/logos/blacktransparentpt.png';
 import { useThemeOptional } from '@/contexts/ThemeContext';
+import { usePlatform } from '../hooks/usePlatform';
 
 // Re-export types for backward compatibility
 export type { NavSection, NavItem };
@@ -28,6 +29,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   const navigate = useNavigate();
   const themeContext = useThemeOptional();
   const isLightTheme = themeContext?.themeId === 'light';
+  const { isMobileUI } = usePlatform();
   const [expandedSections, setExpandedSections] = useState<string[]>(['main']);
   const [expandedTabs, setExpandedTabs] = useState<string[]>(['placement-deals']); // Auto-expand placement tracker
   const [showProfilePrompt, setShowProfilePrompt] = useState(false);
@@ -153,6 +155,11 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   const renderIcon = (icon: IconName, size: 'sm' | 'md' = 'md') => {
     return <SaasIcon name={icon} size={size} color="default" className="flex-shrink-0" />;
   };
+
+  // Hide entire sidebar on mobile PWA - use bottom tab bar instead
+  if (isMobileUI) {
+    return null;
+  }
 
   return (
     <>

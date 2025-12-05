@@ -76,7 +76,7 @@ export function CustomizationGallery({ onClose, initialTab = 'badges' }: Customi
       </div>
 
       {/* Content */}
-      <div className="p-6 max-h-[500px] overflow-y-auto">
+      <div className="p-4 sm:p-6 max-h-[60vh] sm:max-h-[500px] overflow-y-auto">
         <AnimatePresence mode="wait">
           {activeTab === 'badges' ? (
             <motion.div
@@ -232,7 +232,7 @@ function BadgeCollection() {
             <h4 className="text-sm font-medium text-text-secondary mb-3">
               {rarity.charAt(0) + rarity.slice(1).toLowerCase()} ({rarityBadges.length})
             </h4>
-            <div className="grid grid-cols-5 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
               {rarityBadges.map((badge: any) => (
                 <div
                   key={badge.id}
@@ -399,7 +399,7 @@ function BorderCollection() {
             <h4 className="text-sm font-medium text-text-secondary mb-3">
               {tierLabels[tier] || tier} ({tierBorders.length})
             </h4>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
               {tierBorders.map((border: any) => (
                 <div
                   key={border.id}
@@ -456,7 +456,7 @@ function CollectionSkeleton() {
   return (
     <div className="space-y-6">
       <div className="h-20 bg-white/5 rounded-xl animate-pulse" />
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
         {[...Array(10)].map((_, i) => (
           <div key={i} className="w-14 h-14 bg-white/5 rounded-full animate-pulse" />
         ))}

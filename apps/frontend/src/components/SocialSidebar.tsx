@@ -12,6 +12,7 @@ import {
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 import blackLogo from '@/assets/images/logos/blacktransparentpt.png';
 import { useThemeOptional } from '@/contexts/ThemeContext';
+import { usePlatform } from '../hooks/usePlatform';
 
 interface SocialSidebarProps {
   activePage?: 'profile' | 'store' | 'feed' | 'insights' | 'tourmiles';
@@ -22,6 +23,12 @@ export default function SocialSidebar({ activePage }: SocialSidebarProps) {
   const navigate = useNavigate();
   const themeContext = useThemeOptional();
   const isLightTheme = themeContext?.themeId === 'light';
+  const { isMobileUI } = usePlatform();
+
+  // Hide sidebar on mobile - use bottom tab bar instead
+  if (isMobileUI) {
+    return null;
+  }
 
   const dashboardPath = user?.role === 'ADMIN' ? '/admin' : user?.role === 'CUSTOMER' ? '/customer' : '/dashboard';
 

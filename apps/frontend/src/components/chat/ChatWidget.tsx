@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { useChatStore } from '../../store/chat.store';
 import { api, chatSettingsApi } from '../../lib/api';
 import { UserAvatarWithBorder } from '../UserAvatarWithBorder';
+import { usePlatform } from '../../hooks/usePlatform';
 
 // Sound configuration for different notification types
 type SoundType = 'chime' | 'pop' | 'ding' | 'bell' | 'subtle';
@@ -120,6 +121,7 @@ export function ChatWidget() {
   const { user } = useAuthStore();
   const { openChatWithUserId, clearOpenChatTrigger } = useChatStore();
   const location = useLocation();
+  const { isMobileUI } = usePlatform();
 
   // Hide chat on landing page and auth pages
   const hiddenPaths = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
@@ -727,11 +729,20 @@ export function ChatWidget() {
   // Don't render on landing/public pages, if not logged in, or for CUSTOMER role
   if (!shouldRender) return null;
 
+  // On mobile, position chat above the bottom tab bar (64px + safe area)
+  const chatButtonClasses = isMobileUI
+    ? "fixed bottom-24 right-4 z-50 w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full shadow-lg flex items-center justify-center text-white hover:shadow-xl transition-shadow safe-area-bottom-offset"
+    : "fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full shadow-lg flex items-center justify-center text-white hover:shadow-xl transition-shadow";
+
+  const chatPanelClasses = isMobileUI
+    ? "fixed bottom-0 left-0 right-0 z-50 h-[85vh] bg-slate-900 rounded-t-2xl shadow-2xl border-t border-slate-700 overflow-hidden flex flex-col safe-area-bottom"
+    : "fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden flex flex-col";
+
   return (
     <>
       {/* Chat Button */}
       <motion.button
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full shadow-lg flex items-center justify-center text-white hover:shadow-xl transition-shadow"
+        className={chatButtonClasses}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(true)}
@@ -751,7 +762,7 @@ export function ChatWidget() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden flex flex-col"
+            className={chatPanelClasses}
           >
             {/* Header */}
             <div className="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800/50">

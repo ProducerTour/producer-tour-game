@@ -61,7 +61,7 @@ export default function AchievementGallery() {
   return (
     <div>
       {/* Stats Header */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
         <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/40 rounded-xl p-4">
           <div className="text-sm text-slate-400 mb-1">Unlocked</div>
           <div className="text-2xl font-bold text-white">

@@ -282,3 +282,28 @@ body {
 .animate-slide-up {
   animation: slide-up 0.3s ease-out forwards;
 }
+
+/* Chat button positioning - needs to be above bottom tab bar on mobile */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-area-bottom-offset {
+    /* Position above tab bar (64px) + safe area */
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Mobile-specific adjustments for floating elements */
+@media (max-width: 767px) {
+  /* Ensure modals have proper safe area handling */
+  .mobile-modal {
+    max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  /* Full-width chat panel on mobile */
+  .chat-panel-mobile {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    border-radius: 1rem 1rem 0 0 !important;
+  }
+}

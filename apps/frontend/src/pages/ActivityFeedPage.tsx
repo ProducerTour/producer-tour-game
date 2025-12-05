@@ -334,11 +334,11 @@ export default function ActivityFeedPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Collapsed Social Sidebar */}
+      {/* Collapsed Social Sidebar - hidden on mobile via usePlatform hook */}
       <SocialSidebar activePage="profile" />
 
-      {/* Main Content - offset for sidebar */}
-      <div className="ml-20 max-w-[1600px] mx-auto px-6 py-6">
+      {/* Main Content - offset for sidebar on desktop, full width on mobile */}
+      <div className="ml-0 md:ml-20 max-w-[1600px] mx-auto px-4 md:px-6 py-4 md:py-6">
         <div className="flex gap-6">
           {/* Main Feed Column - 2/3 */}
           <div className="flex-1 min-w-0">
@@ -362,7 +362,7 @@ export default function ActivityFeedPage() {
 
               {/* Cover Image */}
               <div
-                className="h-56 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 relative group cursor-pointer"
+                className="h-40 md:h-56 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 relative group cursor-pointer"
                 onClick={() => bannerInputRef.current?.click()}
               >
                 {profile?.coverBannerUrl ? (
@@ -390,8 +390,8 @@ export default function ActivityFeedPage() {
               </div>
 
               {/* Profile Info */}
-              <div className="px-8 pb-6">
-                <div className="flex items-end justify-between -mt-20 mb-6">
+              <div className="px-4 md:px-8 pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-16 sm:-mt-20 mb-6 gap-4">
                   {/* Avatar with Gamification Border */}
                   <div
                     className="relative z-10 group cursor-pointer"
@@ -431,24 +431,24 @@ export default function ActivityFeedPage() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <Link
                       to="/my-store"
-                      className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full hover:shadow-lg hover:scale-105 transition-all"
+                      className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full hover:shadow-lg hover:scale-105 transition-all text-sm sm:text-base flex-1 sm:flex-none"
                     >
                       <Store className="w-4 h-4" />
-                      My Store
+                      <span className="hidden xs:inline">My </span>Store
                     </Link>
                     <button
                       onClick={() => setIsEditModalOpen(true)}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all hover:scale-105 shadow-lg"
+                      className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all hover:scale-105 shadow-lg text-sm sm:text-base flex-1 sm:flex-none"
                     >
                       <Edit2 className="w-4 h-4" />
-                      Edit Profile
+                      <span className="hidden xs:inline">Edit </span>Profile
                     </button>
                     <Link
                       to="/settings?section=tourhub"
-                      className="p-2.5 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-all hover:scale-105 shadow-sm"
+                      className="p-2 sm:p-2.5 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-all hover:scale-105 shadow-sm"
                       title="Profile Settings"
                     >
                       <Settings className="w-5 h-5" />
@@ -755,12 +755,12 @@ export default function ActivityFeedPage() {
 
                       {/* Emoji Picker Popup */}
                       {showEmojiPicker && (
-                        <div className="absolute bottom-full left-0 mb-2 z-50">
+                        <div className="absolute bottom-full left-0 mb-2 z-50 max-w-[calc(100vw-2rem)]">
                           <EmojiPicker
                             onEmojiClick={handleEmojiClick}
                             autoFocusSearch={false}
-                            height={400}
-                            width={350}
+                            height={350}
+                            width={300}
                           />
                         </div>
                       )}
