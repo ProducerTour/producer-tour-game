@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import ToolsHub from '../components/ToolsHub';
+import { InstallAppButton } from '../components/mobile/InstallAppButton';
 import { useAuthStore } from '../store/auth.store';
 import { gamificationApi } from '../lib/api';
 import {
@@ -98,6 +99,9 @@ export default function CustomerDashboard() {
 
       {/* Impersonation Banner */}
       <ImpersonationBanner />
+
+      {/* Mobile App Install Banner - shows on mobile browsers */}
+      <InstallAppButton variant="banner" />
 
       <div className="flex flex-1 overflow-hidden relative">
         {/* Left Sidebar */}

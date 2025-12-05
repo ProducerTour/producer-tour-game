@@ -7,6 +7,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import CommandPalette from './components/CommandPalette';
 import { ChatWidget } from './components/chat';
 import { BugReportButton } from './components/BugReportButton';
+import { MobileLayout } from './components/mobile/MobileLayout';
 
 // Pages
 import { PublisherCassetteLandingPage as LandingPage } from './components/landing-page-templates/template-11-publisher-cassette';
@@ -114,6 +115,8 @@ function App() {
       {/* Bug Report Button - visible when logged in (beta) */}
       {user && <BugReportButton />}
 
+      {/* Mobile Layout wrapper - provides bottom tab bar on mobile/native */}
+      <MobileLayout>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -312,6 +315,7 @@ function App() {
         {/* 404 Catch-all - must be last */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </MobileLayout>
     </BrowserRouter>
     </ThemeProvider>
   );
