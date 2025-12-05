@@ -858,6 +858,40 @@ export const feedApi = {
     offset?: number;
   }) => api.get(`/feed/user/${userId}`, { params }),
 
+  // Create a new post
+  createPost: (data: {
+    title: string;
+    description?: string;
+    imageUrl?: string | null;
+    isPublic?: boolean;
+  }) => api.post('/feed', data),
+
+  // Like a feed item
+  like: (feedItemId: string) =>
+    api.post(`/feed/${feedItemId}/like`),
+
+  // Unlike a feed item
+  unlike: (feedItemId: string) =>
+    api.delete(`/feed/${feedItemId}/like`),
+
+  // Get comments for a feed item
+  getComments: (feedItemId: string, params?: {
+    limit?: number;
+    offset?: number;
+  }) => api.get(`/feed/${feedItemId}/comments`, { params }),
+
+  // Add a comment to a feed item
+  addComment: (feedItemId: string, content: string) =>
+    api.post(`/feed/${feedItemId}/comment`, { content }),
+
+  // Delete a comment
+  deleteComment: (commentId: string) =>
+    api.delete(`/feed/comment/${commentId}`),
+
+  // Get admin posts/announcements
+  getAdminPosts: (params?: { limit?: number }) =>
+    api.get('/feed/admin-posts', { params }),
+
   // Follow a user
   follow: (userId: string) =>
     api.post(`/feed/follow/${userId}`),

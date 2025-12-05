@@ -1,8 +1,279 @@
 import { Router, Response } from 'express';
+import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 
 const router = Router();
+
+// Validation schemas
+const createPostSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  imageUrl: z.string().url().optional().nullable(),
+  isPublic: z.boolean().optional().default(true),
+});
+
+const createCommentSchema = z.object({
+  content: z.string().min(1).max(1000),
+});
+
+// POST /api/feed - Create a new post
+router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const data = createPostSchema.parse(req.body);
+
+    const post = await prisma.activityFeedItem.create({
+      data: {
+        userId,
+        activityType: 'POST',
+        title: data.title,
+        description: data.description,
+        imageUrl: data.imageUrl,
+        isPublic: data.isPublic,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            profilePhotoUrl: true,
+            profileSlug: true,
+            gamificationPoints: {
+              select: {
+                tier: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.status(201).json(post);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Create post error:', error);
+    res.status(500).json({ error: 'Failed to create post' });
+  }
+});
+
+// POST /api/feed/:id/like - Like a feed item
+router.post('/:id/like', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id: feedItemId } = req.params;
+
+    // Check if feed item exists
+    const feedItem = await prisma.activityFeedItem.findUnique({
+      where: { id: feedItemId },
+    });
+
+    if (!feedItem) {
+      return res.status(404).json({ error: 'Feed item not found' });
+    }
+
+    // Create like and increment count in a transaction
+    const [like] = await prisma.$transaction([
+      prisma.feedLike.create({
+        data: {
+          userId,
+          feedItemId,
+        },
+      }),
+      prisma.activityFeedItem.update({
+        where: { id: feedItemId },
+        data: { likeCount: { increment: 1 } },
+      }),
+    ]);
+
+    res.json({ success: true, like });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'Already liked this post' });
+    }
+    console.error('Like error:', error);
+    res.status(500).json({ error: 'Failed to like post' });
+  }
+});
+
+// DELETE /api/feed/:id/like - Unlike a feed item
+router.delete('/:id/like', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id: feedItemId } = req.params;
+
+    // Delete like and decrement count in a transaction
+    const existingLike = await prisma.feedLike.findUnique({
+      where: {
+        userId_feedItemId: {
+          userId,
+          feedItemId,
+        },
+      },
+    });
+
+    if (!existingLike) {
+      return res.status(404).json({ error: 'Like not found' });
+    }
+
+    await prisma.$transaction([
+      prisma.feedLike.delete({
+        where: {
+          userId_feedItemId: {
+            userId,
+            feedItemId,
+          },
+        },
+      }),
+      prisma.activityFeedItem.update({
+        where: { id: feedItemId },
+        data: { likeCount: { decrement: 1 } },
+      }),
+    ]);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Unlike error:', error);
+    res.status(500).json({ error: 'Failed to unlike post' });
+  }
+});
+
+// GET /api/feed/:id/comments - Get comments for a feed item
+router.get('/:id/comments', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id: feedItemId } = req.params;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    const comments = await prisma.feedComment.findMany({
+      where: { feedItemId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            profilePhotoUrl: true,
+            profileSlug: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: limit,
+      skip: offset,
+    });
+
+    const totalCount = await prisma.feedComment.count({
+      where: { feedItemId },
+    });
+
+    res.json({
+      comments,
+      pagination: {
+        limit,
+        offset,
+        total: totalCount,
+        hasMore: offset + limit < totalCount,
+      },
+    });
+  } catch (error) {
+    console.error('Get comments error:', error);
+    res.status(500).json({ error: 'Failed to fetch comments' });
+  }
+});
+
+// POST /api/feed/:id/comment - Add a comment to a feed item
+router.post('/:id/comment', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id: feedItemId } = req.params;
+    const { content } = createCommentSchema.parse(req.body);
+
+    // Check if feed item exists
+    const feedItem = await prisma.activityFeedItem.findUnique({
+      where: { id: feedItemId },
+    });
+
+    if (!feedItem) {
+      return res.status(404).json({ error: 'Feed item not found' });
+    }
+
+    // Create comment and increment count in a transaction
+    const [comment] = await prisma.$transaction([
+      prisma.feedComment.create({
+        data: {
+          userId,
+          feedItemId,
+          content,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePhotoUrl: true,
+              profileSlug: true,
+            },
+          },
+        },
+      }),
+      prisma.activityFeedItem.update({
+        where: { id: feedItemId },
+        data: { commentCount: { increment: 1 } },
+      }),
+    ]);
+
+    res.status(201).json(comment);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Create comment error:', error);
+    res.status(500).json({ error: 'Failed to create comment' });
+  }
+});
+
+// DELETE /api/feed/comment/:commentId - Delete a comment
+router.delete('/comment/:commentId', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { commentId } = req.params;
+
+    // Get comment to check ownership and get feedItemId
+    const comment = await prisma.feedComment.findUnique({
+      where: { id: commentId },
+    });
+
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    // Check if user owns the comment or is admin
+    if (comment.userId !== userId && req.user!.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Not authorized to delete this comment' });
+    }
+
+    // Delete comment and decrement count in a transaction
+    await prisma.$transaction([
+      prisma.feedComment.delete({
+        where: { id: commentId },
+      }),
+      prisma.activityFeedItem.update({
+        where: { id: comment.feedItemId },
+        data: { commentCount: { decrement: 1 } },
+      }),
+    ]);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete comment error:', error);
+    res.status(500).json({ error: 'Failed to delete comment' });
+  }
+});
 
 // GET /api/feed/activity - Paginated social feed (network activity)
 // Returns activity from followed users + own activity
@@ -61,6 +332,10 @@ router.get('/activity', authenticate, async (req: AuthRequest, res: Response) =>
             price: true,
             slug: true
           }
+        },
+        likes: {
+          where: { userId: currentUserId },
+          select: { id: true }
         }
       },
       orderBy: {
@@ -69,6 +344,13 @@ router.get('/activity', authenticate, async (req: AuthRequest, res: Response) =>
       take: limit,
       skip: offset
     });
+
+    // Transform to include isLiked flag
+    const transformedItems = feedItems.map(item => ({
+      ...item,
+      isLiked: item.likes.length > 0,
+      likes: undefined // Remove likes array from response
+    }));
 
     // Get total count for pagination
     const totalCount = await prisma.activityFeedItem.count({
@@ -93,11 +375,14 @@ router.get('/activity', authenticate, async (req: AuthRequest, res: Response) =>
           metadata: null,
           imageUrl: null,
           isPublic: true,
-          createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 mins ago
+          likeCount: 12,
+          commentCount: 3,
+          isLiked: false,
+          createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
           user: {
             id: currentUserId,
-            firstName: req.user!.firstName,
-            lastName: req.user!.lastName,
+            firstName: (req.user as any).firstName || 'User',
+            lastName: (req.user as any).lastName || '',
             profilePhotoUrl: (req.user as any).profilePhotoUrl || null,
             profileSlug: (req.user as any).profileSlug || null,
             gamificationPoints: null
@@ -116,11 +401,14 @@ router.get('/activity', authenticate, async (req: AuthRequest, res: Response) =>
           metadata: null,
           imageUrl: null,
           isPublic: true,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+          likeCount: 24,
+          commentCount: 5,
+          isLiked: true,
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
           user: {
             id: currentUserId,
-            firstName: req.user!.firstName,
-            lastName: req.user!.lastName,
+            firstName: (req.user as any).firstName || 'User',
+            lastName: (req.user as any).lastName || '',
             profilePhotoUrl: (req.user as any).profilePhotoUrl || null,
             profileSlug: (req.user as any).profileSlug || null,
             gamificationPoints: { tier: 'SILVER' }
@@ -139,11 +427,14 @@ router.get('/activity', authenticate, async (req: AuthRequest, res: Response) =>
           metadata: null,
           imageUrl: null,
           isPublic: true,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), // 5 hours ago
+          likeCount: 8,
+          commentCount: 2,
+          isLiked: false,
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
           user: {
             id: currentUserId,
-            firstName: req.user!.firstName,
-            lastName: req.user!.lastName,
+            firstName: (req.user as any).firstName || 'User',
+            lastName: (req.user as any).lastName || '',
             profilePhotoUrl: (req.user as any).profilePhotoUrl || null,
             profileSlug: (req.user as any).profileSlug || null,
             gamificationPoints: { tier: 'GOLD' }
@@ -168,11 +459,14 @@ router.get('/activity', authenticate, async (req: AuthRequest, res: Response) =>
           metadata: { miles: 500 },
           imageUrl: null,
           isPublic: true,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(), // 12 hours ago
+          likeCount: 15,
+          commentCount: 1,
+          isLiked: false,
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
           user: {
             id: currentUserId,
-            firstName: req.user!.firstName,
-            lastName: req.user!.lastName,
+            firstName: (req.user as any).firstName || 'User',
+            lastName: (req.user as any).lastName || '',
             profilePhotoUrl: (req.user as any).profilePhotoUrl || null,
             profileSlug: (req.user as any).profileSlug || null,
             gamificationPoints: { tier: 'BRONZE' }
@@ -191,11 +485,14 @@ router.get('/activity', authenticate, async (req: AuthRequest, res: Response) =>
           metadata: { newTier: 'GOLD', previousTier: 'SILVER' },
           imageUrl: null,
           isPublic: true,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
+          likeCount: 42,
+          commentCount: 7,
+          isLiked: true,
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
           user: {
             id: currentUserId,
-            firstName: req.user!.firstName,
-            lastName: req.user!.lastName,
+            firstName: (req.user as any).firstName || 'User',
+            lastName: (req.user as any).lastName || '',
             profilePhotoUrl: (req.user as any).profilePhotoUrl || null,
             profileSlug: (req.user as any).profileSlug || null,
             gamificationPoints: { tier: 'GOLD' }
@@ -216,7 +513,7 @@ router.get('/activity', authenticate, async (req: AuthRequest, res: Response) =>
     }
 
     res.json({
-      items: feedItems,
+      items: transformedItems,
       pagination: {
         limit,
         offset,

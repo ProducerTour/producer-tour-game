@@ -248,6 +248,10 @@ model User {
   followers                Follow[]               @relation("Followers")   // Users who follow this user
   following                Follow[]               @relation("Following")   // Users this user follows
 
+  // Feed engagement relations
+  feedLikes                FeedLike[]             @relation("FeedLikes")   // Likes on feed items
+  feedComments             FeedComment[]          @relation("FeedComments") // Comments on feed items
+
   @@map("users")
 }
 
@@ -2188,6 +2192,7 @@ enum MarketplaceListingCategory {
 }
 
 enum ActivityFeedType {
+  POST                  // User-generated post/status update
   PLACEMENT             // New placement submitted/approved
   ACHIEVEMENT           // Achievement unlocked
   MARKETPLACE_LISTING   // New marketplace item listed
@@ -2305,6 +2310,12 @@ model ActivityFeedItem {
   // Visibility
   isPublic        Boolean           @default(true)  // Only public activities show in network feed
 
+  // Engagement
+  likes           FeedLike[]
+  comments        FeedComment[]
+  likeCount       Int               @default(0)
+  commentCount    Int               @default(0)
+
   createdAt       DateTime          @default(now())
 
   @@index([userId])
@@ -2312,6 +2323,39 @@ model ActivityFeedItem {
   @@index([createdAt])
   @@index([isPublic])
   @@map("activity_feed_items")
+}
+
+// Feed Likes - Tracks who liked which activity
+model FeedLike {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation("FeedLikes", fields: [userId], references: [id], onDelete: Cascade)
+  feedItemId  String
+  feedItem    ActivityFeedItem @relation(fields: [feedItemId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime         @default(now())
+
+  @@unique([userId, feedItemId])  // User can only like once
+  @@index([feedItemId])
+  @@index([userId])
+  @@map("feed_likes")
+}
+
+// Feed Comments - Comments on activity items
+model FeedComment {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation("FeedComments", fields: [userId], references: [id], onDelete: Cascade)
+  feedItemId  String
+  feedItem    ActivityFeedItem @relation(fields: [feedItemId], references: [id], onDelete: Cascade)
+  content     String           @db.Text
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([feedItemId])
+  @@index([userId])
+  @@map("feed_comments")
 }
 
 // ========================================

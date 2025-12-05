@@ -32,7 +32,7 @@ import {
 import { FaSpotify, FaSoundcloud, FaTiktok, FaApple } from 'react-icons/fa';
 import { useAuthStore } from '../store/auth.store';
 import { ActivityFeed } from '../components/feed/ActivityFeed';
-import { api } from '../lib/api';
+import { api, feedApi } from '../lib/api';
 
 type FeedView = 'my-posts' | 'network';
 type ContentType = 'beat' | 'kit' | 'sample' | 'collab' | 'placement' | 'status';
@@ -94,6 +94,23 @@ export default function ActivityFeedPage() {
     },
   });
 
+  // Create post mutation
+  const createPostMutation = useMutation({
+    mutationFn: async (data: { title: string; description?: string; imageUrl?: string | null }) => {
+      const response = await feedApi.createPost(data);
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Post created successfully!');
+      queryClient.invalidateQueries({ queryKey: ['activity-feed'] });
+      setPostContent('');
+      setSelectedContentType(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to create post');
+    },
+  });
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -122,9 +139,22 @@ export default function ActivityFeedPage() {
       : profile?.firstName || profile?.lastName || 'User';
 
   const handlePost = () => {
-    console.log('Creating post:', { content: postContent, type: selectedContentType });
-    setPostContent('');
-    setSelectedContentType(null);
+    if (!postContent.trim()) {
+      toast.error('Please enter some content for your post');
+      return;
+    }
+
+    // Create a title from the content type or use first part of content
+    const title = selectedContentType
+      ? `New ${selectedContentType.charAt(0).toUpperCase() + selectedContentType.slice(1)}`
+      : postContent.length > 50
+      ? postContent.substring(0, 50) + '...'
+      : postContent;
+
+    createPostMutation.mutate({
+      title,
+      description: postContent,
+    });
   };
 
   const contentTypes: { type: ContentType; label: string; icon: any }[] = [
