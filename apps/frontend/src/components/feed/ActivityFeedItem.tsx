@@ -216,6 +216,38 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
     addCommentMutation.mutate(commentText.trim());
   };
 
+  const handleShare = async () => {
+    // Build the post URL
+    const postUrl = `${window.location.origin}/post/${item.id}`;
+
+    // Try to use native share if available (mobile), otherwise copy to clipboard
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: item.title,
+          text: item.description || item.title,
+          url: postUrl,
+        });
+      } catch (err) {
+        // User cancelled or share failed, fall back to clipboard
+        if ((err as Error).name !== 'AbortError') {
+          await copyToClipboard(postUrl);
+        }
+      }
+    } else {
+      await copyToClipboard(postUrl);
+    }
+  };
+
+  const copyToClipboard = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Link copied to clipboard!');
+    } catch {
+      toast.error('Failed to copy link');
+    }
+  };
+
   const userDisplayName =
     item.user.firstName && item.user.lastName
       ? `${item.user.firstName} ${item.user.lastName}`
@@ -425,7 +457,10 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
             <span className="text-sm">Comment</span>
           </button>
 
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:bg-gray-50 text-gray-600">
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:bg-gray-50 text-gray-600"
+          >
             <Share2 className="w-5 h-5" />
             <span className="text-sm">Share</span>
           </button>
@@ -483,7 +518,19 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
 
           {/* Add Comment Input */}
           <div className="flex gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0"></div>
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+              {(user as any)?.profilePhotoUrl ? (
+                <img
+                  src={(user as any).profilePhotoUrl}
+                  alt={user?.firstName || 'You'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-purple-500 flex items-center justify-center text-white text-sm font-semibold">
+                  {user?.firstName?.charAt(0) || user?.email?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              )}
+            </div>
             <div className="flex-1 flex gap-2">
               <input
                 type="text"
