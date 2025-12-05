@@ -7,6 +7,7 @@ import { FindCollaboratorsPane } from '../components/profile/FindCollaboratorsPa
 import { TourMilesWidget } from '../components/profile/TourMilesWidget';
 import { AdminPostsWidget } from '../components/profile/AdminPostsWidget';
 import { FollowersModal } from '../components/feed/FollowersModal';
+import { BannerCropperModal } from '../components/profile/BannerCropperModal';
 import SocialSidebar from '../components/SocialSidebar';
 import { AnimatedBorder, parseBorderConfig } from '../components/AnimatedBorder';
 import {
@@ -47,6 +48,8 @@ export default function ActivityFeedPage() {
   const [postAudioFileName, setPostAudioFileName] = useState<string | null>(null);
   const [isFollowersModalOpen, setIsFollowersModalOpen] = useState(false);
   const [followersModalTab, setFollowersModalTab] = useState<'followers' | 'following'>('followers');
+  const [isBannerCropperOpen, setIsBannerCropperOpen] = useState(false);
+  const [tempBannerUrl, setTempBannerUrl] = useState<string | null>(null);
 
   // Refs for file inputs
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -166,7 +169,31 @@ export default function ActivityFeedPage() {
   const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      uploadBannerMutation.mutate(file);
+      // Check file size (10MB max for banner)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('Banner image must be less than 10MB');
+        return;
+      }
+      // Create preview URL and open cropper
+      const previewUrl = URL.createObjectURL(file);
+      setTempBannerUrl(previewUrl);
+      setIsBannerCropperOpen(true);
+    }
+    // Reset input so the same file can be selected again
+    if (bannerInputRef.current) {
+      bannerInputRef.current.value = '';
+    }
+  };
+
+  const handleBannerCropComplete = (croppedBlob: Blob) => {
+    // Convert blob to file
+    const croppedFile = new File([croppedBlob], 'banner.jpg', { type: 'image/jpeg' });
+    uploadBannerMutation.mutate(croppedFile);
+
+    // Clean up
+    if (tempBannerUrl) {
+      URL.revokeObjectURL(tempBannerUrl);
+      setTempBannerUrl(null);
     }
   };
 
@@ -767,6 +794,22 @@ export default function ActivityFeedPage() {
           userId={user.id}
           initialTab={followersModalTab}
           userName={fullName}
+        />
+      )}
+
+      {/* Banner Cropper Modal */}
+      {tempBannerUrl && (
+        <BannerCropperModal
+          isOpen={isBannerCropperOpen}
+          onClose={() => {
+            setIsBannerCropperOpen(false);
+            if (tempBannerUrl) {
+              URL.revokeObjectURL(tempBannerUrl);
+              setTempBannerUrl(null);
+            }
+          }}
+          imageUrl={tempBannerUrl}
+          onCropComplete={handleBannerCropComplete}
         />
       )}
     </div>
