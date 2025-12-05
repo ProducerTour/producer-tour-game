@@ -10,18 +10,12 @@ import { FollowersModal } from '../components/feed/FollowersModal';
 import SocialSidebar from '../components/SocialSidebar';
 import { AnimatedBorder, parseBorderConfig } from '../components/AnimatedBorder';
 import {
-  MessageCircle,
   MapPin,
-  Music,
-  Users,
-  ExternalLink,
   Globe,
   Instagram,
   Twitter,
   Linkedin,
   Youtube,
-  PackageIcon,
-  Headphones,
   Loader2,
   Calendar,
   Edit2,
@@ -31,6 +25,8 @@ import {
   Settings,
   BadgeCheck,
   X,
+  Headphones,
+  ExternalLink,
 } from 'lucide-react';
 import { FaSpotify, FaSoundcloud, FaTiktok, FaApple } from 'react-icons/fa';
 import { useAuthStore } from '../store/auth.store';
@@ -38,14 +34,12 @@ import { ActivityFeed } from '../components/feed/ActivityFeed';
 import { api, feedApi, gamificationApi } from '../lib/api';
 
 type FeedView = 'my-posts' | 'network';
-type ContentType = 'beat' | 'kit' | 'sample' | 'collab' | 'placement' | 'status';
 
 export default function ActivityFeedPage() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [feedView, setFeedView] = useState<FeedView>('my-posts');
   const [postContent, setPostContent] = useState('');
-  const [selectedContentType, setSelectedContentType] = useState<ContentType | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [postImageFile, setPostImageFile] = useState<File | null>(null);
   const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
@@ -129,7 +123,6 @@ export default function ActivityFeedPage() {
       toast.success('Post created successfully!');
       queryClient.invalidateQueries({ queryKey: ['activity-feed'] });
       setPostContent('');
-      setSelectedContentType(null);
       // Clear media state
       setPostImageFile(null);
       setPostImagePreview(null);
@@ -250,10 +243,8 @@ export default function ActivityFeedPage() {
       return;
     }
 
-    // Create a title from the content type or use first part of content
-    const title = selectedContentType
-      ? `New ${selectedContentType.charAt(0).toUpperCase() + selectedContentType.slice(1)}`
-      : postContent.length > 50
+    // Create a title from first part of content
+    const title = postContent.length > 50
       ? postContent.substring(0, 50) + '...'
       : postContent;
 
@@ -289,15 +280,6 @@ export default function ActivityFeedPage() {
       audioUrl,
     });
   };
-
-  const contentTypes: { type: ContentType; label: string; icon: any }[] = [
-    { type: 'beat', label: 'Beat', icon: Music },
-    { type: 'kit', label: 'Kit', icon: PackageIcon },
-    { type: 'sample', label: 'Sample', icon: Headphones },
-    { type: 'collab', label: 'Collab', icon: Users },
-    { type: 'placement', label: 'Placement', icon: ExternalLink },
-    { type: 'status', label: 'Status', icon: MessageCircle },
-  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
