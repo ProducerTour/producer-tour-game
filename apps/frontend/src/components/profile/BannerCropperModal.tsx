@@ -24,7 +24,7 @@ export function BannerCropperModal({ isOpen, onClose, imageUrl, onCropComplete }
     setZoom(zoom);
   };
 
-  const onCropAreaComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
+  const onCropAreaComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
