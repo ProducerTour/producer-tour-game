@@ -298,7 +298,7 @@ export default function ActivityFeedPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-500">@{profile?.email?.split('@')[0] || 'user'}</p>
+                        <p className="text-gray-500">@{profile?.profileSlug || profile?.email?.split('@')[0] || 'user'}</p>
                       </div>
 
                       {profile?.bio && (

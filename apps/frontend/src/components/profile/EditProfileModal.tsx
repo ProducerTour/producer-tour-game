@@ -57,7 +57,8 @@ export function EditProfileModal({ isOpen, onClose, profile, onSave }: EditProfi
   const [showSocialLinks, setShowSocialLinks] = useState(false);
 
   useEffect(() => {
-    if (profile) {
+    // Re-initialize form data when modal opens or when profile data changes
+    if (isOpen && profile) {
       setFormData({
         bio: profile.bio || '',
         location: profile.location || '',
@@ -71,8 +72,22 @@ export function EditProfileModal({ isOpen, onClose, profile, onSave }: EditProfi
         youtubeChannelUrl: profile.youtubeChannelUrl || '',
         appleMusicUrl: profile.appleMusicUrl || '',
       });
+      // Auto-expand social links section if any social link is populated
+      const hasSocialLinks = !!(
+        profile.spotifyArtistUrl ||
+        profile.instagramHandle ||
+        profile.twitterHandle ||
+        profile.linkedinUrl ||
+        profile.tiktokHandle ||
+        profile.soundcloudUrl ||
+        profile.youtubeChannelUrl ||
+        profile.appleMusicUrl
+      );
+      if (hasSocialLinks) {
+        setShowSocialLinks(true);
+      }
     }
-  }, [profile]);
+  }, [isOpen, profile]);
 
   const updateMutation = useMutation({
     mutationFn: (data: ProfileData) => api.put('/profile/hub', data),
