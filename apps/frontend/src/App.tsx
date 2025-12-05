@@ -30,7 +30,6 @@ import SettingsPage from './pages/SettingsPage';
 import WorkRegistrationTool from './pages/WorkRegistrationTool';
 import MySubmissions from './pages/MySubmissions';
 import ProducerTourMilesPage from './pages/ProducerTourMilesPage';
-import WriterTourHubPage from './pages/WriterTourHubPage';
 import WriterMarketplacePage from './pages/WriterMarketplacePage';
 import ActivityFeedPage from './pages/ActivityFeedPage';
 import WriterProfilePage from './pages/WriterProfilePage';
