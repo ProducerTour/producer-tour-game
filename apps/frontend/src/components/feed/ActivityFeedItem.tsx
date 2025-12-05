@@ -208,23 +208,12 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
   };
 
   const handleLike = () => {
-    if (!item.id.startsWith('mock-')) {
-      likeMutation.mutate();
-    } else {
-      // For mock items, just toggle locally
-      setLiked(!liked);
-      setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
-    }
+    likeMutation.mutate();
   };
 
   const handleComment = () => {
     if (!commentText.trim()) return;
-    if (!item.id.startsWith('mock-')) {
-      addCommentMutation.mutate(commentText.trim());
-    } else {
-      toast.success('Comment added! (mock)');
-      setCommentText('');
-    }
+    addCommentMutation.mutate(commentText.trim());
   };
 
   const userDisplayName =
