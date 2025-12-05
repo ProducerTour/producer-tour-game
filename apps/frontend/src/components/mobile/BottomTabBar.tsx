@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Sparkles, User } from 'lucide-react';
+import { Home, Sparkles, User, Wrench } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface TabItem {
@@ -12,18 +12,23 @@ interface TabItem {
 const tabs: TabItem[] = [
   {
     path: '/dashboard',
-    label: 'Dashboard',
-    icon: <Home className="w-6 h-6" />,
+    label: 'Home',
+    icon: <Home className="w-5 h-5" />,
   },
   {
-    path: '/customer/tour-miles',
-    label: 'Tour Miles',
-    icon: <Sparkles className="w-6 h-6" />,
+    path: '/tour-miles',
+    label: 'Miles',
+    icon: <Sparkles className="w-5 h-5" />,
+  },
+  {
+    path: '/tools',
+    label: 'Tools',
+    icon: <Wrench className="w-5 h-5" />,
   },
   {
     path: '/my-profile',
     label: 'Profile',
-    icon: <User className="w-6 h-6" />,
+    icon: <User className="w-5 h-5" />,
   },
 ];
 
@@ -35,10 +40,14 @@ export function BottomTabBar() {
     if (tabPath === '/dashboard') {
       return location.pathname === '/dashboard' ||
              location.pathname === '/customer' ||
-             location.pathname.startsWith('/customer/') && !location.pathname.includes('tour-miles');
+             (location.pathname.startsWith('/customer/') && !location.pathname.includes('tour-miles'));
     }
-    if (tabPath === '/customer/tour-miles') {
+    if (tabPath === '/tour-miles') {
       return location.pathname.includes('tour-miles');
+    }
+    if (tabPath === '/tools') {
+      return location.pathname === '/tools' ||
+             location.pathname.startsWith('/tools/');
     }
     if (tabPath === '/my-profile') {
       return location.pathname === '/my-profile' ||

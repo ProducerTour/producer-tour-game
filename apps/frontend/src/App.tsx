@@ -51,6 +51,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
 import ContactPage from './pages/ContactPage';
 import NotFoundPage from './pages/NotFoundPage';
+import ToolsPage from './pages/ToolsPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -132,6 +133,7 @@ function App() {
         <Route path="/contact" element={<ContactPage />} />
 
         {/* Tool Routes */}
+        <Route path="/tools" element={<PrivateRoute><ToolsPage /></PrivateRoute>} />
         <Route path="/tools/pub-deal-simulator" element={<PubDealSimulatorPage />} />
         <Route path="/tools/consultation" element={<ConsultationFormPage />} />
         <Route path="/tools/case-study" element={<CaseStudyPage />} />

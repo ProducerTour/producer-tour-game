@@ -18,21 +18,21 @@ export function CustomizationGallery({ onClose, initialTab = 'badges' }: Customi
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
   return (
-    <div className="bg-surface-light border border-white/10 rounded-2xl overflow-hidden">
+    <div className="bg-surface-light border border-white/10 rounded-xl sm:rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-white" />
+      <div className="flex items-center justify-between px-3 py-3 sm:px-6 sm:py-4 border-b border-white/10">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg sm:rounded-xl flex items-center justify-center">
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-white">Customize Profile</h2>
-            <p className="text-sm text-text-secondary">Choose your badge and border</p>
+            <h2 className="text-sm sm:text-lg font-semibold text-white">Customize Profile</h2>
+            <p className="text-xs sm:text-sm text-text-secondary hidden sm:block">Choose your badge and border</p>
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-            <X className="w-5 h-5 text-text-secondary" />
+          <button onClick={onClose} className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-colors">
+            <X className="w-4 h-4 sm:w-5 sm:h-5 text-text-secondary" />
           </button>
         )}
       </div>
@@ -41,12 +41,12 @@ export function CustomizationGallery({ onClose, initialTab = 'badges' }: Customi
       <div className="flex border-b border-white/10">
         <button
           onClick={() => setActiveTab('badges')}
-          className={`flex-1 px-6 py-3 text-sm font-medium transition-colors relative ${
+          className={`flex-1 px-3 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-medium transition-colors relative ${
             activeTab === 'badges' ? 'text-white' : 'text-text-secondary hover:text-white'
           }`}
         >
-          <span className="flex items-center justify-center gap-2">
-            <Crown className="w-4 h-4" />
+          <span className="flex items-center justify-center gap-1.5 sm:gap-2">
+            <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Badges
           </span>
           {activeTab === 'badges' && (
@@ -58,12 +58,12 @@ export function CustomizationGallery({ onClose, initialTab = 'badges' }: Customi
         </button>
         <button
           onClick={() => setActiveTab('borders')}
-          className={`flex-1 px-6 py-3 text-sm font-medium transition-colors relative ${
+          className={`flex-1 px-3 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-medium transition-colors relative ${
             activeTab === 'borders' ? 'text-white' : 'text-text-secondary hover:text-white'
           }`}
         >
-          <span className="flex items-center justify-center gap-2">
-            <User className="w-4 h-4" />
+          <span className="flex items-center justify-center gap-1.5 sm:gap-2">
+            <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Borders
           </span>
           {activeTab === 'borders' && (
@@ -177,25 +177,25 @@ function BadgeCollection() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Stats */}
-      <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl">
+      <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 rounded-lg sm:rounded-xl">
         <div className="text-center">
-          <p className="text-2xl font-bold text-white">{collection?.owned || 0}</p>
-          <p className="text-xs text-text-secondary">Owned</p>
+          <p className="text-lg sm:text-2xl font-bold text-white">{collection?.owned || 0}</p>
+          <p className="text-[10px] sm:text-xs text-text-secondary">Owned</p>
         </div>
-        <div className="w-px h-8 bg-white/10" />
+        <div className="w-px h-6 sm:h-8 bg-white/10" />
         <div className="text-center">
-          <p className="text-2xl font-bold text-text-secondary">{collection?.total || 0}</p>
-          <p className="text-xs text-text-secondary">Total</p>
+          <p className="text-lg sm:text-2xl font-bold text-text-secondary">{collection?.total || 0}</p>
+          <p className="text-[10px] sm:text-xs text-text-secondary">Total</p>
         </div>
       </div>
 
       {/* Currently Equipped */}
       {equippedBadgeId && (
-        <div className="p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl">
-          <p className="text-xs text-purple-400 font-medium mb-2">Currently Equipped</p>
-          <div className="flex items-center gap-3">
+        <div className="p-3 sm:p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-lg sm:rounded-xl">
+          <p className="text-[10px] sm:text-xs text-purple-400 font-medium mb-1.5 sm:mb-2">Currently Equipped</p>
+          <div className="flex items-center gap-2 sm:gap-3">
             {badges.find((b: any) => b.id === equippedBadgeId) && (
               <>
                 <ProfileBadge
@@ -205,13 +205,13 @@ function BadgeCollection() {
                   isEquipped={true}
                   showTooltip={false}
                 />
-                <div>
-                  <p className="text-white font-medium">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm sm:text-base text-white font-medium truncate">
                     {badges.find((b: any) => b.id === equippedBadgeId)?.name}
                   </p>
                   <button
                     onClick={() => unequipMutation.mutate()}
-                    className="text-xs text-red-400 hover:text-red-300"
+                    className="text-[10px] sm:text-xs text-red-400 hover:text-red-300"
                   >
                     Remove
                   </button>
@@ -345,25 +345,25 @@ function BorderCollection() {
   }, {});
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Stats */}
-      <div className="flex items-center gap-4 p-4 bg-white/5 rounded-xl">
+      <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 rounded-lg sm:rounded-xl">
         <div className="text-center">
-          <p className="text-2xl font-bold text-white">{collection?.owned || 0}</p>
-          <p className="text-xs text-text-secondary">Owned</p>
+          <p className="text-lg sm:text-2xl font-bold text-white">{collection?.owned || 0}</p>
+          <p className="text-[10px] sm:text-xs text-text-secondary">Owned</p>
         </div>
-        <div className="w-px h-8 bg-white/10" />
+        <div className="w-px h-6 sm:h-8 bg-white/10" />
         <div className="text-center">
-          <p className="text-2xl font-bold text-text-secondary">{collection?.total || 0}</p>
-          <p className="text-xs text-text-secondary">Total</p>
+          <p className="text-lg sm:text-2xl font-bold text-text-secondary">{collection?.total || 0}</p>
+          <p className="text-[10px] sm:text-xs text-text-secondary">Total</p>
         </div>
       </div>
 
       {/* Currently Equipped */}
       {equippedBorderId && (
-        <div className="p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-xl">
-          <p className="text-xs text-cyan-400 font-medium mb-2">Currently Equipped</p>
-          <div className="flex items-center gap-3">
+        <div className="p-3 sm:p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-lg sm:rounded-xl">
+          <p className="text-[10px] sm:text-xs text-cyan-400 font-medium mb-1.5 sm:mb-2">Currently Equipped</p>
+          <div className="flex items-center gap-2 sm:gap-3">
             {borders.find((b: any) => b.id === equippedBorderId) && (
               <>
                 <AnimatedBorder
@@ -372,13 +372,13 @@ function BorderCollection() {
                 >
                   <div className="w-full h-full bg-gray-700 rounded-full" />
                 </AnimatedBorder>
-                <div>
-                  <p className="text-white font-medium">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm sm:text-base text-white font-medium truncate">
                     {borders.find((b: any) => b.id === equippedBorderId)?.name}
                   </p>
                   <button
                     onClick={() => unequipMutation.mutate()}
-                    className="text-xs text-red-400 hover:text-red-300"
+                    className="text-[10px] sm:text-xs text-red-400 hover:text-red-300"
                   >
                     Remove
                   </button>

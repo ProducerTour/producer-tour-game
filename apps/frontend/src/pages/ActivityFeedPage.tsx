@@ -634,7 +634,7 @@ export default function ActivityFeedPage() {
             </div>
 
             {/* Create Post Section */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 mb-4">
+            <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 mb-4">
               {/* Hidden file inputs */}
               <input
                 ref={postImageInputRef}
@@ -651,8 +651,8 @@ export default function ActivityFeedPage() {
                 className="hidden"
               />
 
-              <div className="flex gap-4">
-                <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+              <div className="flex gap-3 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden flex-shrink-0">
                   {profile?.profilePhotoUrl ? (
                     <img
                       src={profile.profilePhotoUrl}
@@ -660,7 +660,7 @@ export default function ActivityFeedPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-purple-500 flex items-center justify-center text-white text-xl font-semibold">
+                    <div className="w-full h-full bg-purple-500 flex items-center justify-center text-white text-lg sm:text-xl font-semibold">
                       {profile?.firstName?.charAt(0) || 'U'}
                     </div>
                   )}
@@ -671,9 +671,9 @@ export default function ActivityFeedPage() {
                     ref={textareaRef}
                     value={postContent}
                     onChange={(e) => setPostContent(e.target.value)}
-                    placeholder="What's on your mind? Share your beats, samples, or updates..."
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none transition-all"
-                    rows={3}
+                    placeholder="What's on your mind?"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none transition-all text-sm sm:text-base"
+                    rows={2}
                   />
 
                   {/* Image Preview */}
@@ -709,12 +709,12 @@ export default function ActivityFeedPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between mt-3">
-                    <div className="flex gap-2 relative">
+                  <div className="flex items-center justify-between mt-2 sm:mt-3">
+                    <div className="flex gap-1 sm:gap-2 relative">
                       {/* Add Image Button */}
                       <button
                         onClick={() => postImageInputRef.current?.click()}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                        className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors ${
                           postImagePreview
                             ? 'bg-purple-100 text-purple-600'
                             : 'hover:bg-gray-100 text-gray-600'
@@ -722,13 +722,13 @@ export default function ActivityFeedPage() {
                         title="Add Image"
                       >
                         <ImageIcon className="w-5 h-5" />
-                        <span className="text-sm font-medium">Image</span>
+                        <span className="text-sm font-medium hidden sm:inline">Image</span>
                       </button>
 
                       {/* Add Audio Button */}
                       <button
                         onClick={() => postAudioInputRef.current?.click()}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                        className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors ${
                           postAudioFileName
                             ? 'bg-purple-100 text-purple-600'
                             : 'hover:bg-gray-100 text-gray-600'
@@ -736,13 +736,13 @@ export default function ActivityFeedPage() {
                         title="Add Audio (MP3, WAV)"
                       >
                         <Headphones className="w-5 h-5" />
-                        <span className="text-sm font-medium">Audio</span>
+                        <span className="text-sm font-medium hidden sm:inline">Audio</span>
                       </button>
 
                       {/* Emoji Button */}
                       <button
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                        className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors ${
                           showEmojiPicker
                             ? 'bg-purple-100 text-purple-600'
                             : 'hover:bg-gray-100 text-gray-600'
@@ -750,7 +750,7 @@ export default function ActivityFeedPage() {
                         title="Add Emoji"
                       >
                         <Smile className="w-5 h-5" />
-                        <span className="text-sm font-medium">Emoji</span>
+                        <span className="text-sm font-medium hidden sm:inline">Emoji</span>
                       </button>
 
                       {/* Emoji Picker Popup */}
@@ -769,7 +769,7 @@ export default function ActivityFeedPage() {
                     <button
                       onClick={handlePost}
                       disabled={!postContent.trim() || createPostMutation.isPending || uploadPostImageMutation.isPending || uploadPostAudioMutation.isPending}
-                      className={`flex items-center gap-2 px-5 py-2 rounded-xl transition-all ${
+                      className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-1.5 sm:py-2 rounded-xl transition-all text-sm sm:text-base ${
                         postContent.trim() && !createPostMutation.isPending && !uploadPostImageMutation.isPending && !uploadPostAudioMutation.isPending
                           ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg hover:scale-105'
                           : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -780,7 +780,12 @@ export default function ActivityFeedPage() {
                       ) : (
                         <ExternalLink className="w-4 h-4" />
                       )}
-                      {uploadPostImageMutation.isPending || uploadPostAudioMutation.isPending ? 'Uploading...' : createPostMutation.isPending ? 'Posting...' : 'Post'}
+                      <span className="hidden sm:inline">
+                        {uploadPostImageMutation.isPending || uploadPostAudioMutation.isPending ? 'Uploading...' : createPostMutation.isPending ? 'Posting...' : 'Post'}
+                      </span>
+                      <span className="sm:hidden">
+                        {(uploadPostImageMutation.isPending || uploadPostAudioMutation.isPending || createPostMutation.isPending) ? '' : 'Post'}
+                      </span>
                     </button>
                   </div>
                 </div>

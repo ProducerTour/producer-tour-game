@@ -85,16 +85,16 @@ export default function AchievementGallery() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        {/* Category Filter */}
-        <div className="flex gap-2 flex-wrap">
+      {/* Filters - Mobile optimized with horizontal scroll */}
+      <div className="flex flex-col gap-2 sm:gap-3 mb-4 sm:mb-6">
+        {/* Category Filter - horizontal scroll on mobile */}
+        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-2 px-2 sm:mx-0 sm:px-0 sm:flex-wrap">
           {categories.map((category) => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
               className={`
-                px-4 py-2 rounded-lg text-sm font-medium transition-all
+                px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-medium transition-all whitespace-nowrap flex-shrink-0
                 ${selectedCategory === category
                   ? 'bg-blue-500 text-white'
                   : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -110,20 +110,20 @@ export default function AchievementGallery() {
         <button
           onClick={() => setShowUnlockedOnly(!showUnlockedOnly)}
           className={`
-            px-4 py-2 rounded-lg text-sm font-medium transition-all
+            px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-medium transition-all self-start
             ${showUnlockedOnly
               ? 'bg-green-500 text-white'
               : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }
           `}
         >
-          {showUnlockedOnly ? 'Showing Unlocked Only' : 'Show All'}
+          {showUnlockedOnly ? '✓ Unlocked Only' : 'Show All'}
         </button>
       </div>
 
-      {/* Achievement Grid */}
+      {/* Achievement Grid - 2 cols mobile, 3 cols tablet, 4 cols desktop */}
       {filteredAchievements && filteredAchievements.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
           {filteredAchievements.map((achievement) => (
             <AchievementCard key={achievement.id} achievement={achievement} />
           ))}

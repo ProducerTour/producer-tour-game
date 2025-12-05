@@ -165,29 +165,81 @@ export default function CustomerTourMilesPage() {
   const tierStyle = tierColors[currentTier] || tierColors.BRONZE;
 
   return (
-    <div className="flex flex-col h-screen bg-surface overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="min-h-screen bg-surface">
+      {/* Background Effects - Hidden on mobile for performance and better UX */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none hidden md:block">
         <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-amber-500/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[100px]" />
       </div>
 
       <ImpersonationBanner />
 
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex min-h-screen relative">
         <Sidebar />
 
-        <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} overflow-y-auto transition-all duration-300`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 md:pt-8">
+        <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} transition-all duration-300 overflow-x-hidden overflow-y-auto`}>
+          <div className="w-full sm:max-w-7xl sm:mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pt-16 md:pt-8 pb-24 md:pb-8">
 
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Tour Miles</h1>
-              <p className="text-text-secondary">Earn points, unlock rewards, and level up your profile.</p>
+            {/* Mobile Header - Compact */}
+            <div className="mb-3 sm:mb-8">
+              <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-white break-words">Tour Miles</h1>
+              <p className="text-text-secondary text-xs sm:text-base hidden sm:block">Earn points, unlock rewards, and level up your profile.</p>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {/* Mobile: 2x2 Grid Stats | Desktop: 4-column Grid */}
+            <div className="grid grid-cols-2 gap-2 sm:hidden mb-3">
+              {/* Tour Miles Balance */}
+              <div className={`bg-gradient-to-br ${tierStyle.bg} border ${tierStyle.border} rounded-lg p-2`}>
+                <div className="flex items-center gap-1 mb-0.5">
+                  <Sparkles className={`w-3 h-3 ${tierStyle.text}`} />
+                  <span className={`text-[8px] font-bold uppercase ${tierStyle.text}`}>{currentTier}</span>
+                </div>
+                <p className="text-base font-bold text-white leading-tight">{stats?.points?.toLocaleString() || 0}</p>
+                <p className="text-[9px] text-text-secondary">Tour Miles</p>
+                {nextTier && (
+                  <div className="mt-0.5">
+                    <div className="h-0.5 bg-white/10 rounded-full overflow-hidden">
+                      <div className={`h-full bg-gradient-to-r ${tierStyle.gradient}`} style={{ width: `${tierProgress}%` }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Daily Streak */}
+              <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-lg p-2">
+                <Zap className="w-3 h-3 text-orange-400 mb-0.5" />
+                <p className="text-base font-bold text-white leading-tight">{stats?.currentStreak || 0}</p>
+                <p className="text-[9px] text-text-secondary mb-1">Day Streak</p>
+                <button
+                  onClick={() => checkInMutation.mutate()}
+                  disabled={checkInMutation.isPending || stats?.checkedInToday}
+                  className={`w-full py-0.5 rounded text-[9px] font-semibold ${
+                    stats?.checkedInToday
+                      ? 'bg-white/10 text-text-secondary'
+                      : 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
+                  }`}
+                >
+                  {stats?.checkedInToday ? '✓' : 'Check In'}
+                </button>
+              </div>
+
+              {/* Achievements */}
+              <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg p-2">
+                <Trophy className="w-3 h-3 text-purple-400 mb-0.5" />
+                <p className="text-base font-bold text-white leading-tight">{stats?.achievementsUnlocked || 0}</p>
+                <p className="text-[9px] text-text-secondary">Badges</p>
+              </div>
+
+              {/* Rewards */}
+              <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg p-2">
+                <Gift className="w-3 h-3 text-green-400 mb-0.5" />
+                <p className="text-base font-bold text-white leading-tight">{rewards?.length || 0}</p>
+                <p className="text-[9px] text-text-secondary">Rewards</p>
+              </div>
+            </div>
+
+            {/* Desktop Stats Grid */}
+            <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               {/* Tour Miles Balance */}
               <div className={`bg-gradient-to-br ${tierStyle.bg} border ${tierStyle.border} rounded-2xl p-6`}>
                 <div className="flex items-center justify-between mb-4">
@@ -236,7 +288,7 @@ export default function CustomerTourMilesPage() {
                       : 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:opacity-90'
                   }`}
                 >
-                  {checkInMutation.isPending ? 'Checking in...' : stats?.checkedInToday ? 'Checked In Today' : 'Daily Check-In (+10 TP)'}
+                  {checkInMutation.isPending ? 'Checking...' : stats?.checkedInToday ? '✓ Checked In' : 'Daily Check-In (+10 TP)'}
                 </button>
               </div>
 
@@ -275,57 +327,63 @@ export default function CustomerTourMilesPage() {
               </div>
             </div>
 
-            {/* Tab Navigation */}
-            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+            {/* Tab Navigation - Mobile: icon only, Desktop: full labels */}
+            <div className="flex gap-1 sm:gap-2 mb-2 sm:mb-6 overflow-x-auto scrollbar-hide">
               {(['overview', 'achievements', 'rewards', 'leaderboard', 'customize'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 ${
+                  className={`px-2 py-1 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-sm font-medium whitespace-nowrap transition-all flex items-center gap-1 sm:gap-2 flex-shrink-0 ${
                     activeTab === tab
-                      ? 'bg-white/10 text-white border border-white/20'
-                      : 'text-text-secondary hover:text-white hover:bg-white/5'
+                      ? 'bg-white/15 text-white'
+                      : 'text-text-secondary hover:text-white/70'
                   }`}
                 >
-                  {tab === 'customize' && <Palette className="w-4 h-4" />}
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  <span className="text-sm sm:text-base">
+                    {tab === 'overview' ? '🏠' :
+                     tab === 'achievements' ? '🏆' :
+                     tab === 'rewards' ? '🎁' :
+                     tab === 'leaderboard' ? '📊' :
+                     tab === 'customize' ? '🎨' : ''}
+                  </span>
+                  <span className="hidden sm:inline">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
                 </button>
               ))}
             </div>
 
             {/* Tab Content */}
             {activeTab === 'overview' && (
-              <div className="space-y-6">
+              <div className="space-y-3 sm:space-y-6">
                 {/* How to Earn Points */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                  <h2 className="text-lg font-semibold text-white mb-4">How to Earn Tour Miles</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-white/5 rounded-xl p-4">
-                      <Calendar className="w-8 h-8 text-orange-400 mb-3" />
-                      <h3 className="font-semibold text-white mb-1">Daily Check-In</h3>
-                      <p className="text-sm text-text-secondary">+10 TP daily, streak bonuses!</p>
+                <div className="bg-white/5 border border-white/10 rounded-lg sm:rounded-2xl p-3 sm:p-6">
+                  <h2 className="text-sm sm:text-lg font-semibold text-white mb-2 sm:mb-4">How to Earn Tour Miles</h2>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-4">
+                    <div className="bg-white/5 rounded-lg p-2 sm:p-4">
+                      <Calendar className="w-4 h-4 sm:w-8 sm:h-8 text-orange-400 mb-1 sm:mb-3" />
+                      <h3 className="font-semibold text-white text-[11px] sm:text-base mb-0.5">Check-In</h3>
+                      <p className="text-[9px] sm:text-sm text-text-secondary">+10 TP daily</p>
                     </div>
-                    <div className="bg-white/5 rounded-xl p-4">
-                      <Users className="w-8 h-8 text-blue-400 mb-3" />
-                      <h3 className="font-semibold text-white mb-1">Referrals</h3>
-                      <p className="text-sm text-text-secondary">+100 TP per signup</p>
+                    <div className="bg-white/5 rounded-lg p-2 sm:p-4">
+                      <Users className="w-4 h-4 sm:w-8 sm:h-8 text-blue-400 mb-1 sm:mb-3" />
+                      <h3 className="font-semibold text-white text-[11px] sm:text-base mb-0.5">Referrals</h3>
+                      <p className="text-[9px] sm:text-sm text-text-secondary">+100 TP</p>
                     </div>
-                    <div className="bg-white/5 rounded-xl p-4">
-                      <Target className="w-8 h-8 text-green-400 mb-3" />
-                      <h3 className="font-semibold text-white mb-1">Use Tools</h3>
-                      <p className="text-sm text-text-secondary">Earn points using tools</p>
+                    <div className="bg-white/5 rounded-lg p-2 sm:p-4">
+                      <Target className="w-4 h-4 sm:w-8 sm:h-8 text-green-400 mb-1 sm:mb-3" />
+                      <h3 className="font-semibold text-white text-[11px] sm:text-base mb-0.5">Tools</h3>
+                      <p className="text-[9px] sm:text-sm text-text-secondary">Earn TP</p>
                     </div>
-                    <div className="bg-white/5 rounded-xl p-4">
-                      <Trophy className="w-8 h-8 text-purple-400 mb-3" />
-                      <h3 className="font-semibold text-white mb-1">Achievements</h3>
-                      <p className="text-sm text-text-secondary">50-500 TP per achievement</p>
+                    <div className="bg-white/5 rounded-lg p-2 sm:p-4">
+                      <Trophy className="w-4 h-4 sm:w-8 sm:h-8 text-purple-400 mb-1 sm:mb-3" />
+                      <h3 className="font-semibold text-white text-[11px] sm:text-base mb-0.5">Achieve</h3>
+                      <p className="text-[9px] sm:text-sm text-text-secondary">50-500 TP</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Referral Section */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                  <h2 className="text-lg font-semibold text-white mb-4">Share & Earn</h2>
+                <div className="bg-white/5 border border-white/10 rounded-lg sm:rounded-2xl p-3 sm:p-6">
+                  <h2 className="text-sm sm:text-lg font-semibold text-white mb-2 sm:mb-4">Share & Earn</h2>
                   <SocialShareButtons referralCode={stats?.referralCode} />
                 </div>
               </div>
@@ -336,11 +394,11 @@ export default function CustomerTourMilesPage() {
             )}
 
             {activeTab === 'rewards' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
                 {rewardsLoading ? (
-                  <div className="col-span-full text-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-blue mx-auto mb-4" />
-                    <p className="text-text-secondary">Loading rewards...</p>
+                  <div className="col-span-full text-center py-6 sm:py-12">
+                    <div className="animate-spin rounded-full h-5 w-5 sm:h-8 sm:w-8 border-b-2 border-brand-blue mx-auto mb-2 sm:mb-4" />
+                    <p className="text-text-secondary text-xs sm:text-base">Loading...</p>
                   </div>
                 ) : rewards && rewards.length > 0 ? (
                   rewards.map((reward: any) => {
@@ -352,30 +410,30 @@ export default function CustomerTourMilesPage() {
                     return (
                       <div
                         key={reward.id}
-                        className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all"
+                        className="bg-white/5 border border-white/10 rounded-lg sm:rounded-2xl p-2 sm:p-6 hover:bg-white/10 transition-all"
                       >
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-xl flex items-center justify-center">
+                        <div className="flex items-start justify-between mb-1.5 sm:mb-4">
+                          <div className="w-7 h-7 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-md sm:rounded-xl flex items-center justify-center">
                             {reward.type === 'TOOL_ACCESS' ? (
-                              <Zap className="w-6 h-6 text-amber-400" />
+                              <Zap className="w-3.5 h-3.5 sm:w-6 sm:h-6 text-amber-400" />
                             ) : (
-                              <Gift className="w-6 h-6 text-amber-400" />
+                              <Gift className="w-3.5 h-3.5 sm:w-6 sm:h-6 text-amber-400" />
                             )}
                           </div>
                           {tierLocked && (
-                            <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded-full">
-                              {reward.tierRestriction} Required
+                            <span className="text-[8px] sm:text-xs bg-purple-500/20 text-purple-300 px-1 sm:px-2 py-0.5 rounded-full">
+                              {reward.tierRestriction}
                             </span>
                           )}
                         </div>
-                        <h3 className="font-semibold text-white mb-2">{reward.name}</h3>
-                        <p className="text-sm text-text-secondary mb-4 line-clamp-2">{reward.description}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-amber-400 font-bold">{reward.cost.toLocaleString()} TP</span>
+                        <h3 className="font-semibold text-white text-[11px] sm:text-base mb-0.5 sm:mb-2 line-clamp-1">{reward.name}</h3>
+                        <p className="text-[9px] sm:text-sm text-text-secondary mb-2 sm:mb-4 line-clamp-2 hidden sm:block">{reward.description}</p>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
+                          <span className="text-amber-400 font-bold text-[10px] sm:text-base">{reward.cost.toLocaleString()} TP</span>
                           <button
                             onClick={() => handleRedeemClick(reward)}
                             disabled={!canAfford || tierLocked || reward.stock === 0}
-                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                            className={`px-2 sm:px-4 py-1 sm:py-2 rounded text-[9px] sm:text-sm font-semibold transition-all ${
                               !canAfford
                                 ? 'bg-white/10 text-text-secondary cursor-not-allowed'
                                 : tierLocked
@@ -385,16 +443,16 @@ export default function CustomerTourMilesPage() {
                                 : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90'
                             }`}
                           >
-                            {!canAfford ? 'Insufficient TP' : tierLocked ? 'Tier Locked' : reward.stock === 0 ? 'Out of Stock' : 'Redeem'}
+                            {!canAfford ? 'Need TP' : tierLocked ? '🔒' : reward.stock === 0 ? 'Out' : 'Redeem'}
                           </button>
                         </div>
                       </div>
                     );
                   })
                 ) : (
-                  <div className="col-span-full text-center py-12">
-                    <Gift className="w-16 h-16 text-text-secondary mx-auto mb-4 opacity-50" />
-                    <p className="text-text-secondary">No rewards available at this time.</p>
+                  <div className="col-span-full text-center py-6 sm:py-12">
+                    <Gift className="w-10 h-10 sm:w-16 sm:h-16 text-text-secondary mx-auto mb-2 sm:mb-4 opacity-50" />
+                    <p className="text-text-secondary text-xs sm:text-base">No rewards available.</p>
                   </div>
                 )}
               </div>

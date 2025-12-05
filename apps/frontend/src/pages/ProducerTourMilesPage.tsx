@@ -217,43 +217,44 @@ export default function ProducerTourMilesPage() {
         <ImpersonationBanner />
         <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-20 md:pt-8">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Producer Tour Miles</h1>
-            <p className="text-gray-400">Earn points, unlock rewards, and level up your producer journey</p>
+          <div className="mb-4 sm:mb-8">
+            <h1 className="text-xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">Tour Miles</h1>
+            <p className="text-xs sm:text-base text-gray-400 hidden sm:block">Earn points, unlock rewards, and level up your producer journey</p>
           </div>
 
           {/* Stats Cards */}
           {!statsLoading && stats && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-8">
               {/* Points Card */}
-              <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6 border-l-4" style={{ borderLeftColor: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-400">Tour Points</span>
-                  <Star className="w-5 h-5" style={{ color: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }} />
+              <div className="rounded-xl sm:rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-3 sm:p-6 border-l-2 sm:border-l-4" style={{ borderLeftColor: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }}>
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <span className="text-[10px] sm:text-sm font-medium text-gray-400">Tour Points</span>
+                  <Star className="w-3.5 h-3.5 sm:w-5 sm:h-5" style={{ color: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }} />
                 </div>
-                <div className="text-3xl font-bold text-white">{stats.points.toLocaleString()}</div>
-                <div className="text-xs text-gray-500 mt-1">Lifetime: {stats.totalEarned.toLocaleString()} TP</div>
+                <div className="text-lg sm:text-3xl font-bold text-white">{stats.points.toLocaleString()}</div>
+                <div className="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Lifetime: {stats.totalEarned.toLocaleString()} TP</div>
               </div>
 
               {/* Tier Card */}
-              <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-400">Current Tier</span>
-                  <Trophy className="w-5 h-5" style={{ color: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }} />
+              <div className="rounded-xl sm:rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-3 sm:p-6">
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <span className="text-[10px] sm:text-sm font-medium text-gray-400">Current Tier</span>
+                  <Trophy className="w-3.5 h-3.5 sm:w-5 sm:h-5" style={{ color: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }} />
                 </div>
-                <div className="text-2xl font-bold" style={{ color: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }}>
+                <div className="text-base sm:text-2xl font-bold" style={{ color: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }}>
                   {stats.tier}
                 </div>
                 {nextTier && (
                   <>
-                    <div className="mt-3">
-                      <div className="flex justify-between text-xs text-gray-400 mb-1">
-                        <span>Progress to {nextTier}</span>
+                    <div className="mt-1.5 sm:mt-3">
+                      <div className="flex justify-between text-[9px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1">
+                        <span className="hidden sm:inline">Progress to {nextTier}</span>
+                        <span className="sm:hidden">To {nextTier}</span>
                         <span>{progress.toFixed(0)}%</span>
                       </div>
-                      <div className="w-full bg-white/10 rounded-full h-2">
+                      <div className="w-full bg-white/10 rounded-full h-1.5 sm:h-2">
                         <div
-                          className="h-2 rounded-full transition-all duration-500"
+                          className="h-1.5 sm:h-2 rounded-full transition-all duration-500"
                           style={{
                             width: `${progress}%`,
                             backgroundColor: TIER_COLORS[nextTier as keyof typeof TIER_COLORS]
@@ -261,7 +262,7 @@ export default function ProducerTourMilesPage() {
                         />
                       </div>
                     </div>
-                    <div className="text-xs text-gray-500 mt-2">
+                    <div className="text-[9px] sm:text-xs text-gray-500 mt-1 sm:mt-2 hidden sm:block">
                       {pointsToNextTier.toLocaleString()} TP until {nextTier}
                     </div>
                   </>
@@ -269,169 +270,175 @@ export default function ProducerTourMilesPage() {
               </div>
 
               {/* Streak Card */}
-              <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-400">Check-in Streak</span>
-                  <Zap className="w-5 h-5 text-orange-400" />
+              <div className="rounded-xl sm:rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-3 sm:p-6">
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <span className="text-[10px] sm:text-sm font-medium text-gray-400">Streak</span>
+                  <Zap className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-orange-400" />
                 </div>
-                <div className="text-3xl font-bold text-white">{stats.currentStreak}</div>
-                <div className="text-xs text-gray-500 mt-1">Longest: {stats.longestStreak} days</div>
+                <div className="text-lg sm:text-3xl font-bold text-white">{stats.currentStreak}</div>
+                <div className="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Best: {stats.longestStreak} days</div>
                 {stats.canCheckInToday && (
                   <button
                     onClick={handleCheckIn}
                     disabled={checkInMutation.isPending}
-                    className="mt-3 w-full px-3 py-2 bg-brand-blue text-white text-sm font-medium rounded-lg hover:bg-brand-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="mt-2 sm:mt-3 w-full px-2 py-1.5 sm:px-3 sm:py-2 bg-brand-blue text-white text-[10px] sm:text-sm font-medium rounded-lg hover:bg-brand-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {checkInMutation.isPending ? 'Checking in...' : 'Check In Today (+10 TP)'}
+                    {checkInMutation.isPending ? '...' : <span className="hidden sm:inline">Check In Today (+10 TP)</span>}
+                    {!checkInMutation.isPending && <span className="sm:hidden">Check In</span>}
                   </button>
                 )}
                 {!stats.canCheckInToday && (
-                  <div className="mt-3 text-center text-xs text-emerald-400 font-medium">
-                    ✓ Checked in today
+                  <div className="mt-2 sm:mt-3 text-center text-[10px] sm:text-xs text-emerald-400 font-medium">
+                    ✓ Done
                   </div>
                 )}
               </div>
 
               {/* Achievements Card */}
-              <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-400">Achievements</span>
-                  <Award className="w-5 h-5 text-purple-400" />
+              <div className="rounded-xl sm:rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-3 sm:p-6">
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <span className="text-[10px] sm:text-sm font-medium text-gray-400">Achievements</span>
+                  <Award className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-purple-400" />
                 </div>
-                <div className="text-3xl font-bold text-white">{stats.achievementsUnlocked}</div>
-                <div className="text-xs text-gray-500 mt-1">Unlocked</div>
+                <div className="text-lg sm:text-3xl font-bold text-white">{stats.achievementsUnlocked}</div>
+                <div className="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Unlocked</div>
               </div>
             </div>
           )}
 
           {/* Tabs */}
-          <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm mb-6">
+          <div className="rounded-xl sm:rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm mb-4 sm:mb-6">
             <div className="border-b border-white/[0.08]">
-              <nav className="flex -mb-px">
+              <nav className="flex -mb-px overflow-x-auto scrollbar-hide">
                 <button
                   onClick={() => setActiveTab('overview')}
-                  className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  className={`px-3 py-2.5 sm:px-6 sm:py-4 text-[11px] sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                     activeTab === 'overview'
                       ? 'border-brand-blue text-brand-blue'
                       : 'border-transparent text-gray-400 hover:text-white hover:border-white/30'
                   }`}
                 >
-                  <TrendingUp className="w-4 h-4 inline-block mr-2" />
-                  Overview
+                  <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 inline-block mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Overview</span>
+                  <span className="sm:hidden">Home</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('achievements')}
-                  className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  className={`px-3 py-2.5 sm:px-6 sm:py-4 text-[11px] sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                     activeTab === 'achievements'
                       ? 'border-brand-blue text-brand-blue'
                       : 'border-transparent text-gray-400 hover:text-white hover:border-white/30'
                   }`}
                 >
-                  <Award className="w-4 h-4 inline-block mr-2" />
-                  Achievements
+                  <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 inline-block mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Achievements</span>
+                  <span className="sm:hidden">Badges</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('rewards')}
-                  className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  className={`px-3 py-2.5 sm:px-6 sm:py-4 text-[11px] sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                     activeTab === 'rewards'
                       ? 'border-brand-blue text-brand-blue'
                       : 'border-transparent text-gray-400 hover:text-white hover:border-white/30'
                   }`}
                 >
-                  <Gift className="w-4 h-4 inline-block mr-2" />
-                  Rewards Store
+                  <Gift className="w-3.5 h-3.5 sm:w-4 sm:h-4 inline-block mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Rewards Store</span>
+                  <span className="sm:hidden">Rewards</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('leaderboard')}
-                  className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  className={`px-3 py-2.5 sm:px-6 sm:py-4 text-[11px] sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                     activeTab === 'leaderboard'
                       ? 'border-brand-blue text-brand-blue'
                       : 'border-transparent text-gray-400 hover:text-white hover:border-white/30'
                   }`}
                 >
-                  <Users className="w-4 h-4 inline-block mr-2" />
-                  Leaderboard
+                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 inline-block mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Leaderboard</span>
+                  <span className="sm:hidden">Rank</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('customize')}
-                  className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  className={`px-3 py-2.5 sm:px-6 sm:py-4 text-[11px] sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                     activeTab === 'customize'
                       ? 'border-brand-blue text-brand-blue'
                       : 'border-transparent text-gray-400 hover:text-white hover:border-white/30'
                   }`}
                 >
-                  <Palette className="w-4 h-4 inline-block mr-2" />
-                  Customize
+                  <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4 inline-block mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Customize</span>
+                  <span className="sm:hidden">Style</span>
                 </button>
               </nav>
             </div>
 
-            <div className="p-6">
+            <div className="p-3 sm:p-6">
               {/* Overview Tab */}
               {activeTab === 'overview' && !statsLoading && stats && (
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-4">How to Earn Points</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex items-start p-4 bg-white/[0.04] border border-white/[0.06] rounded-xl">
-                        <Calendar className="w-5 h-5 text-brand-blue mt-1 mr-3 flex-shrink-0" />
+                    <h3 className="text-sm sm:text-lg font-semibold text-white mb-2 sm:mb-4">How to Earn Points</h3>
+                    <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                      <div className="flex items-start p-2.5 sm:p-4 bg-white/[0.04] border border-white/[0.06] rounded-lg sm:rounded-xl">
+                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-brand-blue mt-0.5 sm:mt-1 mr-2 sm:mr-3 flex-shrink-0" />
                         <div>
-                          <div className="font-medium text-white">Daily Check-in</div>
-                          <div className="text-sm text-gray-400">+10 TP per day</div>
-                          <div className="text-xs text-gray-500 mt-1">Bonus: +50 TP at 7 days, +200 TP at 30 days</div>
+                          <div className="text-[11px] sm:text-base font-medium text-white">Daily Check-in</div>
+                          <div className="text-[10px] sm:text-sm text-gray-400">+10 TP per day</div>
+                          <div className="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 hidden sm:block">Bonus: +50 TP at 7 days, +200 TP at 30 days</div>
                         </div>
                       </div>
-                      <div className="flex items-start p-4 bg-white/[0.04] border border-white/[0.06] rounded-xl">
-                        <Users className="w-5 h-5 text-emerald-400 mt-1 mr-3 flex-shrink-0" />
+                      <div className="flex items-start p-2.5 sm:p-4 bg-white/[0.04] border border-white/[0.06] rounded-lg sm:rounded-xl">
+                        <Users className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 mt-0.5 sm:mt-1 mr-2 sm:mr-3 flex-shrink-0" />
                         <div>
-                          <div className="font-medium text-white">Referrals</div>
-                          <div className="text-sm text-gray-400">+100 TP per signup, +250 TP per conversion</div>
-                          <div className="text-xs text-gray-500 mt-1">Your code: <span className="font-mono font-bold text-brand-blue">{stats.referralCode}</span></div>
+                          <div className="text-[11px] sm:text-base font-medium text-white">Referrals</div>
+                          <div className="text-[10px] sm:text-sm text-gray-400">+100 TP signup</div>
+                          <div className="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1"><span className="font-mono font-bold text-brand-blue">{stats.referralCode}</span></div>
                         </div>
                       </div>
-                      <div className="flex items-start p-4 bg-white/[0.04] border border-white/[0.06] rounded-xl">
-                        <Star className="w-5 h-5 text-purple-400 mt-1 mr-3 flex-shrink-0" />
+                      <div className="flex items-start p-2.5 sm:p-4 bg-white/[0.04] border border-white/[0.06] rounded-lg sm:rounded-xl">
+                        <Star className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 mt-0.5 sm:mt-1 mr-2 sm:mr-3 flex-shrink-0" />
                         <div>
-                          <div className="font-medium text-white">Platform Activity</div>
-                          <div className="text-sm text-gray-400">Earn points for engagement</div>
-                          <div className="text-xs text-gray-500 mt-1">Work submissions, payouts, feedback</div>
+                          <div className="text-[11px] sm:text-base font-medium text-white">Activity</div>
+                          <div className="text-[10px] sm:text-sm text-gray-400">Earn for engagement</div>
+                          <div className="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 hidden sm:block">Work submissions, payouts, feedback</div>
                         </div>
                       </div>
-                      <div className="flex items-start p-4 bg-white/[0.04] border border-white/[0.06] rounded-xl">
-                        <Trophy className="w-5 h-5 text-amber-400 mt-1 mr-3 flex-shrink-0" />
+                      <div className="flex items-start p-2.5 sm:p-4 bg-white/[0.04] border border-white/[0.06] rounded-lg sm:rounded-xl">
+                        <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 mt-0.5 sm:mt-1 mr-2 sm:mr-3 flex-shrink-0" />
                         <div>
-                          <div className="font-medium text-white">Achievements</div>
-                          <div className="text-sm text-gray-400">Unlock achievements for milestones</div>
-                          <div className="text-xs text-gray-500 mt-1">50-2500 TP per achievement</div>
+                          <div className="text-[11px] sm:text-base font-medium text-white">Achievements</div>
+                          <div className="text-[10px] sm:text-sm text-gray-400">Unlock milestones</div>
+                          <div className="text-[9px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1 hidden sm:block">50-2500 TP per achievement</div>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Social Sharing */}
-                  <div className="mb-6">
+                  <div className="mb-4 sm:mb-6">
                     <SocialShareButtons referralCode={stats.referralCode} />
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
+                    <h3 className="text-sm sm:text-lg font-semibold text-white mb-2 sm:mb-4">Recent Activity</h3>
                     {stats.recentEvents && stats.recentEvents.length > 0 ? (
-                      <div className="space-y-2">
+                      <div className="space-y-1.5 sm:space-y-2">
                         {stats.recentEvents.map((event: any) => (
-                          <div key={event.id} className="flex items-center justify-between p-3 bg-white/[0.04] border border-white/[0.06] rounded-xl">
-                            <div>
-                              <div className="text-sm font-medium text-white">{event.description || event.eventType}</div>
-                              <div className="text-xs text-gray-500">{new Date(event.createdAt).toLocaleDateString()}</div>
+                          <div key={event.id} className="flex items-center justify-between p-2.5 sm:p-3 bg-white/[0.04] border border-white/[0.06] rounded-lg sm:rounded-xl">
+                            <div className="min-w-0 flex-1 mr-2">
+                              <div className="text-[11px] sm:text-sm font-medium text-white truncate">{event.description || event.eventType}</div>
+                              <div className="text-[9px] sm:text-xs text-gray-500">{new Date(event.createdAt).toLocaleDateString()}</div>
                             </div>
-                            <div className={`text-sm font-bold ${event.points >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <div className={`text-[11px] sm:text-sm font-bold flex-shrink-0 ${event.points >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                               {event.points >= 0 ? '+' : ''}{event.points} TP
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        <p>No recent activity. Start earning points today!</p>
+                      <div className="text-center py-6 sm:py-8 text-gray-500">
+                        <p className="text-xs sm:text-base">No recent activity. Start earning points today!</p>
                       </div>
                     )}
                   </div>
@@ -446,39 +453,40 @@ export default function ProducerTourMilesPage() {
               {/* Rewards Tab */}
               {activeTab === 'rewards' && !rewardsLoading && rewards && (
                 <div>
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-white mb-2">Redeem Your Points</h3>
-                    <p className="text-sm text-gray-400">Browse available rewards and redeem with your Tour Points</p>
+                  <div className="mb-3 sm:mb-6">
+                    <h3 className="text-sm sm:text-lg font-semibold text-white mb-1 sm:mb-2">Redeem Your Points</h3>
+                    <p className="text-[11px] sm:text-sm text-gray-400">Browse rewards and redeem with Tour Points</p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
                     {rewards.map((reward: any) => (
-                      <div key={reward.id} className={`rounded-xl p-4 border ${reward.canRedeem ? 'bg-white/[0.04] border-white/[0.08]' : 'bg-white/[0.02] border-white/[0.04] opacity-60'}`}>
-                        <div className="flex items-start justify-between mb-3">
+                      <div key={reward.id} className={`rounded-lg sm:rounded-xl p-3 sm:p-4 border ${reward.canRedeem ? 'bg-white/[0.04] border-white/[0.08]' : 'bg-white/[0.02] border-white/[0.04] opacity-60'}`}>
+                        <div className="flex items-start justify-between mb-2 sm:mb-3">
                           <div>
-                            <h4 className="font-semibold text-white">{reward.name}</h4>
-                            <p className="text-xs text-gray-400 mt-1">{reward.description}</p>
+                            <h4 className="text-[11px] sm:text-base font-semibold text-white">{reward.name}</h4>
+                            <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 line-clamp-2">{reward.description}</p>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between mt-4">
-                          <div className="text-lg font-bold text-brand-blue">{reward.cost.toLocaleString()} TP</div>
+                        <div className="flex items-center justify-between mt-2 sm:mt-4">
+                          <div className="text-sm sm:text-lg font-bold text-brand-blue">{reward.cost.toLocaleString()} TP</div>
                           <button
                             onClick={() => handleRedeemReward(reward)}
                             disabled={!reward.canRedeem || redeemMutation.isPending}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            className={`px-2.5 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-sm font-medium rounded-lg transition-colors ${
                               reward.canRedeem
                                 ? 'bg-brand-blue text-white hover:bg-brand-blue/90'
                                 : 'bg-white/10 text-gray-500 cursor-not-allowed'
                             }`}
                           >
-                            {!reward.canAfford ? 'Insufficient Points' : !reward.tierAllowed ? 'Tier Locked' : !reward.inStock ? 'Out of Stock' : 'Redeem'}
+                            {!reward.canAfford ? <span className="hidden sm:inline">Insufficient Points</span> : !reward.tierAllowed ? <span className="hidden sm:inline">Tier Locked</span> : !reward.inStock ? <span className="hidden sm:inline">Out of Stock</span> : 'Redeem'}
+                            {!reward.canAfford ? <span className="sm:hidden">Low</span> : !reward.tierAllowed ? <span className="sm:hidden">Locked</span> : !reward.inStock ? <span className="sm:hidden">None</span> : null}
                           </button>
                         </div>
 
                         {reward.tierRestriction && (
-                          <div className="mt-2 text-xs text-gray-500">
-                            Requires: <span className="font-semibold" style={{ color: TIER_COLORS[reward.tierRestriction as keyof typeof TIER_COLORS] }}>{reward.tierRestriction}</span> tier
+                          <div className="mt-1.5 sm:mt-2 text-[9px] sm:text-xs text-gray-500">
+                            Requires: <span className="font-semibold" style={{ color: TIER_COLORS[reward.tierRestriction as keyof typeof TIER_COLORS] }}>{reward.tierRestriction}</span>
                           </div>
                         )}
                       </div>
@@ -503,27 +511,27 @@ export default function ProducerTourMilesPage() {
 
       {/* Redemption Confirmation Modal */}
       {showRedemptionModal && selectedReward && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-elevated border border-white/[0.08] rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <h3 className="text-xl font-bold text-white mb-4">Confirm Redemption</h3>
-            <p className="text-gray-400 mb-6">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-surface-elevated border border-white/[0.08] rounded-xl sm:rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl">
+            <h3 className="text-base sm:text-xl font-bold text-white mb-3 sm:mb-4">Confirm Redemption</h3>
+            <p className="text-xs sm:text-base text-gray-400 mb-4 sm:mb-6">
               Are you sure you want to redeem <span className="font-semibold text-white">{selectedReward.name}</span> for{' '}
               <span className="font-bold text-brand-blue">{selectedReward.cost.toLocaleString()} TP</span>?
             </p>
-            <div className="flex space-x-3">
+            <div className="flex space-x-2 sm:space-x-3">
               <button
                 onClick={() => {
                   setShowRedemptionModal(false);
                   setSelectedReward(null);
                 }}
-                className="flex-1 px-4 py-2 border border-white/[0.15] text-gray-300 font-medium rounded-lg hover:bg-white/[0.05] transition-colors"
+                className="flex-1 px-3 py-2 sm:px-4 sm:py-2 border border-white/[0.15] text-gray-300 text-xs sm:text-base font-medium rounded-lg hover:bg-white/[0.05] transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmRedemption}
                 disabled={redeemMutation.isPending}
-                className="flex-1 px-4 py-2 bg-brand-blue text-white font-medium rounded-lg hover:bg-brand-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 px-3 py-2 sm:px-4 sm:py-2 bg-brand-blue text-white text-xs sm:text-base font-medium rounded-lg hover:bg-brand-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {redeemMutation.isPending ? 'Redeeming...' : 'Confirm'}
               </button>

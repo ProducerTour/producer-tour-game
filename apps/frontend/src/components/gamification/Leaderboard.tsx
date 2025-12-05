@@ -78,13 +78,13 @@ export default function Leaderboard() {
     if (index < 3) {
       const colors = ['bg-gradient-to-r from-yellow-400 to-yellow-600', 'bg-gradient-to-r from-gray-300 to-gray-500', 'bg-gradient-to-r from-amber-500 to-amber-700'];
       return (
-        <div className={`${colors[index]} text-white font-bold rounded-full w-10 h-10 flex items-center justify-center shadow-lg`}>
+        <div className={`${colors[index]} text-white font-bold rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center shadow-lg text-sm sm:text-base`}>
           {index + 1}
         </div>
       );
     }
     return (
-      <div className="bg-slate-700 text-slate-300 font-semibold rounded-full w-10 h-10 flex items-center justify-center">
+      <div className="bg-slate-700 text-slate-300 font-semibold rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-sm sm:text-base">
         {index + 1}
       </div>
     );
@@ -110,51 +110,51 @@ export default function Leaderboard() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 sm:mb-6">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div>
-            <h3 className="text-xl font-bold text-white mb-1">Leaderboard</h3>
-            <p className="text-sm text-slate-400">See how you rank against other producers</p>
+            <h3 className="text-base sm:text-xl font-bold text-white mb-0.5 sm:mb-1">Leaderboard</h3>
+            <p className="text-xs sm:text-sm text-slate-400">See how you rank</p>
           </div>
-          <Trophy className="w-8 h-8 text-yellow-400" />
+          <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400" />
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3">
+        {/* Filters - horizontally scrollable on mobile */}
+        <div className="flex gap-1.5 sm:gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-2 px-2 sm:mx-0 sm:px-0 sm:flex-wrap">
           <button
             onClick={() => setSelectedTier(null)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
               selectedTier === null
                 ? 'bg-blue-500 text-white'
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
           >
-            All Tiers
+            All
           </button>
           {tiers.map((tier) => (
             <button
               key={tier}
               onClick={() => setSelectedTier(tier)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+              className={`px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap flex-shrink-0 ${
                 selectedTier === tier
                   ? 'bg-blue-500 text-white'
                   : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
             >
               <span>{TIER_EMOJIS[tier as keyof typeof TIER_EMOJIS]}</span>
-              <span>{tier}</span>
+              <span className="hidden sm:inline">{tier}</span>
             </button>
           ))}
         </div>
 
         {/* Limit Selector */}
-        <div className="mt-3 flex gap-2">
-          <span className="text-sm text-slate-400">Show:</span>
+        <div className="mt-2 sm:mt-3 flex gap-1.5 sm:gap-2 items-center">
+          <span className="text-xs sm:text-sm text-slate-400">Show:</span>
           {[10, 25, 50, 100].map((n) => (
             <button
               key={n}
               onClick={() => setLimit(n)}
-              className={`px-3 py-1 rounded text-sm ${
+              className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded text-[11px] sm:text-sm ${
                 limit === n
                   ? 'bg-blue-500 text-white'
                   : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -168,14 +168,14 @@ export default function Leaderboard() {
 
       {/* Leaderboard Table */}
       {leaderboard && leaderboard.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {leaderboard.map((entry, index) => (
             <div
               key={entry.id}
               className={`
-                rounded-xl p-4 transition-all
+                rounded-lg sm:rounded-xl p-2.5 sm:p-4 transition-all
                 ${index < 3
-                  ? 'bg-gradient-to-r from-slate-800/50 to-slate-900/50 border-2'
+                  ? 'bg-gradient-to-r from-slate-800/50 to-slate-900/50 border sm:border-2'
                   : 'bg-slate-800/30 border border-slate-700'
                 }
                 ${index === 0 ? 'border-yellow-500/50 shadow-lg shadow-yellow-500/20' : ''}

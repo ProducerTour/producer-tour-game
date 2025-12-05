@@ -83,14 +83,17 @@ Context:
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button - Mobile: smaller & above bottom tab bar, Desktop: normal */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-24 z-40 flex items-center gap-2 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-full shadow-lg transition-all hover:scale-105 group ${className}`}
+        className={`fixed z-40 flex items-center gap-1 sm:gap-2
+          bottom-20 right-3 px-2.5 py-2 md:bottom-6 md:right-24 md:px-4 md:py-3
+          bg-zinc-800/90 hover:bg-zinc-700 border border-zinc-700 rounded-full shadow-lg
+          transition-all hover:scale-105 group ${className}`}
         title="Report a Bug"
       >
-        <Bug size={20} className="text-orange-400" />
-        <span className="text-sm font-medium text-zinc-300 hidden sm:inline group-hover:text-white">
+        <Bug size={16} className="text-orange-400 md:w-5 md:h-5" />
+        <span className="text-xs md:text-sm font-medium text-zinc-300 hidden md:inline group-hover:text-white">
           Report Bug
         </span>
       </button>
