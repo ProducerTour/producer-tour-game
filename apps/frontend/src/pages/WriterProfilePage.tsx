@@ -215,13 +215,36 @@ export default function WriterProfilePage() {
                 {/* User Details */}
                 <div className="space-y-4">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-3 mb-1">
                       <h2 className="text-3xl font-bold text-gray-900">{fullName}</h2>
                       {profile.role === 'ADMIN' && (
                         <span title="Verified Admin">
                           <BadgeCheck className="w-7 h-7 text-amber-500 fill-amber-100" />
                         </span>
                       )}
+                      <span className="text-gray-400">·</span>
+                      <div className="flex items-center gap-3 text-sm">
+                        <button
+                          onClick={() => {
+                            setFollowersModalTab('followers');
+                            setIsFollowersModalOpen(true);
+                          }}
+                          className="hover:underline cursor-pointer"
+                        >
+                          <span className="font-semibold text-gray-900">{profile.stats?.followers?.toLocaleString() || 0}</span>
+                          <span className="text-gray-500 ml-1">Followers</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setFollowersModalTab('following');
+                            setIsFollowersModalOpen(true);
+                          }}
+                          className="hover:underline cursor-pointer"
+                        >
+                          <span className="font-semibold text-gray-900">{profile.stats?.following?.toLocaleString() || 0}</span>
+                          <span className="text-gray-500 ml-1">Following</span>
+                        </button>
+                      </div>
                     </div>
                     <p className="text-gray-500">@{profile.profileSlug || 'user'}</p>
                   </div>
@@ -367,39 +390,6 @@ export default function WriterProfilePage() {
                     </div>
                   )}
 
-                  {/* Stats */}
-                  <div className="flex gap-8 pt-6 border-t border-gray-100">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-gray-900 mb-1">
-                        {profile.stats?.placementCount || 0}
-                      </div>
-                      <div className="text-gray-500 text-sm">Placements</div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setFollowersModalTab('followers');
-                        setIsFollowersModalOpen(true);
-                      }}
-                      className="text-center cursor-pointer hover:opacity-80 transition-opacity"
-                    >
-                      <div className="text-3xl font-bold text-gray-900 mb-1">
-                        {profile.stats?.followers?.toLocaleString() || 0}
-                      </div>
-                      <div className="text-gray-500 text-sm">Followers</div>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setFollowersModalTab('following');
-                        setIsFollowersModalOpen(true);
-                      }}
-                      className="text-center cursor-pointer hover:opacity-80 transition-opacity"
-                    >
-                      <div className="text-3xl font-bold text-gray-900 mb-1">
-                        {profile.stats?.following?.toLocaleString() || 0}
-                      </div>
-                      <div className="text-gray-500 text-sm">Following</div>
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
