@@ -56,24 +56,6 @@ const getActivityIcon = (activityType: string) => {
   }
 };
 
-const getActivityColor = (activityType: string) => {
-  switch (activityType) {
-    case 'PLACEMENT':
-      return 'border-green-500/20 bg-green-500/5';
-    case 'ACHIEVEMENT':
-      return 'border-yellow-500/20 bg-yellow-500/5';
-    case 'MARKETPLACE_LISTING':
-      return 'border-purple-500/20 bg-purple-500/5';
-    case 'TOUR_MILES_EARNED':
-      return 'border-blue-500/20 bg-blue-500/5';
-    case 'TIER_UP':
-      return 'border-orange-500/20 bg-orange-500/5';
-    case 'REFERRAL_JOINED':
-      return 'border-pink-500/20 bg-pink-500/5';
-    default:
-      return 'border-white/10 bg-slate-800/30';
-  }
-};
 
 export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
   const [liked, setLiked] = useState(false);

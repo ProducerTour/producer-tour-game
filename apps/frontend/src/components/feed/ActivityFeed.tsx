@@ -52,8 +52,6 @@ interface ActivityFeedProps {
 export function ActivityFeed({ userId }: ActivityFeedProps) {
   const {
     data,
-    fetchNextPage,
-    hasNextPage,
     isFetchingNextPage,
     isLoading,
     error,

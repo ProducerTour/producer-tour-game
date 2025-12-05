@@ -2194,6 +2194,10 @@ enum ActivityFeedType {
   TOUR_MILES_EARNED     // Significant Tour Miles milestone
   TIER_UP               // User leveled up to new tier
   REFERRAL_JOINED       // Someone joined via referral
+  ANNOUNCEMENT          // Admin announcements
+  UPDATE                // Platform updates
+  TIP                   // Helpful tips
+  NEWS                  // Industry news
 }
 
 // Personal marketplace listings (separate from main Producer Tour shop)
