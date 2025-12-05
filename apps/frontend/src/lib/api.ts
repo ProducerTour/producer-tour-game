@@ -858,6 +858,10 @@ export const feedApi = {
     offset?: number;
   }) => api.get(`/feed/user/${userId}`, { params }),
 
+  // Get a single post by ID (for shared links)
+  getSinglePost: (postId: string) =>
+    api.get(`/feed/single/${postId}`),
+
   // Upload an image for a post
   uploadPostImage: (file: File) => {
     const formData = new FormData();

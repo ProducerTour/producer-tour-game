@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { Mail, Lock, ArrowRight, Loader2, User } from 'lucide-react';
 import { authApi } from '../lib/api';
@@ -86,7 +86,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setAuth } = useAuthStore();
+
+  // Get return URL from query params (for redirecting after login)
+  const returnUrl = searchParams.get('returnUrl');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,7 +127,9 @@ export default function LoginPage() {
 
       // Wait for Zustand persist to complete before navigating
       setTimeout(() => {
-        navigate('/dashboard');
+        // Redirect to return URL if provided, otherwise dashboard
+        const redirectTo = returnUrl ? decodeURIComponent(returnUrl) : '/dashboard';
+        navigate(redirectTo);
       }, 100);
     } catch (err: any) {
       const errorMsg = err.response?.data?.error;

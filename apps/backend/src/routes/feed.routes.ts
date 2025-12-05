@@ -822,4 +822,145 @@ router.get('/admin-posts', authenticate, async (req: AuthRequest, res: Response)
   }
 });
 
+// GET /api/feed/single/:id - Get a single post by ID (for shared links)
+router.get('/single/:id', async (req, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const post = await prisma.activityFeedItem.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            profilePhotoUrl: true,
+            profileSlug: true,
+            gamificationPoints: {
+              select: {
+                tier: true,
+              },
+            },
+          },
+        },
+        listing: {
+          select: {
+            id: true,
+            title: true,
+            coverImageUrl: true,
+            price: true,
+            slug: true,
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    // Check if post is public
+    if (!post.isPublic) {
+      return res.status(403).json({ error: 'This post is private' });
+    }
+
+    res.json(post);
+  } catch (error) {
+    console.error('Get single post error:', error);
+    res.status(500).json({ error: 'Failed to fetch post' });
+  }
+});
+
+// GET /api/feed/og/:id - Serve HTML with OG meta tags for social sharing
+router.get('/og/:id', async (req, res: Response) => {
+  try {
+    const { id } = req.params;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://producertour.com';
+
+    // Fetch the post
+    const post = await prisma.activityFeedItem.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            profilePhotoUrl: true,
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      // Redirect to frontend if post not found
+      return res.redirect(`${frontendUrl}/my-profile`);
+    }
+
+    const userName = post.user.firstName && post.user.lastName
+      ? `${post.user.firstName} ${post.user.lastName}`
+      : 'Producer';
+
+    const title = post.title || 'Post on Producer Tour';
+    const description = post.description?.substring(0, 200) || `${userName} shared a post on Producer Tour`;
+    const postUrl = `${frontendUrl}/post/${id}`;
+
+    // Use post image if available, otherwise use a default or user's profile photo
+    let ogImage = post.imageUrl;
+    if (!ogImage || ogImage.startsWith('data:')) {
+      // For base64 images or no image, use a default OG image
+      ogImage = `${frontendUrl}/og-default.png`;
+    }
+
+    // Serve HTML with OG meta tags
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${escapeHtml(title)} - Producer Tour</title>
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="${postUrl}">
+  <meta property="og:title" content="${escapeHtml(title)}">
+  <meta property="og:description" content="${escapeHtml(description)}">
+  <meta property="og:image" content="${ogImage}">
+  <meta property="og:site_name" content="Producer Tour">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="${postUrl}">
+  <meta name="twitter:title" content="${escapeHtml(title)}">
+  <meta name="twitter:description" content="${escapeHtml(description)}">
+  <meta name="twitter:image" content="${ogImage}">
+
+  <!-- Redirect to the actual post page -->
+  <meta http-equiv="refresh" content="0;url=${postUrl}">
+  <link rel="canonical" href="${postUrl}">
+</head>
+<body>
+  <p>Redirecting to <a href="${postUrl}">Producer Tour</a>...</p>
+  <script>window.location.href = "${postUrl}";</script>
+</body>
+</html>`;
+
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  } catch (error) {
+    console.error('OG meta error:', error);
+    const frontendUrl = process.env.FRONTEND_URL || 'https://producertour.com';
+    res.redirect(`${frontendUrl}/my-profile`);
+  }
+});
+
+// Helper function to escape HTML
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export default router;

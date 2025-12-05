@@ -41,6 +41,7 @@ import AffiliatesDashboard from './pages/AffiliatesDashboard';
 import AffiliateManagement from './pages/AffiliateManagement';
 import MyStorePage from './pages/MyStorePage';
 import InsightsPage from './pages/InsightsPage';
+import SinglePostPage from './pages/SinglePostPage';
 import CustomerSupportPage from './pages/CustomerSupportPage';
 import ShopPage from './pages/ShopPage';
 import ProductPage from './pages/ProductPage';
@@ -292,6 +293,9 @@ function App() {
             </PrivateRoute>
           }
         />
+
+        {/* Single Post View (for shared links) */}
+        <Route path="/post/:id" element={<SinglePostPage />} />
 
         {/* Public User Profile (by slug or ID) */}
         <Route path="/user/:slug" element={<WriterProfilePage />} />
