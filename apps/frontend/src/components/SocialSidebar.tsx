@@ -1,6 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth.store';
-import { useQuery } from '@tanstack/react-query';
 import {
   LogOut,
   Settings,
@@ -9,8 +8,6 @@ import {
   User,
   TrendingUp,
 } from 'lucide-react';
-import { gamificationApi } from '../lib/api';
-import { AnimatedBorder, parseBorderConfig } from './AnimatedBorder';
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 import blackLogo from '@/assets/images/logos/blacktransparentpt.png';
 import { useThemeOptional } from '@/contexts/ThemeContext';
@@ -24,16 +21,6 @@ export default function SocialSidebar({ activePage }: SocialSidebarProps) {
   const navigate = useNavigate();
   const themeContext = useThemeOptional();
   const isLightTheme = themeContext?.themeId === 'light';
-
-  // Fetch user's equipped customizations (border)
-  const { data: customizations } = useQuery({
-    queryKey: ['customizations'],
-    queryFn: async () => {
-      const response = await gamificationApi.getCustomizations();
-      return response.data;
-    },
-    staleTime: 1000 * 60 * 5,
-  });
 
   const dashboardPath = user?.role === 'ADMIN' ? '/admin' : user?.role === 'CUSTOMER' ? '/customer' : '/dashboard';
 
@@ -68,11 +55,7 @@ export default function SocialSidebar({ activePage }: SocialSidebarProps) {
           className="relative cursor-pointer hover:opacity-90 transition-opacity"
           title="View your public profile"
         >
-          <AnimatedBorder
-            border={customizations?.border ? parseBorderConfig(customizations.border) : null}
-            size="sm"
-            showBorder={!!customizations?.border}
-          >
+          <div className="w-10 h-10 rounded-full overflow-hidden">
             {(user as any)?.profilePhotoUrl ? (
               <img
                 src={(user as any).profilePhotoUrl}
@@ -88,7 +71,7 @@ export default function SocialSidebar({ activePage }: SocialSidebarProps) {
                 {user?.firstName?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
               </div>
             )}
-          </AnimatedBorder>
+          </div>
         </div>
       </div>
 

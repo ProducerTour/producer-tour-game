@@ -6,7 +6,6 @@ import { getNavigationForRole, type NavSection, type NavItem } from '../config/n
 import { SaasIcon, IconName } from './ui/SaasIcon';
 import { LogOut, Settings, ChevronDown, ChevronLeft, ChevronRight, Menu, X, UserCircle } from 'lucide-react';
 import { getAuthToken, gamificationApi } from '../lib/api';
-import { AnimatedBorder, parseBorderConfig } from './AnimatedBorder';
 import { ProfileBadge, parseBadgeConfig } from './ProfileBadge';
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 import blackLogo from '@/assets/images/logos/blacktransparentpt.png';
@@ -212,7 +211,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       {/* User Profile Section */}
       <div className={`${isCollapsed ? 'px-3 py-4' : 'px-6 py-4'} border-b border-theme-border bg-theme-card/50`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
-          {/* Profile Photo with Animated Border - Clickable to navigate to profile */}
+          {/* Profile Photo - Clickable to navigate to profile */}
           <div
             onClick={() => {
               if (user?.profileSlug) {
@@ -224,11 +223,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
             className="relative flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity group"
             title={user?.profileSlug ? "Go to your profile hub" : "Set up your profile"}
           >
-            <AnimatedBorder
-              border={customizations?.border ? parseBorderConfig(customizations.border) : null}
-              size="sm"
-              showBorder={!!customizations?.border}
-            >
+            <div className="w-10 h-10 rounded-full overflow-hidden">
               {(user as any)?.profilePhotoUrl ? (
                 <img
                   src={(user as any).profilePhotoUrl}
@@ -244,7 +239,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                   {user?.firstName?.charAt(0) || user?.email?.charAt(0).toUpperCase()}
                 </div>
               )}
-            </AnimatedBorder>
+            </div>
             {/* Equipped Badge */}
             {customizations?.badge && !isCollapsed && (
               <div className="absolute -bottom-1 -right-1">

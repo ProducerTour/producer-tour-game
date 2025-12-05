@@ -141,7 +141,7 @@ export function AnimatedBorder({
   // No border - just render children
   if (!showBorder || !border) {
     return (
-      <div className={`relative ${sizeConfig.outer} ${className}`}>
+      <div className={`relative ${sizeConfig.outer} rounded-full ${className}`}>
         <div className={`${sizeConfig.inner} rounded-full overflow-hidden`}>
           {children}
         </div>
@@ -155,7 +155,7 @@ export function AnimatedBorder({
   };
 
   return (
-    <div className={`relative ${sizeConfig.outer} ${className}`}>
+    <div className={`relative ${sizeConfig.outer} rounded-full ${className}`}>
       {/* Animated spinning border */}
       <motion.div
         className="absolute inset-0 rounded-full"
@@ -199,7 +199,7 @@ export function AnimatedBorder({
 
       {/* Inner content container */}
       <div
-        className={`absolute rounded-full overflow-hidden bg-surface`}
+        className="absolute rounded-full overflow-hidden"
         style={{
           top: sizeConfig.borderWidth,
           left: sizeConfig.borderWidth,
