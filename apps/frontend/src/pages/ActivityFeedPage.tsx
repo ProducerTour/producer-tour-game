@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { EditProfileModal } from '../components/profile/EditProfileModal';
 import { FindCollaboratorsPane } from '../components/profile/FindCollaboratorsPane';
 import { TourMilesWidget } from '../components/profile/TourMilesWidget';
@@ -28,6 +29,7 @@ import {
   X,
   Headphones,
   ExternalLink,
+  Smile,
 } from 'lucide-react';
 import { FaSpotify, FaSoundcloud, FaTiktok, FaApple } from 'react-icons/fa';
 import { useAuthStore } from '../store/auth.store';
@@ -50,12 +52,14 @@ export default function ActivityFeedPage() {
   const [followersModalTab, setFollowersModalTab] = useState<'followers' | 'following'>('followers');
   const [isBannerCropperOpen, setIsBannerCropperOpen] = useState(false);
   const [tempBannerUrl, setTempBannerUrl] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Refs for file inputs
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const postImageInputRef = useRef<HTMLInputElement>(null);
   const postAudioInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Fetch user's full profile data
   const { data: profile, isLoading } = useQuery({
@@ -249,6 +253,26 @@ export default function ActivityFeedPage() {
     if (postAudioInputRef.current) {
       postAudioInputRef.current.value = '';
     }
+  };
+
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = postContent;
+    const before = text.substring(0, start);
+    const after = text.substring(end);
+
+    setPostContent(before + emojiData.emoji + after);
+
+    // Set cursor position after emoji
+    setTimeout(() => {
+      textarea.focus();
+      const newPosition = start + emojiData.emoji.length;
+      textarea.setSelectionRange(newPosition, newPosition);
+    }, 0);
   };
 
   if (!user) {
@@ -642,8 +666,9 @@ export default function ActivityFeedPage() {
                   )}
                 </div>
 
-                <div className="flex-1">
+                <div className="flex-1 relative">
                   <textarea
+                    ref={textareaRef}
                     value={postContent}
                     onChange={(e) => setPostContent(e.target.value)}
                     placeholder="What's on your mind? Share your beats, samples, or updates..."
@@ -685,7 +710,7 @@ export default function ActivityFeedPage() {
                   )}
 
                   <div className="flex items-center justify-between mt-3">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 relative">
                       {/* Add Image Button */}
                       <button
                         onClick={() => postImageInputRef.current?.click()}
@@ -713,6 +738,32 @@ export default function ActivityFeedPage() {
                         <Headphones className="w-5 h-5" />
                         <span className="text-sm font-medium">Audio</span>
                       </button>
+
+                      {/* Emoji Button */}
+                      <button
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                          showEmojiPicker
+                            ? 'bg-purple-100 text-purple-600'
+                            : 'hover:bg-gray-100 text-gray-600'
+                        }`}
+                        title="Add Emoji"
+                      >
+                        <Smile className="w-5 h-5" />
+                        <span className="text-sm font-medium">Emoji</span>
+                      </button>
+
+                      {/* Emoji Picker Popup */}
+                      {showEmojiPicker && (
+                        <div className="absolute bottom-full left-0 mb-2 z-50">
+                          <EmojiPicker
+                            onEmojiClick={handleEmojiClick}
+                            autoFocusSearch={false}
+                            height={400}
+                            width={350}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     <button

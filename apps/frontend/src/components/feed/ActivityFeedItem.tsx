@@ -370,12 +370,16 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
         ) : (
           /* Post Content */
           <div className="mt-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="p-1.5 bg-gray-100 rounded-lg">
-                {getActivityIcon(item.activityType)}
+            {/* Show title with icon only for non-POST activities (achievements, listings, etc) */}
+            {item.activityType !== 'POST' && (
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 bg-gray-100 rounded-lg">
+                  {getActivityIcon(item.activityType)}
+                </div>
+                <span className="font-medium text-gray-900">{item.title}</span>
               </div>
-              <span className="font-medium text-gray-900">{item.title}</span>
-            </div>
+            )}
+            {/* For POST type, just show description. For others, show if different from title */}
             {item.description && (
               <p className="text-gray-800 leading-relaxed whitespace-pre-line">{item.description}</p>
             )}
