@@ -1,7 +1,12 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
+import { UploadedFile } from 'express-fileupload';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+
+// Image upload constants
+const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const POST_IMAGE_MAX_SIZE = 5 * 1024 * 1024; // 5MB for post images
 
 const router = Router();
 
@@ -9,12 +14,67 @@ const router = Router();
 const createPostSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
-  imageUrl: z.string().url().optional().nullable(),
+  // Allow both regular URLs and base64 data URLs
+  imageUrl: z.string().refine(
+    (val) => val.startsWith('data:image/') || val.startsWith('http://') || val.startsWith('https://'),
+    { message: 'Must be a valid URL or data URL' }
+  ).optional().nullable(),
   isPublic: z.boolean().optional().default(true),
 });
 
 const createCommentSchema = z.object({
   content: z.string().min(1).max(1000),
+});
+
+// POST /api/feed/upload-image - Upload an image for a post
+router.post('/upload-image', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    // Check if files were uploaded
+    if (!req.files || !req.files.image) {
+      return res.status(400).json({
+        error: 'No file selected',
+        message: 'Please select an image file to upload.'
+      });
+    }
+
+    const image = req.files.image as UploadedFile;
+    const userId = req.user!.id;
+
+    console.log(`Post image upload: User ${userId}, file size: ${image.size} bytes, mimetype: ${image.mimetype}`);
+
+    // Validate file type
+    if (!ALLOWED_MIMES.includes(image.mimetype)) {
+      return res.status(400).json({
+        error: 'Invalid file type',
+        message: 'Only JPEG, PNG, GIF, and WebP images are allowed.'
+      });
+    }
+
+    // Validate file size
+    if (image.size > POST_IMAGE_MAX_SIZE) {
+      const sizeMB = (image.size / (1024 * 1024)).toFixed(1);
+      return res.status(400).json({
+        error: 'File too large',
+        message: `File is ${sizeMB}MB. Maximum size is 5MB. Please compress your image.`
+      });
+    }
+
+    // Convert file buffer to base64 data URL
+    const base64 = image.data.toString('base64');
+    const imageUrl = `data:${image.mimetype};base64,${base64}`;
+
+    console.log(`Post image upload: Success, base64 length: ${imageUrl.length} chars`);
+    res.json({
+      success: true,
+      imageUrl
+    });
+  } catch (error: any) {
+    console.error('Post image upload error:', error);
+    res.status(500).json({
+      error: 'Upload failed',
+      message: 'Failed to upload the image. Please try again.'
+    });
+  }
 });
 
 // POST /api/feed - Create a new post

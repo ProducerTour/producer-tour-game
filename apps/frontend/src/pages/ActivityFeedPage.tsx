@@ -29,6 +29,7 @@ import {
   Store,
   Settings,
   BadgeCheck,
+  X,
 } from 'lucide-react';
 import { FaSpotify, FaSoundcloud, FaTiktok, FaApple } from 'react-icons/fa';
 import { useAuthStore } from '../store/auth.store';
@@ -45,10 +46,13 @@ export default function ActivityFeedPage() {
   const [postContent, setPostContent] = useState('');
   const [selectedContentType, setSelectedContentType] = useState<ContentType | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [postImageFile, setPostImageFile] = useState<File | null>(null);
+  const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
 
   // Refs for file inputs
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const postImageInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch user's full profile data
   const { data: profile, isLoading } = useQuery({
@@ -120,9 +124,23 @@ export default function ActivityFeedPage() {
       queryClient.invalidateQueries({ queryKey: ['activity-feed'] });
       setPostContent('');
       setSelectedContentType(null);
+      // Clear image state
+      setPostImageFile(null);
+      setPostImagePreview(null);
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to create post');
+    },
+  });
+
+  // Upload post image mutation
+  const uploadPostImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const response = await feedApi.uploadPostImage(file);
+      return response.data;
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to upload image');
     },
   });
 
@@ -140,6 +158,33 @@ export default function ActivityFeedPage() {
     }
   };
 
+  const handlePostImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image must be less than 5MB');
+        return;
+      }
+      setPostImageFile(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setPostImagePreview(previewUrl);
+    }
+  };
+
+  const clearPostImage = () => {
+    setPostImageFile(null);
+    if (postImagePreview) {
+      URL.revokeObjectURL(postImagePreview);
+    }
+    setPostImagePreview(null);
+    // Reset file input
+    if (postImageInputRef.current) {
+      postImageInputRef.current.value = '';
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
@@ -153,7 +198,7 @@ export default function ActivityFeedPage() {
       ? `${profile.firstName} ${profile.lastName}`
       : profile?.firstName || profile?.lastName || 'User';
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!postContent.trim()) {
       toast.error('Please enter some content for your post');
       return;
@@ -166,9 +211,23 @@ export default function ActivityFeedPage() {
       ? postContent.substring(0, 50) + '...'
       : postContent;
 
+    let imageUrl: string | null = null;
+
+    // Upload image first if selected
+    if (postImageFile) {
+      try {
+        const result = await uploadPostImageMutation.mutateAsync(postImageFile);
+        imageUrl = result.imageUrl;
+      } catch {
+        // Error already handled by mutation
+        return;
+      }
+    }
+
     createPostMutation.mutate({
       title,
       description: postContent,
+      imageUrl,
     });
   };
 
@@ -472,6 +531,15 @@ export default function ActivityFeedPage() {
 
             {/* Create Post Section */}
             <div className="bg-white rounded-2xl shadow-sm p-6 mb-4">
+              {/* Hidden file input for post image */}
+              <input
+                ref={postImageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                onChange={handlePostImageChange}
+                className="hidden"
+              />
+
               <div className="flex gap-4">
                 <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
                   {profile?.profilePhotoUrl ? (
@@ -496,8 +564,39 @@ export default function ActivityFeedPage() {
                     rows={3}
                   />
 
+                  {/* Image Preview */}
+                  {postImagePreview && (
+                    <div className="relative mt-3 inline-block">
+                      <img
+                        src={postImagePreview}
+                        alt="Post preview"
+                        className="max-h-48 rounded-xl object-cover"
+                      />
+                      <button
+                        onClick={clearPostImage}
+                        className="absolute top-2 right-2 p-1 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors"
+                        title="Remove image"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex gap-2">
+                      {/* Add Image Button */}
+                      <button
+                        onClick={() => postImageInputRef.current?.click()}
+                        className={`p-2 rounded-lg transition-colors ${
+                          postImagePreview
+                            ? 'bg-purple-100 text-purple-600'
+                            : 'hover:bg-gray-100 text-gray-600'
+                        }`}
+                        title="Add Image"
+                      >
+                        <ImageIcon className="w-5 h-5" />
+                      </button>
+
                       {contentTypes.map(({ type, label, icon: Icon }) => (
                         <button
                           key={type}
@@ -518,15 +617,19 @@ export default function ActivityFeedPage() {
 
                     <button
                       onClick={handlePost}
-                      disabled={!postContent.trim()}
+                      disabled={!postContent.trim() || createPostMutation.isPending || uploadPostImageMutation.isPending}
                       className={`flex items-center gap-2 px-5 py-2 rounded-xl transition-all ${
-                        postContent.trim()
+                        postContent.trim() && !createPostMutation.isPending && !uploadPostImageMutation.isPending
                           ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg hover:scale-105'
                           : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       }`}
                     >
-                      <ExternalLink className="w-4 h-4" />
-                      Post
+                      {(createPostMutation.isPending || uploadPostImageMutation.isPending) ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ExternalLink className="w-4 h-4" />
+                      )}
+                      {uploadPostImageMutation.isPending ? 'Uploading...' : createPostMutation.isPending ? 'Posting...' : 'Post'}
                     </button>
                   </div>
                 </div>

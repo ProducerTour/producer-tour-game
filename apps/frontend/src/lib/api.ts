@@ -858,6 +858,15 @@ export const feedApi = {
     offset?: number;
   }) => api.get(`/feed/user/${userId}`, { params }),
 
+  // Upload an image for a post
+  uploadPostImage: (file: File) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.post('/feed/upload-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
   // Create a new post
   createPost: (data: {
     title: string;
