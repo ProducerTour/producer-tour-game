@@ -34,6 +34,7 @@ import { ArrowRight, Check, Play, ChevronDown, ArrowUpRight, Plus, Pause, Music2
 import { useCartStore } from '../../../store/cart.store';
 import { faqData, processSteps } from '../../landing/data';
 import ptLogo from '../../../assets/images/logos/whitetransparentpt.png';
+import { InstallAppButton } from '../../mobile/InstallAppButton';
 
 // ============================================
 // ANIMATION CONSTANTS - "Beat" timing
@@ -2224,6 +2225,9 @@ export function PublisherCassetteLandingPage() {
       <NoiseOverlay />
       <Spotlight />
       <CustomCursor />
+
+      {/* Mobile App Install Banner */}
+      <InstallAppButton variant="banner" forceShow />
 
       {/* Content */}
       <HeroSection />

@@ -101,7 +101,7 @@ export default function CustomerDashboard() {
       <ImpersonationBanner />
 
       {/* Mobile App Install Banner - shows on mobile browsers */}
-      <InstallAppButton variant="banner" />
+      <InstallAppButton variant="banner" forceShow />
 
       <div className="flex flex-1 overflow-hidden relative">
         {/* Left Sidebar */}
