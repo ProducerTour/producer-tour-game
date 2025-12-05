@@ -753,64 +753,6 @@ router.get('/admin-posts', authenticate, async (req: AuthRequest, res: Response)
       take: limit
     });
 
-    // If no admin posts yet, return mock data
-    if (adminPosts.length === 0) {
-      const mockPosts = [
-        {
-          id: 'admin-welcome',
-          userId: 'system',
-          activityType: 'ANNOUNCEMENT',
-          title: 'Welcome to Producer Tour!',
-          description: 'Connect with fellow producers, share your work, and grow your network in our community.',
-          imageUrl: null,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-          user: {
-            id: 'system',
-            firstName: 'Producer',
-            lastName: 'Tour',
-            profilePhotoUrl: null,
-            profileSlug: 'producer-tour'
-          }
-        },
-        {
-          id: 'admin-marketplace',
-          userId: 'system',
-          activityType: 'UPDATE',
-          title: 'Social Marketplace Now Live',
-          description: 'List and sell your beats, samples, and presets directly to the community. Start earning today!',
-          imageUrl: null,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-          user: {
-            id: 'system',
-            firstName: 'Producer',
-            lastName: 'Tour',
-            profilePhotoUrl: null,
-            profileSlug: 'producer-tour'
-          }
-        },
-        {
-          id: 'admin-tip',
-          userId: 'system',
-          activityType: 'TIP',
-          title: 'Pro Tip: Complete Your Profile',
-          description: 'Profiles with photos and bio get 3x more engagement. Head to settings to update yours!',
-          imageUrl: null,
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
-          user: {
-            id: 'system',
-            firstName: 'Producer',
-            lastName: 'Tour',
-            profilePhotoUrl: null,
-            profileSlug: 'producer-tour'
-          }
-        }
-      ];
-
-      return res.json({
-        items: mockPosts.slice(0, limit)
-      });
-    }
-
     res.json({
       items: adminPosts
     });
