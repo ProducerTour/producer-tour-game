@@ -565,6 +565,7 @@ export default function ActivityFeedPage() {
         profile={profile}
         onSave={() => {
           queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+          queryClient.invalidateQueries({ queryKey: ['user-profile'] }); // Sync with Settings page
         }}
       />
     </div>
