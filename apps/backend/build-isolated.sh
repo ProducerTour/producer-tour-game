@@ -14,6 +14,9 @@ echo "Installing dependencies (workspace-free)..."
 rm -rf node_modules package-lock.json
 npm install --no-save --legacy-peer-deps
 
+echo "Running database migrations..."
+npx prisma migrate deploy
+
 echo "Building with esbuild..."
 npm run build
 
