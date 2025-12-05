@@ -10,7 +10,7 @@ import LevelUpModal from '../components/gamification/LevelUpModal';
 import AchievementUnlockModal from '../components/gamification/AchievementUnlockModal';
 import PointsToast from '../components/gamification/PointsToast';
 import { CustomizationGallery } from '../components/CustomizationGallery';
-import { Trophy, Gift, Users, Calendar, Zap, Sparkles, Target, Palette } from 'lucide-react';
+import { Trophy, Gift, Users, Calendar, Zap, Sparkles, Target } from 'lucide-react';
 import { rewardRedeemedToast, errorToast, checkInToast } from '../lib/toast';
 
 const TIER_THRESHOLDS = {
