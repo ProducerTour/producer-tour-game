@@ -81,15 +81,24 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
         return feedApi.like(item.id);
       }
     },
-    onMutate: () => {
+    onMutate: async () => {
+      // Save current state for rollback
+      const previousLiked = liked;
+      const previousLikeCount = likeCount;
+
       // Optimistic update
       setLiked(!liked);
       setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
+
+      // Return context with previous values
+      return { previousLiked, previousLikeCount };
     },
-    onError: () => {
-      // Revert on error
-      setLiked(liked);
-      setLikeCount((prev) => (liked ? prev + 1 : prev - 1));
+    onError: (_error, _variables, context) => {
+      // Revert to saved state from context
+      if (context) {
+        setLiked(context.previousLiked);
+        setLikeCount(context.previousLikeCount);
+      }
       toast.error('Failed to update like');
     },
   });

@@ -290,13 +290,24 @@ export default function ActivityFeedPage() {
                   ) : (
                     <>
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-3 mb-1">
                           <h2 className="text-3xl font-bold text-gray-900">{fullName}</h2>
                           {user?.role === 'ADMIN' && (
                             <span title="Verified Admin">
                               <BadgeCheck className="w-7 h-7 text-amber-500 fill-amber-100" />
                             </span>
                           )}
+                          <span className="text-gray-400">·</span>
+                          <div className="flex items-center gap-3 text-sm">
+                            <span className="hover:underline cursor-pointer">
+                              <span className="font-semibold text-gray-900">{profile?.stats?.followers?.toLocaleString() || 0}</span>
+                              <span className="text-gray-500 ml-1">Followers</span>
+                            </span>
+                            <span className="hover:underline cursor-pointer">
+                              <span className="font-semibold text-gray-900">{profile?.stats?.following?.toLocaleString() || 0}</span>
+                              <span className="text-gray-500 ml-1">Following</span>
+                            </span>
+                          </div>
                         </div>
                         <p className="text-gray-500">@{profile?.profileSlug || profile?.email?.split('@')[0] || 'user'}</p>
                       </div>
@@ -431,25 +442,6 @@ export default function ActivityFeedPage() {
                         </div>
                       )}
 
-                      {/* Stats */}
-                      <div className="flex gap-8 pt-6 border-t border-gray-100">
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-gray-900 mb-1">{profile?.stats?.placementCount || 0}</div>
-                          <div className="text-gray-500 text-sm">Placements</div>
-                        </div>
-                        <div className="text-center cursor-pointer hover:opacity-80 transition-opacity">
-                          <div className="text-3xl font-bold text-gray-900 mb-1">{profile?.stats?.followers?.toLocaleString() || 0}</div>
-                          <div className="text-gray-500 text-sm">Followers</div>
-                        </div>
-                        <div className="text-center cursor-pointer hover:opacity-80 transition-opacity">
-                          <div className="text-3xl font-bold text-gray-900 mb-1">{profile?.stats?.following?.toLocaleString() || 0}</div>
-                          <div className="text-gray-500 text-sm">Following</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-3xl font-bold text-green-600 mb-1">${profile?.stats?.totalSales?.toFixed(0) || '0'}</div>
-                          <div className="text-gray-500 text-sm">Total Sales</div>
-                        </div>
-                      </div>
                     </>
                   )}
                 </div>
