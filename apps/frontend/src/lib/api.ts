@@ -866,6 +866,17 @@ export const feedApi = {
     isPublic?: boolean;
   }) => api.post('/feed', data),
 
+  // Delete a post
+  deletePost: (feedItemId: string) =>
+    api.delete(`/feed/${feedItemId}`),
+
+  // Edit a post
+  editPost: (feedItemId: string, data: {
+    title?: string;
+    description?: string;
+    imageUrl?: string | null;
+  }) => api.put(`/feed/${feedItemId}`, data),
+
   // Like a feed item
   like: (feedItemId: string) =>
     api.post(`/feed/${feedItemId}/like`),

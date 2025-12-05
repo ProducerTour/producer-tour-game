@@ -7,6 +7,7 @@ import { FindCollaboratorsPane } from '../components/profile/FindCollaboratorsPa
 import { TourMilesWidget } from '../components/profile/TourMilesWidget';
 import { AdminPostsWidget } from '../components/profile/AdminPostsWidget';
 import SocialSidebar from '../components/SocialSidebar';
+import { AnimatedBorder, parseBorderConfig } from '../components/AnimatedBorder';
 import {
   MessageCircle,
   MapPin,
@@ -32,7 +33,7 @@ import {
 import { FaSpotify, FaSoundcloud, FaTiktok, FaApple } from 'react-icons/fa';
 import { useAuthStore } from '../store/auth.store';
 import { ActivityFeed } from '../components/feed/ActivityFeed';
-import { api, feedApi } from '../lib/api';
+import { api, feedApi, gamificationApi } from '../lib/api';
 
 type FeedView = 'my-posts' | 'network';
 type ContentType = 'beat' | 'kit' | 'sample' | 'collab' | 'placement' | 'status';
@@ -57,6 +58,20 @@ export default function ActivityFeedPage() {
       return response.data.writer;
     },
   });
+
+  // Fetch user's gamification customizations (border)
+  const { data: customizations } = useQuery({
+    queryKey: ['user-customizations', user?.id],
+    queryFn: async () => {
+      const response = await gamificationApi.getUserCustomizations(user!.id);
+      return response.data;
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+
+  const equippedBorder = customizations?.border ? parseBorderConfig(customizations.border) : null;
 
   // Upload avatar mutation
   const uploadAvatarMutation = useMutation({
@@ -226,22 +241,29 @@ export default function ActivityFeedPage() {
               {/* Profile Info */}
               <div className="px-8 pb-6">
                 <div className="flex items-end justify-between -mt-20 mb-6">
-                  {/* Avatar */}
+                  {/* Avatar with Gamification Border */}
                   <div
-                    className="w-40 h-40 rounded-full border-4 border-white bg-white shadow-xl overflow-hidden relative z-10 group cursor-pointer"
+                    className="relative z-10 group cursor-pointer"
                     onClick={() => avatarInputRef.current?.click()}
                   >
-                    {profile?.profilePhotoUrl ? (
-                      <img
-                        src={profile.profilePhotoUrl}
-                        alt={fullName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-purple-500 flex items-center justify-center text-white text-5xl font-semibold">
-                        {profile?.firstName?.charAt(0) || 'U'}
-                      </div>
-                    )}
+                    <AnimatedBorder
+                      border={equippedBorder}
+                      size="2xl"
+                      showBorder={!!equippedBorder}
+                      className="shadow-xl"
+                    >
+                      {profile?.profilePhotoUrl ? (
+                        <img
+                          src={profile.profilePhotoUrl}
+                          alt={fullName}
+                          className="absolute inset-0 w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 w-full h-full rounded-full bg-purple-500 flex items-center justify-center text-white text-5xl font-semibold">
+                          {profile?.firstName?.charAt(0) || 'U'}
+                        </div>
+                      )}
+                    </AnimatedBorder>
                     {/* Hover overlay for avatar */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 rounded-full transition-all duration-200 flex items-center justify-center">
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center gap-1 text-white">
@@ -531,7 +553,7 @@ export default function ActivityFeedPage() {
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                Network Feed
+                Activity Feed
               </button>
             </div>
 

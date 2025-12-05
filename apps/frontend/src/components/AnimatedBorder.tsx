@@ -99,7 +99,7 @@ export const PRESET_BORDERS: Record<string, BorderConfig> = {
 interface AnimatedBorderProps {
   children: React.ReactNode;
   border?: BorderConfig | null;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   className?: string;
   showBorder?: boolean;
 }
@@ -122,6 +122,8 @@ export function AnimatedBorder({
         return { outer: 'w-20 h-20', inner: 'w-[72px] h-[72px]', borderWidth: 4 };
       case 'xl':
         return { outer: 'w-28 h-28', inner: 'w-24 h-24', borderWidth: 5 };
+      case '2xl':
+        return { outer: 'w-40 h-40', inner: 'w-36 h-36', borderWidth: 8 };
       default:
         return { outer: 'w-14 h-14', inner: 'w-12 h-12', borderWidth: 3 };
     }

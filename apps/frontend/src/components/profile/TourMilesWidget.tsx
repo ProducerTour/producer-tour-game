@@ -105,7 +105,7 @@ export function TourMilesWidget() {
   const progress = getTierProgress(points, tier);
   const nextTier = getNextTier(tier);
   const pointsToNext = getPointsToNextTier(points, tier);
-  const canCheckIn = !stats.checkedInToday;
+  const canCheckIn = stats.canCheckInToday ?? true;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden relative z-10">

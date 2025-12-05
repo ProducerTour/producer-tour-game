@@ -60,6 +60,93 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// DELETE /api/feed/:id - Delete a post
+router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id: feedItemId } = req.params;
+
+    // Find the post
+    const feedItem = await prisma.activityFeedItem.findUnique({
+      where: { id: feedItemId },
+    });
+
+    if (!feedItem) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    // Check ownership (owner or admin can delete)
+    if (feedItem.userId !== userId && req.user!.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Not authorized to delete this post' });
+    }
+
+    // Delete the post (cascades to likes/comments via FK)
+    await prisma.activityFeedItem.delete({
+      where: { id: feedItemId },
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete post error:', error);
+    res.status(500).json({ error: 'Failed to delete post' });
+  }
+});
+
+// PUT /api/feed/:id - Edit a post
+router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { id: feedItemId } = req.params;
+    const data = createPostSchema.partial().parse(req.body);
+
+    const feedItem = await prisma.activityFeedItem.findUnique({
+      where: { id: feedItemId },
+    });
+
+    if (!feedItem) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    // Only owner can edit
+    if (feedItem.userId !== userId) {
+      return res.status(403).json({ error: 'Not authorized to edit this post' });
+    }
+
+    const updated = await prisma.activityFeedItem.update({
+      where: { id: feedItemId },
+      data: {
+        title: data.title,
+        description: data.description,
+        imageUrl: data.imageUrl,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            profilePhotoUrl: true,
+            profileSlug: true,
+            gamificationPoints: {
+              select: {
+                tier: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Edit post error:', error);
+    res.status(500).json({ error: 'Failed to edit post' });
+  }
+});
+
 // POST /api/feed/:id/like - Like a feed item
 router.post('/:id/like', authenticate, async (req: AuthRequest, res: Response) => {
   try {

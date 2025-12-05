@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Music, Trophy, ShoppingBag, Plane, TrendingUp, UserPlus, Heart, MessageCircle, Share2, MoreHorizontal, Send, Loader2, Edit3 } from 'lucide-react';
+import { Music, Trophy, ShoppingBag, Plane, TrendingUp, UserPlus, Heart, MessageCircle, Share2, MoreHorizontal, Send, Loader2, Edit3, Trash2, Pencil } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { feedApi } from '../../lib/api';
+import { useAuthStore } from '../../store/auth.store';
 import toast from 'react-hot-toast';
 
 interface ActivityFeedItemProps {
@@ -66,11 +67,33 @@ const getActivityIcon = (activityType: string) => {
 
 
 export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
+  const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [liked, setLiked] = useState(item.isLiked ?? false);
   const [likeCount, setLikeCount] = useState(item.likeCount ?? 0);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(item.title);
+  const [editDescription, setEditDescription] = useState(item.description || '');
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Check if current user owns this post
+  const isOwner = user?.id === item.userId;
+  const isAdmin = user?.role === 'ADMIN';
+  const canModify = isOwner || isAdmin;
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Like mutation
   const likeMutation = useMutation({
@@ -129,6 +152,60 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
       toast.error('Failed to add comment');
     },
   });
+
+  // Delete post mutation
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return feedApi.deletePost(item.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activity-feed'] });
+      toast.success('Post deleted');
+    },
+    onError: () => {
+      toast.error('Failed to delete post');
+    },
+  });
+
+  // Edit post mutation
+  const editMutation = useMutation({
+    mutationFn: async (data: { title: string; description?: string }) => {
+      return feedApi.editPost(item.id, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activity-feed'] });
+      setIsEditing(false);
+      toast.success('Post updated');
+    },
+    onError: () => {
+      toast.error('Failed to update post');
+    },
+  });
+
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this post?')) {
+      deleteMutation.mutate();
+    }
+    setShowMenu(false);
+  };
+
+  const handleEdit = () => {
+    setEditTitle(item.title);
+    setEditDescription(item.description || '');
+    setIsEditing(true);
+    setShowMenu(false);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editTitle.trim()) {
+      toast.error('Title cannot be empty');
+      return;
+    }
+    editMutation.mutate({
+      title: editTitle.trim(),
+      description: editDescription.trim() || undefined,
+    });
+  };
 
   const handleLike = () => {
     if (!item.id.startsWith('mock-')) {
@@ -201,23 +278,87 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
               </div>
             </div>
           </div>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <MoreHorizontal className="w-5 h-5 text-gray-500" />
-          </button>
+          {/* 3-dot menu */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <MoreHorizontal className="w-5 h-5 text-gray-500" />
+            </button>
+
+            {/* Dropdown menu */}
+            {showMenu && canModify && (
+              <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                {isOwner && (
+                  <button
+                    onClick={handleEdit}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Edit
+                  </button>
+                )}
+                <button
+                  onClick={handleDelete}
+                  disabled={deleteMutation.isPending}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Post Content */}
-        <div className="mt-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 bg-gray-100 rounded-lg">
-              {getActivityIcon(item.activityType)}
+        {/* Edit Mode */}
+        {isEditing ? (
+          <div className="mt-4 space-y-3">
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              placeholder="Title"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+            />
+            <textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              placeholder="What's on your mind?"
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={editMutation.isPending}
+                className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+              >
+                {editMutation.isPending ? 'Saving...' : 'Save'}
+              </button>
             </div>
-            <span className="font-medium text-gray-900">{item.title}</span>
           </div>
-          {item.description && (
-            <p className="text-gray-800 leading-relaxed whitespace-pre-line">{item.description}</p>
-          )}
-        </div>
+        ) : (
+          /* Post Content */
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1.5 bg-gray-100 rounded-lg">
+                {getActivityIcon(item.activityType)}
+              </div>
+              <span className="font-medium text-gray-900">{item.title}</span>
+            </div>
+            {item.description && (
+              <p className="text-gray-800 leading-relaxed whitespace-pre-line">{item.description}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Activity Image */}

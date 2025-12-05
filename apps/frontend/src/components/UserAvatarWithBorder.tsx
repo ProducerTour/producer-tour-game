@@ -7,7 +7,7 @@ interface UserAvatarWithBorderProps {
   firstName?: string;
   lastName?: string;
   profilePhotoUrl?: string | null;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   className?: string;
   showOnlineIndicator?: boolean;
   isOnline?: boolean;
