@@ -7,13 +7,14 @@ import {
   Store,
   User,
   TrendingUp,
+  Plane,
 } from 'lucide-react';
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 import blackLogo from '@/assets/images/logos/blacktransparentpt.png';
 import { useThemeOptional } from '@/contexts/ThemeContext';
 
 interface SocialSidebarProps {
-  activePage?: 'profile' | 'store' | 'feed' | 'insights';
+  activePage?: 'profile' | 'store' | 'feed' | 'insights' | 'tourmiles';
 }
 
 export default function SocialSidebar({ activePage }: SocialSidebarProps) {
@@ -28,6 +29,7 @@ export default function SocialSidebar({ activePage }: SocialSidebarProps) {
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', path: dashboardPath },
     { id: 'profile', icon: User, label: 'My Profile', path: '/my-profile' },
     { id: 'store', icon: Store, label: 'My Store', path: '/my-store' },
+    { id: 'tourmiles', icon: Plane, label: 'Tour Miles', path: '/tour-miles' },
     { id: 'insights', icon: TrendingUp, label: 'Insights', path: '/insights' },
   ];
 
