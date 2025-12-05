@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Paperclip, Search, ChevronLeft, Circle, Users, UserPlus, Check, XIcon, Download, FileText, Loader2, UsersRound, Plus, Pencil } from 'lucide-react';
+import { MessageCircle, X, Send, Paperclip, Search, ChevronLeft, Circle, Users, UserPlus, Check, XIcon, Download, FileText, Loader2, UsersRound, Plus, Pencil, Smile } from 'lucide-react';
 import toast from 'react-hot-toast';
+import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useSocket } from '../../hooks/useSocket';
 import { useAuthStore } from '../../store/auth.store';
+import { useChatStore } from '../../store/chat.store';
 import { api, chatSettingsApi } from '../../lib/api';
 import { UserAvatarWithBorder } from '../UserAvatarWithBorder';
 
@@ -116,11 +118,12 @@ type TabType = 'chats' | 'contacts';
 
 export function ChatWidget() {
   const { user } = useAuthStore();
+  const { openChatWithUserId, clearOpenChatTrigger } = useChatStore();
   const location = useLocation();
 
-  // Hide chat on landing page and public pages
+  // Hide chat on landing page and auth pages
   const hiddenPaths = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
-  const isHiddenPage = hiddenPaths.includes(location.pathname) || location.pathname.startsWith('/user/');
+  const isHiddenPage = hiddenPaths.includes(location.pathname);
 
   // Early return check - before hooks that make API calls
   // CUSTOMER role doesn't have access to chat
@@ -163,6 +166,7 @@ export function ChatWidget() {
   const [isGroupMode, setIsGroupMode] = useState(false);
   const [selectedParticipants, setSelectedParticipants] = useState<User[]>([]);
   const [groupName, setGroupName] = useState('');
+  const [showChatEmojiPicker, setShowChatEmojiPicker] = useState(false);
 
   // Rename group chat state
   const [isRenaming, setIsRenaming] = useState(false);
@@ -315,6 +319,33 @@ export function ChatWidget() {
     return unsubscribe;
   }, [activeConversation, onConversationRenamed]);
 
+  // Handle external requests to open chat with a specific user (e.g., from profile page)
+  useEffect(() => {
+    if (!openChatWithUserId || !user || !shouldRender) return;
+
+    const openChatWithUser = async () => {
+      try {
+        // Fetch user data
+        const { data: targetUser } = await api.get(`/chat/users/${openChatWithUserId}`);
+
+        // Open the chat widget
+        setIsOpen(true);
+
+        // Start conversation with the user
+        await startNewConversation(targetUser);
+
+        // Clear the trigger
+        clearOpenChatTrigger();
+      } catch (error) {
+        console.error('Failed to open chat with user:', error);
+        toast.error('Failed to open chat');
+        clearOpenChatTrigger();
+      }
+    };
+
+    openChatWithUser();
+  }, [openChatWithUserId, user, shouldRender, clearOpenChatTrigger]);
+
   const fetchMessages = async (conversationId: string) => {
     setIsLoading(true);
     try {
@@ -371,6 +402,26 @@ export function ChatWidget() {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleChatEmojiClick = (emojiData: EmojiClickData) => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    const start = input.selectionStart || 0;
+    const end = input.selectionEnd || 0;
+    const text = newMessage;
+    const before = text.substring(0, start);
+    const after = text.substring(end);
+
+    setNewMessage(before + emojiData.emoji + after);
+
+    // Set cursor position after emoji
+    setTimeout(() => {
+      input.focus();
+      const newPosition = start + emojiData.emoji.length;
+      input.setSelectionRange(newPosition, newPosition);
+    }, 0);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1266,7 +1317,7 @@ export function ChatWidget() {
 
                   {/* Input */}
                   <div className="p-3 border-t border-slate-700 bg-slate-800/50">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 relative">
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -1286,6 +1337,30 @@ export function ChatWidget() {
                           <Paperclip className="w-5 h-5" />
                         )}
                       </button>
+                      <button
+                        onClick={() => setShowChatEmojiPicker(!showChatEmojiPicker)}
+                        className={`p-2 rounded-lg transition ${
+                          showChatEmojiPicker
+                            ? 'bg-slate-700 text-white'
+                            : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+                        }`}
+                        title="Add emoji"
+                      >
+                        <Smile className="w-5 h-5" />
+                      </button>
+
+                      {/* Emoji Picker for Chat */}
+                      {showChatEmojiPicker && (
+                        <div className="absolute bottom-full left-0 mb-2 z-50">
+                          <EmojiPicker
+                            onEmojiClick={handleChatEmojiClick}
+                            autoFocusSearch={false}
+                            height={400}
+                            width={350}
+                          />
+                        </div>
+                      )}
+
                       <input
                         ref={inputRef}
                         type="text"

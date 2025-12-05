@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { FaSpotify, FaSoundcloud, FaTiktok, FaApple } from 'react-icons/fa';
 import { useAuthStore } from '../store/auth.store';
+import { useChatStore } from '../store/chat.store';
 import { ActivityFeed } from '../components/feed/ActivityFeed';
 import { FindCollaboratorsPane } from '../components/profile/FindCollaboratorsPane';
 import { FollowersModal } from '../components/feed/FollowersModal';
@@ -27,6 +28,7 @@ import toast from 'react-hot-toast';
 export default function WriterProfilePage() {
   const { slug, userId } = useParams<{ slug?: string; userId?: string }>();
   const { user } = useAuthStore();
+  const { setOpenChatWithUser } = useChatStore();
   const queryClient = useQueryClient();
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [isFollowersModalOpen, setIsFollowersModalOpen] = useState(false);
@@ -194,6 +196,7 @@ export default function WriterProfilePage() {
                         {isFollowing ? 'Following' : 'Follow'}
                       </button>
                       <button
+                        onClick={() => setOpenChatWithUser(profile.id)}
                         className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all hover:scale-105 shadow-lg"
                       >
                         <MessageCircle className="w-4 h-4" />
