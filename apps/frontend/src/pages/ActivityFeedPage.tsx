@@ -6,6 +6,7 @@ import { EditProfileModal } from '../components/profile/EditProfileModal';
 import { FindCollaboratorsPane } from '../components/profile/FindCollaboratorsPane';
 import { TourMilesWidget } from '../components/profile/TourMilesWidget';
 import { AdminPostsWidget } from '../components/profile/AdminPostsWidget';
+import { FollowersModal } from '../components/feed/FollowersModal';
 import SocialSidebar from '../components/SocialSidebar';
 import { AnimatedBorder, parseBorderConfig } from '../components/AnimatedBorder';
 import {
@@ -48,11 +49,16 @@ export default function ActivityFeedPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [postImageFile, setPostImageFile] = useState<File | null>(null);
   const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
+  const [postAudioFile, setPostAudioFile] = useState<File | null>(null);
+  const [postAudioFileName, setPostAudioFileName] = useState<string | null>(null);
+  const [isFollowersModalOpen, setIsFollowersModalOpen] = useState(false);
+  const [followersModalTab, setFollowersModalTab] = useState<'followers' | 'following'>('followers');
 
   // Refs for file inputs
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const postImageInputRef = useRef<HTMLInputElement>(null);
+  const postAudioInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch user's full profile data
   const { data: profile, isLoading } = useQuery({
@@ -115,7 +121,7 @@ export default function ActivityFeedPage() {
 
   // Create post mutation
   const createPostMutation = useMutation({
-    mutationFn: async (data: { title: string; description?: string; imageUrl?: string | null }) => {
+    mutationFn: async (data: { title: string; description?: string; imageUrl?: string | null; audioUrl?: string | null }) => {
       const response = await feedApi.createPost(data);
       return response.data;
     },
@@ -124,9 +130,11 @@ export default function ActivityFeedPage() {
       queryClient.invalidateQueries({ queryKey: ['activity-feed'] });
       setPostContent('');
       setSelectedContentType(null);
-      // Clear image state
+      // Clear media state
       setPostImageFile(null);
       setPostImagePreview(null);
+      setPostAudioFile(null);
+      setPostAudioFileName(null);
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to create post');
@@ -141,6 +149,17 @@ export default function ActivityFeedPage() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to upload image');
+    },
+  });
+
+  // Upload post audio mutation
+  const uploadPostAudioMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const response = await feedApi.uploadPostAudio(file);
+      return response.data;
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to upload audio');
     },
   });
 
@@ -173,6 +192,24 @@ export default function ActivityFeedPage() {
     }
   };
 
+  const handlePostAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (20MB max)
+      if (file.size > 20 * 1024 * 1024) {
+        toast.error('Audio must be less than 20MB');
+        return;
+      }
+      // Check file type
+      if (!['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/x-wav'].includes(file.type)) {
+        toast.error('Only MP3 and WAV files are supported');
+        return;
+      }
+      setPostAudioFile(file);
+      setPostAudioFileName(file.name);
+    }
+  };
+
   const clearPostImage = () => {
     setPostImageFile(null);
     if (postImagePreview) {
@@ -182,6 +219,15 @@ export default function ActivityFeedPage() {
     // Reset file input
     if (postImageInputRef.current) {
       postImageInputRef.current.value = '';
+    }
+  };
+
+  const clearPostAudio = () => {
+    setPostAudioFile(null);
+    setPostAudioFileName(null);
+    // Reset file input
+    if (postAudioInputRef.current) {
+      postAudioInputRef.current.value = '';
     }
   };
 
@@ -212,6 +258,7 @@ export default function ActivityFeedPage() {
       : postContent;
 
     let imageUrl: string | null = null;
+    let audioUrl: string | null = null;
 
     // Upload image first if selected
     if (postImageFile) {
@@ -224,10 +271,22 @@ export default function ActivityFeedPage() {
       }
     }
 
+    // Upload audio if selected
+    if (postAudioFile) {
+      try {
+        const result = await uploadPostAudioMutation.mutateAsync(postAudioFile);
+        audioUrl = result.audioUrl;
+      } catch {
+        // Error already handled by mutation
+        return;
+      }
+    }
+
     createPostMutation.mutate({
       title,
       description: postContent,
       imageUrl,
+      audioUrl,
     });
   };
 
@@ -380,14 +439,26 @@ export default function ActivityFeedPage() {
                           )}
                           <span className="text-gray-400">·</span>
                           <div className="flex items-center gap-3 text-sm">
-                            <span className="hover:underline cursor-pointer">
+                            <button
+                              onClick={() => {
+                                setFollowersModalTab('followers');
+                                setIsFollowersModalOpen(true);
+                              }}
+                              className="hover:underline cursor-pointer"
+                            >
                               <span className="font-semibold text-gray-900">{profile?.stats?.followers?.toLocaleString() || 0}</span>
                               <span className="text-gray-500 ml-1">Followers</span>
-                            </span>
-                            <span className="hover:underline cursor-pointer">
+                            </button>
+                            <button
+                              onClick={() => {
+                                setFollowersModalTab('following');
+                                setIsFollowersModalOpen(true);
+                              }}
+                              className="hover:underline cursor-pointer"
+                            >
                               <span className="font-semibold text-gray-900">{profile?.stats?.following?.toLocaleString() || 0}</span>
                               <span className="text-gray-500 ml-1">Following</span>
-                            </span>
+                            </button>
                           </div>
                         </div>
                         <p className="text-gray-500">@{profile?.profileSlug || profile?.email?.split('@')[0] || 'user'}</p>
@@ -531,12 +602,19 @@ export default function ActivityFeedPage() {
 
             {/* Create Post Section */}
             <div className="bg-white rounded-2xl shadow-sm p-6 mb-4">
-              {/* Hidden file input for post image */}
+              {/* Hidden file inputs */}
               <input
                 ref={postImageInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/gif,image/webp"
                 onChange={handlePostImageChange}
+                className="hidden"
+              />
+              <input
+                ref={postAudioInputRef}
+                type="file"
+                accept="audio/mpeg,audio/wav,audio/mp3"
+                onChange={handlePostAudioChange}
                 className="hidden"
               />
 
@@ -559,7 +637,7 @@ export default function ActivityFeedPage() {
                   <textarea
                     value={postContent}
                     onChange={(e) => setPostContent(e.target.value)}
-                    placeholder="What's on your mind?"
+                    placeholder="What's on your mind? Share your beats, samples, or updates..."
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none transition-all"
                     rows={3}
                   />
@@ -582,12 +660,27 @@ export default function ActivityFeedPage() {
                     </div>
                   )}
 
+                  {/* Audio Preview */}
+                  {postAudioFileName && (
+                    <div className="mt-3 flex items-center gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                      <Headphones className="w-5 h-5 text-purple-600" />
+                      <span className="flex-1 text-sm text-gray-700 truncate">{postAudioFileName}</span>
+                      <button
+                        onClick={clearPostAudio}
+                        className="p-1 hover:bg-purple-200 rounded-full transition-colors"
+                        title="Remove audio"
+                      >
+                        <X className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex gap-2">
                       {/* Add Image Button */}
                       <button
                         onClick={() => postImageInputRef.current?.click()}
-                        className={`p-2 rounded-lg transition-colors ${
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
                           postImagePreview
                             ? 'bg-purple-100 text-purple-600'
                             : 'hover:bg-gray-100 text-gray-600'
@@ -595,41 +688,39 @@ export default function ActivityFeedPage() {
                         title="Add Image"
                       >
                         <ImageIcon className="w-5 h-5" />
+                        <span className="text-sm font-medium">Image</span>
                       </button>
 
-                      {contentTypes.map(({ type, label, icon: Icon }) => (
-                        <button
-                          key={type}
-                          onClick={() =>
-                            setSelectedContentType(selectedContentType === type ? null : type)
-                          }
-                          className={`p-2 rounded-lg transition-colors ${
-                            selectedContentType === type
-                              ? 'bg-purple-100 text-purple-600'
-                              : 'hover:bg-gray-100 text-gray-600'
-                          }`}
-                          title={label}
-                        >
-                          <Icon className="w-5 h-5" />
-                        </button>
-                      ))}
+                      {/* Add Audio Button */}
+                      <button
+                        onClick={() => postAudioInputRef.current?.click()}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                          postAudioFileName
+                            ? 'bg-purple-100 text-purple-600'
+                            : 'hover:bg-gray-100 text-gray-600'
+                        }`}
+                        title="Add Audio (MP3, WAV)"
+                      >
+                        <Headphones className="w-5 h-5" />
+                        <span className="text-sm font-medium">Audio</span>
+                      </button>
                     </div>
 
                     <button
                       onClick={handlePost}
-                      disabled={!postContent.trim() || createPostMutation.isPending || uploadPostImageMutation.isPending}
+                      disabled={!postContent.trim() || createPostMutation.isPending || uploadPostImageMutation.isPending || uploadPostAudioMutation.isPending}
                       className={`flex items-center gap-2 px-5 py-2 rounded-xl transition-all ${
-                        postContent.trim() && !createPostMutation.isPending && !uploadPostImageMutation.isPending
+                        postContent.trim() && !createPostMutation.isPending && !uploadPostImageMutation.isPending && !uploadPostAudioMutation.isPending
                           ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg hover:scale-105'
                           : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       }`}
                     >
-                      {(createPostMutation.isPending || uploadPostImageMutation.isPending) ? (
+                      {(createPostMutation.isPending || uploadPostImageMutation.isPending || uploadPostAudioMutation.isPending) ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <ExternalLink className="w-4 h-4" />
                       )}
-                      {uploadPostImageMutation.isPending ? 'Uploading...' : createPostMutation.isPending ? 'Posting...' : 'Post'}
+                      {uploadPostImageMutation.isPending || uploadPostAudioMutation.isPending ? 'Uploading...' : createPostMutation.isPending ? 'Posting...' : 'Post'}
                     </button>
                   </div>
                 </div>
@@ -685,6 +776,17 @@ export default function ActivityFeedPage() {
           queryClient.invalidateQueries({ queryKey: ['user-profile'] }); // Sync with Settings page
         }}
       />
+
+      {/* Followers/Following Modal */}
+      {user && (
+        <FollowersModal
+          isOpen={isFollowersModalOpen}
+          onClose={() => setIsFollowersModalOpen(false)}
+          userId={user.id}
+          initialTab={followersModalTab}
+          userName={fullName}
+        />
+      )}
     </div>
   );
 }

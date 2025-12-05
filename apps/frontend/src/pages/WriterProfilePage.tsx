@@ -20,13 +20,17 @@ import { FaSpotify, FaSoundcloud, FaTiktok, FaApple } from 'react-icons/fa';
 import { useAuthStore } from '../store/auth.store';
 import { ActivityFeed } from '../components/feed/ActivityFeed';
 import { FindCollaboratorsPane } from '../components/profile/FindCollaboratorsPane';
+import { FollowersModal } from '../components/feed/FollowersModal';
 import { api, feedApi } from '../lib/api';
+import toast from 'react-hot-toast';
 
 export default function WriterProfilePage() {
   const { slug, userId } = useParams<{ slug?: string; userId?: string }>();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [isFollowersModalOpen, setIsFollowersModalOpen] = useState(false);
+  const [followersModalTab, setFollowersModalTab] = useState<'followers' | 'following'>('followers');
 
   // Determine if we're fetching by slug or userId
   const identifier = slug || userId;
@@ -65,8 +69,12 @@ export default function WriterProfilePage() {
     mutationFn: () => feedApi.follow(profile?.id),
     onMutate: () => setIsFollowLoading(true),
     onSuccess: () => {
+      toast.success(`You are now following ${fullName}!`);
       queryClient.invalidateQueries({ queryKey: ['my-following'] });
       queryClient.invalidateQueries({ queryKey: ['writer-profile', identifier] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to follow user');
     },
     onSettled: () => setIsFollowLoading(false),
   });
@@ -76,8 +84,12 @@ export default function WriterProfilePage() {
     mutationFn: () => feedApi.unfollow(profile?.id),
     onMutate: () => setIsFollowLoading(true),
     onSuccess: () => {
+      toast.success(`Unfollowed ${fullName}`);
       queryClient.invalidateQueries({ queryKey: ['my-following'] });
       queryClient.invalidateQueries({ queryKey: ['writer-profile', identifier] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to unfollow user');
     },
     onSettled: () => setIsFollowLoading(false),
   });
@@ -363,18 +375,30 @@ export default function WriterProfilePage() {
                       </div>
                       <div className="text-gray-500 text-sm">Placements</div>
                     </div>
-                    <div className="text-center cursor-pointer hover:opacity-80 transition-opacity">
+                    <button
+                      onClick={() => {
+                        setFollowersModalTab('followers');
+                        setIsFollowersModalOpen(true);
+                      }}
+                      className="text-center cursor-pointer hover:opacity-80 transition-opacity"
+                    >
                       <div className="text-3xl font-bold text-gray-900 mb-1">
                         {profile.stats?.followers?.toLocaleString() || 0}
                       </div>
                       <div className="text-gray-500 text-sm">Followers</div>
-                    </div>
-                    <div className="text-center cursor-pointer hover:opacity-80 transition-opacity">
+                    </button>
+                    <button
+                      onClick={() => {
+                        setFollowersModalTab('following');
+                        setIsFollowersModalOpen(true);
+                      }}
+                      className="text-center cursor-pointer hover:opacity-80 transition-opacity"
+                    >
                       <div className="text-3xl font-bold text-gray-900 mb-1">
                         {profile.stats?.following?.toLocaleString() || 0}
                       </div>
                       <div className="text-gray-500 text-sm">Following</div>
-                    </div>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -393,6 +417,15 @@ export default function WriterProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Followers/Following Modal */}
+      <FollowersModal
+        isOpen={isFollowersModalOpen}
+        onClose={() => setIsFollowersModalOpen(false)}
+        userId={profile.id}
+        initialTab={followersModalTab}
+        userName={fullName}
+      />
     </div>
   );
 }

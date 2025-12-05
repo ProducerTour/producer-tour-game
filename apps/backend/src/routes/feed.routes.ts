@@ -4,9 +4,11 @@ import { UploadedFile } from 'express-fileupload';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 
-// Image upload constants
-const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+// Media upload constants
+const ALLOWED_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_AUDIO_MIMES = ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/x-wav'];
 const POST_IMAGE_MAX_SIZE = 5 * 1024 * 1024; // 5MB for post images
+const POST_AUDIO_MAX_SIZE = 20 * 1024 * 1024; // 20MB for audio files
 
 const router = Router();
 
@@ -18,6 +20,11 @@ const createPostSchema = z.object({
   imageUrl: z.string().refine(
     (val) => val.startsWith('data:image/') || val.startsWith('http://') || val.startsWith('https://'),
     { message: 'Must be a valid URL or data URL' }
+  ).optional().nullable(),
+  // Audio URL for audio posts
+  audioUrl: z.string().refine(
+    (val) => val.startsWith('data:audio/') || val.startsWith('http://') || val.startsWith('https://'),
+    { message: 'Must be a valid audio URL or data URL' }
   ).optional().nullable(),
   isPublic: z.boolean().optional().default(true),
 });
@@ -43,7 +50,7 @@ router.post('/upload-image', authenticate, async (req: AuthRequest, res: Respons
     console.log(`Post image upload: User ${userId}, file size: ${image.size} bytes, mimetype: ${image.mimetype}`);
 
     // Validate file type
-    if (!ALLOWED_MIMES.includes(image.mimetype)) {
+    if (!ALLOWED_IMAGE_MIMES.includes(image.mimetype)) {
       return res.status(400).json({
         error: 'Invalid file type',
         message: 'Only JPEG, PNG, GIF, and WebP images are allowed.'
@@ -77,6 +84,57 @@ router.post('/upload-image', authenticate, async (req: AuthRequest, res: Respons
   }
 });
 
+// POST /api/feed/upload-audio - Upload an audio file for a post
+router.post('/upload-audio', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    // Check if files were uploaded
+    if (!req.files || !req.files.audio) {
+      return res.status(400).json({
+        error: 'No file selected',
+        message: 'Please select an audio file to upload.'
+      });
+    }
+
+    const audio = req.files.audio as UploadedFile;
+    const userId = req.user!.id;
+
+    console.log(`Post audio upload: User ${userId}, file size: ${audio.size} bytes, mimetype: ${audio.mimetype}`);
+
+    // Validate file type
+    if (!ALLOWED_AUDIO_MIMES.includes(audio.mimetype)) {
+      return res.status(400).json({
+        error: 'Invalid file type',
+        message: 'Only MP3 and WAV audio files are allowed.'
+      });
+    }
+
+    // Validate file size
+    if (audio.size > POST_AUDIO_MAX_SIZE) {
+      const sizeMB = (audio.size / (1024 * 1024)).toFixed(1);
+      return res.status(400).json({
+        error: 'File too large',
+        message: `File is ${sizeMB}MB. Maximum size is 20MB. Please compress your audio.`
+      });
+    }
+
+    // Convert file buffer to base64 data URL
+    const base64 = audio.data.toString('base64');
+    const audioUrl = `data:${audio.mimetype};base64,${base64}`;
+
+    console.log(`Post audio upload: Success, base64 length: ${audioUrl.length} chars`);
+    res.json({
+      success: true,
+      audioUrl
+    });
+  } catch (error: any) {
+    console.error('Post audio upload error:', error);
+    res.status(500).json({
+      error: 'Upload failed',
+      message: 'Failed to upload the audio. Please try again.'
+    });
+  }
+});
+
 // POST /api/feed - Create a new post
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
@@ -90,6 +148,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         title: data.title,
         description: data.description,
         imageUrl: data.imageUrl,
+        audioUrl: data.audioUrl,
         isPublic: data.isPublic,
       },
       include: {
@@ -178,6 +237,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
         title: data.title,
         description: data.description,
         imageUrl: data.imageUrl,
+        audioUrl: data.audioUrl,
       },
       include: {
         user: {

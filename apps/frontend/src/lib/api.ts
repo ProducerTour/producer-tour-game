@@ -871,11 +871,21 @@ export const feedApi = {
     });
   },
 
+  // Upload an audio file for a post
+  uploadPostAudio: (file: File) => {
+    const formData = new FormData();
+    formData.append('audio', file);
+    return api.post('/feed/upload-audio', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
   // Create a new post
   createPost: (data: {
     title: string;
     description?: string;
     imageUrl?: string | null;
+    audioUrl?: string | null;
     isPublic?: boolean;
   }) => api.post('/feed', data),
 

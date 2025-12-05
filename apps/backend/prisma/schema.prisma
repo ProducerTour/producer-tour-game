@@ -2306,6 +2306,7 @@ model ActivityFeedItem {
   // Metadata
   metadata        Json?             // Additional context (points earned, tier name, etc.)
   imageUrl        String?           // Optional image for the activity
+  audioUrl        String?           // Optional audio for the activity (beats, samples, etc.)
 
   // Visibility
   isPublic        Boolean           @default(true)  // Only public activities show in network feed

@@ -217,8 +217,9 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
   };
 
   const handleShare = async () => {
-    // Build the post URL
-    const postUrl = `${window.location.origin}/post/${item.id}`;
+    // Use the backend OG endpoint for sharing (provides rich previews)
+    const backendUrl = import.meta.env.VITE_API_URL || 'https://website-0qgn.onrender.com';
+    const shareUrl = `${backendUrl}/api/feed/og/${item.id}`;
 
     // Try to use native share if available (mobile), otherwise copy to clipboard
     if (navigator.share) {
@@ -226,16 +227,16 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
         await navigator.share({
           title: item.title,
           text: item.description || item.title,
-          url: postUrl,
+          url: shareUrl,
         });
       } catch (err) {
         // User cancelled or share failed, fall back to clipboard
         if ((err as Error).name !== 'AbortError') {
-          await copyToClipboard(postUrl);
+          await copyToClipboard(shareUrl);
         }
       }
     } else {
-      await copyToClipboard(postUrl);
+      await copyToClipboard(shareUrl);
     }
   };
 
@@ -390,6 +391,20 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
             alt={item.title}
             className="w-full object-cover max-h-96"
           />
+        </div>
+      )}
+
+      {/* Activity Audio */}
+      {(item as any).audioUrl && !item.listing && (
+        <div className="mx-6 mb-4">
+          <audio
+            controls
+            className="w-full"
+            src={(item as any).audioUrl}
+            style={{ maxHeight: '54px' }}
+          >
+            Your browser does not support the audio element.
+          </audio>
         </div>
       )}
 
