@@ -60,9 +60,8 @@ CREATE INDEX IF NOT EXISTS "activity_feed_items_isPublic_idx" ON "activity_feed_
 ALTER TABLE "activity_feed_items" DROP CONSTRAINT IF EXISTS "activity_feed_items_userId_fkey";
 ALTER TABLE "activity_feed_items" ADD CONSTRAINT "activity_feed_items_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
--- Add foreign key for activity_feed_items -> marketplace_listings (optional)
-ALTER TABLE "activity_feed_items" DROP CONSTRAINT IF EXISTS "activity_feed_items_listingId_fkey";
-ALTER TABLE "activity_feed_items" ADD CONSTRAINT "activity_feed_items_listingId_fkey" FOREIGN KEY ("listingId") REFERENCES "marketplace_listings"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- Note: listingId FK to marketplace_listings is optional and will be added when that table exists
+-- The listingId column remains for future use, just without FK constraint for now
 
 -- CreateTable feed_likes
 CREATE TABLE IF NOT EXISTS "feed_likes" (
