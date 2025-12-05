@@ -147,7 +147,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// POST /api/feed/:id/like - Like a feed item
+// POST /api/feed/:id/like - Like a feed item (idempotent)
 router.post('/:id/like', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
@@ -160,6 +160,21 @@ router.post('/:id/like', authenticate, async (req: AuthRequest, res: Response) =
 
     if (!feedItem) {
       return res.status(404).json({ error: 'Feed item not found' });
+    }
+
+    // Check if already liked
+    const existingLike = await prisma.feedLike.findUnique({
+      where: {
+        userId_feedItemId: {
+          userId,
+          feedItemId,
+        },
+      },
+    });
+
+    // If already liked, return success (idempotent)
+    if (existingLike) {
+      return res.json({ success: true, alreadyLiked: true });
     }
 
     // Create like and increment count in a transaction
@@ -178,21 +193,22 @@ router.post('/:id/like', authenticate, async (req: AuthRequest, res: Response) =
 
     res.json({ success: true, like });
   } catch (error: any) {
+    // Handle race condition - if another request created the like, return success
     if (error.code === 'P2002') {
-      return res.status(400).json({ error: 'Already liked this post' });
+      return res.json({ success: true, alreadyLiked: true });
     }
     console.error('Like error:', error);
     res.status(500).json({ error: 'Failed to like post' });
   }
 });
 
-// DELETE /api/feed/:id/like - Unlike a feed item
+// DELETE /api/feed/:id/like - Unlike a feed item (idempotent)
 router.delete('/:id/like', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const { id: feedItemId } = req.params;
 
-    // Delete like and decrement count in a transaction
+    // Check if like exists
     const existingLike = await prisma.feedLike.findUnique({
       where: {
         userId_feedItemId: {
@@ -202,10 +218,12 @@ router.delete('/:id/like', authenticate, async (req: AuthRequest, res: Response)
       },
     });
 
+    // If already unliked, return success (idempotent)
     if (!existingLike) {
-      return res.status(404).json({ error: 'Like not found' });
+      return res.json({ success: true, alreadyUnliked: true });
     }
 
+    // Delete like and decrement count in a transaction
     await prisma.$transaction([
       prisma.feedLike.delete({
         where: {
