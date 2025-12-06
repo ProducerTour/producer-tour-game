@@ -703,7 +703,7 @@ export function SocialHeader({
             <img
               src={(user as any).profilePhotoUrl}
               alt={`${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Profile'}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-gray-100"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-gray-100"
             />
           ) : (
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-medium text-sm">
