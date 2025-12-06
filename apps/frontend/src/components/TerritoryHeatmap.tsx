@@ -44,7 +44,7 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
   const colorScale = useMemo(() => {
     return scaleLinear<string>()
       .domain([0, maxRevenue * 0.3, maxRevenue * 0.6, maxRevenue])
-      .range(['#1e293b', '#3b82f6', '#10b981', '#22c55e']);
+      .range(['#e2e8f0', '#3b82f6', '#10b981', '#22c55e']);
   }, [maxRevenue]);
 
   const formatCurrency = (value: number): string => {
@@ -71,19 +71,19 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
                 // Use ISO_A2 from properties instead of numeric id
                 const countryCode = geo.properties?.ISO_A2 || geo.properties?.iso_a2 || geo.id;
                 const data = countryData[countryCode];
-                const fillColor = data ? colorScale(data.revenue) : '#334155';
+                const fillColor = data ? colorScale(data.revenue) : '#e2e8f0';
 
                 return (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
                     fill={fillColor}
-                    stroke="#1e293b"
+                    stroke="#cbd5e1"
                     strokeWidth={0.5}
                     style={{
                       default: { outline: 'none' },
                       hover: {
-                        fill: data ? '#facc15' : '#475569',
+                        fill: data ? '#facc15' : '#d1d5db',
                         outline: 'none',
                         cursor: data ? 'pointer' : 'default'
                       },
@@ -115,7 +115,7 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
       {/* Tooltip */}
       {tooltipContent && (
         <div
-          className="fixed z-50 pointer-events-none bg-slate-800 text-white text-sm px-3 py-2 rounded-lg shadow-lg border border-slate-600"
+          className="fixed z-50 pointer-events-none bg-white text-gray-900 text-sm px-3 py-2 rounded-lg shadow-lg border border-gray-200"
           style={{
             left: `${tooltipPosition.x}px`,
             top: `${tooltipPosition.y - 80}px`,
@@ -128,10 +128,10 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
       )}
 
       {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-slate-800/90 px-4 py-3 rounded-lg text-xs text-gray-300 border border-slate-700">
-        <div className="font-semibold text-white mb-2">Revenue Scale</div>
+      <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-4 py-3 rounded-xl text-xs text-gray-600 border border-gray-200 shadow-sm">
+        <div className="font-semibold text-gray-900 mb-2">Revenue Scale</div>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-6 h-4 rounded" style={{ backgroundColor: '#1e293b' }}></div>
+          <div className="w-6 h-4 rounded border border-gray-200" style={{ backgroundColor: '#e2e8f0' }}></div>
           <span>$0</span>
         </div>
         <div className="flex items-center gap-2 mb-1">

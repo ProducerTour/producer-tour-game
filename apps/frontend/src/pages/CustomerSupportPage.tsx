@@ -56,18 +56,18 @@ export default function CustomerSupportPage() {
   }, [tickets]);
 
   const statusColors = {
-    OPEN: 'bg-blue-500/20 text-blue-400',
-    IN_PROGRESS: 'bg-yellow-500/20 text-yellow-400',
-    RESOLVED: 'bg-green-500/20 text-green-400',
-    CLOSED: 'bg-slate-500/20 text-slate-400',
+    OPEN: 'bg-blue-100 text-blue-700 border border-blue-200',
+    IN_PROGRESS: 'bg-amber-100 text-amber-700 border border-amber-200',
+    RESOLVED: 'bg-green-100 text-green-700 border border-green-200',
+    CLOSED: 'bg-gray-100 text-gray-600 border border-gray-200',
   };
 
   return (
-    <div className="flex flex-col h-screen bg-surface overflow-hidden">
-      {/* Background Effects */}
+    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+      {/* Background Effects - Light theme subtle gradients */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-brand-blue/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[100px]" />
+        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-blue-100/50 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-purple-100/30 rounded-full blur-[100px]" />
       </div>
 
       <ImpersonationBanner />
@@ -79,8 +79,8 @@ export default function CustomerSupportPage() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 md:pt-8">
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Support Center</h1>
-              <p className="text-text-secondary">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Support Center</h1>
+              <p className="text-gray-500">
                 Get help from our support team. We typically respond within 24 hours.
               </p>
             </div>
@@ -91,38 +91,46 @@ export default function CustomerSupportPage() {
                 href="https://producertour.com/faq"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-6 transition-all group"
+                className="bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl p-6 transition-all group shadow-sm"
               >
-                <HelpCircle className="w-8 h-8 text-blue-400 mb-3" />
-                <h3 className="text-white font-semibold mb-1">FAQ</h3>
-                <p className="text-sm text-text-secondary">Find answers to common questions</p>
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
+                  <HelpCircle className="w-6 h-6 text-blue-600" />
+                </div>
+                <h3 className="text-gray-900 font-semibold mb-1">FAQ</h3>
+                <p className="text-sm text-gray-500">Find answers to common questions</p>
               </a>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                <Clock className="w-8 h-8 text-yellow-400 mb-3" />
-                <h3 className="text-white font-semibold mb-1">Response Time</h3>
-                <p className="text-sm text-text-secondary">Usually within 24 hours</p>
+              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-3">
+                  <Clock className="w-6 h-6 text-amber-600" />
+                </div>
+                <h3 className="text-gray-900 font-semibold mb-1">Response Time</h3>
+                <p className="text-sm text-gray-500">Usually within 24 hours</p>
               </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                <CheckCircle className="w-8 h-8 text-green-400 mb-3" />
-                <h3 className="text-white font-semibold mb-1">Priority Support</h3>
-                <p className="text-sm text-text-secondary">Gold tier and above get faster responses</p>
+              <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-3">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+                <h3 className="text-gray-900 font-semibold mb-1">Priority Support</h3>
+                <p className="text-sm text-gray-500">Gold tier and above get faster responses</p>
               </div>
             </div>
 
             {/* Support Chat/Tickets */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-              <div className="p-6 border-b border-white/10">
+            <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-6 border-b border-gray-100 bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <MessageCircle className="w-6 h-6 text-brand-blue" />
-                    <h2 className="text-lg font-semibold text-white">Support Messages</h2>
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <MessageCircle className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-gray-900">Support Messages</h2>
                   </div>
                   {!showNewTicketForm && (
                     <button
                       onClick={() => setShowNewTicketForm(true)}
-                      className="px-4 py-2 bg-brand-blue hover:bg-brand-blue/80 text-white rounded-lg text-sm font-medium transition-colors"
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
                     >
                       New Message
                     </button>
@@ -132,14 +140,14 @@ export default function CustomerSupportPage() {
 
               {isLoading ? (
                 <div className="p-8 text-center">
-                  <div className="animate-spin w-8 h-8 border-2 border-brand-blue border-t-transparent rounded-full mx-auto mb-4" />
-                  <p className="text-text-secondary">Loading...</p>
+                  <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
+                  <p className="text-gray-500">Loading...</p>
                 </div>
               ) : showNewTicketForm ? (
                 <div className="p-6">
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-text-secondary mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Subject
                       </label>
                       <input
@@ -147,11 +155,11 @@ export default function CustomerSupportPage() {
                         value={newSubject}
                         onChange={(e) => setNewSubject(e.target.value)}
                         placeholder="What do you need help with?"
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-text-secondary mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Message
                       </label>
                       <textarea
@@ -159,7 +167,7 @@ export default function CustomerSupportPage() {
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Describe your issue or question..."
                         rows={4}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-brand-blue resize-none"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white resize-none"
                       />
                     </div>
                     <div className="flex gap-3">
@@ -169,13 +177,13 @@ export default function CustomerSupportPage() {
                           setNewSubject('');
                           setNewMessage('');
                         }}
-                        className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
+                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
                       >
                         Cancel
                       </button>
                       <button
                         disabled={!newSubject.trim() || !newMessage.trim()}
-                        className="px-4 py-2 bg-brand-blue hover:bg-brand-blue/80 disabled:bg-brand-blue/50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                       >
                         <Send className="w-4 h-4" />
                         Send Message
@@ -184,11 +192,11 @@ export default function CustomerSupportPage() {
                   </div>
                 </div>
               ) : tickets && tickets.length > 0 ? (
-                <div className="divide-y divide-white/5">
+                <div className="divide-y divide-gray-100">
                   {tickets.map((ticket) => (
                     <div key={ticket.id} className="p-6">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-white font-medium">{ticket.subject}</h3>
+                        <h3 className="text-gray-900 font-medium">{ticket.subject}</h3>
                         <span className={`text-xs px-2 py-1 rounded-full ${statusColors[ticket.status]}`}>
                           {ticket.status.replace('_', ' ')}
                         </span>
@@ -202,12 +210,12 @@ export default function CustomerSupportPage() {
                             <div
                               className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                                 msg.isAdmin
-                                  ? 'bg-white/10 text-white'
-                                  : 'bg-brand-blue text-white'
+                                  ? 'bg-gray-100 text-gray-900'
+                                  : 'bg-blue-500 text-white'
                               }`}
                             >
                               <p className="text-sm">{msg.content}</p>
-                              <p className="text-xs opacity-60 mt-1">
+                              <p className={`text-xs mt-1 ${msg.isAdmin ? 'text-gray-500' : 'text-blue-100'}`}>
                                 {msg.senderName} - {new Date(msg.createdAt).toLocaleString()}
                               </p>
                             </div>
@@ -220,9 +228,9 @@ export default function CustomerSupportPage() {
                           <input
                             type="text"
                             placeholder="Type a reply..."
-                            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                            className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white"
                           />
-                          <button className="p-2 bg-brand-blue hover:bg-brand-blue/80 text-white rounded-lg transition-colors">
+                          <button className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors">
                             <Send className="w-5 h-5" />
                           </button>
                         </div>
@@ -232,14 +240,16 @@ export default function CustomerSupportPage() {
                 </div>
               ) : (
                 <div className="p-12 text-center">
-                  <MessageCircle className="w-16 h-16 text-text-secondary mx-auto mb-4 opacity-50" />
-                  <h3 className="text-lg font-semibold text-white mb-2">No messages yet</h3>
-                  <p className="text-text-secondary mb-6">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MessageCircle className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No messages yet</h3>
+                  <p className="text-gray-500 mb-6">
                     Have a question? Our support team is here to help!
                   </p>
                   <button
                     onClick={() => setShowNewTicketForm(true)}
-                    className="px-6 py-3 bg-brand-blue hover:bg-brand-blue/80 text-white rounded-lg font-medium transition-colors"
+                    className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
                   >
                     Start a Conversation
                   </button>
@@ -248,10 +258,10 @@ export default function CustomerSupportPage() {
             </div>
 
             {/* Contact Info */}
-            <div className="mt-8 text-center text-text-secondary text-sm">
+            <div className="mt-8 text-center text-gray-500 text-sm">
               <p>
                 For urgent matters, email us at{' '}
-                <a href="mailto:support@producertour.com" className="text-brand-blue hover:underline">
+                <a href="mailto:support@producertour.com" className="text-blue-500 hover:underline">
                   support@producertour.com
                 </a>
               </p>

@@ -43,13 +43,13 @@ interface Order {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  PENDING: { label: 'Pending', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: <Clock className="w-3 h-3" /> },
-  PROCESSING: { label: 'Processing', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: <RefreshCw className="w-3 h-3" /> },
-  COMPLETED: { label: 'Completed', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: <CheckCircle2 className="w-3 h-3" /> },
-  SHIPPED: { label: 'Shipped', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30', icon: <Truck className="w-3 h-3" /> },
-  DELIVERED: { label: 'Delivered', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: <Package className="w-3 h-3" /> },
-  CANCELLED: { label: 'Cancelled', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: <XCircle className="w-3 h-3" /> },
-  REFUNDED: { label: 'Refunded', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: <RefreshCw className="w-3 h-3" /> },
+  PENDING: { label: 'Pending', color: 'bg-amber-100 text-amber-700 border border-amber-200', icon: <Clock className="w-3 h-3" /> },
+  PROCESSING: { label: 'Processing', color: 'bg-blue-100 text-blue-700 border border-blue-200', icon: <RefreshCw className="w-3 h-3" /> },
+  COMPLETED: { label: 'Completed', color: 'bg-emerald-100 text-emerald-700 border border-emerald-200', icon: <CheckCircle2 className="w-3 h-3" /> },
+  SHIPPED: { label: 'Shipped', color: 'bg-purple-100 text-purple-700 border border-purple-200', icon: <Truck className="w-3 h-3" /> },
+  DELIVERED: { label: 'Delivered', color: 'bg-emerald-100 text-emerald-700 border border-emerald-200', icon: <Package className="w-3 h-3" /> },
+  CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-700 border border-red-200', icon: <XCircle className="w-3 h-3" /> },
+  REFUNDED: { label: 'Refunded', color: 'bg-gray-100 text-gray-600 border border-gray-200', icon: <RefreshCw className="w-3 h-3" /> },
 };
 
 export default function CustomerOrdersPage() {
@@ -66,15 +66,15 @@ export default function CustomerOrdersPage() {
   const orders: Order[] = data?.orders || [];
 
   return (
-    <div className="flex h-screen bg-surface-400">
+    <div className="flex h-screen bg-slate-50">
       <Sidebar activeTab="orders" onTabChange={() => {}} />
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto py-8 px-4 md:px-8">
+      <div className="flex-1 overflow-y-auto ml-0 md:ml-64">
+        <div className="max-w-5xl mx-auto py-8 px-4 md:px-8 pt-16 md:pt-8 pb-24 md:pb-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-display-lg text-text-primary mb-2 font-display">My Orders</h1>
-            <p className="text-body-lg text-text-secondary">
+            <h1 className="text-2xl md:text-3xl text-gray-900 mb-2 font-bold">My Orders</h1>
+            <p className="text-gray-500">
               View your purchase history and download digital products.
             </p>
           </div>
@@ -82,33 +82,33 @@ export default function CustomerOrdersPage() {
           {/* Loading State */}
           {isLoading && (
             <div className="flex items-center justify-center py-16">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
             </div>
           )}
 
           {/* Error State */}
           {error && (
-            <Card className="bg-red-500/10 border-red-500/30">
+            <Card className="bg-red-50 border border-red-200 shadow-sm">
               <CardContent className="py-8 text-center">
-                <XCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                <p className="text-text-primary font-semibold">Failed to load orders</p>
-                <p className="text-text-muted text-sm mt-1">Please try again later.</p>
+                <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <p className="text-gray-900 font-semibold">Failed to load orders</p>
+                <p className="text-gray-500 text-sm mt-1">Please try again later.</p>
               </CardContent>
             </Card>
           )}
 
           {/* Empty State */}
           {!isLoading && !error && orders.length === 0 && (
-            <Card className="bg-surface-100 border-panel-border">
+            <Card className="bg-white border border-gray-100 shadow-sm">
               <CardContent className="py-16 text-center">
-                <ShoppingBag className="w-16 h-16 text-text-muted mx-auto mb-4 opacity-50" />
-                <h3 className="text-text-primary font-semibold text-xl mb-2">No orders yet</h3>
-                <p className="text-text-muted mb-6">
+                <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-gray-900 font-semibold text-xl mb-2">No orders yet</h3>
+                <p className="text-gray-500 mb-6">
                   When you make a purchase, your orders will appear here.
                 </p>
                 <Button
                   onClick={() => window.location.href = '/shop'}
-                  className="bg-primary-500 hover:bg-primary-600 text-white"
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
                 >
                   Browse Shop
                 </Button>
@@ -123,36 +123,36 @@ export default function CustomerOrdersPage() {
                 const status = statusConfig[order.status] || statusConfig.PENDING;
 
                 return (
-                  <Card key={order.id} className="bg-surface-100 border-panel-border shadow-card overflow-hidden">
+                  <Card key={order.id} className="bg-white border border-gray-100 shadow-sm overflow-hidden">
                     {/* Order Header */}
-                    <CardHeader className="bg-surface-200 border-b border-panel-border">
+                    <CardHeader className="bg-gray-50 border-b border-gray-100">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div className="flex items-center gap-4">
-                          <div className="p-2 rounded-lg bg-primary-500/10">
-                            <Package className="w-5 h-5 text-primary-500" />
+                          <div className="p-2 rounded-lg bg-blue-100">
+                            <Package className="w-5 h-5 text-blue-600" />
                           </div>
                           <div>
-                            <CardTitle className="text-text-primary text-lg">
+                            <CardTitle className="text-gray-900 text-lg">
                               Order #{order.orderNumber}
                             </CardTitle>
-                            <CardDescription className="text-text-muted">
+                            <CardDescription className="text-gray-500">
                               {format(new Date(order.createdAt), 'MMMM d, yyyy • h:mm a')}
                             </CardDescription>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Badge className={`${status.color} border flex items-center gap-1.5`}>
+                          <Badge className={`${status.color} flex items-center gap-1.5`}>
                             {status.icon}
                             {status.label}
                           </Badge>
-                          <span className="text-text-primary font-bold text-lg">
+                          <span className="text-gray-900 font-bold text-lg">
                             ${parseFloat(order.total).toFixed(2)}
                           </span>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setReceiptModal({ open: true, order })}
-                            className="text-primary-400 border-primary-500/30 hover:bg-primary-500/10"
+                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
                           >
                             <Receipt className="w-3 h-3 mr-1" />
                             Receipt
@@ -166,10 +166,10 @@ export default function CustomerOrdersPage() {
                       <div className="space-y-4">
                         {order.items.map((item, index) => (
                           <div key={item.id}>
-                            {index > 0 && <Separator className="bg-panel-border my-4" />}
+                            {index > 0 && <Separator className="bg-gray-100 my-4" />}
                             <div className="flex items-start gap-4">
                               {/* Product Image */}
-                              <div className="w-16 h-16 rounded-lg bg-surface-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                              <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                                 {item.product.imageUrl ? (
                                   <img
                                     src={item.product.imageUrl}
@@ -177,35 +177,35 @@ export default function CustomerOrdersPage() {
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <Package className="w-6 h-6 text-text-muted" />
+                                  <Package className="w-6 h-6 text-gray-400" />
                                 )}
                               </div>
 
                               {/* Product Details */}
                               <div className="flex-1 min-w-0">
-                                <h4 className="text-text-primary font-semibold truncate">
+                                <h4 className="text-gray-900 font-semibold truncate">
                                   {item.product.name}
                                 </h4>
                                 {item.variation && (
-                                  <p className="text-text-muted text-sm">
+                                  <p className="text-gray-500 text-sm">
                                     {item.variation.name}
                                   </p>
                                 )}
-                                <p className="text-text-secondary text-sm mt-1">
+                                <p className="text-gray-600 text-sm mt-1">
                                   Qty: {item.quantity} × ${parseFloat(item.unitPrice).toFixed(2)}
                                 </p>
                               </div>
 
                               {/* Item Actions & Price */}
                               <div className="text-right flex-shrink-0">
-                                <p className="text-text-primary font-semibold">
+                                <p className="text-gray-900 font-semibold">
                                   ${parseFloat(item.totalPrice).toFixed(2)}
                                 </p>
                                 {item.product.type === 'DIGITAL' && order.status === 'COMPLETED' && (
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="mt-2 text-primary-400 border-primary-500/30 hover:bg-primary-500/10"
+                                    className="mt-2 text-blue-600 border-blue-200 hover:bg-blue-50"
                                   >
                                     <Download className="w-3 h-3 mr-1" />
                                     Download
@@ -220,20 +220,20 @@ export default function CustomerOrdersPage() {
                       {/* Order Summary */}
                       {(parseFloat(order.discount) > 0 || parseFloat(order.tax) > 0) && (
                         <>
-                          <Separator className="bg-panel-border my-4" />
+                          <Separator className="bg-gray-100 my-4" />
                           <div className="space-y-2 text-sm">
-                            <div className="flex justify-between text-text-muted">
+                            <div className="flex justify-between text-gray-500">
                               <span>Subtotal</span>
                               <span>${parseFloat(order.subtotal).toFixed(2)}</span>
                             </div>
                             {parseFloat(order.discount) > 0 && (
-                              <div className="flex justify-between text-green-400">
+                              <div className="flex justify-between text-emerald-600">
                                 <span>Discount</span>
                                 <span>-${parseFloat(order.discount).toFixed(2)}</span>
                               </div>
                             )}
                             {parseFloat(order.tax) > 0 && (
-                              <div className="flex justify-between text-text-muted">
+                              <div className="flex justify-between text-gray-500">
                                 <span>Tax</span>
                                 <span>${parseFloat(order.tax).toFixed(2)}</span>
                               </div>

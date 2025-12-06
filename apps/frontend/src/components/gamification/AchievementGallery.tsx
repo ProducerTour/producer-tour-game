@@ -53,7 +53,7 @@ export default function AchievementGallery() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-slate-400">Loading achievements...</div>
+        <div className="text-gray-500">Loading achievements...</div>
       </div>
     );
   }
@@ -62,26 +62,26 @@ export default function AchievementGallery() {
     <div>
       {/* Stats Header */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/40 rounded-xl p-4">
-          <div className="text-sm text-slate-400 mb-1">Unlocked</div>
-          <div className="text-2xl font-bold text-white">
+        <div className="bg-white border border-blue-200 rounded-xl p-4 shadow-sm">
+          <div className="text-sm text-gray-500 mb-1">Unlocked</div>
+          <div className="text-2xl font-bold text-gray-900">
             {stats.unlocked} / {stats.total}
           </div>
-          <div className="text-xs text-slate-400 mt-1">
+          <div className="text-xs text-blue-500 mt-1">
             {Math.round((stats.unlocked / stats.total) * 100)}% Complete
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 border border-yellow-500/40 rounded-xl p-4">
-          <div className="text-sm text-slate-400 mb-1">Points Earned</div>
-          <div className="text-2xl font-bold text-white">{stats.totalPoints} TM</div>
-          <div className="text-xs text-slate-400 mt-1">From achievements</div>
+        <div className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm">
+          <div className="text-sm text-gray-500 mb-1">Points Earned</div>
+          <div className="text-2xl font-bold text-gray-900">{stats.totalPoints} TM</div>
+          <div className="text-xs text-amber-500 mt-1">From achievements</div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 border border-purple-500/40 rounded-xl p-4">
-          <div className="text-sm text-slate-400 mb-1">Remaining</div>
-          <div className="text-2xl font-bold text-white">{stats.total - stats.unlocked}</div>
-          <div className="text-xs text-slate-400 mt-1">To unlock</div>
+        <div className="bg-white border border-purple-200 rounded-xl p-4 shadow-sm">
+          <div className="text-sm text-gray-500 mb-1">Remaining</div>
+          <div className="text-2xl font-bold text-gray-900">{stats.total - stats.unlocked}</div>
+          <div className="text-xs text-purple-500 mt-1">To unlock</div>
         </div>
       </div>
 
@@ -96,8 +96,8 @@ export default function AchievementGallery() {
               className={`
                 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-medium transition-all whitespace-nowrap flex-shrink-0
                 ${selectedCategory === category
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                 }
               `}
             >
@@ -112,8 +112,8 @@ export default function AchievementGallery() {
           className={`
             px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-medium transition-all self-start
             ${showUnlockedOnly
-              ? 'bg-green-500 text-white'
-              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              ? 'bg-emerald-500 text-white shadow-sm'
+              : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
             }
           `}
         >
@@ -129,9 +129,9 @@ export default function AchievementGallery() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+        <div className="flex flex-col items-center justify-center h-64 text-gray-400">
           <div className="text-6xl mb-4">🏆</div>
-          <div className="text-lg">No achievements found</div>
+          <div className="text-lg text-gray-600">No achievements found</div>
           <div className="text-sm mt-2">Try adjusting your filters</div>
         </div>
       )}

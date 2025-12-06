@@ -132,18 +132,18 @@ export const WalletCard: React.FC<WalletCardProps> = ({
       <div className="max-w-[400px] space-y-3">
         {/* Pending Balance */}
         {balance.pendingBalance > 0 && (
-          <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-                <Clock className="h-5 w-5 text-amber-400" />
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-amber-600" />
               </div>
               <div className="flex-1">
-                <p className="text-gray-400 text-xs">Pending Withdrawal</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-gray-500 text-xs">Pending Withdrawal</p>
+                <p className="text-lg font-semibold text-gray-900">
                   {formatCurrency(balance.pendingBalance)}
                 </p>
               </div>
-              <span className="text-[10px] uppercase tracking-wider text-amber-400/80 bg-amber-400/10 px-2 py-1 rounded-full">
+              <span className="text-[10px] uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-1 rounded-full border border-amber-200">
                 Processing
               </span>
             </div>
@@ -151,14 +151,14 @@ export const WalletCard: React.FC<WalletCardProps> = ({
         )}
 
         {/* Lifetime Stats */}
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 backdrop-blur-sm">
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-emerald-400" />
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-emerald-600" />
             </div>
             <div className="flex-1">
-              <p className="text-gray-400 text-xs">Total Earned All Time</p>
-              <p className="text-lg font-semibold text-white">
+              <p className="text-gray-500 text-xs">Total Earned All Time</p>
+              <p className="text-lg font-semibold text-gray-900">
                 {formatCurrency(balance.lifetimeEarnings)}
               </p>
             </div>
@@ -172,7 +172,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({
           className={`w-full py-3.5 px-4 rounded-xl font-semibold transition-all text-sm ${
             canWithdraw
               ? 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5'
-              : 'bg-slate-800 text-gray-500 cursor-not-allowed border border-slate-700'
+              : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
           }`}
         >
           {canWithdraw
@@ -183,7 +183,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({
         </button>
 
         {!canWithdraw && balance.availableBalance > 0 && (
-          <p className="text-xs text-center text-amber-400/80 flex items-center justify-center gap-1">
+          <p className="text-xs text-center text-amber-600 flex items-center justify-center gap-1">
             <AlertCircle className="h-3 w-3" />
             Need {formatCurrency(minimumAmount - balance.availableBalance)} more to withdraw
           </p>

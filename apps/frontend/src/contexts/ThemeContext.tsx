@@ -59,7 +59,7 @@ function injectThemeVariables(theme: Theme) {
   root.style.setProperty('--theme-scrollbar-thumb-hover', colors.scrollbarThumbHover);
 
   // Add theme class to body for CSS selectors
-  document.body.classList.remove('theme-cassette', 'theme-light');
+  document.body.classList.remove('theme-cassette', 'theme-light', 'theme-default');
   document.body.classList.add(`theme-${theme.id}`);
 }
 

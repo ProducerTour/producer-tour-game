@@ -108,17 +108,18 @@ export default function WriterOverviewTremor({ onWithdrawClick }: WriterOverview
       {/* Charts Section */}
       <Grid numItemsSm={1} numItemsLg={2} className="gap-6">
         {/* Earnings Timeline - Recharts Area Chart */}
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+        <Card className="bg-white border border-gray-100 shadow-sm ring-0 rounded-2xl">
           <div className="mb-4">
-            <Title className="text-white">Earnings Timeline</Title>
-            <Text className="text-gray-400">Monthly revenue trend</Text>
+            <Title className="text-gray-900">Earnings Timeline</Title>
+            <Text className="text-gray-500">Monthly revenue trend</Text>
           </div>
           {timelineChartData.length > 0 ? (
             <RechartsRevenueChart
               data={timelineChartData}
               height={288}
-              color="#3b82f6"
+              color="#22C55E"
               gradientId="writerRevenueGradient"
+              lightMode={true}
             />
           ) : (
             <div className="h-72 flex items-center justify-center text-gray-400">
@@ -128,10 +129,10 @@ export default function WriterOverviewTremor({ onWithdrawClick }: WriterOverview
         </Card>
 
         {/* PRO Breakdown - Nivo Pie Chart */}
-        <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+        <Card className="bg-white border border-gray-100 shadow-sm ring-0 rounded-2xl">
           <div className="mb-4">
-            <Title className="text-white">Revenue by PRO</Title>
-            <Text className="text-gray-400">Earnings distribution by source</Text>
+            <Title className="text-gray-900">Revenue by PRO</Title>
+            <Text className="text-gray-500">Earnings distribution by source</Text>
           </div>
           {proBreakdown.length > 0 ? (
             <NivoPieChart
@@ -165,17 +166,17 @@ export default function WriterOverviewTremor({ onWithdrawClick }: WriterOverview
       </ChartCard>
 
       {/* Recent Statements - Tremor List */}
-      <Card className="bg-gradient-to-b from-white/[0.08] to-white/[0.02] border-white/[0.08] ring-0">
+      <Card className="bg-white border border-gray-100 shadow-sm ring-0 rounded-2xl">
         <div className="mb-4">
-          <Title className="text-white">Recent Statements</Title>
-          <Text className="text-gray-400">Your latest royalty statements</Text>
+          <Title className="text-gray-900">Recent Statements</Title>
+          <Text className="text-gray-500">Your latest royalty statements</Text>
         </div>
         {statementsLoading ? (
-          <div className="text-center text-gray-400 py-8">Loading...</div>
+          <div className="text-center text-gray-500 py-8">Loading...</div>
         ) : statementsData?.statements?.length > 0 ? (
           <List className="mt-4">
             {statementsData.statements.slice(0, 6).map((statement: any) => (
-              <ListItem key={statement.id}>
+              <ListItem key={statement.id} className="border-b border-gray-100 last:border-0">
                 <Flex justifyContent="start" className="truncate space-x-4">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                     statement.proType === 'BMI' ? 'bg-blue-500' :
@@ -183,13 +184,13 @@ export default function WriterOverviewTremor({ onWithdrawClick }: WriterOverview
                     statement.proType === 'SESAC' ? 'bg-violet-500' : 'bg-gray-500'
                   }`} />
                   <div className="truncate">
-                    <Text className="text-white font-medium truncate">{statement.proType}</Text>
-                    <Text className="text-gray-500 text-sm">
+                    <Text className="text-gray-900 font-medium truncate">{statement.proType}</Text>
+                    <Text className="text-gray-400 text-sm">
                       {statement.itemCount || 0} items • {Number(statement.totalPerformances || 0).toLocaleString()} performances
                     </Text>
                   </div>
                 </Flex>
-                <Text className="text-emerald-400 font-semibold">
+                <Text className="text-emerald-600 font-semibold">
                   ${Number(statement.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Text>
               </ListItem>

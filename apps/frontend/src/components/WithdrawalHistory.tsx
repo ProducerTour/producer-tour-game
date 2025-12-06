@@ -43,42 +43,42 @@ export const WithdrawalHistory: React.FC = () => {
     switch (status) {
       case 'COMPLETED':
         return (
-          <span className={`${baseClasses} bg-green-500/20 text-green-300`}>
+          <span className={`${baseClasses} bg-emerald-100 text-emerald-700 border border-emerald-200`}>
             <CheckCircle className="h-3.5 w-3.5" />
             Completed
           </span>
         );
       case 'PROCESSING':
         return (
-          <span className={`${baseClasses} bg-blue-500/20 text-blue-300`}>
+          <span className={`${baseClasses} bg-blue-100 text-blue-700 border border-blue-200`}>
             <Clock className="h-3.5 w-3.5" />
             Processing
           </span>
         );
       case 'APPROVED':
         return (
-          <span className={`${baseClasses} bg-cyan-500/20 text-cyan-300`}>
+          <span className={`${baseClasses} bg-cyan-100 text-cyan-700 border border-cyan-200`}>
             <CheckCircle className="h-3.5 w-3.5" />
             Approved
           </span>
         );
       case 'PENDING':
         return (
-          <span className={`${baseClasses} bg-yellow-500/20 text-yellow-300`}>
+          <span className={`${baseClasses} bg-amber-100 text-amber-700 border border-amber-200`}>
             <Clock className="h-3.5 w-3.5" />
             Pending Review
           </span>
         );
       case 'FAILED':
         return (
-          <span className={`${baseClasses} bg-red-500/20 text-red-300`}>
+          <span className={`${baseClasses} bg-red-100 text-red-700 border border-red-200`}>
             <XCircle className="h-3.5 w-3.5" />
             Failed
           </span>
         );
       case 'CANCELLED':
         return (
-          <span className={`${baseClasses} bg-gray-500/20 text-gray-300`}>
+          <span className={`${baseClasses} bg-gray-100 text-gray-600 border border-gray-200`}>
             <Ban className="h-3.5 w-3.5" />
             Cancelled
           </span>
@@ -112,8 +112,8 @@ export const WithdrawalHistory: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="bg-slate-700/30 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Withdrawal History</h3>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Withdrawal History</h3>
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
         </div>
@@ -122,32 +122,32 @@ export const WithdrawalHistory: React.FC = () => {
   }
 
   return (
-    <div className="bg-slate-700/30 rounded-lg p-6">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">Withdrawal History</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Withdrawal History</h3>
         {data && data.total > 0 && (
-          <span className="text-sm text-gray-400">{data.total} request{data.total !== 1 ? 's' : ''}</span>
+          <span className="text-sm text-gray-500">{data.total} request{data.total !== 1 ? 's' : ''}</span>
         )}
       </div>
 
       {!data || data.payouts.length === 0 ? (
         <div className="text-center py-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-700/50 mb-4">
-            <Clock className="h-8 w-8 text-gray-500" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 border border-gray-200 mb-4">
+            <Clock className="h-8 w-8 text-gray-400" />
           </div>
-          <p className="text-gray-400">No withdrawal requests yet</p>
-          <p className="text-sm text-gray-500 mt-1">Your withdrawal history will appear here</p>
+          <p className="text-gray-600">No withdrawal requests yet</p>
+          <p className="text-sm text-gray-400 mt-1">Your withdrawal history will appear here</p>
         </div>
       ) : (
         <div className="space-y-4">
           {data.payouts.map((payout) => (
             <div
               key={payout.id}
-              className="bg-slate-800/50 rounded-lg p-4 border border-slate-700/50 hover:border-slate-600 transition-colors"
+              className="bg-gray-50 rounded-xl p-4 border border-gray-200 hover:border-blue-200 transition-colors"
             >
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <p className="text-lg font-semibold text-white">{formatCurrency(payout.amount)}</p>
+                  <p className="text-lg font-semibold text-gray-900">{formatCurrency(payout.amount)}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     Requested {formatDate(payout.requestedAt)}
                   </p>
@@ -155,16 +155,16 @@ export const WithdrawalHistory: React.FC = () => {
                 {getStatusBadge(payout.status)}
               </div>
 
-              <p className="text-sm text-gray-400 mt-2">{getStatusDescription(payout)}</p>
+              <p className="text-sm text-gray-500 mt-2">{getStatusDescription(payout)}</p>
 
               {/* Show additional details for certain statuses */}
               {payout.status === 'FAILED' && payout.failureReason && (
-                <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+                    <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-xs font-medium text-red-300 mb-1">Failure Reason</p>
-                      <p className="text-xs text-red-200">{payout.failureReason}</p>
+                      <p className="text-xs font-medium text-red-700 mb-1">Failure Reason</p>
+                      <p className="text-xs text-red-600">{payout.failureReason}</p>
                     </div>
                   </div>
                 </div>

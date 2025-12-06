@@ -107,10 +107,14 @@ const getTabsForRole = (role: string): TabItem[] => {
 
 // Pages that use hardcoded light theme styling
 const LIGHT_THEMED_ROUTES = [
+  '/dashboard', // Writer dashboard with new default theme
   '/my-profile',
   '/settings',
   '/user/', // Public profile pages
   '/my-store',
+  '/affiliates', // Affiliate hub
+  '/tour-miles', // Tour Miles page
+  '/customer', // Customer dashboard and sub-routes
 ];
 
 export function BottomTabBar() {
@@ -207,26 +211,26 @@ export function BottomTabBar() {
               className={cn(
                 'flex flex-col items-center justify-center flex-1 h-full py-2 transition-colors',
                 isActive
-                  ? isLightThemedPage ? 'text-purple-600' : 'text-theme-primary'
+                  ? isLightThemedPage ? 'text-blue-600' : 'text-theme-primary'
                   : isLightThemedPage ? 'text-gray-400 hover:text-gray-600' : 'text-theme-foreground-muted hover:text-theme-foreground'
               )}
             >
               <div className={cn(
                 'relative p-1 rounded-xl transition-all',
-                isActive && (isLightThemedPage ? 'bg-purple-100' : 'bg-theme-primary/10')
+                isActive && (isLightThemedPage ? 'bg-blue-100' : 'bg-theme-primary/10')
               )}>
                 {tab.icon}
                 {isActive && (
                   <span className={cn(
                     'absolute -top-1 -right-1 w-2 h-2 rounded-full',
-                    isLightThemedPage ? 'bg-purple-600' : 'bg-theme-primary'
+                    isLightThemedPage ? 'bg-blue-600' : 'bg-theme-primary'
                   )} />
                 )}
               </div>
               <span className={cn(
                 'text-xs mt-1 font-medium',
                 isActive
-                  ? isLightThemedPage ? 'text-purple-600' : 'text-theme-primary'
+                  ? isLightThemedPage ? 'text-blue-600' : 'text-theme-primary'
                   : isLightThemedPage ? 'text-gray-400' : 'text-theme-foreground-muted'
               )}>
                 {tab.label}

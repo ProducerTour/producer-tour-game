@@ -1,7 +1,7 @@
 // Theme definitions for admin dashboard
 // Each theme defines CSS variables that control the entire dashboard appearance
 
-export type ThemeId = 'cassette' | 'light';
+export type ThemeId = 'cassette' | 'light' | 'default';
 
 export interface Theme {
   id: ThemeId;
@@ -162,9 +162,62 @@ export const themes: Record<ThemeId, Theme> = {
       scrollbarThumbHover: '#94a3b8',
     },
   },
+
+  default: {
+    id: 'default',
+    name: 'Default',
+    description: 'Clean light theme with blue accents (inspired by fintech dashboards)',
+    preview: {
+      primary: '#3B82F6',
+      background: '#F8FAFC',
+      card: '#FFFFFF',
+    },
+    colors: {
+      // Primary accent - professional blue
+      primary: '#3B82F6',
+      primaryHover: '#2563EB',
+      primaryForeground: '#FFFFFF',
+      primaryGlow: 'rgba(59, 130, 246, 0.2)',
+
+      // Backgrounds - clean light grays
+      background: '#F8FAFC',
+      backgroundAlt: '#F1F5F9',
+      card: '#FFFFFF',
+      cardHover: '#F8FAFC',
+
+      // Text colors - gray hierarchy
+      foreground: '#1F2937',
+      foregroundSecondary: '#4B5563',
+      foregroundMuted: '#9CA3AF',
+
+      // Borders - subtle
+      border: '#E5E7EB',
+      borderHover: '#3B82F6',
+      borderStrong: '#D1D5DB',
+
+      // UI Elements
+      input: '#FFFFFF',
+      inputFocus: '#3B82F6',
+
+      // Status colors
+      success: '#22C55E',
+      successBackground: '#DCFCE7',
+      error: '#EF4444',
+      errorBackground: '#FEE2E2',
+      warning: '#F97316',
+      warningBackground: '#FEF3C7',
+      info: '#3B82F6',
+      infoBackground: '#DBEAFE',
+
+      // Scrollbar
+      scrollbarTrack: '#F1F5F9',
+      scrollbarThumb: '#D1D5DB',
+      scrollbarThumbHover: '#9CA3AF',
+    },
+  },
 };
 
-export const defaultTheme: ThemeId = 'cassette';
+export const defaultTheme: ThemeId = 'default';
 
 // Get theme by ID with fallback
 export function getTheme(id: ThemeId | string): Theme {

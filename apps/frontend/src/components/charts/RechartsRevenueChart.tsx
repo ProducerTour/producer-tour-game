@@ -27,6 +27,8 @@ interface RechartsRevenueChartProps {
   gradientId?: string;
   /** Pad data with empty months to show context (default: 6) */
   minMonths?: number;
+  /** Use light mode colors (for white backgrounds) */
+  lightMode?: boolean;
 }
 
 // Custom tooltip component - Cassette theme
@@ -67,7 +69,20 @@ export function RechartsRevenueChart({
   color = '#f0e226', // Cassette yellow
   gradientId = 'revenueGradient',
   minMonths = 6,
+  lightMode = false,
 }: RechartsRevenueChartProps) {
+  // Color scheme based on mode
+  const colors = lightMode ? {
+    gridStroke: 'rgba(0, 0, 0, 0.05)',
+    axisStroke: 'rgba(0, 0, 0, 0.1)',
+    tickFill: 'rgba(0, 0, 0, 0.5)',
+    cursorStroke: '#9ca3af',
+  } : {
+    gridStroke: 'rgba(255, 255, 255, 0.05)',
+    axisStroke: 'rgba(255, 255, 255, 0.1)',
+    tickFill: 'rgba(255, 255, 255, 0.4)',
+    cursorStroke: '#6b7280',
+  };
   // Format currency for Y axis
   const formatYAxis = (value: number) => {
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
@@ -143,7 +158,7 @@ export function RechartsRevenueChart({
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={chartData}
-          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+          margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
         >
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -156,7 +171,7 @@ export function RechartsRevenueChart({
           {showGrid && (
             <CartesianGrid
               strokeDasharray="3 3"
-              stroke="rgba(255, 255, 255, 0.05)"
+              stroke={colors.gridStroke}
               strokeOpacity={1}
               vertical={false}
             />
@@ -164,29 +179,29 @@ export function RechartsRevenueChart({
 
           <XAxis
             dataKey="month"
-            stroke="rgba(255, 255, 255, 0.1)"
+            stroke={colors.axisStroke}
             fontSize={10}
             tickLine={false}
-            axisLine={{ stroke: 'rgba(255, 255, 255, 0.1)', strokeWidth: 1 }}
+            axisLine={{ stroke: colors.axisStroke, strokeWidth: 1 }}
             dy={10}
-            tick={{ fill: 'rgba(255, 255, 255, 0.4)' }}
+            tick={{ fill: colors.tickFill }}
             tickFormatter={formatMonth}
           />
 
           <YAxis
-            stroke="rgba(255, 255, 255, 0.1)"
+            stroke={colors.axisStroke}
             fontSize={10}
             tickLine={false}
             axisLine={false}
             tickFormatter={formatYAxis}
             dx={-5}
-            tick={{ fill: 'rgba(255, 255, 255, 0.4)' }}
+            tick={{ fill: colors.tickFill }}
             width={55}
           />
 
           <Tooltip
             content={<CustomTooltip />}
-            cursor={{ stroke: '#6b7280', strokeDasharray: '4 4' }}
+            cursor={{ stroke: colors.cursorStroke, strokeDasharray: '4 4' }}
             labelFormatter={formatMonth}
           />
 

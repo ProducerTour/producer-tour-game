@@ -84,7 +84,7 @@ export default function Leaderboard() {
       );
     }
     return (
-      <div className="bg-slate-700 text-slate-300 font-semibold rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-sm sm:text-base">
+      <div className="bg-gray-100 text-gray-600 font-semibold rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-sm sm:text-base border border-gray-200">
         {index + 1}
       </div>
     );
@@ -102,7 +102,7 @@ export default function Leaderboard() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-slate-400">Loading leaderboard...</div>
+        <div className="text-gray-500">Loading leaderboard...</div>
       </div>
     );
   }
@@ -113,10 +113,10 @@ export default function Leaderboard() {
       <div className="mb-4 sm:mb-6">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div>
-            <h3 className="text-base sm:text-xl font-bold text-white mb-0.5 sm:mb-1">Leaderboard</h3>
-            <p className="text-xs sm:text-sm text-slate-400">See how you rank</p>
+            <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-0.5 sm:mb-1">Leaderboard</h3>
+            <p className="text-xs sm:text-sm text-gray-500">See how you rank</p>
           </div>
-          <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400" />
+          <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500" />
         </div>
 
         {/* Filters - horizontally scrollable on mobile */}
@@ -125,8 +125,8 @@ export default function Leaderboard() {
             onClick={() => setSelectedTier(null)}
             className={`px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
               selectedTier === null
-                ? 'bg-blue-500 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-blue-500 text-white shadow-sm'
+                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
             }`}
           >
             All
@@ -137,8 +137,8 @@ export default function Leaderboard() {
               onClick={() => setSelectedTier(tier)}
               className={`px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-medium transition-all flex items-center gap-1 sm:gap-2 whitespace-nowrap flex-shrink-0 ${
                 selectedTier === tier
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
               }`}
             >
               <span>{TIER_EMOJIS[tier as keyof typeof TIER_EMOJIS]}</span>
@@ -149,15 +149,15 @@ export default function Leaderboard() {
 
         {/* Limit Selector */}
         <div className="mt-2 sm:mt-3 flex gap-1.5 sm:gap-2 items-center">
-          <span className="text-xs sm:text-sm text-slate-400">Show:</span>
+          <span className="text-xs sm:text-sm text-gray-500">Show:</span>
           {[10, 25, 50, 100].map((n) => (
             <button
               key={n}
               onClick={() => setLimit(n)}
               className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded text-[11px] sm:text-sm ${
                 limit === n
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
               }`}
             >
               {n}
@@ -175,13 +175,13 @@ export default function Leaderboard() {
               className={`
                 rounded-lg sm:rounded-xl p-2.5 sm:p-4 transition-all
                 ${index < 3
-                  ? 'bg-gradient-to-r from-slate-800/50 to-slate-900/50 border sm:border-2'
-                  : 'bg-slate-800/30 border border-slate-700'
+                  ? 'bg-white border sm:border-2 shadow-sm'
+                  : 'bg-white border border-gray-100'
                 }
-                ${index === 0 ? 'border-yellow-500/50 shadow-lg shadow-yellow-500/20' : ''}
-                ${index === 1 ? 'border-gray-400/50 shadow-lg shadow-gray-400/20' : ''}
-                ${index === 2 ? 'border-amber-600/50 shadow-lg shadow-amber-600/20' : ''}
-                hover:bg-slate-800/60
+                ${index === 0 ? 'border-yellow-400 shadow-md shadow-yellow-100' : ''}
+                ${index === 1 ? 'border-gray-300 shadow-md shadow-gray-100' : ''}
+                ${index === 2 ? 'border-amber-400 shadow-md shadow-amber-100' : ''}
+                hover:bg-gray-50
               `}
             >
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
@@ -211,7 +211,7 @@ export default function Leaderboard() {
                   {/* User Info - Mobile condensed */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h4 className="font-semibold text-white truncate text-sm sm:text-base">
+                      <h4 className="font-semibold text-gray-900 truncate text-sm sm:text-base">
                         {getUserDisplayName(entry)}
                       </h4>
                       <div className="flex items-center gap-1">
@@ -227,7 +227,7 @@ export default function Leaderboard() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-4 text-xs text-slate-400">
+                    <div className="flex items-center gap-2 sm:gap-4 text-xs text-gray-500">
                       <span className="truncate">Lifetime: {entry.totalEarned.toLocaleString()} TM</span>
                       {entry.currentStreak > 0 && (
                         <span className="flex items-center gap-1 flex-shrink-0">
@@ -239,10 +239,10 @@ export default function Leaderboard() {
 
                   {/* Points */}
                   <div className="text-right flex-shrink-0 ml-auto">
-                    <div className="text-xl sm:text-2xl font-bold text-yellow-400">
+                    <div className="text-xl sm:text-2xl font-bold text-amber-500">
                       {entry.points.toLocaleString()}
                     </div>
-                    <div className="text-xs text-slate-400 hidden sm:block">Tour Miles</div>
+                    <div className="text-xs text-gray-400 hidden sm:block">Tour Miles</div>
                   </div>
                 </div>
               </div>
@@ -250,9 +250,9 @@ export default function Leaderboard() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+        <div className="flex flex-col items-center justify-center h-64 text-gray-400">
           <Trophy className="w-16 h-16 mb-4 opacity-20" />
-          <div className="text-lg mb-2">No entries found</div>
+          <div className="text-lg mb-2 text-gray-600">No entries found</div>
           <div className="text-sm">Be the first to earn points in this tier!</div>
         </div>
       )}

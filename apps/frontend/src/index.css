@@ -7,43 +7,43 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0f172a;
+  color-scheme: light;
+  color: #1F2937;
+  background-color: #F8FAFC;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* Default theme variables (Cassette theme - will be overridden by JS) */
-  --theme-primary: #f0e226;
-  --theme-primary-hover: #d9cc22;
-  --theme-primary-foreground: #000000;
-  --theme-primary-glow: rgba(240, 226, 38, 0.3);
-  --theme-background: #000000;
-  --theme-background-alt: #0a0a0a;
-  --theme-card: #19181a;
-  --theme-card-hover: #1f1e20;
-  --theme-foreground: #ffffff;
-  --theme-foreground-secondary: rgba(255, 255, 255, 0.7);
-  --theme-foreground-muted: rgba(255, 255, 255, 0.4);
-  --theme-border: rgba(255, 255, 255, 0.05);
-  --theme-border-hover: rgba(240, 226, 38, 0.2);
-  --theme-border-strong: rgba(255, 255, 255, 0.1);
-  --theme-input: #000000;
-  --theme-input-focus: rgba(240, 226, 38, 0.5);
-  --theme-success: #22c55e;
-  --theme-success-bg: rgba(34, 197, 94, 0.1);
-  --theme-error: #ef4444;
-  --theme-error-bg: rgba(239, 68, 68, 0.1);
-  --theme-warning: #f59e0b;
-  --theme-warning-bg: rgba(245, 158, 11, 0.1);
-  --theme-info: #3b82f6;
-  --theme-info-bg: rgba(59, 130, 246, 0.1);
-  --theme-scrollbar-track: #000000;
-  --theme-scrollbar-thumb: #19181a;
-  --theme-scrollbar-thumb-hover: #f0e226;
+  /* Default theme variables (Light theme - will be overridden by JS) */
+  --theme-primary: #3B82F6;
+  --theme-primary-hover: #2563EB;
+  --theme-primary-foreground: #FFFFFF;
+  --theme-primary-glow: rgba(59, 130, 246, 0.2);
+  --theme-background: #F8FAFC;
+  --theme-background-alt: #F1F5F9;
+  --theme-card: #FFFFFF;
+  --theme-card-hover: #F8FAFC;
+  --theme-foreground: #1F2937;
+  --theme-foreground-secondary: #4B5563;
+  --theme-foreground-muted: #9CA3AF;
+  --theme-border: #E5E7EB;
+  --theme-border-hover: #3B82F6;
+  --theme-border-strong: #D1D5DB;
+  --theme-input: #FFFFFF;
+  --theme-input-focus: #3B82F6;
+  --theme-success: #22C55E;
+  --theme-success-bg: #DCFCE7;
+  --theme-error: #EF4444;
+  --theme-error-bg: #FEE2E2;
+  --theme-warning: #F97316;
+  --theme-warning-bg: #FEF3C7;
+  --theme-info: #3B82F6;
+  --theme-info-bg: #DBEAFE;
+  --theme-scrollbar-track: #F1F5F9;
+  --theme-scrollbar-thumb: #D1D5DB;
+  --theme-scrollbar-thumb-hover: #9CA3AF;
 }
 
 body {
@@ -57,23 +57,23 @@ body {
   width: 100%;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - Light theme */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: #F1F5F9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: #D1D5DB;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: #9CA3AF;
 }
 
 /* Cassette theme scrollbar */
@@ -131,26 +131,26 @@ body {
 
 @layer base {
   :root {
-    /* Dark theme as default - slate grey */
-    --background: 222 47% 4%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 6%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 6%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 215 20% 45%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217 19% 18%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 19% 18%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 19% 18%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 19% 14%;
-    --input: 217 19% 14%;
-    --ring: 215 20% 45%;
+    /* Light theme as default */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 60%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;

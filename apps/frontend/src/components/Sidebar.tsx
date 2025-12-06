@@ -28,7 +28,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const themeContext = useThemeOptional();
-  const isLightTheme = themeContext?.themeId === 'light';
+  const isLightTheme = themeContext?.themeId === 'light' || themeContext?.themeId === 'default';
   const { isMobileUI } = usePlatform();
   const [expandedSections, setExpandedSections] = useState<string[]>(['main']);
   const [expandedTabs, setExpandedTabs] = useState<string[]>(['placement-deals']); // Auto-expand placement tracker

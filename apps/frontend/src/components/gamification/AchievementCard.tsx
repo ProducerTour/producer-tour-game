@@ -42,22 +42,22 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
       className={`
         relative rounded-lg sm:rounded-xl p-3 sm:p-6 transition-all duration-300
         ${achievement.unlocked
-          ? 'bg-gradient-to-br from-slate-800 to-slate-900 border border-blue-500/50 sm:border-2 sm:border-blue-500 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40'
-          : 'bg-slate-800/50 border border-slate-700 sm:border-2 opacity-60 hover:opacity-80'
+          ? 'bg-white border border-blue-200 sm:border-2 sm:border-blue-400 shadow-md shadow-blue-100 hover:shadow-lg hover:shadow-blue-200'
+          : 'bg-gray-50 border border-gray-200 sm:border-2 opacity-70 hover:opacity-90'
         }
       `}
     >
       {/* Unlocked Badge */}
       {achievement.unlocked && (
         <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
-          <CheckCircle className="w-4 h-4 sm:w-6 sm:h-6 text-green-400" />
+          <CheckCircle className="w-4 h-4 sm:w-6 sm:h-6 text-emerald-500" />
         </div>
       )}
 
       {/* Locked Overlay */}
       {!achievement.unlocked && (
         <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
-          <Lock className="w-4 h-4 sm:w-6 sm:h-6 text-slate-500" />
+          <Lock className="w-4 h-4 sm:w-6 sm:h-6 text-gray-400" />
         </div>
       )}
 
@@ -75,7 +75,7 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
             w-12 h-12 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-2xl sm:text-4xl
             ${achievement.unlocked
               ? 'bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg'
-              : 'bg-slate-700 grayscale'
+              : 'bg-gray-200 grayscale'
             }
           `}
         >
@@ -84,22 +84,22 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
       </div>
 
       {/* Achievement Name */}
-      <h3 className={`text-xs sm:text-lg font-bold text-center mb-1 sm:mb-2 line-clamp-2 ${achievement.unlocked ? 'text-white' : 'text-slate-400'}`}>
+      <h3 className={`text-xs sm:text-lg font-bold text-center mb-1 sm:mb-2 line-clamp-2 ${achievement.unlocked ? 'text-gray-900' : 'text-gray-500'}`}>
         {achievement.name}
       </h3>
 
       {/* Achievement Description - hidden on mobile for space */}
-      <p className={`text-xs sm:text-sm text-center mb-2 sm:mb-4 line-clamp-2 hidden sm:block ${achievement.unlocked ? 'text-slate-300' : 'text-slate-500'}`}>
+      <p className={`text-xs sm:text-sm text-center mb-2 sm:mb-4 line-clamp-2 hidden sm:block ${achievement.unlocked ? 'text-gray-600' : 'text-gray-400'}`}>
         {achievement.description}
       </p>
 
       {/* Points and Category */}
-      <div className="flex justify-between items-center pt-2 sm:pt-4 border-t border-slate-700">
+      <div className="flex justify-between items-center pt-2 sm:pt-4 border-t border-gray-200">
         <div className="flex items-center gap-0.5 sm:gap-1">
           <span className="text-sm sm:text-xl">{categoryIcon}</span>
-          <span className="text-[9px] sm:text-xs text-slate-400 capitalize hidden sm:inline">{achievement.category.toLowerCase()}</span>
+          <span className="text-[9px] sm:text-xs text-gray-500 capitalize hidden sm:inline">{achievement.category.toLowerCase()}</span>
         </div>
-        <div className={`flex items-center gap-0.5 ${achievement.unlocked ? 'text-yellow-400' : 'text-slate-500'}`}>
+        <div className={`flex items-center gap-0.5 ${achievement.unlocked ? 'text-amber-500' : 'text-gray-400'}`}>
           <span className="text-xs sm:text-sm font-bold">+{achievement.points}</span>
           <span className="text-[9px] sm:text-xs">TM</span>
         </div>
@@ -108,7 +108,7 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
       {/* Unlocked Date - hidden on mobile */}
       {achievement.unlocked && achievement.unlockedAt && (
         <div className="mt-2 sm:mt-3 text-center hidden sm:block">
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-gray-500">
             Unlocked {new Date(achievement.unlockedAt).toLocaleDateString()}
           </p>
         </div>

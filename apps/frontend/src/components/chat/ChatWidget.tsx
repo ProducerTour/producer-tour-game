@@ -735,8 +735,8 @@ export function ChatWidget() {
     : "fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full shadow-lg flex items-center justify-center text-white hover:shadow-xl transition-shadow";
 
   const chatPanelClasses = isMobileUI
-    ? "fixed bottom-0 left-0 right-0 z-50 h-[85vh] bg-slate-900 rounded-t-2xl shadow-2xl border-t border-slate-700 overflow-hidden flex flex-col safe-area-bottom"
-    : "fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden flex flex-col";
+    ? "fixed bottom-[72px] left-0 right-0 z-50 h-[75vh] bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 overflow-hidden flex flex-col"
+    : "fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col";
 
   return (
     <>
@@ -765,7 +765,7 @@ export function ChatWidget() {
             className={chatPanelClasses}
           >
             {/* Header */}
-            <div className="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800/50">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
               {activeConversation ? (
                 <>
                   <button
@@ -773,9 +773,9 @@ export function ChatWidget() {
                       cancelRenaming();
                       handleBack();
                     }}
-                    className="p-1 hover:bg-slate-700 rounded-lg transition"
+                    className="p-1 hover:bg-gray-100 rounded-lg transition"
                   >
-                    <ChevronLeft className="w-5 h-5 text-slate-400" />
+                    <ChevronLeft className="w-5 h-5 text-gray-500" />
                   </button>
                   <div className="flex-1 ml-2">
                     {isRenaming && activeConversation.type === 'GROUP' ? (
@@ -787,30 +787,30 @@ export function ChatWidget() {
                           onChange={(e) => setRenameValue(e.target.value)}
                           onKeyDown={handleRenameKeyPress}
                           onBlur={() => setTimeout(cancelRenaming, 200)}
-                          className="flex-1 bg-slate-700 border border-slate-600 rounded px-2 py-1 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                          className="flex-1 bg-white border border-gray-200 rounded px-2 py-1 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500"
                           placeholder="Group name..."
                           maxLength={100}
                         />
                         <button
                           onClick={handleRenameSubmit}
-                          className="p-1 hover:bg-green-500/20 rounded transition"
+                          className="p-1 hover:bg-green-100 rounded transition"
                         >
-                          <Check className="w-4 h-4 text-green-400" />
+                          <Check className="w-4 h-4 text-green-600" />
                         </button>
                         <button
                           onClick={cancelRenaming}
-                          className="p-1 hover:bg-red-500/20 rounded transition"
+                          className="p-1 hover:bg-red-100 rounded transition"
                         >
-                          <XIcon className="w-4 h-4 text-red-400" />
+                          <XIcon className="w-4 h-4 text-red-500" />
                         </button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <div>
-                          <h3 className="font-semibold text-white text-sm">
+                          <h3 className="font-semibold text-gray-900 text-sm">
                             {getConversationName(activeConversation)}
                           </h3>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-gray-500">
                             {getTypingIndicator(activeConversation.id) ||
                               (activeConversation.type === 'GROUP'
                                 ? `${activeConversation.participants.length} members`
@@ -823,10 +823,10 @@ export function ChatWidget() {
                         {activeConversation.type === 'GROUP' && isConversationAdmin(activeConversation) && (
                           <button
                             onClick={startRenaming}
-                            className="p-1 hover:bg-slate-700 rounded-lg transition"
+                            className="p-1 hover:bg-gray-100 rounded-lg transition"
                             title="Rename group"
                           >
-                            <Pencil className="w-3.5 h-3.5 text-slate-400 hover:text-white" />
+                            <Pencil className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600" />
                           </button>
                         )}
                       </div>
@@ -841,7 +841,7 @@ export function ChatWidget() {
 
                     if (isAlreadyContact) {
                       return (
-                        <div className="p-1.5 text-green-400" title="Already a contact">
+                        <div className="p-1.5 text-green-600" title="Already a contact">
                           <Check className="w-4 h-4" />
                         </div>
                       );
@@ -849,17 +849,17 @@ export function ChatWidget() {
 
                     if (isPending) {
                       return (
-                        <span className="text-xs text-yellow-400 px-2">Pending</span>
+                        <span className="text-xs text-amber-600 px-2">Pending</span>
                       );
                     }
 
                     return (
                       <button
                         onClick={() => sendContactRequest(otherUser.id)}
-                        className="p-1.5 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition"
+                        className="p-1.5 bg-green-100 hover:bg-green-200 rounded-lg transition"
                         title="Add as friend"
                       >
-                        <UserPlus className="w-4 h-4 text-green-400" />
+                        <UserPlus className="w-4 h-4 text-green-600" />
                       </button>
                     );
                   })()}
@@ -871,8 +871,8 @@ export function ChatWidget() {
                       onClick={() => setActiveTab('chats')}
                       className={`px-3 py-1 text-sm font-medium rounded-lg transition ${
                         activeTab === 'chats'
-                          ? 'bg-blue-500/20 text-blue-400'
-                          : 'text-slate-400 hover:text-white'
+                          ? 'bg-blue-100 text-blue-600'
+                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                       }`}
                     >
                       <MessageCircle className="w-4 h-4 inline mr-1" />
@@ -882,8 +882,8 @@ export function ChatWidget() {
                       onClick={() => setActiveTab('contacts')}
                       className={`px-3 py-1 text-sm font-medium rounded-lg transition relative ${
                         activeTab === 'contacts'
-                          ? 'bg-blue-500/20 text-blue-400'
-                          : 'text-slate-400 hover:text-white'
+                          ? 'bg-blue-100 text-blue-600'
+                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                       }`}
                     >
                       <Users className="w-4 h-4 inline mr-1" />
@@ -904,9 +904,9 @@ export function ChatWidget() {
               )}
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 hover:bg-slate-700 rounded-lg transition"
+                className="p-1 hover:bg-gray-100 rounded-lg transition"
               >
-                <X className="w-5 h-5 text-slate-400" />
+                <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
 
@@ -927,7 +927,7 @@ export function ChatWidget() {
                               className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${
                                 !isGroupMode
                                   ? 'bg-blue-500 text-white'
-                                  : 'bg-slate-700 text-slate-400 hover:text-white'
+                                  : 'bg-gray-100 text-gray-500 hover:text-gray-700'
                               }`}
                             >
                               <MessageCircle className="w-3 h-3 inline mr-1" />
@@ -938,7 +938,7 @@ export function ChatWidget() {
                               className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${
                                 isGroupMode
                                   ? 'bg-purple-500 text-white'
-                                  : 'bg-slate-700 text-slate-400 hover:text-white'
+                                  : 'bg-gray-100 text-gray-500 hover:text-gray-700'
                               }`}
                             >
                               <UsersRound className="w-3 h-3 inline mr-1" />
@@ -953,7 +953,7 @@ export function ChatWidget() {
                               placeholder="Group name..."
                               value={groupName}
                               onChange={(e) => setGroupName(e.target.value)}
-                              className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:bg-white"
                             />
                           )}
 
@@ -963,12 +963,12 @@ export function ChatWidget() {
                               {selectedParticipants.map((p) => (
                                 <span
                                   key={p.id}
-                                  className="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs"
+                                  className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs"
                                 >
                                   {p.firstName}
                                   <button
                                     onClick={() => toggleParticipant(p)}
-                                    className="hover:text-red-400"
+                                    className="hover:text-red-500"
                                   >
                                     <XIcon className="w-3 h-3" />
                                   </button>
@@ -979,27 +979,27 @@ export function ChatWidget() {
 
                           {/* Search input */}
                           <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
                               type="text"
                               placeholder="Search users..."
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
-                              className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-white"
                               autoFocus
                             />
                           </div>
 
                           {/* Search results */}
                           {searchResults.length > 0 && (
-                            <div className="bg-slate-800 rounded-lg border border-slate-700 max-h-48 overflow-y-auto">
+                            <div className="bg-white rounded-lg border border-gray-200 max-h-48 overflow-y-auto shadow-sm">
                               {searchResults.map((u) => {
                                 const isSelected = selectedParticipants.some((p) => p.id === u.id);
                                 return (
                                   <div
                                     key={u.id}
-                                    className={`w-full p-3 flex items-center gap-3 hover:bg-slate-700 transition ${
-                                      isSelected ? 'bg-purple-500/10' : ''
+                                    className={`w-full p-3 flex items-center gap-3 hover:bg-gray-50 transition ${
+                                      isSelected ? 'bg-purple-50' : ''
                                     }`}
                                   >
                                     <button
@@ -1014,23 +1014,23 @@ export function ChatWidget() {
                                         />
                                       ) : (
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                                          isSelected ? 'bg-purple-500/30 text-purple-300' : 'bg-blue-500/20 text-blue-400'
+                                          isSelected ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                                         }`}>
                                           {u.firstName?.[0]}
                                           {u.lastName?.[0]}
                                         </div>
                                       )}
                                       <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-white truncate">
+                                        <p className="text-sm font-medium text-gray-900 truncate">
                                           {u.firstName} {u.lastName}
                                         </p>
-                                        <p className="text-xs text-slate-500 truncate">{u.role}</p>
+                                        <p className="text-xs text-gray-500 truncate">{u.role}</p>
                                       </div>
                                       {u.isOnline && <Circle className="w-2 h-2 fill-green-500 text-green-500" />}
                                     </button>
                                     {isGroupMode ? (
                                       <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                        isSelected ? 'bg-purple-500 border-purple-500' : 'border-slate-500'
+                                        isSelected ? 'bg-purple-500 border-purple-500' : 'border-gray-300'
                                       }`}>
                                         {isSelected && <Check className="w-3 h-3 text-white" />}
                                       </div>
@@ -1042,17 +1042,17 @@ export function ChatWidget() {
                                               e.stopPropagation();
                                               sendContactRequest(u.id);
                                             }}
-                                            className="p-1.5 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition"
+                                            className="p-1.5 bg-green-100 hover:bg-green-200 rounded-lg transition"
                                             title="Add as contact"
                                           >
-                                            <UserPlus className="w-4 h-4 text-green-400" />
+                                            <UserPlus className="w-4 h-4 text-green-600" />
                                           </button>
                                         )}
                                         {hasPendingRequest(u.id) && (
-                                          <span className="text-xs text-yellow-400">Pending</span>
+                                          <span className="text-xs text-amber-600">Pending</span>
                                         )}
                                         {isContact(u.id) && (
-                                          <Check className="w-4 h-4 text-green-400" />
+                                          <Check className="w-4 h-4 text-green-600" />
                                         )}
                                       </>
                                     )}
@@ -1073,14 +1073,14 @@ export function ChatWidget() {
                           )}
 
                           {isGroupMode && selectedParticipants.length < 2 && selectedParticipants.length > 0 && (
-                            <p className="text-xs text-slate-500 text-center">
+                            <p className="text-xs text-gray-500 text-center">
                               Select at least 2 participants for a group chat
                             </p>
                           )}
 
                           <button
                             onClick={resetNewChatState}
-                            className="w-full py-2 text-sm text-slate-400 hover:text-white transition"
+                            className="w-full py-2 text-sm text-gray-500 hover:text-gray-900 transition"
                           >
                             Cancel
                           </button>
@@ -1088,7 +1088,7 @@ export function ChatWidget() {
                       ) : (
                         <button
                           onClick={() => setShowNewChat(true)}
-                          className="w-full py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg text-blue-400 text-sm font-medium hover:bg-blue-500/20 transition flex items-center justify-center gap-2"
+                          className="w-full py-2 bg-blue-50 border border-blue-200 rounded-lg text-blue-600 text-sm font-medium hover:bg-blue-100 transition flex items-center justify-center gap-2"
                         >
                           <Plus className="w-4 h-4" />
                           New Conversation
@@ -1103,7 +1103,7 @@ export function ChatWidget() {
                       <button
                         key={conv.id}
                         onClick={() => setActiveConversation(conv)}
-                        className="w-full p-3 flex items-center gap-3 hover:bg-slate-800 transition border-b border-slate-800"
+                        className="w-full p-3 flex items-center gap-3 hover:bg-gray-50 transition border-b border-gray-100"
                       >
                         {conv.type === 'DIRECT' && otherUser ? (
                           <UserAvatarWithBorder
@@ -1117,21 +1117,21 @@ export function ChatWidget() {
                           />
                         ) : (
                           <div className="relative">
-                            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 text-sm font-medium">
+                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-medium">
                               {getConversationName(conv).slice(0, 2).toUpperCase()}
                             </div>
                           </div>
                         )}
                         <div className="flex-1 min-w-0 text-left">
                           <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-white truncate">
+                            <p className="text-sm font-medium text-gray-900 truncate">
                               {getConversationName(conv)}
                             </p>
-                            <span className="text-xs text-slate-500">
+                            <span className="text-xs text-gray-400">
                               {formatTime(conv.updatedAt)}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-400 truncate">
+                          <p className="text-xs text-gray-500 truncate">
                             {conv.messages[0]?.content || 'No messages yet'}
                           </p>
                         </div>
@@ -1146,9 +1146,9 @@ export function ChatWidget() {
 
                     {conversations.length === 0 && !showNewChat && (
                       <div className="p-8 text-center">
-                        <MessageCircle className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                        <p className="text-slate-500 text-sm">No conversations yet</p>
-                        <p className="text-slate-600 text-xs mt-1">
+                        <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-600 text-sm">No conversations yet</p>
+                        <p className="text-gray-400 text-xs mt-1">
                           Start a new chat to connect with others
                         </p>
                       </div>
@@ -1159,14 +1159,14 @@ export function ChatWidget() {
                   <div className="flex-1 overflow-y-auto">
                     {/* Pending Contact Requests */}
                     {contactRequests.length > 0 && (
-                      <div className="p-3 border-b border-slate-700">
-                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                      <div className="p-3 border-b border-gray-100">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                           Pending Requests ({contactRequests.length})
                         </h4>
                         {contactRequests.map((request) => (
                           <div
                             key={request.id}
-                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 transition"
+                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition"
                           >
                             <UserAvatarWithBorder
                               userId={request.requester.id}
@@ -1176,27 +1176,27 @@ export function ChatWidget() {
                               size="sm"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-white truncate">
+                              <p className="text-sm font-medium text-gray-900 truncate">
                                 {request.requester.firstName} {request.requester.lastName}
                               </p>
-                              <p className="text-xs text-slate-500 truncate">
+                              <p className="text-xs text-gray-500 truncate">
                                 {request.requester.role}
                               </p>
                             </div>
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => acceptContactRequest(request.requester.id)}
-                                className="p-1.5 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition"
+                                className="p-1.5 bg-green-100 hover:bg-green-200 rounded-lg transition"
                                 title="Accept"
                               >
-                                <Check className="w-4 h-4 text-green-400" />
+                                <Check className="w-4 h-4 text-green-600" />
                               </button>
                               <button
                                 onClick={() => declineContactRequest(request.requester.id)}
-                                className="p-1.5 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition"
+                                className="p-1.5 bg-red-100 hover:bg-red-200 rounded-lg transition"
                                 title="Decline"
                               >
-                                <XIcon className="w-4 h-4 text-red-400" />
+                                <XIcon className="w-4 h-4 text-red-500" />
                               </button>
                             </div>
                           </div>
@@ -1206,7 +1206,7 @@ export function ChatWidget() {
 
                     {/* Contacts List */}
                     <div className="p-3">
-                      <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                         My Contacts ({contacts.filter((c) => c.status === 'ACCEPTED').length})
                       </h4>
                       {contacts
@@ -1215,7 +1215,7 @@ export function ChatWidget() {
                           <button
                             key={contact.id}
                             onClick={() => startNewConversation(contact.contactUser)}
-                            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-800 transition"
+                            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition"
                           >
                             <UserAvatarWithBorder
                               userId={contact.contactUser.id}
@@ -1227,23 +1227,23 @@ export function ChatWidget() {
                               isOnline={contact.isOnline}
                             />
                             <div className="flex-1 min-w-0 text-left">
-                              <p className="text-sm font-medium text-white truncate">
+                              <p className="text-sm font-medium text-gray-900 truncate">
                                 {contact.nickname ||
                                   `${contact.contactUser.firstName} ${contact.contactUser.lastName}`}
                               </p>
-                              <p className="text-xs text-slate-500 truncate">
+                              <p className="text-xs text-gray-500 truncate">
                                 {contact.contactUser.role}
                               </p>
                             </div>
-                            <MessageCircle className="w-4 h-4 text-slate-500" />
+                            <MessageCircle className="w-4 h-4 text-gray-400" />
                           </button>
                         ))}
 
                       {contacts.filter((c) => c.status === 'ACCEPTED').length === 0 && (
                         <div className="p-8 text-center">
-                          <Users className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                          <p className="text-slate-500 text-sm">No contacts yet</p>
-                          <p className="text-slate-600 text-xs mt-1">
+                          <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                          <p className="text-gray-600 text-sm">No contacts yet</p>
+                          <p className="text-gray-400 text-xs mt-1">
                             Search for users and add them as contacts
                           </p>
                         </div>
@@ -1254,7 +1254,7 @@ export function ChatWidget() {
               ) : (
                 // Messages View
                 <>
-                  <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
                     {isLoading ? (
                       <div className="flex items-center justify-center h-full">
                         <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -1269,14 +1269,14 @@ export function ChatWidget() {
                             <div
                               className={`max-w-[80%] rounded-2xl px-4 py-2 ${
                                 msg.type === 'SYSTEM'
-                                  ? 'bg-slate-800 text-slate-400 text-xs text-center w-full'
+                                  ? 'bg-gray-100 text-gray-500 text-xs text-center w-full'
                                   : msg.senderId === user?.id
                                     ? 'bg-blue-500 text-white'
-                                    : 'bg-slate-700 text-white'
+                                    : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
                               }`}
                             >
                               {msg.type !== 'SYSTEM' && msg.senderId !== user?.id && (
-                                <p className="text-xs text-blue-300 mb-1">
+                                <p className="text-xs text-blue-600 mb-1">
                                   {msg.sender.firstName}
                                 </p>
                               )}
@@ -1295,7 +1295,11 @@ export function ChatWidget() {
                                       href={msg.fileUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="flex items-center gap-2 p-2 bg-black/20 rounded-lg hover:bg-black/30 transition"
+                                      className={`flex items-center gap-2 p-2 rounded-lg transition ${
+                                        msg.senderId === user?.id
+                                          ? 'bg-blue-600 hover:bg-blue-700'
+                                          : 'bg-gray-100 hover:bg-gray-200'
+                                      }`}
                                     >
                                       <FileText className="w-8 h-8 flex-shrink-0" />
                                       <div className="flex-1 min-w-0">
@@ -1313,7 +1317,7 @@ export function ChatWidget() {
                               )}
                               <p
                                 className={`text-xs mt-1 ${
-                                  msg.senderId === user?.id ? 'text-blue-200' : 'text-slate-400'
+                                  msg.senderId === user?.id ? 'text-blue-200' : 'text-gray-400'
                                 }`}
                               >
                                 {formatTime(msg.createdAt)}
@@ -1327,7 +1331,7 @@ export function ChatWidget() {
                   </div>
 
                   {/* Input */}
-                  <div className="p-3 border-t border-slate-700 bg-slate-800/50">
+                  <div className="p-3 border-t border-gray-100 bg-white">
                     <div className="flex items-center gap-2 relative">
                       <input
                         ref={fileInputRef}
@@ -1339,7 +1343,7 @@ export function ChatWidget() {
                       <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploading}
-                        className="p-2 hover:bg-slate-700 rounded-lg transition text-slate-400 hover:text-white disabled:opacity-50"
+                        className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-400 hover:text-gray-600 disabled:opacity-50"
                         title="Attach file"
                       >
                         {isUploading ? (
@@ -1352,8 +1356,8 @@ export function ChatWidget() {
                         onClick={() => setShowChatEmojiPicker(!showChatEmojiPicker)}
                         className={`p-2 rounded-lg transition ${
                           showChatEmojiPicker
-                            ? 'bg-slate-700 text-white'
-                            : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+                            ? 'bg-gray-100 text-gray-700'
+                            : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
                         }`}
                         title="Add emoji"
                       >
@@ -1379,7 +1383,7 @@ export function ChatWidget() {
                         onChange={handleInputChange}
                         onKeyPress={handleKeyPress}
                         placeholder="Type a message..."
-                        className="flex-1 bg-slate-700 border-none rounded-lg px-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white"
                       />
                       <button
                         onClick={handleSendMessage}
