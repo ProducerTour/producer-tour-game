@@ -12,7 +12,7 @@ import WriterOverviewTremor from '../components/writer/WriterOverviewTremor';
 import { useAuthStore } from '../store/auth.store';
 import { formatIpiDisplay } from '../utils/ipi-helper';
 import { X, Bell, ClipboardList, Users, Paperclip, Upload, FileText, Loader2, DollarSign, Calendar, BarChart3, Music, TrendingUp } from 'lucide-react';
-import { Sparkline, RechartsRevenueChart } from '../components/charts';
+import { RechartsRevenueChart } from '../components/charts';
 
 type TabType = 'overview' | 'songs' | 'statements' | 'documents' | 'billing' | 'profile' | 'tools' | 'claims';
 

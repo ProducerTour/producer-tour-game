@@ -15,7 +15,6 @@ import {
   Heart,
   Music,
   Play,
-  Clock,
   Trophy,
   ChevronRight,
   Zap,
@@ -61,11 +60,6 @@ export default function CustomerDashboard() {
     },
   });
 
-  // Mock recent activity (placeholder until backend endpoint is added)
-  const recentActivity = [
-    { id: '1', type: 'check_in', description: 'Daily check-in', points: 10, createdAt: new Date().toISOString() },
-  ];
-
   // Profile completion calculation
   const calculateProfileCompletion = () => {
     if (!user) return 0;
@@ -79,20 +73,8 @@ export default function CustomerDashboard() {
 
   const profileCompletion = calculateProfileCompletion();
 
-  // Tier colors for display
-  const tierColors: Record<string, { bg: string; border: string; text: string }> = {
-    BRONZE: { bg: 'from-amber-700/20 to-amber-900/20', border: 'border-amber-600/40', text: 'text-amber-400' },
-    SILVER: { bg: 'from-slate-400/20 to-slate-600/20', border: 'border-slate-400/40', text: 'text-slate-300' },
-    GOLD: { bg: 'from-yellow-500/20 to-amber-500/20', border: 'border-yellow-500/40', text: 'text-yellow-400' },
-    DIAMOND: { bg: 'from-blue-400/20 to-purple-500/20', border: 'border-blue-400/40', text: 'text-blue-300' },
-    ELITE: { bg: 'from-purple-500/20 to-pink-500/20', border: 'border-purple-500/40', text: 'text-purple-300' },
-  };
-
+  // Current tier for display
   const currentTier = stats?.tier || 'BRONZE';
-  const tierStyle = tierColors[currentTier] || tierColors.BRONZE;
-
-  // Format today's date
-  const todayDate = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
     <div className="flex flex-col h-screen bg-gray-100 sm:bg-surface overflow-hidden">
