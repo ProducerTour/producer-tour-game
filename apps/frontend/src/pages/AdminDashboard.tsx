@@ -8,6 +8,7 @@ import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Users, BarChart3, CheckCircle2, Music, DollarSign, FileText, TrendingUp, Sparkles, Loader2, AlertTriangle, X, Brain, Maximize2, Minimize2 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
+import { DashboardHeader } from '../components/DashboardHeader';
 import ToolsHub from '../components/ToolsHub';
 import ToolPermissionsSettings from '../components/ToolPermissionsSettings';
 import DocumentsTab from '../components/DocumentsTab';
@@ -127,7 +128,10 @@ export default function AdminDashboard() {
 
         {/* Main Content Area */}
         <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} overflow-y-auto transition-all duration-300`}>
-          <div className="px-3 sm:px-4 md:px-8 py-4 sm:py-8 pt-16 sm:pt-20 md:pt-8 pb-24 sm:pb-8">
+          {/* Dashboard Header with Site Updates */}
+          <DashboardHeader title="Admin Dashboard" showUpdates={true} className="hidden md:flex" />
+
+          <div className="px-3 sm:px-4 md:px-8 py-4 sm:py-8 pt-16 sm:pt-20 md:pt-4 pb-24 sm:pb-8">
             {activeTab === 'overview' && <DashboardOverviewTremor />}
             {activeTab === 'statements' && <StatementsTab />}
             {activeTab === 'users' && <UsersTab />}
