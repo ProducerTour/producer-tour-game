@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../store/auth.store';
-import { Bell, Search, ChevronLeft, Mail, X, Sparkles, Wrench, Bug } from 'lucide-react';
+import { feedApi } from '../lib/api';
+import { Bell, Search, ChevronLeft, Mail, X, Sparkles, Wrench, Bug, DollarSign, Music, Users, MessageCircle, Loader2, Heart } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface DashboardHeaderProps {
@@ -122,6 +124,145 @@ function UpdatesPopup({
   );
 }
 
+// Notifications popup component
+function NotificationsPopup({
+  isOpen,
+  onClose,
+  popupRef,
+  userId,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  popupRef: React.RefObject<HTMLDivElement>;
+  userId?: string;
+}) {
+  // Fetch recent activity/notifications
+  const { data: activityData, isLoading } = useQuery({
+    queryKey: ['user-notifications', userId],
+    queryFn: async () => {
+      const response = await feedApi.getActivity({ limit: 10 });
+      return response.data;
+    },
+    enabled: isOpen && !!userId,
+    staleTime: 30000, // 30 seconds
+  });
+
+  if (!isOpen) return null;
+
+  const activities = activityData?.activities || [];
+
+  // Get icon and color based on activity type
+  const getActivityStyle = (type: string) => {
+    switch (type) {
+      case 'statement_processed':
+      case 'payment_received':
+        return { icon: <DollarSign className="w-4 h-4" />, color: 'text-emerald-500', bg: 'bg-emerald-100' };
+      case 'placement_confirmed':
+      case 'placement_created':
+        return { icon: <Music className="w-4 h-4" />, color: 'text-purple-500', bg: 'bg-purple-100' };
+      case 'new_follower':
+      case 'follow':
+        return { icon: <Users className="w-4 h-4" />, color: 'text-blue-500', bg: 'bg-blue-100' };
+      case 'like':
+        return { icon: <Heart className="w-4 h-4" />, color: 'text-pink-500', bg: 'bg-pink-100' };
+      case 'comment':
+        return { icon: <MessageCircle className="w-4 h-4" />, color: 'text-amber-500', bg: 'bg-amber-100' };
+      default:
+        return { icon: <Bell className="w-4 h-4" />, color: 'text-gray-500', bg: 'bg-gray-100' };
+    }
+  };
+
+  // Format relative time
+  const formatTimeAgo = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  return (
+    <div
+      ref={popupRef}
+      className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <Bell className="w-5 h-5 text-blue-500" />
+          <h3 className="font-semibold text-gray-900">Notifications</h3>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Notifications list */}
+      <div className="max-h-80 overflow-y-auto">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+          </div>
+        ) : activities.length > 0 ? (
+          activities.map((activity: any, index: number) => {
+            const style = getActivityStyle(activity.type);
+            return (
+              <div
+                key={activity.id || index}
+                className={cn(
+                  "px-4 py-3 hover:bg-gray-50 transition-colors",
+                  index !== activities.length - 1 && "border-b border-gray-100"
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={cn("p-2 rounded-full", style.bg)}>
+                    <span className={style.color}>{style.icon}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-900">
+                      {activity.message || activity.content || 'New activity'}
+                    </p>
+                    <span className="text-[10px] text-gray-400">
+                      {formatTimeAgo(activity.createdAt || activity.timestamp)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="px-4 py-8 text-center">
+            <Bell className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm text-gray-500">No notifications yet</p>
+            <p className="text-xs text-gray-400 mt-1">
+              You'll see updates here when something happens
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      {activities.length > 0 && (
+        <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
+          <button className="w-full text-center text-xs text-blue-500 hover:text-blue-600 font-medium">
+            View all activity
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * Minimal top header for dashboard pages
  * Shows page title on left, profile avatar + actions on right
@@ -135,6 +276,8 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+
+  // Updates popup state
   const [updatesOpen, setUpdatesOpen] = useState(false);
   const [hasSeenUpdates, setHasSeenUpdates] = useState(() => {
     const seen = localStorage.getItem('lastSeenUpdate');
@@ -143,7 +286,12 @@ export function DashboardHeader({
   const popupRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Close popup when clicking outside
+  // Notifications popup state
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const notificationsPopupRef = useRef<HTMLDivElement>(null);
+  const notificationsButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Close updates popup when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -161,6 +309,25 @@ export function DashboardHeader({
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [updatesOpen]);
+
+  // Close notifications popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        notificationsPopupRef.current &&
+        !notificationsPopupRef.current.contains(event.target as Node) &&
+        notificationsButtonRef.current &&
+        !notificationsButtonRef.current.contains(event.target as Node)
+      ) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    if (notificationsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [notificationsOpen]);
 
   const handleBack = () => {
     navigate(-1);
@@ -231,11 +398,26 @@ export function DashboardHeader({
         )}
 
         {/* Notifications */}
-        <button className="relative p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-          <Bell className="w-5 h-5" />
-          {/* Notification dot - show when there are unread notifications */}
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
+        <div className="relative">
+          <button
+            ref={notificationsButtonRef}
+            onClick={() => setNotificationsOpen(!notificationsOpen)}
+            className={cn(
+              "relative p-2 rounded-lg transition-colors",
+              notificationsOpen
+                ? "text-blue-600 bg-blue-50"
+                : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            )}
+          >
+            <Bell className="w-5 h-5" />
+          </button>
+          <NotificationsPopup
+            isOpen={notificationsOpen}
+            onClose={() => setNotificationsOpen(false)}
+            popupRef={notificationsPopupRef}
+            userId={user?.id}
+          />
+        </div>
 
         {/* Profile Avatar */}
         <button
