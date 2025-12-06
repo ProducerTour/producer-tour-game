@@ -77,11 +77,13 @@ export function RechartsRevenueChart({
     axisStroke: 'rgba(0, 0, 0, 0.1)',
     tickFill: 'rgba(0, 0, 0, 0.5)',
     cursorStroke: '#9ca3af',
+    dotStroke: '#f8fafc', // light gray for contrast on white bg
   } : {
     gridStroke: 'rgba(255, 255, 255, 0.05)',
     axisStroke: 'rgba(255, 255, 255, 0.1)',
     tickFill: 'rgba(255, 255, 255, 0.4)',
     cursorStroke: '#6b7280',
+    dotStroke: '#fff',
   };
   // Format currency for Y axis
   const formatYAxis = (value: number) => {
@@ -216,13 +218,13 @@ export function RechartsRevenueChart({
             dot={showAllDots ? {
               r: 5,
               fill: color,
-              stroke: '#fff',
+              stroke: colors.dotStroke,
               strokeWidth: 2,
             } : false}
             activeDot={{
               r: 7,
               fill: color,
-              stroke: '#fff',
+              stroke: colors.dotStroke,
               strokeWidth: 2,
             }}
           />

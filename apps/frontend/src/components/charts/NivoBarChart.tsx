@@ -19,6 +19,8 @@ interface BarChartProps {
   enableLabel?: boolean;
   axisBottom?: boolean | object;
   axisLeft?: boolean | object;
+  /** Use light mode colors (for white backgrounds) */
+  lightMode?: boolean;
 }
 
 // Dark theme color palette
@@ -38,9 +40,27 @@ export function NivoBarChart({
   enableLabel = false,
   axisBottom = true,
   axisLeft = true,
+  lightMode = false,
 }: BarChartProps) {
   const currencyFormatter = (value: number) =>
     `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+  // Theme colors based on mode
+  const themeColors = lightMode ? {
+    textFill: '#4B5563',          // gray-600
+    gridStroke: 'rgba(0, 0, 0, 0.08)',
+    axisStroke: 'rgba(0, 0, 0, 0.15)',
+    tooltipBg: '#ffffff',
+    tooltipText: '#1f2937',
+    tooltipBorder: 'rgba(0, 0, 0, 0.1)',
+  } : {
+    textFill: '#9ca3af',
+    gridStroke: 'rgba(255, 255, 255, 0.06)',
+    axisStroke: 'rgba(255, 255, 255, 0.1)',
+    tooltipBg: '#1e293b',
+    tooltipText: '#f1f5f9',
+    tooltipBorder: 'rgba(255, 255, 255, 0.1)',
+  };
 
   return (
     <div style={{ height }}>
@@ -108,7 +128,7 @@ export function NivoBarChart({
                   itemOpacity: 0.85,
                   symbolSize: 12,
                   symbolShape: 'circle',
-                  itemTextColor: '#9ca3af',
+                  itemTextColor: themeColors.textFill,
                 },
               ]
             : []
@@ -119,40 +139,40 @@ export function NivoBarChart({
           background: 'transparent',
           text: {
             fontSize: 11,
-            fill: '#9ca3af',
+            fill: themeColors.textFill,
           },
           axis: {
             domain: {
               line: {
-                stroke: 'rgba(255, 255, 255, 0.1)',
+                stroke: themeColors.axisStroke,
                 strokeWidth: 1,
               },
             },
             ticks: {
               line: {
-                stroke: 'rgba(255, 255, 255, 0.1)',
+                stroke: themeColors.axisStroke,
                 strokeWidth: 1,
               },
               text: {
-                fill: '#9ca3af',
+                fill: themeColors.textFill,
                 fontSize: 11,
               },
             },
           },
           grid: {
             line: {
-              stroke: 'rgba(255, 255, 255, 0.06)',
+              stroke: themeColors.gridStroke,
               strokeWidth: 1,
             },
           },
           tooltip: {
             container: {
-              background: '#1e293b',
-              color: '#f1f5f9',
+              background: themeColors.tooltipBg,
+              color: themeColors.tooltipText,
               fontSize: 12,
               borderRadius: '8px',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: lightMode ? '0 4px 6px -1px rgba(0, 0, 0, 0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
+              border: `1px solid ${themeColors.tooltipBorder}`,
             },
           },
         }}
@@ -160,10 +180,10 @@ export function NivoBarChart({
           <div
             style={{
               padding: '8px 12px',
-              background: '#1e293b',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: themeColors.tooltipBg,
+              border: `1px solid ${themeColors.tooltipBorder}`,
               borderRadius: '8px',
-              color: '#f1f5f9',
+              color: themeColors.tooltipText,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -175,7 +195,7 @@ export function NivoBarChart({
                   background: color,
                 }}
               />
-              <span style={{ color: '#9ca3af' }}>{indexValue}</span>
+              <span style={{ color: themeColors.textFill }}>{indexValue}</span>
             </div>
             <div style={{ marginTop: '4px', fontWeight: 600 }}>
               {id}: {valueFormat ? valueFormat(value as number) : currencyFormatter(value as number)}
