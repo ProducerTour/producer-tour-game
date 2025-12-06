@@ -117,11 +117,12 @@ export const WalletCard: React.FC<WalletCardProps> = ({
                 <p className="text-sm font-semibold text-emerald-400 mb-2">
                   {formatCurrency(balance.lifetimeEarnings)}
                 </p>
-                {/* Card brand circles */}
-                <div className="flex justify-end -space-x-2">
-                  <div className="w-7 h-7 rounded-full bg-red-500/90" />
-                  <div className="w-7 h-7 rounded-full bg-amber-500/90" />
-                </div>
+                {/* Producer Tour Logo */}
+                <img
+                  src={ptLogo}
+                  alt="Producer Tour"
+                  className="h-6 w-auto ml-auto opacity-80"
+                />
               </div>
             </div>
           </div>
