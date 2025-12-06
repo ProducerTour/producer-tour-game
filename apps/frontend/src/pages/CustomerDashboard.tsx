@@ -19,6 +19,8 @@ import {
   Trophy,
   ChevronRight,
   Zap,
+  Bell,
+  TrendingUp,
 } from 'lucide-react';
 
 type TabType = 'overview' | 'discover' | 'events' | 'learning' | 'wishlist' | 'tools';
@@ -89,14 +91,11 @@ export default function CustomerDashboard() {
   const currentTier = stats?.tier || 'BRONZE';
   const tierStyle = tierColors[currentTier] || tierColors.BRONZE;
 
-  return (
-    <div className="flex flex-col h-screen bg-surface overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-brand-blue/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[100px]" />
-      </div>
+  // Format today's date
+  const todayDate = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 
+  return (
+    <div className="flex flex-col h-screen bg-gray-100 sm:bg-surface overflow-hidden">
       {/* Impersonation Banner */}
       <ImpersonationBanner />
 
@@ -104,7 +103,7 @@ export default function CustomerDashboard() {
       <InstallAppButton variant="banner" />
 
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Left Sidebar */}
+        {/* Left Sidebar - hidden on mobile */}
         <Sidebar
           activeTab={activeTab}
           onTabChange={(tab) => setActiveTab(tab as TabType)}
@@ -112,79 +111,172 @@ export default function CustomerDashboard() {
 
         {/* Main Content Area */}
         <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} overflow-y-auto transition-all duration-300`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 md:pt-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pt-14 sm:pt-20 md:pt-8 pb-24 sm:pb-8">
 
             {/* Tab Content */}
             {activeTab === 'overview' && (
               <>
-                {/* Welcome Header - only on overview tab */}
-                <div className="mb-8">
-                  <h1 className="text-2xl md:text-3xl font-bold text-theme-foreground mb-2">
-                    Welcome back, {user?.firstName || 'Guest'}!
-                  </h1>
-                  <p className="text-text-secondary">
-                    Explore tools, earn Tour Miles, and connect with the Producer Tour community.
-                  </p>
-                </div>
-              <div className="space-y-6">
-                {/* Stats Cards Row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Tour Miles Balance */}
-                  <div className={`bg-gradient-to-br ${tierStyle.bg} border ${tierStyle.border} rounded-2xl p-6`}>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-                        <Sparkles className={`w-6 h-6 ${tierStyle.text}`} />
-                      </div>
-                      <span className={`text-xs font-bold uppercase tracking-wider ${tierStyle.text}`}>
-                        {currentTier}
-                      </span>
+                {/* Welcome Header with Avatar - Mobile Style */}
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg">
+                      {user?.firstName?.[0] || 'P'}
                     </div>
-                    <p className="text-3xl font-bold text-theme-foreground mb-1">
-                      {stats?.points?.toLocaleString() || 0}
+                    <div>
+                      <p className="text-[10px] sm:text-xs text-gray-500">Welcome Back!</p>
+                      <h1 className="text-sm sm:text-lg font-bold text-gray-900 sm:text-theme-foreground">
+                        {user?.firstName || 'Producer'} 👋
+                      </h1>
+                    </div>
+                  </div>
+                  <button className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white sm:bg-white/10 shadow-md sm:shadow-none flex items-center justify-center relative">
+                    <Bell className="w-5 h-5 text-gray-600 sm:text-text-secondary" />
+                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
+                  </button>
+                </div>
+
+                {/* Hero Card - Tour Miles Balance */}
+                <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-5 sm:p-8 mb-4 sm:mb-6 shadow-xl">
+                  {/* Decorative wave/chart line */}
+                  <svg className="absolute bottom-0 left-0 right-0 h-24 sm:h-32 opacity-30" viewBox="0 0 400 100" preserveAspectRatio="none">
+                    <path
+                      d="M0,80 Q50,60 100,70 T200,50 T300,60 T400,40 L400,100 L0,100 Z"
+                      fill="rgba(255,255,255,0.2)"
+                    />
+                    <path
+                      d="M0,85 Q80,70 150,75 T280,55 T400,50"
+                      fill="none"
+                      stroke="rgba(255,255,255,0.6)"
+                      strokeWidth="2"
+                    />
+                    <circle cx="280" cy="55" r="6" fill="white" />
+                  </svg>
+
+                  <div className="relative z-10">
+                    <p className="text-white/80 text-xs sm:text-sm font-medium mb-1">Tour Miles Balance</p>
+                    <p className="text-3xl sm:text-5xl font-bold text-white mb-2 sm:mb-3">
+                      {stats?.points?.toLocaleString() || '0'}
                     </p>
-                    <p className="text-sm text-text-secondary">Tour Miles</p>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-white/20 text-white">
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                        +{stats?.currentStreak || 0} day streak
+                      </span>
+                      <span className="text-white/70 text-[10px] sm:text-xs">Keep it up!</span>
+                    </div>
                   </div>
 
-                  {/* Daily Streak */}
-                  <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-2xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-                        <Zap className="w-6 h-6 text-orange-400" />
+                  {/* Tier Badge */}
+                  <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+                    <span className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider ${
+                      currentTier === 'DIAMOND' ? 'bg-blue-500/30 text-blue-100' :
+                      currentTier === 'GOLD' ? 'bg-yellow-500/30 text-yellow-100' :
+                      currentTier === 'SILVER' ? 'bg-gray-400/30 text-gray-100' :
+                      currentTier === 'ELITE' ? 'bg-purple-500/30 text-purple-100' :
+                      'bg-amber-700/30 text-amber-100'
+                    }`}>
+                      {currentTier}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Stats Grid - 2x2 */}
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                  {/* Day Streak */}
+                  <div className="relative overflow-hidden bg-white sm:bg-gradient-to-br sm:from-white/[0.08] sm:to-white/[0.02] rounded-2xl p-4 sm:p-5 shadow-lg sm:shadow-none sm:border sm:border-white/[0.08] border-l-4 border-l-orange-500">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-orange-500/10 rounded-full blur-2xl -mr-10 -mt-10 sm:hidden" />
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 sm:from-orange-500/20 sm:to-orange-600/20 flex items-center justify-center shadow-lg shadow-orange-500/20 sm:shadow-none">
+                          <Zap className="w-5 h-5 text-white sm:text-orange-400" />
+                        </div>
+                        <span className="text-[10px] sm:text-xs text-orange-500 sm:text-orange-400 font-bold bg-orange-100 sm:bg-orange-500/20 px-2 py-0.5 rounded-full">
+                          🔥 Active
+                        </span>
                       </div>
+                      <p className="text-2xl sm:text-3xl font-bold text-gray-900 sm:text-white mb-0.5">
+                        {stats?.currentStreak || 0}
+                      </p>
+                      <p className="text-[11px] sm:text-sm text-gray-500 sm:text-gray-400 font-medium">Day Streak</p>
+                      <p className="text-[9px] sm:text-[10px] text-gray-400 mt-2">Best: {stats?.longestStreak || 0} days</p>
                     </div>
-                    <p className="text-3xl font-bold text-theme-foreground mb-1">
-                      {stats?.currentStreak || 0}
-                    </p>
-                    <p className="text-sm text-text-secondary">Day Streak</p>
                   </div>
 
                   {/* Achievements */}
-                  <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-2xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-                        <Trophy className="w-6 h-6 text-purple-400" />
+                  <div className="relative overflow-hidden bg-white sm:bg-gradient-to-br sm:from-white/[0.08] sm:to-white/[0.02] rounded-2xl p-4 sm:p-5 shadow-lg sm:shadow-none sm:border sm:border-white/[0.08] border-l-4 border-l-purple-500">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/10 rounded-full blur-2xl -mr-10 -mt-10 sm:hidden" />
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-purple-400 to-purple-600 sm:from-purple-500/20 sm:to-purple-600/20 flex items-center justify-center shadow-lg shadow-purple-500/20 sm:shadow-none">
+                          <Trophy className="w-5 h-5 text-white sm:text-purple-400" />
+                        </div>
+                        <span className="text-[10px] sm:text-xs text-purple-500 sm:text-purple-400 font-bold bg-purple-100 sm:bg-purple-500/20 px-2 py-0.5 rounded-full">
+                          +2 New
+                        </span>
                       </div>
+                      <p className="text-2xl sm:text-3xl font-bold text-gray-900 sm:text-white mb-0.5">
+                        {stats?.achievementsUnlocked || 0}
+                      </p>
+                      <p className="text-[11px] sm:text-sm text-gray-500 sm:text-gray-400 font-medium">Achievements</p>
+                      <p className="text-[9px] sm:text-[10px] text-gray-400 mt-2">Unlocked badges</p>
                     </div>
-                    <p className="text-3xl font-bold text-theme-foreground mb-1">
-                      {stats?.achievementsUnlocked || 0}
-                    </p>
-                    <p className="text-sm text-text-secondary">Achievements</p>
                   </div>
 
                   {/* Profile Completion */}
-                  <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-2xl p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
-                        <Target className="w-6 h-6 text-green-400" />
+                  <div className="relative overflow-hidden bg-white sm:bg-gradient-to-br sm:from-white/[0.08] sm:to-white/[0.02] rounded-2xl p-4 sm:p-5 shadow-lg sm:shadow-none sm:border sm:border-white/[0.08] border-l-4 border-l-emerald-500">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full blur-2xl -mr-10 -mt-10 sm:hidden" />
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 sm:from-emerald-500/20 sm:to-emerald-600/20 flex items-center justify-center shadow-lg shadow-emerald-500/20 sm:shadow-none">
+                          <Target className="w-5 h-5 text-white sm:text-emerald-400" />
+                        </div>
+                        {profileCompletion === 100 ? (
+                          <span className="text-[10px] sm:text-xs text-emerald-500 sm:text-emerald-400 font-bold bg-emerald-100 sm:bg-emerald-500/20 px-2 py-0.5 rounded-full">
+                            ✓ Complete
+                          </span>
+                        ) : (
+                          <span className="text-[10px] sm:text-xs text-amber-500 sm:text-amber-400 font-bold bg-amber-100 sm:bg-amber-500/20 px-2 py-0.5 rounded-full">
+                            In Progress
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-2xl sm:text-3xl font-bold text-gray-900 sm:text-white mb-0.5">
+                        {profileCompletion}%
+                      </p>
+                      <p className="text-[11px] sm:text-sm text-gray-500 sm:text-gray-400 font-medium">Profile</p>
+                      {/* Mini progress bar */}
+                      <div className="mt-2 w-full bg-gray-200 sm:bg-white/10 rounded-full h-1.5">
+                        <div
+                          className="bg-emerald-500 h-1.5 rounded-full transition-all"
+                          style={{ width: `${profileCompletion}%` }}
+                        />
                       </div>
                     </div>
-                    <p className="text-3xl font-bold text-theme-foreground mb-1">{profileCompletion}%</p>
-                    <p className="text-sm text-text-secondary">Profile Complete</p>
+                  </div>
+
+                  {/* Tools Unlocked */}
+                  <div className="relative overflow-hidden bg-white sm:bg-gradient-to-br sm:from-white/[0.08] sm:to-white/[0.02] rounded-2xl p-4 sm:p-5 shadow-lg sm:shadow-none sm:border sm:border-white/[0.08] border-l-4 border-l-blue-500">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full blur-2xl -mr-10 -mt-10 sm:hidden" />
+                    <div className="relative">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 sm:from-blue-500/20 sm:to-blue-600/20 flex items-center justify-center shadow-lg shadow-blue-500/20 sm:shadow-none">
+                          <Play className="w-5 h-5 text-white sm:text-blue-400" />
+                        </div>
+                        <span className="text-[10px] sm:text-xs text-blue-500 sm:text-blue-400 font-bold bg-blue-100 sm:bg-blue-500/20 px-2 py-0.5 rounded-full">
+                          Explore →
+                        </span>
+                      </div>
+                      <p className="text-2xl sm:text-3xl font-bold text-gray-900 sm:text-white mb-0.5">
+                        3
+                      </p>
+                      <p className="text-[11px] sm:text-sm text-gray-500 sm:text-gray-400 font-medium">Tools Available</p>
+                      <p className="text-[9px] sm:text-[10px] text-gray-400 mt-2">Tap to explore</p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Quick Actions - Hidden on mobile, visible on larger screens */}
+                <div className="hidden sm:grid grid-cols-2 md:grid-cols-3 gap-4">
                   <Link
                     to="/customer/tour-miles"
                     className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-6 transition-all group"
@@ -193,8 +285,8 @@ export default function CustomerDashboard() {
                       <div className="w-12 h-12 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-xl flex items-center justify-center">
                         <Sparkles className="w-6 h-6 text-amber-400" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-theme-foreground font-semibold mb-1">Tour Miles Hub</h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-theme-foreground font-semibold text-base mb-1 truncate">Tour Miles</h3>
                         <p className="text-sm text-text-secondary">Earn points, unlock rewards</p>
                       </div>
                       <ChevronRight className="w-5 h-5 text-text-secondary group-hover:text-white transition-colors" />
@@ -209,72 +301,30 @@ export default function CustomerDashboard() {
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl flex items-center justify-center">
                         <Target className="w-6 h-6 text-blue-400" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-theme-foreground font-semibold mb-1">Complete Profile</h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-theme-foreground font-semibold text-base mb-1 truncate">Profile</h3>
                         <p className="text-sm text-text-secondary">Earn bonus Tour Miles</p>
                       </div>
                       <ChevronRight className="w-5 h-5 text-text-secondary group-hover:text-white transition-colors" />
                     </div>
                   </Link>
 
-                  <button
-                    onClick={() => setActiveTab('tools')}
-                    className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-6 transition-all group text-left"
+                  <Link
+                    to="/tools"
+                    className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-6 transition-all group"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl flex items-center justify-center">
                         <Play className="w-6 h-6 text-green-400" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-theme-foreground font-semibold mb-1">Explore Tools</h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-theme-foreground font-semibold text-base mb-1 truncate">Explore Tools</h3>
                         <p className="text-sm text-text-secondary">Unlock with Tour Miles</p>
                       </div>
                       <ChevronRight className="w-5 h-5 text-text-secondary group-hover:text-white transition-colors" />
                     </div>
-                  </button>
+                  </Link>
                 </div>
-
-                {/* Recent Activity */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-semibold text-theme-foreground">Recent Activity</h2>
-                    <Link to="/customer/tour-miles" className="text-sm text-brand-blue hover:underline">
-                      View All
-                    </Link>
-                  </div>
-                  {recentActivity && recentActivity.length > 0 ? (
-                    <div className="space-y-4">
-                      {recentActivity.slice(0, 5).map((activity: any, index: number) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between py-3 border-b border-white/5 last:border-0"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-                              <Clock className="w-5 h-5 text-text-secondary" />
-                            </div>
-                            <div>
-                              <p className="text-theme-foreground text-sm">{activity.eventType?.replace(/_/g, ' ')}</p>
-                              <p className="text-xs text-text-secondary">
-                                {new Date(activity.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <span className={`text-sm font-semibold ${activity.pointsEarned > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {activity.pointsEarned > 0 ? '+' : ''}{activity.pointsEarned} TP
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Clock className="w-12 h-12 text-text-secondary mx-auto mb-3 opacity-50" />
-                      <p className="text-text-secondary">No recent activity</p>
-                      <p className="text-sm text-text-secondary mt-1">Start earning Tour Miles to see your activity here!</p>
-                    </div>
-                  )}
-                </div>
-              </div>
               </>
             )}
 

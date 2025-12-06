@@ -9,11 +9,11 @@ const config: CapacitorConfig = {
   server: {
     // Use localhost in development for hot reload
     // Comment this out for production builds
-    // url: 'http://localhost:5173',
-    // cleartext: true,
+    url: 'http://localhost:5173',
+    cleartext: true,
 
     // Allow navigation to your API domain
-    allowNavigation: ['*.producertour.com', 'api.producertour.com'],
+    allowNavigation: ['*.producertour.com', 'api.producertour.com', 'localhost'],
   },
 
   // iOS-specific configuration

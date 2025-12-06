@@ -130,6 +130,11 @@ export default function ToolsHub() {
   const { user } = useAuthStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  // Minimum swipe distance (in px)
+  const minSwipeDistance = 50;
 
   // Fetch user's tool permissions from backend
   const { data: permissionsData, isLoading: permissionsLoading } = useQuery({
@@ -201,6 +206,28 @@ export default function ToolsHub() {
     setCurrentIndex(index);
   };
 
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      goToNext();
+    } else if (isRightSwipe) {
+      goToPrevious();
+    }
+  };
+
   const openTool = (tool: Tool) => {
     navigate(tool.url);
   };
@@ -208,16 +235,25 @@ export default function ToolsHub() {
   const currentTool = filteredTools[currentIndex];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 overflow-x-hidden">
+      {/* Mobile Back Button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="sm:hidden flex items-center gap-2 text-theme-foreground-muted hover:text-theme-foreground transition-colors -mb-4"
+      >
+        <ChevronLeft className="w-5 h-5" />
+        <span className="text-sm font-medium">Back</span>
+      </button>
+
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-light text-theme-foreground mb-2 flex items-center gap-3">
-          <div className="w-12 h-12 bg-theme-primary-10 flex items-center justify-center">
-            <Wrench className="w-6 h-6 text-theme-primary" />
+        <h1 className="text-2xl sm:text-4xl font-light text-theme-foreground mb-2 flex items-center gap-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-theme-primary-10 flex items-center justify-center">
+            <Wrench className="w-5 h-5 sm:w-6 sm:h-6 text-theme-primary" />
           </div>
           Tools Hub
         </h1>
-        <p className="text-theme-foreground-muted text-lg">Access all your productivity tools and resources in one place</p>
+        <p className="text-theme-foreground-muted text-sm sm:text-lg">Access all your productivity tools and resources in one place</p>
         {userRole !== 'ADMIN' && (
           <div className="mt-4 bg-theme-primary-10 border border-theme-border-hover p-4 flex items-center gap-3">
             <Info className="w-5 h-5 text-theme-primary flex-shrink-0" />
@@ -277,7 +313,12 @@ export default function ToolsHub() {
 
       {/* Main Carousel */}
       <div className="relative">
-        <div className="bg-theme-card rounded-2xl overflow-hidden shadow-2xl border border-theme-border">
+        <div
+          className="bg-theme-card rounded-2xl overflow-hidden shadow-2xl border border-theme-border"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           {/* Tool Display */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 md:p-12 min-h-96">
             {/* Left Side - Visual */}
@@ -503,16 +544,16 @@ export default function ToolsHub() {
           </div>
         </div>
 
-        {/* Navigation Arrows */}
+        {/* Navigation Arrows - hidden on mobile, visible on md+ */}
         <button
           onClick={goToPrevious}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 transition-all hover:scale-110"
+          className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 transition-all hover:scale-110 items-center justify-center"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
         <button
           onClick={goToNext}
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 transition-all hover:scale-110"
+          className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 transition-all hover:scale-110 items-center justify-center"
         >
           <ChevronRight className="w-5 h-5" />
         </button>

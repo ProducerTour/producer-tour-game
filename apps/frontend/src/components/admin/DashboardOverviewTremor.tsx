@@ -4,81 +4,136 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import type { DeltaType } from '@tremor/react';
 import { dashboardApi, statementApi } from '../../lib/api';
-import { cn } from '../../lib/utils';
 import { NivoPieChart, RechartsRevenueChart } from '../charts';
-import { TrendingUp, TrendingDown, Minus, Users, FileText, Music, DollarSign, Wallet, Percent } from 'lucide-react';
+import { TrendingUp, Users, FileText, Music, DollarSign, Wallet, Percent } from 'lucide-react';
 
 // Smart currency formatter
 const formatCurrency = (value: number) =>
   `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-// Theme-aware KPI Card component
-function CassetteKpiCard({
+// Hero card for Gross Revenue with integrated area chart
+function HeroRevenueCard({ value, trend, chartData }: { value: number; trend?: number; chartData: any[] }) {
+  const formattedValue = formatCurrency(value);
+
+  return (
+    <div className="relative overflow-hidden bg-gradient-to-br from-theme-primary to-theme-primary-hover rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg">
+      {/* Background pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <defs>
+            <pattern id="adminHeroGrid" width="10" height="10" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="0.5" fill="currentColor" />
+            </pattern>
+          </defs>
+          <rect width="100" height="100" fill="url(#adminHeroGrid)" />
+        </svg>
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10">
+        <p className="text-xs sm:text-sm font-medium text-theme-primary-foreground/70 mb-1">Gross Revenue</p>
+        <p className="text-2xl sm:text-4xl font-bold text-theme-primary-foreground mb-2 sm:mb-3">{formattedValue}</p>
+
+        {/* Trend badge */}
+        {trend !== undefined && (
+          <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-theme-primary-foreground text-xs sm:text-sm font-medium px-2.5 py-1 rounded-full">
+            <TrendingUp className="w-3.5 h-3.5" />
+            <span>{trend > 0 ? '+' : ''}{trend}% From last period</span>
+          </div>
+        )}
+      </div>
+
+      {/* Integrated area chart */}
+      <div className="absolute bottom-0 left-0 right-0 h-20 sm:h-28 opacity-40">
+        <RechartsRevenueChart
+          data={chartData.length > 0 ? chartData : [{ month: 'Jan', revenue: 0 }]}
+          height={112}
+          color="rgba(255,255,255,0.8)"
+          gradientId="adminHeroRevenueGradient"
+        />
+      </div>
+    </div>
+  );
+}
+
+// Stat card matching the Writer Dashboard design
+function AdminStatCard({
   title,
   value,
   icon: Icon,
-  delta,
-  deltaType,
-  large = false
+  color = 'blue',
+  trend
 }: {
   title: string;
   value: string | number;
   icon: React.ElementType;
-  delta?: string;
-  deltaType?: DeltaType;
-  large?: boolean;
+  color?: 'blue' | 'green' | 'purple' | 'orange' | 'amber';
+  trend?: number;
 }) {
+  // Color configurations for both Cassette and Light themes
+  const colorConfig = {
+    blue: {
+      iconBg: 'bg-blue-100 dark:bg-blue-500/20',
+      iconColor: 'text-blue-500 dark:text-blue-400',
+      trendBg: 'bg-blue-100 dark:bg-blue-500/20',
+      trendColor: 'text-blue-600 dark:text-blue-400',
+    },
+    green: {
+      iconBg: 'bg-emerald-100 dark:bg-emerald-500/20',
+      iconColor: 'text-emerald-500 dark:text-emerald-400',
+      trendBg: 'bg-emerald-100 dark:bg-emerald-500/20',
+      trendColor: 'text-emerald-600 dark:text-emerald-400',
+    },
+    purple: {
+      iconBg: 'bg-purple-100 dark:bg-purple-500/20',
+      iconColor: 'text-purple-500 dark:text-purple-400',
+      trendBg: 'bg-purple-100 dark:bg-purple-500/20',
+      trendColor: 'text-purple-600 dark:text-purple-400',
+    },
+    orange: {
+      iconBg: 'bg-orange-100 dark:bg-orange-500/20',
+      iconColor: 'text-orange-500 dark:text-orange-400',
+      trendBg: 'bg-orange-100 dark:bg-orange-500/20',
+      trendColor: 'text-orange-600 dark:text-orange-400',
+    },
+    amber: {
+      iconBg: 'bg-amber-100 dark:bg-amber-500/20',
+      iconColor: 'text-amber-500 dark:text-amber-400',
+      trendBg: 'bg-amber-100 dark:bg-amber-500/20',
+      trendColor: 'text-amber-600 dark:text-amber-400',
+    },
+  };
+
+  const config = colorConfig[color];
+  const updateDate = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+
   return (
-    <div className={cn(
-      "relative overflow-hidden bg-theme-card border border-theme-border p-6 group",
-      "hover:border-theme-border-hover transition-all duration-300",
-      large && "border-t-2 border-t-theme-primary"
-    )}>
-      {/* Subtle glow on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-theme-primary/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-      {/* Top accent line animation on hover */}
-      <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
-
-      <div className="relative flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-xs text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">{title}</p>
-          <p className={cn(
-            "font-light text-theme-foreground",
-            large ? "text-3xl" : "text-2xl"
-          )}>
-            {typeof value === 'number' ? value.toLocaleString() : value}
-          </p>
-          {delta && deltaType && (
-            <div className="mt-3 flex items-center gap-2">
-              <span className={cn(
-                "inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium uppercase tracking-wider",
-                deltaType === 'increase' && "bg-theme-primary/15 text-theme-primary border border-theme-primary/30",
-                deltaType === 'decrease' && "bg-theme-border-strong text-theme-foreground-secondary border border-theme-border",
-                deltaType === 'unchanged' && "bg-theme-border-strong text-theme-foreground-muted border border-theme-border"
-              )}>
-                {deltaType === 'increase' && <TrendingUp className="w-3 h-3" />}
-                {deltaType === 'decrease' && <TrendingDown className="w-3 h-3" />}
-                {deltaType === 'unchanged' && <Minus className="w-3 h-3" />}
-                {delta}
-              </span>
-              <span className="text-xs text-theme-foreground-muted">vs last period</span>
-            </div>
-          )}
+    <div className="bg-theme-card border border-theme-border rounded-xl sm:rounded-2xl p-3 sm:p-5 hover:border-theme-border-hover hover:shadow-lg transition-all duration-300 group">
+      {/* Top row: Icon + Title */}
+      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${config.iconBg} flex items-center justify-center`}>
+          <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${config.iconColor}`} />
         </div>
-        <div className={cn(
-          "flex items-center justify-center shrink-0",
-          "bg-theme-primary/10 group-hover:bg-theme-primary/20 transition-colors",
-          large ? "w-14 h-14" : "w-10 h-10"
-        )}>
-          <Icon className={cn(
-            "text-theme-primary",
-            large ? "w-7 h-7" : "w-5 h-5"
-          )} />
-        </div>
+        <span className="text-xs sm:text-sm font-medium text-theme-foreground-secondary">{title}</span>
       </div>
+
+      {/* Value row with trend badge */}
+      <div className="flex items-center justify-between mb-2 sm:mb-3">
+        <p className="text-xl sm:text-3xl font-bold text-theme-foreground">
+          {typeof value === 'number' ? value.toLocaleString() : value}
+        </p>
+        {trend !== undefined && (
+          <span className={`inline-flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold ${config.trendBg} ${config.trendColor} px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full`}>
+            {trend > 0 ? '+' : ''}{trend}%
+          </span>
+        )}
+      </div>
+
+      {/* Update timestamp */}
+      <p className="text-[10px] sm:text-xs text-theme-foreground-muted">
+        Update: {updateDate}
+      </p>
     </div>
   );
 }
@@ -135,61 +190,54 @@ export default function DashboardOverviewTremor() {
   })) || [];
 
   return (
-    <div className="space-y-6">
-      {/* Financial Summary - Revenue, Net, Commission */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <CassetteKpiCard
-          title="Gross Revenue"
-          value={formatCurrency(Number(stats?.totalRevenue || 0))}
-          icon={DollarSign}
-          delta={stats?.totalRevenueChange !== null && stats?.totalRevenueChange !== undefined
-            ? `${stats.totalRevenueChange > 0 ? '+' : ''}${stats.totalRevenueChange}%`
-            : undefined}
-          deltaType={stats?.totalRevenueTrend === 'up' ? 'increase' : stats?.totalRevenueTrend === 'down' ? 'decrease' : 'unchanged'}
-          large
-        />
-        <CassetteKpiCard
+    <div className="space-y-4 sm:space-y-6">
+      {/* Hero Card - Gross Revenue */}
+      <HeroRevenueCard
+        value={Number(stats?.totalRevenue || 0)}
+        trend={stats?.totalRevenueChange}
+        chartData={revenueChartData}
+      />
+
+      {/* Stats Grid - 2x3 on desktop, 2x2 on mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <AdminStatCard
           title="Net to Writers"
           value={formatCurrency(Number(stats?.totalNet || 0))}
           icon={Wallet}
-          large
+          color="green"
         />
-        <CassetteKpiCard
+        <AdminStatCard
           title="Commission"
           value={formatCurrency(Number(stats?.totalCommission || 0))}
           icon={Percent}
-          large
+          color="amber"
         />
-      </div>
-
-      {/* Other Stats - Writers, Statements, Works */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <CassetteKpiCard
+        <AdminStatCard
           title="Total Writers"
           value={stats?.totalWriters || 0}
           icon={Users}
-          delta={stats?.totalWritersChange !== null && stats?.totalWritersChange !== undefined
-            ? `${stats.totalWritersChange > 0 ? '+' : ''}${stats.totalWritersChange}%`
-            : undefined}
-          deltaType={stats?.totalWritersTrend === 'up' ? 'increase' : stats?.totalWritersTrend === 'down' ? 'decrease' : 'unchanged'}
+          color="blue"
+          trend={stats?.totalWritersChange}
         />
-        <CassetteKpiCard
+        <AdminStatCard
           title="Active Statements"
           value={stats?.processedStatements || 0}
           icon={FileText}
-          delta={stats?.processedStatementsChange !== null && stats?.processedStatementsChange !== undefined
-            ? `${stats.processedStatementsChange > 0 ? '+' : ''}${stats.processedStatementsChange}%`
-            : undefined}
-          deltaType={stats?.processedStatementsTrend === 'up' ? 'increase' : stats?.processedStatementsTrend === 'down' ? 'decrease' : 'unchanged'}
+          color="purple"
+          trend={stats?.processedStatementsChange}
         />
-        <CassetteKpiCard
+        <AdminStatCard
           title="Unique Works"
           value={stats?.uniqueWorks || 0}
           icon={Music}
-          delta={stats?.uniqueWorksChange !== null && stats?.uniqueWorksChange !== undefined
-            ? `${stats.uniqueWorksChange > 0 ? '+' : ''}${stats.uniqueWorksChange}%`
-            : undefined}
-          deltaType={stats?.uniqueWorksTrend === 'up' ? 'increase' : stats?.uniqueWorksTrend === 'down' ? 'decrease' : 'unchanged'}
+          color="orange"
+          trend={stats?.uniqueWorksChange}
+        />
+        <AdminStatCard
+          title="Avg per Statement"
+          value={formatCurrency(stats?.processedStatements ? Number(stats?.totalRevenue || 0) / stats.processedStatements : 0)}
+          icon={DollarSign}
+          color="green"
         />
       </div>
 

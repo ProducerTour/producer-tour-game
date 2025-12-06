@@ -111,7 +111,7 @@ export default function AffiliatesDashboard() {
         <Sidebar />
 
         <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} overflow-y-auto transition-all duration-300`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 md:pt-8">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pt-16 sm:pt-20 md:pt-8 pb-24 sm:pb-8">
 
             {/* Header */}
             <div className="mb-8">
@@ -182,45 +182,45 @@ export default function AffiliatesDashboard() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                    <Users className="w-6 h-6 text-blue-400" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8">
+              <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-6">
+                <div className="flex items-center justify-between mb-2 sm:mb-4">
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-blue-500/20 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <Users className="w-4 h-4 sm:w-6 sm:h-6 text-blue-400" />
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-theme-foreground mb-1">{affiliateStats.totalReferrals}</p>
-                <p className="text-sm text-text-secondary">Total Referrals</p>
+                <p className="text-lg sm:text-3xl font-bold text-theme-foreground mb-1">{affiliateStats.totalReferrals}</p>
+                <p className="text-[10px] sm:text-sm text-text-secondary">Total Referrals</p>
               </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-                    <CheckCircle className="w-6 h-6 text-green-400" />
+              <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-6">
+                <div className="flex items-center justify-between mb-2 sm:mb-4">
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-green-500/20 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4 sm:w-6 sm:h-6 text-green-400" />
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-theme-foreground mb-1">{affiliateStats.activeReferrals}</p>
-                <p className="text-sm text-text-secondary">Active Referrals</p>
+                <p className="text-lg sm:text-3xl font-bold text-theme-foreground mb-1">{affiliateStats.activeReferrals}</p>
+                <p className="text-[10px] sm:text-sm text-text-secondary">Active Referrals</p>
               </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center">
-                    <DollarSign className="w-6 h-6 text-amber-400" />
+              <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-6">
+                <div className="flex items-center justify-between mb-2 sm:mb-4">
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-amber-500/20 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <DollarSign className="w-4 h-4 sm:w-6 sm:h-6 text-amber-400" />
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-theme-foreground mb-1">{affiliateStats.totalPointsEarned.toLocaleString()}</p>
-                <p className="text-sm text-text-secondary">Tour Miles Earned</p>
+                <p className="text-lg sm:text-3xl font-bold text-theme-foreground mb-1">{affiliateStats.totalPointsEarned.toLocaleString()}</p>
+                <p className="text-[10px] sm:text-sm text-text-secondary">Tour Miles Earned</p>
               </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-purple-400" />
+              <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-6">
+                <div className="flex items-center justify-between mb-2 sm:mb-4">
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 bg-purple-500/20 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6 text-purple-400" />
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-theme-foreground mb-1">{affiliateStats.conversionRate}%</p>
-                <p className="text-sm text-text-secondary">Conversion Rate</p>
+                <p className="text-lg sm:text-3xl font-bold text-theme-foreground mb-1">{affiliateStats.conversionRate}%</p>
+                <p className="text-[10px] sm:text-sm text-text-secondary">Conversion Rate</p>
               </div>
             </div>
 

@@ -10,10 +10,13 @@ interface MobileLayoutProps {
 // Routes that should show the bottom tab bar
 const TAB_BAR_ROUTES = [
   '/dashboard',
+  '/admin',
   '/customer',
   '/customer/tour-miles',
   '/my-profile',
   '/tour-miles',
+  '/tools',
+  '/insights',
   '/settings',
 ];
 

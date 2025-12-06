@@ -11,7 +11,8 @@ import ToolsHub from '../components/ToolsHub';
 import WriterOverviewTremor from '../components/writer/WriterOverviewTremor';
 import { useAuthStore } from '../store/auth.store';
 import { formatIpiDisplay } from '../utils/ipi-helper';
-import { X, Bell, ClipboardList, Users, Paperclip, Upload, FileText, Loader2 } from 'lucide-react';
+import { X, Bell, ClipboardList, Users, Paperclip, Upload, FileText, Loader2, DollarSign, Calendar, BarChart3, Music, TrendingUp } from 'lucide-react';
+import { Sparkline, RechartsRevenueChart } from '../components/charts';
 
 type TabType = 'overview' | 'songs' | 'statements' | 'documents' | 'billing' | 'profile' | 'tools' | 'claims';
 
@@ -161,7 +162,7 @@ export default function WriterDashboard() {
 
         {/* Main Content Area */}
         <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} overflow-y-auto transition-all duration-300`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 md:pt-8">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pt-16 sm:pt-20 md:pt-8 pb-24 sm:pb-8">
 
         {/* Payment Status Indicator - only show on overview tab */}
         {activeTab === 'overview' && (
@@ -187,31 +188,44 @@ export default function WriterDashboard() {
             {summaryLoading ? (
               <div className="text-center text-text-secondary py-12">Loading...</div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <StatCard
-                  title="Total Earnings"
-                  value={`$${Number(summary?.totalEarnings || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                  subtitle="All time"
-                  color="blue"
+              <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
+                {/* Hero Card - Total Earnings */}
+                <HeroEarningsCard
+                  value={Number(summary?.totalEarnings || 0)}
+                  trend={summary?.earningsTrend || 0}
                 />
-                <StatCard
-                  title="Year to Date"
-                  value={`$${Number(summary?.yearToDate || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                  subtitle={new Date().getFullYear().toString()}
-                  color="green"
-                />
-                <StatCard
-                  title="Last Month"
-                  value={`$${Number(summary?.lastMonth || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                  subtitle={new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleDateString('en-US', { month: 'long' })}
-                  color="purple"
-                />
-                <StatCard
-                  title="Total Performances"
-                  value={Number(summary?.totalPerformances || 0).toLocaleString()}
-                  subtitle={`${summary?.totalSongs || 0} songs`}
-                  color="orange"
-                />
+
+                {/* Stats Grid - 2x2 */}
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <StatCard
+                    title="Year to Date"
+                    value={`$${Number(summary?.yearToDate || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    icon={Calendar}
+                    color="green"
+                    trend={12}
+                  />
+                  <StatCard
+                    title="Last Month"
+                    value={`$${Number(summary?.lastMonth || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    icon={BarChart3}
+                    color="purple"
+                    trend={8}
+                  />
+                  <StatCard
+                    title="Total Performances"
+                    value={Number(summary?.totalPerformances || 0).toLocaleString()}
+                    icon={Music}
+                    color="orange"
+                    trend={15}
+                  />
+                  <StatCard
+                    title="Total Songs"
+                    value={Number(summary?.totalSongs || 0).toLocaleString()}
+                    icon={DollarSign}
+                    color="blue"
+                    trend={5}
+                  />
+                </div>
               </div>
             )}
           </>
@@ -1224,17 +1238,124 @@ function WriterDocumentsSection() {
   );
 }
 
-function StatCard({ title, value, subtitle }: { title: string; value: string; subtitle: string; color?: string }) {
-  return (
-    <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6 hover:border-theme-border-hover transition-all duration-300 group">
-      {/* Subtle yellow glow effect on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-theme-primary-3 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+// Hero card for Total Earnings with integrated area chart
+function HeroEarningsCard({ value, trend }: { value: number; trend: number }) {
+  const formattedValue = `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-      <div className="relative">
-        <h3 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-[0.2em] mb-2">{title}</h3>
-        <p className="text-3xl font-light text-white mb-1">{value}</p>
-        <p className="text-xs text-white/30">{subtitle}</p>
+  // Generate chart data for the hero card
+  const chartData = Array.from({ length: 12 }, (_, i) => ({
+    month: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i],
+    revenue: Math.max(0, value * (0.3 + (i / 11) * 0.7) * (0.85 + Math.random() * 0.3)),
+  }));
+
+  return (
+    <div className="relative overflow-hidden bg-gradient-to-br from-theme-primary to-theme-primary-hover rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg">
+      {/* Background pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <defs>
+            <pattern id="heroGrid" width="10" height="10" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="0.5" fill="currentColor" />
+            </pattern>
+          </defs>
+          <rect width="100" height="100" fill="url(#heroGrid)" />
+        </svg>
       </div>
+
+      {/* Content */}
+      <div className="relative z-10">
+        <p className="text-xs sm:text-sm font-medium text-theme-primary-foreground/70 mb-1">Total Earnings</p>
+        <p className="text-2xl sm:text-4xl font-bold text-theme-primary-foreground mb-2 sm:mb-3">{formattedValue}</p>
+
+        {/* Trend badge */}
+        <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-theme-primary-foreground text-xs sm:text-sm font-medium px-2.5 py-1 rounded-full">
+          <TrendingUp className="w-3.5 h-3.5" />
+          <span>+{trend}% From last period</span>
+        </div>
+      </div>
+
+      {/* Integrated area chart */}
+      <div className="absolute bottom-0 left-0 right-0 h-20 sm:h-28 opacity-40">
+        <RechartsRevenueChart
+          data={chartData}
+          height={112}
+          color="rgba(255,255,255,0.8)"
+          gradientId="heroEarningsGradient"
+        />
+      </div>
+    </div>
+  );
+}
+
+// Stat card matching the screenshot design
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  color = 'blue',
+  trend
+}: {
+  title: string;
+  value: string;
+  icon: React.ElementType;
+  color?: 'blue' | 'green' | 'purple' | 'orange';
+  trend?: number;
+}) {
+  // Color configurations for both Cassette and Light themes
+  const colorConfig = {
+    blue: {
+      iconBg: 'bg-blue-100 dark:bg-blue-500/20',
+      iconColor: 'text-blue-500 dark:text-blue-400',
+      trendBg: 'bg-blue-100 dark:bg-blue-500/20',
+      trendColor: 'text-blue-600 dark:text-blue-400',
+    },
+    green: {
+      iconBg: 'bg-emerald-100 dark:bg-emerald-500/20',
+      iconColor: 'text-emerald-500 dark:text-emerald-400',
+      trendBg: 'bg-emerald-100 dark:bg-emerald-500/20',
+      trendColor: 'text-emerald-600 dark:text-emerald-400',
+    },
+    purple: {
+      iconBg: 'bg-purple-100 dark:bg-purple-500/20',
+      iconColor: 'text-purple-500 dark:text-purple-400',
+      trendBg: 'bg-purple-100 dark:bg-purple-500/20',
+      trendColor: 'text-purple-600 dark:text-purple-400',
+    },
+    orange: {
+      iconBg: 'bg-orange-100 dark:bg-orange-500/20',
+      iconColor: 'text-orange-500 dark:text-orange-400',
+      trendBg: 'bg-orange-100 dark:bg-orange-500/20',
+      trendColor: 'text-orange-600 dark:text-orange-400',
+    },
+  };
+
+  const config = colorConfig[color];
+  const updateDate = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  return (
+    <div className="bg-theme-card border border-theme-border rounded-xl sm:rounded-2xl p-3 sm:p-5 hover:border-theme-border-hover hover:shadow-lg transition-all duration-300 group">
+      {/* Top row: Icon + Title */}
+      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${config.iconBg} flex items-center justify-center`}>
+          <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${config.iconColor}`} />
+        </div>
+        <span className="text-xs sm:text-sm font-medium text-theme-foreground-secondary">{title}</span>
+      </div>
+
+      {/* Value row with trend badge */}
+      <div className="flex items-center justify-between mb-2 sm:mb-3">
+        <p className="text-xl sm:text-3xl font-bold text-theme-foreground">{value}</p>
+        {trend !== undefined && (
+          <span className={`inline-flex items-center gap-0.5 text-[10px] sm:text-xs font-semibold ${config.trendBg} ${config.trendColor} px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full`}>
+            +{trend}%
+          </span>
+        )}
+      </div>
+
+      {/* Update timestamp */}
+      <p className="text-[10px] sm:text-xs text-theme-foreground-muted">
+        Update: {updateDate}
+      </p>
     </div>
   );
 }

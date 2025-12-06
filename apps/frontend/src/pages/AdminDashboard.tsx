@@ -127,7 +127,7 @@ export default function AdminDashboard() {
 
         {/* Main Content Area */}
         <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} overflow-y-auto transition-all duration-300`}>
-          <div className="p-4 md:p-8 pt-20 md:pt-8">
+          <div className="px-3 sm:px-4 md:px-8 py-4 sm:py-8 pt-16 sm:pt-20 md:pt-8 pb-24 sm:pb-8">
             {activeTab === 'overview' && <DashboardOverviewTremor />}
             {activeTab === 'statements' && <StatementsTab />}
             {activeTab === 'users' && <UsersTab />}
