@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../store/auth.store';
 import { feedApi } from '../lib/api';
-import { Bell, Search, ChevronLeft, Mail, X, Sparkles, Wrench, Bug, DollarSign, Music, Users, MessageCircle, Loader2, Heart } from 'lucide-react';
+import { getNavigationForRole, flattenNavItems, type NavItem } from '../config/navigation.config';
+import { SaasIcon } from './ui/SaasIcon';
+import { Bell, Search, ChevronLeft, Mail, X, Sparkles, Wrench, Bug, DollarSign, Music, Users, MessageCircle, Loader2, Heart, Command } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface DashboardHeaderProps {
@@ -263,6 +265,193 @@ function NotificationsPopup({
   );
 }
 
+// Search command palette component
+function SearchCommandPalette({
+  isOpen,
+  onClose,
+  userRole,
+  onNavigate,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  userRole: string;
+  onNavigate: (path: string, tabId?: string) => void;
+}) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Get navigation items based on user role
+  const navItems = useMemo(() => {
+    const sections = getNavigationForRole(userRole);
+    return flattenNavItems(sections);
+  }, [userRole]);
+
+  // Filter items based on search query
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return navItems;
+    const query = searchQuery.toLowerCase();
+    return navItems.filter(item =>
+      item.label.toLowerCase().includes(query) ||
+      item.id.toLowerCase().includes(query)
+    );
+  }, [navItems, searchQuery]);
+
+  // Reset selection when search changes
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [searchQuery]);
+
+  // Focus input when opened
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus();
+      setSearchQuery('');
+      setSelectedIndex(0);
+    }
+  }, [isOpen]);
+
+  // Scroll selected item into view
+  useEffect(() => {
+    if (listRef.current && filteredItems.length > 0) {
+      const selectedElement = listRef.current.children[selectedIndex] as HTMLElement;
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [selectedIndex, filteredItems.length]);
+
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => Math.min(prev + 1, filteredItems.length - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => Math.max(prev - 1, 0));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (filteredItems[selectedIndex]) {
+          handleSelectItem(filteredItems[selectedIndex]);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        onClose();
+        break;
+    }
+  }, [filteredItems, selectedIndex, onClose]);
+
+  const handleSelectItem = (item: NavItem) => {
+    if (item.path) {
+      // Direct navigation route
+      onNavigate(item.path);
+    } else {
+      // Tab-based navigation - go to dashboard with tab
+      const dashboardPath = userRole === 'ADMIN' ? '/admin' : userRole === 'CUSTOMER' ? '/customer' : '/dashboard';
+      onNavigate(dashboardPath, item.id);
+    }
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+        onClick={onClose}
+      />
+
+      {/* Command Palette Modal */}
+      <div className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50">
+        {/* Search Input */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+          <Search className="w-5 h-5 text-gray-400" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search pages..."
+            className="flex-1 text-sm text-gray-900 placeholder:text-gray-400 outline-none bg-transparent"
+          />
+          <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-gray-400 bg-gray-100 rounded">
+            ESC
+          </kbd>
+        </div>
+
+        {/* Results List */}
+        <div ref={listRef} className="max-h-80 overflow-y-auto py-2">
+          {filteredItems.length > 0 ? (
+            filteredItems.map((item, index) => (
+              <button
+                key={item.id}
+                onClick={() => handleSelectItem(item)}
+                onMouseEnter={() => setSelectedIndex(index)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors",
+                  index === selectedIndex
+                    ? "bg-blue-50 text-blue-700"
+                    : "text-gray-700 hover:bg-gray-50"
+                )}
+              >
+                <div className={cn(
+                  "w-8 h-8 rounded-lg flex items-center justify-center",
+                  index === selectedIndex ? "bg-blue-100" : "bg-gray-100"
+                )}>
+                  <SaasIcon name={item.icon} className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{item.label}</p>
+                  {item.path && (
+                    <p className="text-xs text-gray-400 truncate">{item.path}</p>
+                  )}
+                </div>
+                {index === selectedIndex && (
+                  <span className="text-xs text-blue-500">Enter ↵</span>
+                )}
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-8 text-center">
+              <Search className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">No results found</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Try searching for something else
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-400">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-500">↑</kbd>
+              <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-500">↓</kbd>
+              Navigate
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-500">↵</kbd>
+              Select
+            </span>
+          </div>
+          <span className="flex items-center gap-1">
+            <Command className="w-3 h-3" />K to open
+          </span>
+        </div>
+      </div>
+    </>
+  );
+}
+
 /**
  * Minimal top header for dashboard pages
  * Shows page title on left, profile avatar + actions on right
@@ -290,6 +479,32 @@ export function DashboardHeader({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notificationsPopupRef = useRef<HTMLDivElement>(null);
   const notificationsButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Search command palette state
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Keyboard shortcut for search (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(prev => !prev);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Handle navigation from search
+  const handleSearchNavigate = useCallback((path: string, tabId?: string) => {
+    if (tabId) {
+      // Navigate to dashboard with tab state
+      navigate(path, { state: { activeTab: tabId } });
+    } else {
+      navigate(path);
+    }
+  }, [navigate]);
 
   // Close updates popup when clicking outside
   useEffect(() => {
@@ -365,8 +580,22 @@ export function DashboardHeader({
 
       {/* Right: Actions + Profile */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* Search - hidden on mobile */}
-        <button className="hidden sm:flex p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
+        {/* Search button with keyboard shortcut hint */}
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+        >
+          <Search className="w-4 h-4" />
+          <span className="text-xs text-gray-400">Search...</span>
+          <kbd className="ml-2 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 rounded text-gray-500">
+            ⌘K
+          </kbd>
+        </button>
+        {/* Mobile search button */}
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="sm:hidden p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+        >
           <Search className="w-5 h-5" />
         </button>
 
@@ -437,6 +666,14 @@ export function DashboardHeader({
           )}
         </button>
       </div>
+
+      {/* Search Command Palette */}
+      <SearchCommandPalette
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        userRole={user?.role || 'WRITER'}
+        onNavigate={handleSearchNavigate}
+      />
     </header>
   );
 }
