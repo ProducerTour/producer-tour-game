@@ -472,8 +472,9 @@ export default function AnalyticsTabTremor() {
               data={getRevenueTimelineData()}
               height={288}
               enableArea={true}
-              colors={['#f0e226']}
+              colors={['#3b82f6']}
               valueFormat={currencyFormatter}
+              lightMode={true}
             />
           ) : (
             <div className="h-72 flex items-center justify-center text-theme-foreground-muted">
@@ -499,6 +500,7 @@ export default function AnalyticsTabTremor() {
               innerRadius={0.5}
               enableArcLinkLabels={getProBreakdownData().length <= 5}
               valueFormat={currencyFormatter}
+              lightMode={true}
             />
           ) : (
             <div className="h-52 flex items-center justify-center text-theme-foreground-muted">
@@ -521,8 +523,9 @@ export default function AnalyticsTabTremor() {
             keys={['Revenue']}
             indexBy="proType"
             height={288}
-            colors={['#f0e226']}
+            colors={['#3b82f6']}
             valueFormat={currencyFormatter}
+            lightMode={true}
           />
         </div>
       )}
@@ -553,6 +556,7 @@ export default function AnalyticsTabTremor() {
                 innerRadius={0.5}
                 enableArcLinkLabels={getPlatformPieData().length <= 6}
                 valueFormat={currencyFormatter}
+                lightMode={true}
               />
             </div>
 
@@ -573,6 +577,7 @@ export default function AnalyticsTabTremor() {
                   innerRadius={0.5}
                   enableArcLinkLabels={getServiceTypePieData().length <= 6}
                   valueFormat={currencyFormatter}
+                  lightMode={true}
                 />
               ) : (
                 <div className="h-52 flex items-center justify-center text-white/30">
@@ -594,8 +599,9 @@ export default function AnalyticsTabTremor() {
               height={280}
               layout="vertical"
               groupMode="grouped"
-              colors={['#f0e226', '#f0e226aa']}
+              colors={['#3b82f6', '#10b981']}
               valueFormat={currencyFormatter}
+              lightMode={true}
             />
           </div>
 
@@ -775,6 +781,7 @@ export default function AnalyticsTabTremor() {
                 innerRadius={0.5}
                 enableArcLinkLabels={getOrganizationPieData().length <= 6}
                 valueFormat={currencyFormatter}
+                lightMode={true}
               />
             </div>
 
@@ -787,8 +794,9 @@ export default function AnalyticsTabTremor() {
                 keys={['Revenue']}
                 indexBy="organization"
                 height={208}
-                colors={['#f0e226']}
+                colors={['#3b82f6']}
                 valueFormat={currencyFormatter}
+                lightMode={true}
               />
             </div>
           </div>
@@ -922,8 +930,9 @@ export default function AnalyticsTabTremor() {
               }]}
               height={600}
               enableArea={true}
-              colors={['#f0e226']}
+              colors={['#3b82f6']}
               valueFormat={currencyFormatter}
+              lightMode={true}
             />
           ) : (
             <div className="h-full flex items-center justify-center text-theme-foreground-muted">
@@ -948,6 +957,7 @@ export default function AnalyticsTabTremor() {
                 innerRadius={0.5}
                 enableArcLinkLabels={true}
                 valueFormat={currencyFormatter}
+                lightMode={true}
               />
             </div>
           ) : (
@@ -971,6 +981,7 @@ export default function AnalyticsTabTremor() {
                 innerRadius={0.5}
                 enableArcLinkLabels={true}
                 valueFormat={currencyFormatter}
+                lightMode={true}
               />
             </div>
           ) : (
@@ -994,6 +1005,7 @@ export default function AnalyticsTabTremor() {
                 innerRadius={0.5}
                 enableArcLinkLabels={true}
                 valueFormat={currencyFormatter}
+                lightMode={true}
               />
             </div>
           ) : (

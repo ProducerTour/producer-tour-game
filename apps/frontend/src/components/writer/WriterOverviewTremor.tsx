@@ -140,6 +140,7 @@ export default function WriterOverviewTremor({ onWithdrawClick }: WriterOverview
               height={240}
               innerRadius={0.5}
               enableArcLinkLabels={proBreakdown.length <= 5}
+              lightMode={true}
             />
           ) : (
             <div className="h-52 flex items-center justify-center text-gray-400">

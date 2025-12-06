@@ -51,6 +51,7 @@ function HeroRevenueCard({ value, trend, chartData }: { value: number; trend?: n
           height={112}
           color="rgba(255,255,255,0.8)"
           gradientId="adminHeroRevenueGradient"
+          lightMode={false}
         />
       </div>
     </div>
@@ -263,6 +264,7 @@ export default function DashboardOverviewTremor() {
               height={288}
               color="var(--theme-primary)"
               gradientId="adminRevenueGradient"
+              lightMode={true}
             />
           ) : (
             <div className="flex items-center justify-center h-72 text-theme-foreground-muted">
@@ -286,6 +288,7 @@ export default function DashboardOverviewTremor() {
                 innerRadius={0.5}
                 enableArcLinkLabels={proDistribution.length <= 5}
                 valueFormat={(value) => value.toLocaleString()}
+                lightMode={true}
               />
               <div className="mt-4 space-y-2">
                 {proDistribution.map((item: any) => {
