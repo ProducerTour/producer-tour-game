@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Sparkles, User, Wrench, Lightbulb } from 'lucide-react';
+import { LayoutDashboard, Plane, User, Wrench, Lightbulb } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../store/auth.store';
 
@@ -9,6 +9,7 @@ interface TabItem {
   icon: React.ReactNode;
   activeIcon?: React.ReactNode;
   state?: Record<string, any>;
+  isProfile?: boolean; // Flag to render profile image instead of icon
 }
 
 // Role-based tab configurations
@@ -18,8 +19,8 @@ const getTabsForRole = (role: string): TabItem[] => {
       return [
         {
           path: '/admin',
-          label: 'Home',
-          icon: <Home className="w-[22px] h-[22px]" />,
+          label: 'Dashboard',
+          icon: <LayoutDashboard className="w-[22px] h-[22px]" />,
           state: { activeTab: 'overview' },
         },
         {
@@ -37,20 +38,21 @@ const getTabsForRole = (role: string): TabItem[] => {
         {
           path: '/tour-miles',
           label: 'Miles',
-          icon: <Sparkles className="w-[22px] h-[22px]" />,
+          icon: <Plane className="w-[22px] h-[22px]" />,
         },
         {
           path: '/my-profile',
           label: 'Profile',
           icon: <User className="w-[22px] h-[22px]" />,
+          isProfile: true,
         },
       ];
     case 'CUSTOMER':
       return [
         {
           path: '/customer',
-          label: 'Home',
-          icon: <Home className="w-[22px] h-[22px]" />,
+          label: 'Dashboard',
+          icon: <LayoutDashboard className="w-[22px] h-[22px]" />,
         },
         {
           path: '/tools',
@@ -65,12 +67,13 @@ const getTabsForRole = (role: string): TabItem[] => {
         {
           path: '/customer/tour-miles',
           label: 'Miles',
-          icon: <Sparkles className="w-[22px] h-[22px]" />,
+          icon: <Plane className="w-[22px] h-[22px]" />,
         },
         {
           path: '/my-profile',
           label: 'Profile',
           icon: <User className="w-[22px] h-[22px]" />,
+          isProfile: true,
         },
       ];
     case 'WRITER':
@@ -78,8 +81,8 @@ const getTabsForRole = (role: string): TabItem[] => {
       return [
         {
           path: '/dashboard',
-          label: 'Home',
-          icon: <Home className="w-[22px] h-[22px]" />,
+          label: 'Dashboard',
+          icon: <LayoutDashboard className="w-[22px] h-[22px]" />,
         },
         {
           path: '/tools',
@@ -94,12 +97,13 @@ const getTabsForRole = (role: string): TabItem[] => {
         {
           path: '/tour-miles',
           label: 'Miles',
-          icon: <Sparkles className="w-[22px] h-[22px]" />,
+          icon: <Plane className="w-[22px] h-[22px]" />,
         },
         {
           path: '/my-profile',
           label: 'Profile',
           icon: <User className="w-[22px] h-[22px]" />,
+          isProfile: true,
         },
       ];
   }
@@ -217,10 +221,34 @@ export function BottomTabBar() {
             >
               <div className={cn(
                 'relative p-1 rounded-xl transition-all',
-                isActive && (isLightThemedPage ? 'bg-blue-100' : 'bg-theme-primary/10')
+                isActive && !tab.isProfile && (isLightThemedPage ? 'bg-blue-100' : 'bg-theme-primary/10')
               )}>
-                {tab.icon}
-                {isActive && (
+                {tab.isProfile ? (
+                  // Profile tab - show user image or fallback avatar
+                  (user as any)?.profilePhotoUrl ? (
+                    <img
+                      src={(user as any).profilePhotoUrl}
+                      alt="Profile"
+                      className={cn(
+                        'w-[26px] h-[26px] rounded-full object-cover',
+                        isActive && 'ring-2 ring-offset-1',
+                        isActive && (isLightThemedPage ? 'ring-blue-600' : 'ring-theme-primary')
+                      )}
+                    />
+                  ) : (
+                    <div className={cn(
+                      'w-[26px] h-[26px] rounded-full flex items-center justify-center',
+                      isLightThemedPage ? 'bg-gray-200' : 'bg-theme-background',
+                      isActive && 'ring-2 ring-offset-1',
+                      isActive && (isLightThemedPage ? 'ring-blue-600' : 'ring-theme-primary')
+                    )}>
+                      <User className="w-[16px] h-[16px]" />
+                    </div>
+                  )
+                ) : (
+                  tab.icon
+                )}
+                {isActive && !tab.isProfile && (
                   <span className={cn(
                     'absolute -top-1 -right-1 w-2 h-2 rounded-full',
                     isLightThemedPage ? 'bg-blue-600' : 'bg-theme-primary'

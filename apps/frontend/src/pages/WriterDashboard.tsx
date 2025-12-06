@@ -154,12 +154,10 @@ export default function WriterDashboard() {
 
         {/* Main Content Area */}
         <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} overflow-y-auto transition-all duration-300 bg-slate-50`}>
-          {/* Top Header - Desktop only (mobile uses bottom nav) */}
-          <div className="hidden md:block">
-            <DashboardHeader title="Dashboard" />
-          </div>
+          {/* Top Header - Now visible on mobile too */}
+          <DashboardHeader title="Dashboard" />
 
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pt-16 sm:pt-6 md:pt-6 pb-24 sm:pb-8">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 sm:pb-8">
 
         {/* Payment Status Indicator - only show on overview tab */}
         {activeTab === 'overview' && (

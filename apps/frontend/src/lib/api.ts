@@ -945,6 +945,19 @@ export const feedApi = {
     limit?: number;
     offset?: number;
   }) => api.get(`/feed/following/${userId}`, { params }),
+
+  // Search for users and posts
+  search: (params: {
+    q: string;
+    type?: 'all' | 'users' | 'posts';
+    limit?: number;
+  }) => api.get('/feed/search', { params }),
+
+  // Get social notifications (followers, likes, comments)
+  getNotifications: (params?: {
+    limit?: number;
+    offset?: number;
+  }) => api.get('/feed/notifications', { params }),
 };
 
 // Marketplace API - Personal marketplace features

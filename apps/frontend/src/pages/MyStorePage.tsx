@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import SocialSidebar from '../components/SocialSidebar';
+import SocialHeader from '../components/SocialHeader';
 import {
   Store,
   Plus,
@@ -278,7 +279,11 @@ export default function MyStorePage() {
       <SocialSidebar activePage="store" />
 
       {/* Main Content - offset for sidebar */}
-      <div className="ml-20 max-w-7xl mx-auto px-6 py-8">
+      <div className="ml-0 md:ml-20">
+        {/* Social Header with search, notifications, updates */}
+        <SocialHeader title="My Store" />
+
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
@@ -510,6 +515,7 @@ export default function MyStorePage() {
             Browse Marketplace
             <ExternalLink className="w-4 h-4" />
           </Link>
+        </div>
         </div>
       </div>
 

@@ -121,7 +121,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({
                 <img
                   src={ptLogo}
                   alt="Producer Tour"
-                  className="h-6 w-auto ml-auto opacity-80"
+                  className="h-8 w-auto ml-auto opacity-90"
                 />
               </div>
             </div>

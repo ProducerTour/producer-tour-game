@@ -10,6 +10,7 @@ import { AdminPostsWidget } from '../components/profile/AdminPostsWidget';
 import { FollowersModal } from '../components/feed/FollowersModal';
 import { BannerCropperModal } from '../components/profile/BannerCropperModal';
 import SocialSidebar from '../components/SocialSidebar';
+import SocialHeader from '../components/SocialHeader';
 import { AnimatedBorder, parseBorderConfig } from '../components/AnimatedBorder';
 import {
   MapPin,
@@ -338,7 +339,11 @@ export default function ActivityFeedPage() {
       <SocialSidebar activePage="profile" />
 
       {/* Main Content - offset for sidebar on desktop, full width on mobile */}
-      <div className="ml-0 md:ml-20 max-w-[1600px] mx-auto px-4 md:px-6 py-4 md:py-6">
+      <div className="ml-0 md:ml-20">
+        {/* Social Header with search, notifications, updates */}
+        <SocialHeader title="My Profile" />
+
+        <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-4 md:py-6">
         <div className="flex gap-6">
           {/* Main Feed Column - 2/3 */}
           <div className="flex-1 min-w-0">
@@ -828,6 +833,7 @@ export default function ActivityFeedPage() {
               <AdminPostsWidget />
             </div>
           </div>
+        </div>
         </div>
       </div>
 

@@ -1,22 +1,31 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../store/auth.store';
 import { feedApi } from '../lib/api';
-import { getNavigationForRole, flattenNavItems, type NavItem } from '../config/navigation.config';
-import { SaasIcon } from './ui/SaasIcon';
-import { Bell, Search, ChevronLeft, Mail, X, Sparkles, Wrench, Bug, DollarSign, Music, Users, MessageCircle, Loader2, Heart, Command } from 'lucide-react';
+import {
+  Bell,
+  Search,
+  Mail,
+  X,
+  Sparkles,
+  Wrench,
+  Bug,
+  Users,
+  MessageCircle,
+  Loader2,
+  Heart,
+  User,
+  FileText,
+} from 'lucide-react';
 import { cn } from '../lib/utils';
 
-interface DashboardHeaderProps {
+interface SocialHeaderProps {
   title?: string;
-  showBackButton?: boolean;
   className?: string;
-  /** Show the site updates mailbox icon */
-  showUpdates?: boolean;
 }
 
-// Site updates/changelog - add new entries at the top
+// Site updates/changelog - same as DashboardHeader
 const SITE_UPDATES = [
   {
     id: '2024-12-06-charts',
@@ -126,43 +135,36 @@ function UpdatesPopup({
   );
 }
 
-// Notifications popup component
-function NotificationsPopup({
+// Social Notifications popup component
+function SocialNotificationsPopup({
   isOpen,
   onClose,
   popupRef,
-  userId,
 }: {
   isOpen: boolean;
   onClose: () => void;
   popupRef: React.RefObject<HTMLDivElement>;
-  userId?: string;
 }) {
-  // Fetch recent activity/notifications
-  const { data: activityData, isLoading } = useQuery({
-    queryKey: ['user-notifications', userId],
+  const navigate = useNavigate();
+
+  // Fetch social notifications
+  const { data: notificationsData, isLoading } = useQuery({
+    queryKey: ['social-notifications'],
     queryFn: async () => {
-      const response = await feedApi.getActivity({ limit: 10 });
+      const response = await feedApi.getNotifications({ limit: 20 });
       return response.data;
     },
-    enabled: isOpen && !!userId,
-    staleTime: 30000, // 30 seconds
+    enabled: isOpen,
+    staleTime: 30000,
   });
 
   if (!isOpen) return null;
 
-  const activities = activityData?.activities || [];
+  const notifications = notificationsData?.notifications || [];
 
-  // Get icon and color based on activity type
-  const getActivityStyle = (type: string) => {
+  // Get icon based on notification type
+  const getNotificationStyle = (type: string) => {
     switch (type) {
-      case 'statement_processed':
-      case 'payment_received':
-        return { icon: <DollarSign className="w-4 h-4" />, color: 'text-emerald-500', bg: 'bg-emerald-100' };
-      case 'placement_confirmed':
-      case 'placement_created':
-        return { icon: <Music className="w-4 h-4" />, color: 'text-purple-500', bg: 'bg-purple-100' };
-      case 'new_follower':
       case 'follow':
         return { icon: <Users className="w-4 h-4" />, color: 'text-blue-500', bg: 'bg-blue-100' };
       case 'like':
@@ -190,6 +192,15 @@ function NotificationsPopup({
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const handleNotificationClick = (notification: any) => {
+    if (notification.type === 'follow' && notification.user?.profileSlug) {
+      navigate(`/user/${notification.user.profileSlug}`);
+    } else if ((notification.type === 'like' || notification.type === 'comment') && notification.feedItem?.id) {
+      navigate(`/post/${notification.feedItem.id}`);
+    }
+    onClose();
+  };
+
   return (
     <div
       ref={popupRef}
@@ -215,15 +226,16 @@ function NotificationsPopup({
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
           </div>
-        ) : activities.length > 0 ? (
-          activities.map((activity: any, index: number) => {
-            const style = getActivityStyle(activity.type);
+        ) : notifications.length > 0 ? (
+          notifications.map((notification: any, index: number) => {
+            const style = getNotificationStyle(notification.type);
             return (
               <div
-                key={activity.id || index}
+                key={notification.id}
+                onClick={() => handleNotificationClick(notification)}
                 className={cn(
-                  "px-4 py-3 hover:bg-gray-50 transition-colors",
-                  index !== activities.length - 1 && "border-b border-gray-100"
+                  "px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer",
+                  index !== notifications.length - 1 && "border-b border-gray-100"
                 )}
               >
                 <div className="flex items-start gap-3">
@@ -231,11 +243,27 @@ function NotificationsPopup({
                     <span className={style.color}>{style.icon}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900">
-                      {activity.message || activity.content || 'New activity'}
+                    <div className="flex items-center gap-2 mb-0.5">
+                      {notification.user?.profilePhotoUrl ? (
+                        <img
+                          src={notification.user.profilePhotoUrl}
+                          alt=""
+                          className="w-5 h-5 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center">
+                          <User className="w-3 h-3 text-gray-500" />
+                        </div>
+                      )}
+                      <span className="text-sm font-medium text-gray-900 truncate">
+                        {notification.user?.firstName} {notification.user?.lastName}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {notification.message}
                     </p>
                     <span className="text-[10px] text-gray-400">
-                      {formatTimeAgo(activity.createdAt || activity.timestamp)}
+                      {formatTimeAgo(notification.createdAt)}
                     </span>
                   </div>
                 </div>
@@ -247,61 +275,52 @@ function NotificationsPopup({
             <Bell className="w-10 h-10 text-gray-300 mx-auto mb-3" />
             <p className="text-sm text-gray-500">No notifications yet</p>
             <p className="text-xs text-gray-400 mt-1">
-              You'll see updates here when something happens
+              You'll see activity here when people interact with you
             </p>
           </div>
         )}
       </div>
-
-      {/* Footer */}
-      {activities.length > 0 && (
-        <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
-          <button className="w-full text-center text-xs text-blue-500 hover:text-blue-600 font-medium">
-            View all activity
-          </button>
-        </div>
-      )}
     </div>
   );
 }
 
-// Search command palette component
-function SearchCommandPalette({
+// Social Search Command Palette
+function SocialSearchPalette({
   isOpen,
   onClose,
-  userRole,
-  onNavigate,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  userRole: string;
-  onNavigate: (path: string, tabId?: string) => void;
 }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchType, setSearchType] = useState<'all' | 'users' | 'posts'>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
-  // Get navigation items based on user role
-  const navItems = useMemo(() => {
-    const sections = getNavigationForRole(userRole);
-    return flattenNavItems(sections);
-  }, [userRole]);
+  // Search query
+  const { data: searchResults, isLoading } = useQuery({
+    queryKey: ['social-search', searchQuery, searchType],
+    queryFn: async () => {
+      if (!searchQuery || searchQuery.length < 2) return { users: [], posts: [] };
+      const response = await feedApi.search({ q: searchQuery, type: searchType, limit: 10 });
+      return response.data;
+    },
+    enabled: isOpen && searchQuery.length >= 2,
+    staleTime: 10000,
+  });
 
-  // Filter items based on search query
-  const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) return navItems;
-    const query = searchQuery.toLowerCase();
-    return navItems.filter(item =>
-      item.label.toLowerCase().includes(query) ||
-      item.id.toLowerCase().includes(query)
-    );
-  }, [navItems, searchQuery]);
+  // Combine results for navigation
+  const combinedResults = [
+    ...(searchResults?.users || []).map((u: any) => ({ ...u, resultType: 'user' })),
+    ...(searchResults?.posts || []).map((p: any) => ({ ...p, resultType: 'post' })),
+  ];
 
   // Reset selection when search changes
   useEffect(() => {
     setSelectedIndex(0);
-  }, [searchQuery]);
+  }, [searchQuery, searchType]);
 
   // Focus input when opened
   useEffect(() => {
@@ -314,20 +333,20 @@ function SearchCommandPalette({
 
   // Scroll selected item into view
   useEffect(() => {
-    if (listRef.current && filteredItems.length > 0) {
+    if (listRef.current && combinedResults.length > 0) {
       const selectedElement = listRef.current.children[selectedIndex] as HTMLElement;
       if (selectedElement) {
         selectedElement.scrollIntoView({ block: 'nearest' });
       }
     }
-  }, [selectedIndex, filteredItems.length]);
+  }, [selectedIndex, combinedResults.length]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex(prev => Math.min(prev + 1, filteredItems.length - 1));
+        setSelectedIndex(prev => Math.min(prev + 1, combinedResults.length - 1));
         break;
       case 'ArrowUp':
         e.preventDefault();
@@ -335,8 +354,8 @@ function SearchCommandPalette({
         break;
       case 'Enter':
         e.preventDefault();
-        if (filteredItems[selectedIndex]) {
-          handleSelectItem(filteredItems[selectedIndex]);
+        if (combinedResults[selectedIndex]) {
+          handleSelectItem(combinedResults[selectedIndex]);
         }
         break;
       case 'Escape':
@@ -344,16 +363,13 @@ function SearchCommandPalette({
         onClose();
         break;
     }
-  }, [filteredItems, selectedIndex, onClose]);
+  }, [combinedResults, selectedIndex, onClose]);
 
-  const handleSelectItem = (item: NavItem) => {
-    if (item.path) {
-      // Direct navigation route
-      onNavigate(item.path);
-    } else {
-      // Tab-based navigation - go to dashboard with tab
-      const dashboardPath = userRole === 'ADMIN' ? '/admin' : userRole === 'CUSTOMER' ? '/customer' : '/dashboard';
-      onNavigate(dashboardPath, item.id);
+  const handleSelectItem = (item: any) => {
+    if (item.resultType === 'user') {
+      navigate(`/user/${item.profileSlug}`);
+    } else if (item.resultType === 'post') {
+      navigate(`/post/${item.id}`);
     }
     onClose();
   };
@@ -368,7 +384,7 @@ function SearchCommandPalette({
         onClick={onClose}
       />
 
-      {/* Command Palette Modal */}
+      {/* Search Modal */}
       <div className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50">
         {/* Search Input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
@@ -379,7 +395,7 @@ function SearchCommandPalette({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search pages..."
+            placeholder="Search users, posts, keywords..."
             className="flex-1 text-sm text-gray-900 placeholder:text-gray-400 outline-none bg-transparent"
           />
           <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-gray-400 bg-gray-100 rounded">
@@ -387,12 +403,43 @@ function SearchCommandPalette({
           </kbd>
         </div>
 
+        {/* Search Type Tabs */}
+        <div className="flex gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
+          {[
+            { key: 'all', label: 'All' },
+            { key: 'users', label: 'Users' },
+            { key: 'posts', label: 'Posts' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setSearchType(tab.key as typeof searchType)}
+              className={cn(
+                "px-3 py-1 text-xs font-medium rounded-lg transition-colors",
+                searchType === tab.key
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-gray-500 hover:bg-gray-100"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         {/* Results List */}
         <div ref={listRef} className="max-h-80 overflow-y-auto py-2">
-          {filteredItems.length > 0 ? (
-            filteredItems.map((item, index) => (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+            </div>
+          ) : searchQuery.length < 2 ? (
+            <div className="px-4 py-8 text-center">
+              <Search className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">Type at least 2 characters to search</p>
+            </div>
+          ) : combinedResults.length > 0 ? (
+            combinedResults.map((item, index) => (
               <button
-                key={item.id}
+                key={item.resultType === 'user' ? `user-${item.id}` : `post-${item.id}`}
                 onClick={() => handleSelectItem(item)}
                 onMouseEnter={() => setSelectedIndex(index)}
                 className={cn(
@@ -402,20 +449,49 @@ function SearchCommandPalette({
                     : "text-gray-700 hover:bg-gray-50"
                 )}
               >
-                <div className={cn(
-                  "w-8 h-8 rounded-lg flex items-center justify-center",
-                  index === selectedIndex ? "bg-blue-100" : "bg-gray-100"
-                )}>
-                  <SaasIcon name={item.icon} className="w-4 h-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{item.label}</p>
-                  {item.path && (
-                    <p className="text-xs text-gray-400 truncate">{item.path}</p>
-                  )}
-                </div>
-                {index === selectedIndex && (
-                  <span className="text-xs text-blue-500">Enter ↵</span>
+                {item.resultType === 'user' ? (
+                  <>
+                    {item.profilePhotoUrl ? (
+                      <img
+                        src={item.profilePhotoUrl}
+                        alt=""
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                        <User className="w-5 h-5 text-gray-500" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {item.firstName} {item.lastName}
+                      </p>
+                      <p className="text-xs text-gray-400 truncate">
+                        @{item.profileSlug}
+                      </p>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-wider text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+                      User
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <div className={cn(
+                      "w-10 h-10 rounded-lg flex items-center justify-center",
+                      index === selectedIndex ? "bg-blue-100" : "bg-gray-100"
+                    )}>
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{item.title}</p>
+                      <p className="text-xs text-gray-400 truncate">
+                        by {item.user?.firstName} {item.user?.lastName}
+                      </p>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-wider text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
+                      Post
+                    </span>
+                  </>
                 )}
               </button>
             ))
@@ -443,9 +519,6 @@ function SearchCommandPalette({
               Select
             </span>
           </div>
-          <span className="flex items-center gap-1">
-            <Command className="w-3 h-3" />K to open
-          </span>
         </div>
       </div>
     </>
@@ -453,16 +526,13 @@ function SearchCommandPalette({
 }
 
 /**
- * Minimal top header for dashboard pages
- * Shows page title on left, profile avatar + actions on right
- * Designed for the new "default" clean theme
+ * Top header for social pages (My Profile, My Store, Insights, etc.)
+ * Shows search (for users/posts), notifications (follows/likes/comments), and site updates
  */
-export function DashboardHeader({
-  title = 'Dashboard',
-  showBackButton = false,
+export function SocialHeader({
+  title = 'Social',
   className,
-  showUpdates = false,
-}: DashboardHeaderProps) {
+}: SocialHeaderProps) {
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
@@ -495,16 +565,6 @@ export function DashboardHeader({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  // Handle navigation from search
-  const handleSearchNavigate = useCallback((path: string, tabId?: string) => {
-    if (tabId) {
-      // Navigate to dashboard with tab state
-      navigate(path, { state: { activeTab: tabId } });
-    } else {
-      navigate(path);
-    }
-  }, [navigate]);
 
   // Close updates popup when clicking outside
   useEffect(() => {
@@ -544,10 +604,6 @@ export function DashboardHeader({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [notificationsOpen]);
 
-  const handleBack = () => {
-    navigate(-1);
-  };
-
   const handleProfileClick = () => {
     navigate('/my-profile');
   };
@@ -566,16 +622,8 @@ export function DashboardHeader({
       'pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:pt-4',
       className
     )}>
-      {/* Left: Back button + Title */}
+      {/* Left: Title */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {showBackButton && (
-          <button
-            onClick={handleBack}
-            className="p-1.5 -ml-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-        )}
         <h1 className="text-lg sm:text-xl font-semibold text-gray-900">{title}</h1>
       </div>
 
@@ -601,33 +649,31 @@ export function DashboardHeader({
         </button>
 
         {/* Site Updates - Mailbox icon */}
-        {showUpdates && (
-          <div className="relative">
-            <button
-              ref={buttonRef}
-              onClick={handleUpdatesClick}
-              className={cn(
-                "relative p-2 rounded-lg transition-colors",
-                updatesOpen
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              )}
-            >
-              <Mail className="w-5 h-5" />
-              {/* New updates indicator */}
-              {!hasSeenUpdates && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full" />
-              )}
-            </button>
-            <UpdatesPopup
-              isOpen={updatesOpen}
-              onClose={() => setUpdatesOpen(false)}
-              popupRef={popupRef}
-            />
-          </div>
-        )}
+        <div className="relative">
+          <button
+            ref={buttonRef}
+            onClick={handleUpdatesClick}
+            className={cn(
+              "relative p-2 rounded-lg transition-colors",
+              updatesOpen
+                ? "text-blue-600 bg-blue-50"
+                : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            )}
+          >
+            <Mail className="w-5 h-5" />
+            {/* New updates indicator */}
+            {!hasSeenUpdates && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full" />
+            )}
+          </button>
+          <UpdatesPopup
+            isOpen={updatesOpen}
+            onClose={() => setUpdatesOpen(false)}
+            popupRef={popupRef}
+          />
+        </div>
 
-        {/* Notifications */}
+        {/* Social Notifications */}
         <div className="relative">
           <button
             ref={notificationsButtonRef}
@@ -641,11 +687,10 @@ export function DashboardHeader({
           >
             <Bell className="w-5 h-5" />
           </button>
-          <NotificationsPopup
+          <SocialNotificationsPopup
             isOpen={notificationsOpen}
             onClose={() => setNotificationsOpen(false)}
             popupRef={notificationsPopupRef}
-            userId={user?.id}
           />
         </div>
 
@@ -668,15 +713,13 @@ export function DashboardHeader({
         </button>
       </div>
 
-      {/* Search Command Palette */}
-      <SearchCommandPalette
+      {/* Social Search Palette */}
+      <SocialSearchPalette
         isOpen={searchOpen}
         onClose={() => setSearchOpen(false)}
-        userRole={user?.role || 'WRITER'}
-        onNavigate={handleSearchNavigate}
       />
     </header>
   );
 }
 
-export default DashboardHeader;
+export default SocialHeader;

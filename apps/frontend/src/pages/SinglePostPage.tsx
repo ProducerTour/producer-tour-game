@@ -5,6 +5,7 @@ import { feedApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import { ActivityFeedItem } from '../components/feed/ActivityFeedItem';
 import SocialSidebar from '../components/SocialSidebar';
+import SocialHeader from '../components/SocialHeader';
 
 export default function SinglePostPage() {
   const { id } = useParams<{ id: string }>();
@@ -71,8 +72,11 @@ export default function SinglePostPage() {
   return (
     <div className="min-h-screen bg-theme-background">
       <SocialSidebar />
-      <div className="pl-20">
-        <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="ml-0 md:pl-20">
+        {/* Social Header with search, notifications, updates */}
+        <SocialHeader title="Post" />
+
+        <div className="max-w-2xl mx-auto px-4 py-6">
           {/* Back Button */}
           <button
             onClick={() => navigate(-1)}

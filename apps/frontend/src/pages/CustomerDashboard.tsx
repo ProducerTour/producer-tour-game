@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import ImpersonationBanner from '../components/ImpersonationBanner';
+import { DashboardHeader } from '../components/DashboardHeader';
 import ToolsHub from '../components/ToolsHub';
 import { InstallAppButton } from '../components/mobile/InstallAppButton';
 import { useAuthStore } from '../store/auth.store';
@@ -93,7 +94,10 @@ export default function CustomerDashboard() {
 
         {/* Main Content Area */}
         <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} overflow-y-auto transition-all duration-300`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pt-14 sm:pt-20 md:pt-8 pb-24 sm:pb-8">
+          {/* Dashboard Header - visible on all devices */}
+          <DashboardHeader title="Dashboard" />
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24 sm:pb-8">
 
             {/* Tab Content */}
             {activeTab === 'overview' && (

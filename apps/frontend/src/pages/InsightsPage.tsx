@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import SocialSidebar from '../components/SocialSidebar';
+import SocialHeader from '../components/SocialHeader';
 import {
   ExternalLink,
   TrendingUp,
@@ -114,7 +115,11 @@ export default function InsightsPage() {
     <div className="min-h-screen bg-theme-background overflow-x-hidden">
       <SocialSidebar activePage="insights" />
 
-      <div className="sm:ml-20 max-w-[1400px] mx-auto px-4 sm:px-6 pt-16 sm:pt-6 pb-24 sm:pb-6">
+      <div className="sm:ml-20">
+        {/* Social Header with search, notifications, updates */}
+        <SocialHeader title="Insights" />
+
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 pb-24 sm:pb-6">
         {/* Mobile Back Button */}
         <button
           onClick={() => navigate(-1)}
@@ -241,6 +246,7 @@ export default function InsightsPage() {
               })}
           </div>
         )}
+        </div>
       </div>
     </div>
   );

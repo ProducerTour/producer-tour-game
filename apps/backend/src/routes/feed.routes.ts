@@ -1013,6 +1013,248 @@ router.get('/og/:id', async (req, res: Response) => {
   }
 });
 
+// GET /api/feed/search - Search for users, posts, and content
+router.get('/search', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const query = (req.query.q as string || '').trim();
+    const type = req.query.type as string || 'all'; // 'all', 'users', 'posts'
+    const limit = parseInt(req.query.limit as string) || 10;
+    const currentUserId = req.user!.id;
+
+    if (!query || query.length < 2) {
+      return res.json({ users: [], posts: [], query: '' });
+    }
+
+    const results: { users: any[]; posts: any[] } = { users: [], posts: [] };
+
+    // Search users
+    if (type === 'all' || type === 'users') {
+      const users = await prisma.user.findMany({
+        where: {
+          OR: [
+            { firstName: { contains: query, mode: 'insensitive' } },
+            { lastName: { contains: query, mode: 'insensitive' } },
+            { profileSlug: { contains: query, mode: 'insensitive' } },
+            { email: { contains: query, mode: 'insensitive' } },
+          ],
+          isPublicProfile: true,
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          profilePhotoUrl: true,
+          profileSlug: true,
+          bio: true,
+          gamificationPoints: {
+            select: { tier: true },
+          },
+          followers: {
+            where: { followerId: currentUserId },
+            select: { id: true },
+          },
+        },
+        take: limit,
+        orderBy: [
+          { firstName: 'asc' },
+          { lastName: 'asc' },
+        ],
+      });
+
+      results.users = users.map(u => ({
+        ...u,
+        isFollowing: u.followers.length > 0,
+        followers: undefined,
+      }));
+    }
+
+    // Search posts (by title, description, or content keywords)
+    if (type === 'all' || type === 'posts') {
+      const posts = await prisma.activityFeedItem.findMany({
+        where: {
+          OR: [
+            { title: { contains: query, mode: 'insensitive' } },
+            { description: { contains: query, mode: 'insensitive' } },
+          ],
+          isPublic: true,
+          activityType: 'POST',
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePhotoUrl: true,
+              profileSlug: true,
+            },
+          },
+          likes: {
+            where: { userId: currentUserId },
+            select: { id: true },
+          },
+        },
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      results.posts = posts.map(p => ({
+        ...p,
+        isLiked: p.likes.length > 0,
+        likes: undefined,
+      }));
+    }
+
+    res.json({ ...results, query });
+  } catch (error) {
+    console.error('Social search error:', error);
+    res.status(500).json({ error: 'Failed to search' });
+  }
+});
+
+// GET /api/feed/notifications - Get social notifications for current user
+// (new followers, likes on your posts, comments on your posts, messages)
+router.get('/notifications', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    // Get various notification types in parallel
+    const [newFollowers, recentLikes, recentComments] = await Promise.all([
+      // New followers (people who followed the current user)
+      prisma.follow.findMany({
+        where: { followingId: userId },
+        include: {
+          follower: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePhotoUrl: true,
+              profileSlug: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+
+      // Recent likes on user's posts
+      prisma.feedLike.findMany({
+        where: {
+          feedItem: { userId: userId },
+          NOT: { userId: userId }, // Exclude self-likes
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePhotoUrl: true,
+              profileSlug: true,
+            },
+          },
+          feedItem: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+
+      // Recent comments on user's posts
+      prisma.feedComment.findMany({
+        where: {
+          feedItem: { userId: userId },
+          NOT: { userId: userId }, // Exclude self-comments
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePhotoUrl: true,
+              profileSlug: true,
+            },
+          },
+          feedItem: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+    ]);
+
+    // Transform notifications into a unified format
+    const notifications: any[] = [];
+
+    // Add follow notifications
+    newFollowers.forEach(f => {
+      notifications.push({
+        id: `follow-${f.id}`,
+        type: 'follow',
+        user: f.follower,
+        message: `${f.follower.firstName || 'Someone'} ${f.follower.lastName || ''} followed you`.trim(),
+        createdAt: f.createdAt,
+      });
+    });
+
+    // Add like notifications
+    recentLikes.forEach(l => {
+      notifications.push({
+        id: `like-${l.id}`,
+        type: 'like',
+        user: l.user,
+        feedItem: l.feedItem,
+        message: `${l.user.firstName || 'Someone'} ${l.user.lastName || ''} liked your post "${l.feedItem.title?.substring(0, 30) || 'post'}${(l.feedItem.title?.length || 0) > 30 ? '...' : ''}"`.trim(),
+        createdAt: l.createdAt,
+      });
+    });
+
+    // Add comment notifications
+    recentComments.forEach(c => {
+      notifications.push({
+        id: `comment-${c.id}`,
+        type: 'comment',
+        user: c.user,
+        feedItem: c.feedItem,
+        content: c.content,
+        message: `${c.user.firstName || 'Someone'} ${c.user.lastName || ''} commented on your post "${c.feedItem.title?.substring(0, 30) || 'post'}${(c.feedItem.title?.length || 0) > 30 ? '...' : ''}"`.trim(),
+        createdAt: c.createdAt,
+      });
+    });
+
+    // Sort all notifications by date
+    notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Apply pagination
+    const paginatedNotifications = notifications.slice(offset, offset + limit);
+
+    res.json({
+      notifications: paginatedNotifications,
+      pagination: {
+        limit,
+        offset,
+        total: notifications.length,
+        hasMore: offset + limit < notifications.length,
+      },
+    });
+  } catch (error) {
+    console.error('Get notifications error:', error);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
 // Helper function to escape HTML
 function escapeHtml(text: string): string {
   return text
