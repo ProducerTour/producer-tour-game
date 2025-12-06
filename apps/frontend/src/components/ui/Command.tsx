@@ -16,10 +16,9 @@ const Command = React.forwardRef<
   <CommandPrimitive
     ref={ref}
     className={cn(
-      'flex h-full w-full flex-col overflow-hidden rounded-xl',
+      'flex h-full w-full flex-col overflow-hidden rounded-xl bg-white',
       className
     )}
-    style={{ backgroundColor: '#0f172a' }}
     {...props}
   />
 ));
@@ -54,13 +53,13 @@ const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(({ className, ...props }, ref) => (
-  <div className="flex items-center border-b border-white/[0.08] px-4" cmdk-input-wrapper="">
-    <Search className="mr-3 h-5 w-5 shrink-0 text-gray-500" />
+  <div className="flex items-center border-b border-gray-200 px-4" cmdk-input-wrapper="">
+    <Search className="mr-3 h-5 w-5 shrink-0 text-gray-400" />
     <CommandPrimitive.Input
       ref={ref}
       className={cn(
-        'flex h-12 w-full rounded-lg bg-transparent py-3 text-sm text-white outline-none',
-        'placeholder:text-gray-500',
+        'flex h-12 w-full rounded-lg bg-transparent py-3 text-sm text-gray-900 outline-none',
+        'placeholder:text-gray-400',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className
       )}
@@ -118,7 +117,7 @@ const CommandSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.Separator
     ref={ref}
-    className={cn('-mx-1 h-px bg-white/[0.08]', className)}
+    className={cn('-mx-1 h-px bg-gray-200', className)}
     {...props}
   />
 ));
@@ -131,8 +130,8 @@ const CommandItem = React.forwardRef<
   <CommandPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2.5 text-sm text-gray-300 outline-none',
-      'aria-selected:bg-white/10 aria-selected:text-white',
+      'relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2.5 text-sm text-gray-700 outline-none',
+      'aria-selected:bg-blue-50 aria-selected:text-blue-700',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className
     )}
