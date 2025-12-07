@@ -187,9 +187,9 @@ export default function CustomerTourMilesPage() {
             </div>
 
             {/* Mobile: 2x2 Grid Stats | Desktop: 4-column Grid */}
-            <div className="grid grid-cols-2 gap-2 sm:hidden mb-3">
+            <div className="grid grid-cols-2 gap-2 sm:hidden mb-3 w-full max-w-full overflow-hidden">
               {/* Tour Miles Balance */}
-              <div className={`bg-gradient-to-br ${tierStyle.bg} border ${tierStyle.border} rounded-lg p-2`}>
+              <div className={`bg-gradient-to-br ${tierStyle.bg} border ${tierStyle.border} rounded-lg p-2 min-w-0 max-w-full overflow-hidden`}>
                 <div className="flex items-center gap-1 mb-0.5">
                   <Sparkles className={`w-3 h-3 ${tierStyle.text}`} />
                   <span className={`text-[8px] font-bold uppercase ${tierStyle.text}`}>{currentTier}</span>
@@ -206,7 +206,7 @@ export default function CustomerTourMilesPage() {
               </div>
 
               {/* Daily Streak */}
-              <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-lg p-2">
+              <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-lg p-2 min-w-0 max-w-full overflow-hidden">
                 <Zap className="w-3 h-3 text-orange-400 mb-0.5" />
                 <p className="text-base font-bold text-white leading-tight">{stats?.currentStreak || 0}</p>
                 <p className="text-[9px] text-text-secondary mb-1">Day Streak</p>
@@ -224,14 +224,14 @@ export default function CustomerTourMilesPage() {
               </div>
 
               {/* Achievements */}
-              <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg p-2">
+              <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg p-2 min-w-0 max-w-full overflow-hidden">
                 <Trophy className="w-3 h-3 text-purple-400 mb-0.5" />
                 <p className="text-base font-bold text-white leading-tight">{stats?.achievementsUnlocked || 0}</p>
                 <p className="text-[9px] text-text-secondary">Badges</p>
               </div>
 
               {/* Rewards */}
-              <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg p-2">
+              <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg p-2 min-w-0 max-w-full overflow-hidden">
                 <Gift className="w-3 h-3 text-green-400 mb-0.5" />
                 <p className="text-base font-bold text-white leading-tight">{rewards?.length || 0}</p>
                 <p className="text-[9px] text-text-secondary">Rewards</p>
