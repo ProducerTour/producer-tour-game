@@ -14,6 +14,7 @@ const router = Router();
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(10, 'Password must be at least 10 characters'),
+  rememberMe: z.boolean().optional().default(false),
 });
 
 const registerSchema = z.object({
@@ -44,7 +45,7 @@ const impersonateSchema = z.object({
  */
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { email, password } = loginSchema.parse(req.body);
+    const { email, password, rememberMe } = loginSchema.parse(req.body);
 
     const user = await prisma.user.findUnique({
       where: { email },
@@ -60,7 +61,10 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const expiresIn = (process.env.JWT_EXPIRES_IN ?? '7d') as SignOptions['expiresIn'];
+    // Use longer expiration (30 days) for "Remember Me", shorter (1 day) for regular sessions
+    const expiresIn = rememberMe
+      ? (process.env.JWT_REMEMBER_ME_EXPIRES_IN ?? '30d') as SignOptions['expiresIn']
+      : (process.env.JWT_EXPIRES_IN ?? '1d') as SignOptions['expiresIn'];
     const jwtOptions: SignOptions = { expiresIn };
     const token = jwt.sign(
       {

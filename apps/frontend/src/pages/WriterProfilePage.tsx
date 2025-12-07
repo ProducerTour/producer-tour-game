@@ -15,6 +15,8 @@ import {
   ArrowLeft,
   MessageCircle,
   BadgeCheck,
+  Lock,
+  ShieldOff,
 } from 'lucide-react';
 import { FaSpotify, FaSoundcloud, FaTiktok, FaApple } from 'react-icons/fa';
 import { useAuthStore } from '../store/auth.store';
@@ -106,17 +108,67 @@ export default function WriterProfilePage() {
     );
   }
 
+  // Check if this is a private profile (403 error)
+  const isPrivateProfile = (error as any)?.response?.status === 403;
+
   if (error || !profile) {
+    // Private profile view
+    if (isPrivateProfile) {
+      return (
+        <div className="min-h-screen bg-gray-50 pb-20 md:pb-6">
+          <div className="max-w-lg mx-auto px-4 py-20">
+            <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                <Lock className="w-10 h-10 text-gray-400" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Private Profile</h1>
+              <p className="text-gray-500 mb-6">
+                This user has set their profile to private. Only they can view their profile information.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link
+                  to="/my-profile"
+                  className="flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to your profile
+                </Link>
+                {!user && (
+                  <Link
+                    to="/login"
+                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Profile not found view
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
-        <div className="text-gray-600 text-lg">Profile not found</div>
-        <Link
-          to="/my-profile"
-          className="flex items-center gap-2 text-purple-600 hover:text-purple-700"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to your profile
-        </Link>
+      <div className="min-h-screen bg-gray-50 pb-20 md:pb-6">
+        <div className="max-w-lg mx-auto px-4 py-20">
+          <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
+            <div className="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+              <ShieldOff className="w-10 h-10 text-gray-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Profile Not Found</h1>
+            <p className="text-gray-500 mb-6">
+              This profile doesn't exist or may have been removed.
+            </p>
+            <Link
+              to="/my-profile"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to your profile
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }

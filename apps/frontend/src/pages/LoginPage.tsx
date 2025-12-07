@@ -120,8 +120,8 @@ export default function LoginPage() {
         });
         setAuth(response.data.user, response.data.token, rememberMe);
       } else {
-        // Login existing user
-        const response = await authApi.login(email, password);
+        // Login existing user - pass rememberMe to get appropriate token expiration
+        const response = await authApi.login(email, password, rememberMe);
         setAuth(response.data.user, response.data.token, rememberMe);
       }
 
