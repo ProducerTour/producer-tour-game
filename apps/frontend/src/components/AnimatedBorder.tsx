@@ -1,5 +1,13 @@
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
+import {
+  BronzeBorderV1,
+  SilverBorder,
+  GoldBorder,
+  DiamondBorder,
+  EliteCrimsonSmoke,
+  SilverSolarFlare,
+} from './test/EnhancedBorders';
 
 export interface BorderConfig {
   id: string;
@@ -53,10 +61,10 @@ export const PRESET_BORDERS: Record<string, BorderConfig> = {
     id: 'bronze-status',
     name: 'Bronze Status',
     tier: 'BRONZE',
-    colors: ['#d97706', '#b45309', '#92400e'],
-    spinSpeed: 4,
-    glowIntensity: 1,
-    specialEffect: null,
+    colors: ['#cd7f32', '#e8a54b', '#ffd699', '#e8a54b', '#cd7f32', '#8b5a2b', '#6b4423', '#8b5a2b'],
+    spinSpeed: 8,
+    glowIntensity: 1.2,
+    specialEffect: 'shimmer',
   },
   'silver-status': {
     id: 'silver-status',
@@ -89,11 +97,59 @@ export const PRESET_BORDERS: Record<string, BorderConfig> = {
     id: 'elite-status',
     name: 'Elite Status',
     tier: 'ELITE',
-    colors: ['#f472b6', '#ec4899', '#db2777', '#be185d', '#9d174d'],
+    colors: ['#cc0000', '#ff1a1a', '#990000', '#660000'],
     spinSpeed: 2,
     glowIntensity: 2,
     specialEffect: 'particles',
   },
+  'solar-flare': {
+    id: 'solar-flare',
+    name: 'Solar Flare',
+    tier: 'unlockable',
+    colors: ['#ffee44', '#ffcc00', '#ffaa00', '#ff8800', '#ff6600'],
+    spinSpeed: 2,
+    glowIntensity: 1.8,
+    specialEffect: 'sparkles',
+  },
+};
+
+// Map tier/border ID to enhanced component
+type EnhancedBorderComponent = React.ComponentType<{
+  children: React.ReactNode;
+  size?: number;
+  className?: string;
+}>;
+
+const ENHANCED_BORDER_MAP: Record<string, EnhancedBorderComponent> = {
+  // By tier
+  'BRONZE': BronzeBorderV1,
+  'SILVER': SilverBorder,
+  'GOLD': GoldBorder,
+  'DIAMOND': DiamondBorder,
+  'ELITE': EliteCrimsonSmoke,
+  // By specific border ID
+  'bronze-status-border': BronzeBorderV1,
+  'silver-status-border': SilverBorder,
+  'gold-status-border': GoldBorder,
+  'diamond-status-border': DiamondBorder,
+  'elite-status-border': EliteCrimsonSmoke,
+  'solar-flare-border': SilverSolarFlare,
+  // Short IDs (from PRESET_BORDERS keys)
+  'bronze-status': BronzeBorderV1,
+  'silver-status': SilverBorder,
+  'gold-status': GoldBorder,
+  'diamond-status': DiamondBorder,
+  'elite-status': EliteCrimsonSmoke,
+  'solar-flare': SilverSolarFlare,
+};
+
+// Convert named size to pixel value
+const SIZE_TO_PIXELS: Record<string, number> = {
+  'sm': 40,
+  'md': 56,
+  'lg': 80,
+  'xl': 112,
+  '2xl': 160,
 };
 
 interface AnimatedBorderProps {
@@ -111,7 +167,7 @@ export function AnimatedBorder({
   className = '',
   showBorder = true,
 }: AnimatedBorderProps) {
-  // Size configurations
+  // Size configurations for fallback rendering
   const sizeConfig = useMemo(() => {
     switch (size) {
       case 'sm':
@@ -129,16 +185,9 @@ export function AnimatedBorder({
     }
   }, [size]);
 
-  // Generate conic gradient from colors
-  const gradient = useMemo(() => {
-    if (!border?.colors?.length) return '';
-    const colors = border.colors;
-    const step = 360 / colors.length;
-    const gradientStops = colors.map((color, i) => `${color} ${i * step}deg ${(i + 1) * step}deg`).join(', ');
-    return `conic-gradient(${gradientStops})`;
-  }, [border?.colors]);
+  const pixelSize = SIZE_TO_PIXELS[size] || 56;
 
-  // No border - just render children
+  // No border - just render children in a circle
   if (!showBorder || !border) {
     return (
       <div className={`relative ${sizeConfig.outer} rounded-full ${className}`}>
@@ -148,6 +197,27 @@ export function AnimatedBorder({
       </div>
     );
   }
+
+  // Check if we have an enhanced border component for this tier or ID
+  const EnhancedComponent = ENHANCED_BORDER_MAP[border.id] || ENHANCED_BORDER_MAP[border.tier];
+
+  if (EnhancedComponent) {
+    // Use the enhanced SVG-based border
+    return (
+      <EnhancedComponent size={pixelSize} className={className}>
+        {children}
+      </EnhancedComponent>
+    );
+  }
+
+  // Fallback to basic conic gradient rendering for non-enhanced borders
+  const gradient = (() => {
+    if (!border?.colors?.length) return '';
+    const colors = border.colors;
+    const step = 360 / colors.length;
+    const gradientStops = colors.map((color, i) => `${color} ${i * step}deg ${(i + 1) * step}deg`).join(', ');
+    return `conic-gradient(${gradientStops})`;
+  })();
 
   const glowColor = border.colors[0];
   const glowStyle = {
@@ -213,7 +283,7 @@ export function AnimatedBorder({
   );
 }
 
-// Special effects component
+// Special effects component (fallback for non-enhanced borders)
 function SpecialEffectOverlay({
   effect,
   colors,

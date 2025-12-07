@@ -323,8 +323,8 @@ function BorderCollection() {
     }
   };
 
-  // Group by tier
-  const tierOrder = ['starter', 'week', 'month', 'streak', 'BRONZE', 'SILVER', 'GOLD', 'DIAMOND', 'ELITE'];
+  // Group by tier - chronological unlocking order (earliest first)
+  const tierOrder = ['starter', 'week', 'month', 'streak', 'BRONZE', 'SILVER', 'GOLD', 'DIAMOND', 'ELITE', 'unlockable'];
   const tierLabels: Record<string, string> = {
     starter: 'Starter',
     week: 'Weekly',
@@ -335,6 +335,7 @@ function BorderCollection() {
     GOLD: 'Gold Tier',
     DIAMOND: 'Diamond Tier',
     ELITE: 'Elite Tier',
+    unlockable: '✨ Unlockable (Tour Miles)',
   };
 
   const groupedBorders = borders.reduce((acc: Record<string, any[]>, border: any) => {

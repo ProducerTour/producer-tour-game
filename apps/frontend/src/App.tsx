@@ -38,6 +38,7 @@ import MetadataIndexPage from './pages/MetadataIndexPage';
 import PricingPage from './pages/PricingPage';
 import TypeBeatVideoMakerPage from './pages/TypeBeatVideoMakerPage';
 import SessionPayoutTool from './pages/SessionPayoutTool';
+import BorderPreview from './components/test/BorderPreview';
 import AffiliatesDashboard from './pages/AffiliatesDashboard';
 import AffiliateManagement from './pages/AffiliateManagement';
 import MyStorePage from './pages/MyStorePage';
@@ -313,6 +314,9 @@ function App() {
 
         {/* Landing Page Templates Preview */}
         <Route path="/landing-preview" element={<LandingPreview />} />
+
+        {/* Dev/Test Routes */}
+        <Route path="/test/borders" element={<BorderPreview />} />
 
         {/* 404 Catch-all - must be last */}
         <Route path="*" element={<NotFoundPage />} />

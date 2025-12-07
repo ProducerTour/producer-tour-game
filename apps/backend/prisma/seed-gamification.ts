@@ -229,6 +229,22 @@ async function main() {
         payoutFrequency: 'monthly'
       },
     },
+
+    // === UNLOCKABLE BORDER REWARDS ===
+    {
+      name: 'Solar Flare Border',
+      description: 'Unlock the stunning Solar Flare avatar border! Intense golden glow with curved spark streaks and scattered ember particles.',
+      cost: 150,
+      category: 'PLATFORM',
+      type: 'BORDER',
+      roleRestriction: null, // Available to all roles
+      tierRestriction: 'SILVER', // Requires SILVER tier to purchase
+      details: {
+        borderId: 'solar-flare-border',
+        borderName: 'Solar Flare',
+        permanent: true
+      },
+    },
   ];
 
   for (const reward of rewards) {
@@ -888,10 +904,11 @@ async function main() {
       id: 'bronze-status-border',
       name: 'Bronze Status',
       tier: 'BRONZE',
-      colors: ['#d97706', '#b45309', '#92400e'],
-      spinSpeed: 4,
-      glowIntensity: 1,
-      specialEffect: null,
+      // Updated to match new Smooth Metallic V1 colors
+      colors: ['#cd7f32', '#e8a54b', '#ffd699', '#e8a54b', '#cd7f32', '#8b5a2b', '#6b4423', '#8b5a2b'],
+      spinSpeed: 8,
+      glowIntensity: 1.2,
+      specialEffect: 'shimmer',
       achievementName: null, // Bronze is default, no achievement needed
     },
     {
@@ -928,11 +945,24 @@ async function main() {
       id: 'elite-status-border',
       name: 'Elite Status',
       tier: 'ELITE',
-      colors: ['#f472b6', '#ec4899', '#db2777', '#be185d', '#9d174d'],
+      // Updated to match new Crimson Smoke colors
+      colors: ['#cc0000', '#ff1a1a', '#990000', '#660000'],
       spinSpeed: 2,
       glowIntensity: 2,
       specialEffect: 'particles',
       achievementName: 'Elite Status',
+    },
+
+    // === UNLOCKABLE BORDERS (Purchasable with Tour Miles) ===
+    {
+      id: 'solar-flare-border',
+      name: 'Solar Flare',
+      tier: 'unlockable',
+      colors: ['#ffee44', '#ffcc00', '#ffaa00', '#ff8800', '#ff6600'],
+      spinSpeed: 2,
+      glowIntensity: 1.8,
+      specialEffect: 'sparkles',
+      achievementName: null, // No achievement - purchased via reward
     },
   ];
 
