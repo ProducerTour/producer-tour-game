@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { UploadedFile } from 'express-fileupload';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { pushService } from '../services/push.service';
 
 // Media upload constants
 const ALLOWED_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -311,6 +312,24 @@ router.post('/:id/like', authenticate, async (req: AuthRequest, res: Response) =
       }),
     ]);
 
+    // Send push notification to post owner (if not liking own post)
+    if (feedItem.userId !== userId) {
+      const liker = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { firstName: true, lastName: true },
+      });
+      const likerName = `${liker?.firstName || ''} ${liker?.lastName || ''}`.trim() || 'Someone';
+
+      pushService.sendLikeNotification(
+        feedItem.userId,
+        likerName,
+        feedItem.title || 'your post',
+        feedItemId
+      ).catch((err) => {
+        console.error('Failed to send like push notification:', err);
+      });
+    }
+
     res.json({ success: true, like });
   } catch (error: any) {
     // Handle race condition - if another request created the like, return success
@@ -451,6 +470,21 @@ router.post('/:id/comment', authenticate, async (req: AuthRequest, res: Response
         data: { commentCount: { increment: 1 } },
       }),
     ]);
+
+    // Send push notification to post owner (if not commenting on own post)
+    if (feedItem.userId !== userId) {
+      const commenterName = `${comment.user.firstName || ''} ${comment.user.lastName || ''}`.trim() || 'Someone';
+
+      pushService.sendCommentNotification(
+        feedItem.userId,
+        commenterName,
+        feedItem.title || 'your post',
+        feedItemId,
+        content
+      ).catch((err) => {
+        console.error('Failed to send comment push notification:', err);
+      });
+    }
 
     res.status(201).json(comment);
   } catch (error) {
@@ -706,6 +740,21 @@ router.post('/follow/:userId', authenticate, async (req: AuthRequest, res: Respo
         followerId: currentUserId,
         followingId: targetUserId
       }
+    });
+
+    // Send push notification to the followed user
+    const follower = await prisma.user.findUnique({
+      where: { id: currentUserId },
+      select: { firstName: true, lastName: true, profileSlug: true },
+    });
+    const followerName = `${follower?.firstName || ''} ${follower?.lastName || ''}`.trim() || 'Someone';
+
+    pushService.sendFollowNotification(
+      targetUserId,
+      followerName,
+      follower?.profileSlug || undefined
+    ).catch((err) => {
+      console.error('Failed to send follow push notification:', err);
     });
 
     res.json({ success: true, follow });

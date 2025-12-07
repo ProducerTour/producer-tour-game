@@ -3,6 +3,7 @@ import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
 import { emailService } from '../services/email.service';
+import { pushService } from '../services/push.service';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -220,10 +221,20 @@ export function initializeSocket(httpServer: HttpServer): Server {
         const sender = message.sender;
         const senderName = `${sender.firstName || ''} ${sender.lastName || ''}`.trim() || sender.email;
 
-        // Send email notifications to offline users
+        // Send notifications to offline users (push + email)
         for (const p of participants) {
           if (!onlineUsers.has(p.userId) && p.user) {
             const recipientName = `${p.user.firstName || ''} ${p.user.lastName || ''}`.trim() || p.user.email;
+
+            // Send push notification (instant, for mobile devices)
+            pushService.sendMessageNotification(
+              p.user.id,
+              senderName,
+              content || '[File attachment]',
+              conversationId
+            ).catch((err) => {
+              console.error(`Failed to send push notification to ${p.user?.id}:`, err);
+            });
 
             // Send email notification asynchronously (don't await to avoid blocking)
             emailService.sendNewMessageNotification({
@@ -235,7 +246,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
               conversationId,
               timestamp: new Date(),
             }).catch((err) => {
-              console.error(`Failed to send message notification to ${p.user?.email}:`, err);
+              console.error(`Failed to send email notification to ${p.user?.email}:`, err);
             });
           }
         }

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { Lock, Bell, Settings, CreditCard, Info, User, Building2, BookOpen, Camera, Trash2, Loader2, Plane, Globe, Music, Instagram, Twitter, Linkedin, ExternalLink, Copy, Check, ArrowLeft, Youtube, CloudRain, Smartphone, MessageCircle, Volume2, VolumeX, Eye, EyeOff, BellRing, ChevronDown, ChevronUp, Palette, CheckCircle, XCircle, LogOut } from 'lucide-react';
 import { userApi, settingsApi, preferencesApi, systemSettingsApi, chatSettingsApi, api } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import AdminGuide from '../components/AdminGuide';
 import { PaymentSettings } from '../components/PaymentSettings';
 import { ThemeSelector } from '../components/settings/ThemeSelector';
@@ -28,6 +29,19 @@ export default function SettingsPage() {
   const { user, updateUser, logout } = useAuthStore();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
+
+  // Push notifications hook
+  const {
+    isSupported: pushSupported,
+    permission: pushPermission,
+    isSubscribed: pushSubscribed,
+    isLoading: pushLoading,
+    error: pushError,
+    iosInstallPrompt,
+    subscribe: subscribePush,
+    unsubscribe: unsubscribePush,
+    sendTestNotification,
+  } = usePushNotifications();
 
   // Check for section query param (e.g., /settings?section=tourhub)
   const sectionParam = searchParams.get('section') as SettingsSection | null;
@@ -1138,19 +1152,130 @@ export default function SettingsPage() {
                       )}
                     </div>
 
-                    {/* Desktop Notifications */}
-                    <div className="flex items-center justify-between p-4 bg-theme-card-hover border border-theme-border">
-                      <div className="flex items-center gap-3">
+                    {/* Push Notifications */}
+                    <div className="bg-theme-card-hover border border-theme-border p-6">
+                      <div className="flex items-center gap-3 mb-4">
                         <BellRing className="w-5 h-5 text-theme-primary" />
                         <div>
-                          <h3 className="text-theme-foreground font-medium">Desktop Notifications</h3>
-                          <p className="text-sm text-theme-foreground-muted">Show push notifications for new messages</p>
+                          <h3 className="text-lg font-semibold text-theme-foreground">Push Notifications</h3>
+                          <p className="text-sm text-theme-foreground-muted">
+                            Receive notifications on your device even when the app is closed
+                          </p>
                         </div>
                       </div>
-                      <Switch
-                        checked={chatSettings.chatDesktopNotifications}
-                        onCheckedChange={(checked) => handleChatSettingToggle('chatDesktopNotifications', checked)}
-                      />
+
+                      {/* iOS PWA Install Prompt */}
+                      {iosInstallPrompt && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 mb-4">
+                          <div className="flex gap-3">
+                            <Smartphone className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                                Enable Push Notifications on iOS
+                              </p>
+                              <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                                To receive push notifications on your iPhone or iPad:
+                              </p>
+                              <ol className="text-sm text-blue-700 dark:text-blue-300 list-decimal list-inside space-y-1">
+                                <li>Tap the Share button in Safari</li>
+                                <li>Select "Add to Home Screen"</li>
+                                <li>Open the app from your home screen</li>
+                                <li>Return here to enable notifications</li>
+                              </ol>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Permission Denied Warning */}
+                      {pushPermission === 'denied' && (
+                        <div className="bg-theme-error-bg border border-theme-error-30 p-4 mb-4">
+                          <div className="flex gap-3">
+                            <XCircle className="w-5 h-5 text-theme-error flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-theme-error mb-1">
+                                Notifications Blocked
+                              </p>
+                              <p className="text-sm text-theme-foreground-secondary">
+                                You've blocked notifications for this site. To enable, click the lock icon in your browser's address bar and allow notifications.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Push Error */}
+                      {pushError && pushPermission !== 'denied' && (
+                        <div className="bg-theme-warning-bg border border-theme-warning/30 p-4 mb-4">
+                          <p className="text-sm text-theme-warning">{pushError}</p>
+                        </div>
+                      )}
+
+                      {/* Push Toggle & Controls */}
+                      {pushSupported && !iosInstallPrompt && (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-theme-foreground font-medium">
+                                {pushSubscribed ? 'Notifications Enabled' : 'Enable Notifications'}
+                              </p>
+                              <p className="text-sm text-theme-foreground-muted">
+                                {pushSubscribed
+                                  ? 'You will receive push notifications for messages and activity'
+                                  : 'Get notified about new messages, follows, and more'}
+                              </p>
+                            </div>
+                            <Switch
+                              checked={pushSubscribed}
+                              disabled={pushLoading || pushPermission === 'denied'}
+                              onCheckedChange={async (checked) => {
+                                if (checked) {
+                                  const success = await subscribePush();
+                                  if (success) {
+                                    toast.success('Push notifications enabled!');
+                                    // Also update the server preference
+                                    handleChatSettingToggle('chatDesktopNotifications', true);
+                                  }
+                                } else {
+                                  const success = await unsubscribePush();
+                                  if (success) {
+                                    toast.success('Push notifications disabled');
+                                    handleChatSettingToggle('chatDesktopNotifications', false);
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+
+                          {/* Test Notification Button */}
+                          {pushSubscribed && (
+                            <button
+                              onClick={async () => {
+                                const success = await sendTestNotification();
+                                if (success) {
+                                  toast.success('Test notification sent! Check your device.');
+                                } else {
+                                  toast.error('Failed to send test notification');
+                                }
+                              }}
+                              disabled={pushLoading}
+                              className="px-4 py-2 bg-theme-primary-20 text-theme-primary text-sm font-medium hover:bg-theme-primary-30 transition-colors disabled:opacity-50 flex items-center gap-2"
+                            >
+                              <Bell className="w-4 h-4" />
+                              Send Test Notification
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Not Supported */}
+                      {!pushSupported && !iosInstallPrompt && (
+                        <div className="bg-theme-border-strong p-4">
+                          <p className="text-sm text-theme-foreground-muted">
+                            Push notifications are not supported in your browser. Try using Chrome, Firefox, Edge, or Safari.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Message Preview */}
