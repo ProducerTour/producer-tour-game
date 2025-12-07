@@ -108,7 +108,7 @@ export default function Leaderboard() {
   }
 
   return (
-    <div>
+    <div className="w-full max-w-full overflow-hidden">
       {/* Header */}
       <div className="mb-4 sm:mb-6">
         <div className="flex items-center justify-between mb-3 sm:mb-4">

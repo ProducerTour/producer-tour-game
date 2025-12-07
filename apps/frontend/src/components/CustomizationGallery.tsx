@@ -18,7 +18,7 @@ export function CustomizationGallery({ onClose, initialTab = 'badges' }: Customi
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
   return (
-    <div className="bg-surface-light border border-white/10 rounded-xl sm:rounded-2xl overflow-hidden">
+    <div className="w-full max-w-full bg-surface-light border border-white/10 rounded-xl sm:rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-3 sm:px-6 sm:py-4 border-b border-white/10">
         <div className="flex items-center gap-2 sm:gap-3">

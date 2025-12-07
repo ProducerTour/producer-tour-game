@@ -213,9 +213,10 @@ export default function ProducerTourMilesPage() {
       </div>
 
       <Sidebar />
-      <div className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} flex flex-col min-h-0 relative z-10 transition-all duration-300`}>
+      <div className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} flex flex-col min-h-0 min-w-0 overflow-hidden relative z-10 transition-all duration-300`}>
         <ImpersonationBanner />
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 pt-20 md:pt-8">
+        <div className="flex-1 w-full max-w-full overflow-y-auto overflow-x-hidden p-4 md:p-8 pt-20 md:pt-8">
+          <div className="w-full max-w-full box-border overflow-hidden">
           {/* Header */}
           <div className="mb-4 sm:mb-8">
             <h1 className="text-xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">Tour Miles</h1>
@@ -507,6 +508,7 @@ export default function ProducerTourMilesPage() {
                 <CustomizationGallery />
               )}
             </div>
+          </div>
           </div>
         </div>
       </div>

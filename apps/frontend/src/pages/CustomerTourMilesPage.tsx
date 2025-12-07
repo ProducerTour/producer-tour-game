@@ -177,7 +177,7 @@ export default function CustomerTourMilesPage() {
       <div className="flex min-h-screen relative">
         <Sidebar />
 
-        <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} transition-all duration-300 overflow-x-hidden overflow-y-auto`}>
+        <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} transition-all duration-300 min-w-0 overflow-hidden overflow-y-auto`}>
           <div className="w-full max-w-full overflow-hidden sm:max-w-7xl sm:mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pt-16 md:pt-8 pb-24 md:pb-8">
 
             {/* Mobile Header - Compact */}
