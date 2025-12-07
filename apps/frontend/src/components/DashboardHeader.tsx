@@ -19,6 +19,13 @@ interface DashboardHeaderProps {
 // Site updates/changelog - add new entries at the top
 const SITE_UPDATES = [
   {
+    id: '2024-12-06-contacts',
+    date: 'December 6, 2024',
+    title: 'Contacts Feature',
+    description: 'Added Contacts section to profile page. View and manage your friends directly from your profile, alongside your chat contacts.',
+    type: 'feature' as const,
+  },
+  {
     id: '2024-12-06-charts',
     date: 'December 6, 2024',
     title: 'Light Theme Chart Improvements',

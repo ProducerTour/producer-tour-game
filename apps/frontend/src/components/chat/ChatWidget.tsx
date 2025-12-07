@@ -205,8 +205,8 @@ export function ChatWidget() {
     const fetchContacts = async () => {
       try {
         const [contactsRes, requestsRes] = await Promise.all([
-          api.get('/contacts'),
-          api.get('/contacts/requests'),
+          api.get('/social-contacts'),
+          api.get('/social-contacts/requests'),
         ]);
         setContacts(contactsRes.data);
         setContactRequests(requestsRes.data);
@@ -615,12 +615,12 @@ export function ChatWidget() {
 
   const sendContactRequest = async (contactId: string) => {
     try {
-      await api.post('/contacts/request', { contactId });
+      await api.post('/social-contacts/request', { contactId });
       toast.success('Friend request sent!');
       // Refresh contacts
       const [contactsRes, requestsRes] = await Promise.all([
-        api.get('/contacts'),
-        api.get('/contacts/requests'),
+        api.get('/social-contacts'),
+        api.get('/social-contacts/requests'),
       ]);
       setContacts(contactsRes.data);
       setContactRequests(requestsRes.data);
@@ -632,12 +632,12 @@ export function ChatWidget() {
 
   const acceptContactRequest = async (contactId: string) => {
     try {
-      await api.post(`/contacts/accept/${contactId}`);
+      await api.post(`/social-contacts/accept/${contactId}`);
       toast.success('Friend request accepted!');
       // Refresh contacts
       const [contactsRes, requestsRes] = await Promise.all([
-        api.get('/contacts'),
-        api.get('/contacts/requests'),
+        api.get('/social-contacts'),
+        api.get('/social-contacts/requests'),
       ]);
       setContacts(contactsRes.data);
       setContactRequests(requestsRes.data);
@@ -649,12 +649,12 @@ export function ChatWidget() {
 
   const declineContactRequest = async (contactId: string) => {
     try {
-      await api.delete(`/contacts/${contactId}`);
+      await api.delete(`/social-contacts/${contactId}`);
       toast.success('Request declined');
       // Refresh contacts
       const [contactsRes, requestsRes] = await Promise.all([
-        api.get('/contacts'),
-        api.get('/contacts/requests'),
+        api.get('/social-contacts'),
+        api.get('/social-contacts/requests'),
       ]);
       setContacts(contactsRes.data);
       setContactRequests(requestsRes.data);

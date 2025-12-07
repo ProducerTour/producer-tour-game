@@ -8,6 +8,7 @@ import { FindCollaboratorsPane } from '../components/profile/FindCollaboratorsPa
 import { TourMilesWidget } from '../components/profile/TourMilesWidget';
 import { AdminPostsWidget } from '../components/profile/AdminPostsWidget';
 import { FollowersModal } from '../components/feed/FollowersModal';
+import { ContactsModal } from '../components/feed/ContactsModal';
 import { BannerCropperModal } from '../components/profile/BannerCropperModal';
 import SocialSidebar from '../components/SocialSidebar';
 import SocialHeader from '../components/SocialHeader';
@@ -51,6 +52,7 @@ export default function ActivityFeedPage() {
   const [postAudioFileName, setPostAudioFileName] = useState<string | null>(null);
   const [isFollowersModalOpen, setIsFollowersModalOpen] = useState(false);
   const [followersModalTab, setFollowersModalTab] = useState<'followers' | 'following'>('followers');
+  const [isContactsModalOpen, setIsContactsModalOpen] = useState(false);
   const [isBannerCropperOpen, setIsBannerCropperOpen] = useState(false);
   const [tempBannerUrl, setTempBannerUrl] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -497,6 +499,12 @@ export default function ActivityFeedPage() {
                               <span className="font-semibold text-gray-900">{profile?.stats?.following?.toLocaleString() || 0}</span>
                               <span className="text-gray-500 ml-1">Following</span>
                             </button>
+                            <button
+                              onClick={() => setIsContactsModalOpen(true)}
+                              className="hover:underline cursor-pointer text-blue-600"
+                            >
+                              <span className="font-semibold">Contacts</span>
+                            </button>
                           </div>
                         </div>
                         <p className="text-gray-500">@{profile?.profileSlug || profile?.email?.split('@')[0] || 'user'}</p>
@@ -858,6 +866,12 @@ export default function ActivityFeedPage() {
           userName={fullName}
         />
       )}
+
+      {/* Contacts Modal - only visible on own profile */}
+      <ContactsModal
+        isOpen={isContactsModalOpen}
+        onClose={() => setIsContactsModalOpen(false)}
+      />
 
       {/* Banner Cropper Modal */}
       {tempBannerUrl && (

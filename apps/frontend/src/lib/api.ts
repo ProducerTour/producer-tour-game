@@ -960,6 +960,35 @@ export const feedApi = {
   }) => api.get('/feed/notifications', { params }),
 };
 
+// Social Contacts API - User-to-user contacts/friends
+export const socialContactsApi = {
+  // Get all contacts for current user
+  getContacts: () => api.get('/social-contacts'),
+
+  // Get pending contact requests (received)
+  getRequests: () => api.get('/social-contacts/requests'),
+
+  // Send a contact request
+  sendRequest: (contactId: string) =>
+    api.post('/social-contacts/request', { contactId }),
+
+  // Accept a contact request
+  acceptRequest: (contactId: string) =>
+    api.post(`/social-contacts/accept/${contactId}`),
+
+  // Decline/remove a contact
+  removeContact: (contactId: string) =>
+    api.delete(`/social-contacts/${contactId}`),
+
+  // Block a user
+  blockUser: (contactId: string) =>
+    api.post(`/social-contacts/block/${contactId}`),
+
+  // Unblock a user
+  unblockUser: (contactId: string) =>
+    api.post(`/social-contacts/unblock/${contactId}`),
+};
+
 // Marketplace API - Personal marketplace features
 export const marketplaceApi = {
   // Browse all marketplace listings
