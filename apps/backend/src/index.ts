@@ -48,6 +48,7 @@ import insightsRoutes from './routes/insights.routes';
 import feedRoutes from './routes/feed.routes';
 import marketplaceRoutes from './routes/marketplace.routes';
 import pushRoutes from './routes/push.routes';
+import notificationRoutes from './routes/notification.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -182,6 +183,7 @@ app.use('/api/insights', insightsRoutes);
 app.use('/api/feed', feedRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
 app.use('/api/push', pushRoutes); // Web Push notifications
+app.use('/api/notifications', notificationRoutes); // In-app notifications
 
 // Error handling
 app.use(notFoundHandler);

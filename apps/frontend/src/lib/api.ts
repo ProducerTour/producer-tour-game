@@ -1061,3 +1061,30 @@ export const marketplaceApi = {
     offset?: number;
   }) => api.get('/marketplace/purchases', { params }),
 };
+
+// In-app Notifications API
+export const notificationApi = {
+  // Get notifications for current user
+  getAll: (params?: {
+    limit?: number;
+    offset?: number;
+    unread?: boolean;
+  }) => api.get('/notifications', { params }),
+
+  // Get unread count
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+
+  // Mark single notification as read
+  markAsRead: (notificationId: string) =>
+    api.post(`/notifications/${notificationId}/read`),
+
+  // Mark all notifications as read
+  markAllAsRead: () => api.post('/notifications/read-all'),
+
+  // Delete a notification
+  delete: (notificationId: string) =>
+    api.delete(`/notifications/${notificationId}`),
+
+  // Delete all notifications
+  deleteAll: () => api.delete('/notifications'),
+};

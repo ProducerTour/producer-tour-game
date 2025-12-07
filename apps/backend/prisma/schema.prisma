@@ -121,6 +121,21 @@ enum DocumentVisibility {
   ALL_WRITERS
 }
 
+enum NotificationType {
+  FOLLOW_REQUEST       // Someone wants to follow you
+  FOLLOW_ACCEPTED      // Your follow request was accepted
+  NEW_FOLLOWER         // Someone started following you
+  NEW_MESSAGE          // New chat message (when not in chat)
+  ACHIEVEMENT_UNLOCKED // Gamification achievement earned
+  LEVEL_UP             // Reached a new level
+  PLACEMENT_UPDATE     // Placement status changed
+  PAYMENT_RECEIVED     // Payment processed
+  REFERRAL_SIGNUP      // Someone signed up with your referral
+  REFERRAL_CONVERTED   // Referral became a paying user
+  SYSTEM_ANNOUNCEMENT  // Admin broadcast message
+  MILESTONE_REACHED    // Earnings/activity milestone
+}
+
 // Models
 model User {
   id        String   @id @default(cuid())
@@ -255,7 +270,50 @@ model User {
   // Push notification subscriptions
   pushSubscriptions        PushSubscription[]
 
+  // In-app notifications
+  notifications            Notification[]     @relation("NotificationRecipient")
+  notificationsSent        Notification[]     @relation("NotificationActor")
+
   @@map("users")
+}
+
+// In-app notification system
+model Notification {
+  id        String           @id @default(cuid())
+
+  // Who receives the notification
+  userId    String
+  user      User             @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Type of notification
+  type      NotificationType
+
+  // Display content
+  title     String
+  message   String           @db.Text
+
+  // Optional: Who triggered this notification (for social actions)
+  actorId   String?
+  actor     User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  // Optional: Link to related entity
+  entityType String?         // e.g., "placement", "achievement", "message"
+  entityId   String?         // ID of the related entity
+
+  // Action URL for clicking the notification
+  actionUrl  String?
+
+  // Read status
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+
+  // Timestamps
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
 }
 
 // Push notification subscription for Web Push

@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 import { isUserOnline, emitToUser } from '../socket';
+import { notificationService } from '../services/notification.service';
 
 const router = Router();
 
@@ -211,8 +212,21 @@ router.post('/request', authenticate, async (req: AuthRequest, res: Response) =>
         }),
       ]);
 
-      // Notify the other user
+      // Notify the other user via socket
       emitToUser(contactId, 'contact:accepted', { userId });
+
+      // Create in-app notification for both users (mutual follow)
+      notificationService.notifyNewFollower(contactId, userId)
+        .then((notification) => {
+          emitToUser(contactId, 'notification:new', notification);
+        })
+        .catch((err) => console.error('Failed to create follower notification:', err));
+
+      notificationService.notifyFollowAccepted(userId, contactId)
+        .then((notification) => {
+          emitToUser(userId, 'notification:new', notification);
+        })
+        .catch((err) => console.error('Failed to create accepted notification:', err));
 
       return res.status(201).json({ status: 'ACCEPTED', message: 'Contact added' });
     }
@@ -237,12 +251,19 @@ router.post('/request', authenticate, async (req: AuthRequest, res: Response) =>
       }),
     ]);
 
-    // Notify the other user
+    // Notify the other user via socket
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { firstName: true, lastName: true, email: true },
     });
     emitToUser(contactId, 'contact:request', { from: user, contactId: userId });
+
+    // Create in-app notification for follow request
+    notificationService.notifyFollowRequest(contactId, userId)
+      .then((notification) => {
+        emitToUser(contactId, 'notification:new', notification);
+      })
+      .catch((err) => console.error('Failed to create follow request notification:', err));
 
     res.status(201).json(myContact);
   } catch (error) {
@@ -274,8 +295,15 @@ router.post('/accept/:contactId', authenticate, async (req: AuthRequest, res: Re
       }),
     ]);
 
-    // Notify the requester
+    // Notify the requester via socket
     emitToUser(contactId, 'contact:accepted', { userId });
+
+    // Create in-app notification for the requester that their request was accepted
+    notificationService.notifyFollowAccepted(contactId, userId)
+      .then((notification) => {
+        emitToUser(contactId, 'notification:new', notification);
+      })
+      .catch((err) => console.error('Failed to create accepted notification:', err));
 
     res.json({ success: true });
   } catch (error) {

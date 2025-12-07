@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
 import { emailService } from '../services/email.service';
 import { pushService } from '../services/push.service';
+import { notificationService } from '../services/notification.service';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -221,10 +222,23 @@ export function initializeSocket(httpServer: HttpServer): Server {
         const sender = message.sender;
         const senderName = `${sender.firstName || ''} ${sender.lastName || ''}`.trim() || sender.email;
 
-        // Send notifications to offline users (push + email)
+        // Send notifications to offline users (in-app + push + email)
         for (const p of participants) {
           if (!onlineUsers.has(p.userId) && p.user) {
             const recipientName = `${p.user.firstName || ''} ${p.user.lastName || ''}`.trim() || p.user.email;
+
+            // Create in-app notification
+            notificationService.notifyNewMessage(
+              p.user.id,
+              userId,
+              content || '[File attachment]',
+              conversationId
+            ).then((notification) => {
+              // Emit to user's sockets (even though they're "offline" from chat, they might still be browsing)
+              emitToUser(p.user!.id, 'notification:new', notification);
+            }).catch((err) => {
+              console.error(`Failed to create notification for ${p.user?.id}:`, err);
+            });
 
             // Send push notification (instant, for mobile devices)
             pushService.sendMessageNotification(

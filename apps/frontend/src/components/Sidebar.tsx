@@ -7,6 +7,7 @@ import { SaasIcon, IconName } from './ui/SaasIcon';
 import { LogOut, Settings, ChevronDown, ChevronLeft, ChevronRight, Menu, X, UserCircle } from 'lucide-react';
 import { getAuthToken, gamificationApi } from '../lib/api';
 import { ProfileBadge, parseBadgeConfig } from './ProfileBadge';
+import { NotificationBell } from './NotificationBell';
 import whiteLogo from '@/assets/images/logos/whitetransparentpt.png';
 import blackLogo from '@/assets/images/logos/blacktransparentpt.png';
 import { useThemeOptional } from '@/contexts/ThemeContext';
@@ -172,13 +173,16 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
             className="h-10 w-auto"
           />
         </Link>
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="w-10 h-10 flex items-center justify-center text-theme-foreground-secondary hover:text-theme-primary hover:bg-theme-primary/10 transition-colors"
-          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-        >
-          {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <NotificationBell variant="header" />
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="w-10 h-10 flex items-center justify-center text-theme-foreground-secondary hover:text-theme-primary hover:bg-theme-primary/10 transition-colors"
+            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+          >
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Overlay */}
@@ -461,6 +465,8 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
 
         {/* Bottom Actions */}
         <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t border-theme-border space-y-2`}>
+          {/* Notification Bell for Desktop Sidebar */}
+          <NotificationBell variant="sidebar" isCollapsed={isCollapsed} />
           <Link
             to="/settings"
             onClick={() => setIsMobileMenuOpen(false)}
