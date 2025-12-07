@@ -215,7 +215,7 @@ export default function ProducerTourMilesPage() {
       <Sidebar />
       <div className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} flex flex-col min-h-0 relative z-10 transition-all duration-300`}>
         <ImpersonationBanner />
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-20 md:pt-8">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 pt-20 md:pt-8">
           {/* Header */}
           <div className="mb-4 sm:mb-8">
             <h1 className="text-xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">Tour Miles</h1>
@@ -226,7 +226,7 @@ export default function ProducerTourMilesPage() {
           {!statsLoading && stats && (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-8">
               {/* Points Card */}
-              <div className="rounded-xl sm:rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-3 sm:p-6 border-l-2 sm:border-l-4" style={{ borderLeftColor: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }}>
+              <div className="rounded-xl sm:rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-3 sm:p-6 border-l-2 sm:border-l-4 min-w-0 overflow-hidden" style={{ borderLeftColor: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }}>
                 <div className="flex items-center justify-between mb-1 sm:mb-2">
                   <span className="text-[10px] sm:text-sm font-medium text-gray-400">Tour Points</span>
                   <Star className="w-3.5 h-3.5 sm:w-5 sm:h-5" style={{ color: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }} />
@@ -236,7 +236,7 @@ export default function ProducerTourMilesPage() {
               </div>
 
               {/* Tier Card */}
-              <div className="rounded-xl sm:rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-3 sm:p-6">
+              <div className="rounded-xl sm:rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-3 sm:p-6 min-w-0 overflow-hidden">
                 <div className="flex items-center justify-between mb-1 sm:mb-2">
                   <span className="text-[10px] sm:text-sm font-medium text-gray-400">Current Tier</span>
                   <Trophy className="w-3.5 h-3.5 sm:w-5 sm:h-5" style={{ color: TIER_COLORS[stats.tier as keyof typeof TIER_COLORS] }} />
@@ -270,7 +270,7 @@ export default function ProducerTourMilesPage() {
               </div>
 
               {/* Streak Card */}
-              <div className="rounded-xl sm:rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-3 sm:p-6">
+              <div className="rounded-xl sm:rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-3 sm:p-6 min-w-0 overflow-hidden">
                 <div className="flex items-center justify-between mb-1 sm:mb-2">
                   <span className="text-[10px] sm:text-sm font-medium text-gray-400">Streak</span>
                   <Zap className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-orange-400" />
@@ -295,7 +295,7 @@ export default function ProducerTourMilesPage() {
               </div>
 
               {/* Achievements Card */}
-              <div className="rounded-xl sm:rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-3 sm:p-6">
+              <div className="rounded-xl sm:rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-3 sm:p-6 min-w-0 overflow-hidden">
                 <div className="flex items-center justify-between mb-1 sm:mb-2">
                   <span className="text-[10px] sm:text-sm font-medium text-gray-400">Achievements</span>
                   <Award className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-purple-400" />
