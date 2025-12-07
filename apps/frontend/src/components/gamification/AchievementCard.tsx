@@ -40,7 +40,7 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
   return (
     <div
       className={`
-        relative rounded-lg sm:rounded-xl p-3 sm:p-6 transition-all duration-300 min-w-0 overflow-hidden
+        relative rounded-lg sm:rounded-xl p-3 sm:p-6 transition-all duration-300 min-w-0 max-w-full overflow-hidden
         ${achievement.unlocked
           ? 'bg-white/10 border border-blue-500/40 hover:bg-white/15'
           : 'bg-white/5 border border-white/10 opacity-70 hover:opacity-90'

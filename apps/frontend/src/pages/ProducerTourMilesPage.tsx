@@ -373,7 +373,7 @@ export default function ProducerTourMilesPage() {
               </nav>
             </div>
 
-            <div className="p-3 sm:p-6">
+            <div className="p-3 sm:p-6 overflow-hidden w-full max-w-full">
               {/* Overview Tab */}
               {activeTab === 'overview' && !statsLoading && stats && (
                 <div className="space-y-4 sm:space-y-6">
@@ -447,7 +447,9 @@ export default function ProducerTourMilesPage() {
 
               {/* Achievements Tab */}
               {activeTab === 'achievements' && (
-                <AchievementGallery />
+                <div className="w-full max-w-full overflow-hidden">
+                  <AchievementGallery />
+                </div>
               )}
 
               {/* Rewards Tab */}

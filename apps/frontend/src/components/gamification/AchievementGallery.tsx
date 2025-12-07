@@ -59,10 +59,10 @@ export default function AchievementGallery() {
   }
 
   return (
-    <div className="w-full overflow-hidden">
+    <div className="w-full max-w-full overflow-hidden">
       {/* Stats Header - Mobile: 2x2 grid, Desktop: 3 columns */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
-        <div className="bg-white/5 border border-blue-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 min-w-0">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 w-full max-w-full">
+        <div className="bg-white/5 border border-blue-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 min-w-0 overflow-hidden">
           <div className="text-[11px] sm:text-sm text-text-secondary mb-0.5 sm:mb-1">Unlocked</div>
           <div className="text-lg sm:text-2xl font-bold text-white">
             {stats.unlocked} / {stats.total}
@@ -72,13 +72,13 @@ export default function AchievementGallery() {
           </div>
         </div>
 
-        <div className="bg-white/5 border border-amber-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 min-w-0">
+        <div className="bg-white/5 border border-amber-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 min-w-0 overflow-hidden">
           <div className="text-[11px] sm:text-sm text-text-secondary mb-0.5 sm:mb-1">Points Earned</div>
           <div className="text-lg sm:text-2xl font-bold text-white">{stats.totalPoints} TM</div>
           <div className="text-[10px] sm:text-xs text-amber-400 mt-0.5 sm:mt-1">From achievements</div>
         </div>
 
-        <div className="col-span-2 md:col-span-1 bg-white/5 border border-purple-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 min-w-0">
+        <div className="col-span-2 md:col-span-1 bg-white/5 border border-purple-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 min-w-0 overflow-hidden">
           <div className="text-[11px] sm:text-sm text-text-secondary mb-0.5 sm:mb-1">Remaining</div>
           <div className="text-lg sm:text-2xl font-bold text-white">{stats.total - stats.unlocked}</div>
           <div className="text-[10px] sm:text-xs text-purple-400 mt-0.5 sm:mt-1">To unlock</div>
@@ -86,9 +86,9 @@ export default function AchievementGallery() {
       </div>
 
       {/* Filters - Mobile optimized with horizontal scroll */}
-      <div className="flex flex-col gap-2 sm:gap-3 mb-4 sm:mb-6">
+      <div className="flex flex-col gap-2 sm:gap-3 mb-4 sm:mb-6 w-full max-w-full overflow-hidden">
         {/* Category Filter - horizontal scroll on mobile */}
-        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1 sm:mx-0 sm:px-0 sm:flex-wrap">
+        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-hide sm:flex-wrap w-full">
           {categories.map((category) => (
             <button
               key={category}
@@ -123,7 +123,7 @@ export default function AchievementGallery() {
 
       {/* Achievement Grid - 2 cols mobile, 3 cols tablet, 4 cols desktop */}
       {filteredAchievements && filteredAchievements.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 w-full max-w-full">
           {filteredAchievements.map((achievement) => (
             <AchievementCard key={achievement.id} achievement={achievement} />
           ))}
