@@ -15,6 +15,10 @@ import {
   EliteCrimsonSmoke,
   EliteSpectral,
   SilverSolarFlare,
+  StarterFirstSubmission,
+  StarterPaymentReady,
+  BronzeFirstSubmission,
+  BronzePaymentConnected,
 } from './EnhancedBorders';
 
 // Sample avatar placeholder
@@ -169,6 +173,60 @@ const UNLOCKABLE_BORDERS: UnlockableBorder[] = [
   },
 ];
 
+// Achievement borders - earned through specific actions
+interface AchievementBorder {
+  id: string;
+  name: string;
+  tier: 'starter' | 'bronze';
+  achievement: string;
+  emoji: string;
+  description: string;
+  component: React.ComponentType<{
+    children: React.ReactNode;
+    size?: number;
+    className?: string;
+  }>;
+}
+
+const ACHIEVEMENT_BORDERS: AchievementBorder[] = [
+  {
+    id: 'starter-first-submission',
+    name: 'First Notes',
+    tier: 'starter',
+    achievement: 'First Submission',
+    emoji: '🎵',
+    description: 'Green music-themed border with floating musical notes. Earned by submitting your first work to the platform.',
+    component: StarterFirstSubmission,
+  },
+  {
+    id: 'starter-payment-ready',
+    name: 'Connected',
+    tier: 'starter',
+    achievement: 'Payment Ready',
+    emoji: '💳',
+    description: 'Blue connection-themed border with pulsing rings and connection dots. Earned by connecting your Stripe account.',
+    component: StarterPaymentReady,
+  },
+  {
+    id: 'bronze-first-submission',
+    name: 'Bronze Melody',
+    tier: 'bronze',
+    achievement: 'First Submission',
+    emoji: '🎵',
+    description: 'Bronze-green metallic blend with floating musical notes. A prestigious upgrade to the starter music border.',
+    component: BronzeFirstSubmission,
+  },
+  {
+    id: 'bronze-payment-connected',
+    name: 'Bronze Circuit',
+    tier: 'bronze',
+    achievement: 'Payment Ready',
+    emoji: '💳',
+    description: 'Bronze-blue metallic with circuit connection lines and pulsing nodes. The premium payment connection border.',
+    component: BronzePaymentConnected,
+  },
+];
+
 const BRONZE_VARIANTS: BronzeVariant[] = [
   {
     id: 'v1',
@@ -223,7 +281,7 @@ const BRONZE_VARIANTS: BronzeVariant[] = [
 export default function BorderPreview() {
   const [size, setSize] = useState(120);
   const [useRealAvatar, setUseRealAvatar] = useState(false);
-  const [activeTab, setActiveTab] = useState<'tiers' | 'bronze' | 'elite' | 'unlockables'>('tiers');
+  const [activeTab, setActiveTab] = useState<'tiers' | 'bronze' | 'elite' | 'unlockables' | 'achievements'>('tiers');
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-8">
@@ -280,6 +338,16 @@ export default function BorderPreview() {
               }`}
             >
               🔓 Unlockables
+            </button>
+            <button
+              onClick={() => setActiveTab('achievements')}
+              className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                activeTab === 'achievements'
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+              }`}
+            >
+              🏅 Achievements
             </button>
           </div>
         </div>
@@ -580,6 +648,125 @@ export default function BorderPreview() {
                     <span className="text-sm text-zinc-500">{testSize}px</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ACHIEVEMENTS VIEW */}
+        {activeTab === 'achievements' && (
+          <>
+            <div className="text-center mb-8">
+              <p className="text-green-400 text-lg font-medium">
+                🏅 Borders earned through specific achievements
+              </p>
+              <p className="text-zinc-500 text-sm mt-2">
+                Complete milestones to unlock these special borders
+              </p>
+            </div>
+
+            {/* Starter Achievement Borders */}
+            <div className="mb-12">
+              <h2 className="text-xl font-bold mb-6 text-zinc-300 flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-green-600/20 text-green-400 text-sm">Starter</span>
+                Achievement Borders
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {ACHIEVEMENT_BORDERS.filter(b => b.tier === 'starter').map((border) => {
+                  const BorderComponent = border.component;
+                  return (
+                    <div
+                      key={border.id}
+                      className="flex flex-col items-center p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-green-700/50 transition-all"
+                    >
+                      <div className="mb-6 flex items-center justify-center" style={{ minHeight: size + 40 }}>
+                        <BorderComponent size={size}>
+                          {useRealAvatar ? <SampleAvatar /> : <AvatarPlaceholder size={size} />}
+                        </BorderComponent>
+                      </div>
+
+                      {/* Achievement Badge */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-2xl">{border.emoji}</span>
+                        <span className="px-3 py-1 rounded-full bg-zinc-800 text-zinc-400 text-xs font-medium">
+                          {border.achievement}
+                        </span>
+                      </div>
+
+                      <h3 className="text-lg font-semibold text-green-400 mb-2">
+                        {border.name}
+                      </h3>
+                      <p className="text-sm text-zinc-500 text-center leading-relaxed">
+                        {border.description}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Bronze Achievement Borders */}
+            <div className="mb-12">
+              <h2 className="text-xl font-bold mb-6 text-zinc-300 flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-amber-600/20 text-amber-400 text-sm">Bronze</span>
+                Achievement Borders
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {ACHIEVEMENT_BORDERS.filter(b => b.tier === 'bronze').map((border) => {
+                  const BorderComponent = border.component;
+                  return (
+                    <div
+                      key={border.id}
+                      className="flex flex-col items-center p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-amber-700/50 transition-all"
+                    >
+                      <div className="mb-6 flex items-center justify-center" style={{ minHeight: size + 40 }}>
+                        <BorderComponent size={size}>
+                          {useRealAvatar ? <SampleAvatar /> : <AvatarPlaceholder size={size} />}
+                        </BorderComponent>
+                      </div>
+
+                      {/* Achievement Badge */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-2xl">{border.emoji}</span>
+                        <span className="px-3 py-1 rounded-full bg-amber-900/50 text-amber-400 text-xs font-medium">
+                          {border.achievement}
+                        </span>
+                      </div>
+
+                      <h3 className="text-lg font-semibold text-amber-400 mb-2">
+                        {border.name}
+                      </h3>
+                      <p className="text-sm text-zinc-500 text-center leading-relaxed">
+                        {border.description}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* All Achievement Borders Comparison */}
+            <div>
+              <h2 className="text-2xl font-bold text-center mb-8 text-zinc-300">
+                Achievement Border Comparison (80px)
+              </h2>
+              <div className="flex flex-wrap justify-center gap-8 p-8 bg-zinc-900/30 rounded-2xl border border-zinc-800">
+                {ACHIEVEMENT_BORDERS.map((border) => {
+                  const BorderComponent = border.component;
+                  return (
+                    <div key={border.id} className="flex flex-col items-center gap-3">
+                      <BorderComponent size={80}>
+                        {useRealAvatar ? <SampleAvatar /> : <AvatarPlaceholder size={80} />}
+                      </BorderComponent>
+                      <div className="text-center">
+                        <span className="text-xs text-zinc-400 block">{border.emoji} {border.achievement}</span>
+                        <span className={`text-xs font-medium ${border.tier === 'starter' ? 'text-green-400' : 'text-amber-400'}`}>
+                          {border.tier.toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </>

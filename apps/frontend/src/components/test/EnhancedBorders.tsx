@@ -2139,6 +2139,485 @@ export function EliteCrimsonSmoke({ children, size = 120, className = '' }: Enha
   );
 }
 
+// =============================================================================
+// STARTER BORDERS - First achievements (simpler, elegant animations)
+// =============================================================================
+
+// First Submission - Music themed with gentle green glow and floating notes
+export function StarterFirstSubmission({ children, size = 120, className = '' }: EnhancedBorderProps) {
+  const borderWidth = Math.max(4, size * 0.045);
+  const id = useMemo(() => `starter-submission-${Math.random().toString(36).substr(2, 9)}`, []);
+
+  // Musical note particles
+  const notes = useMemo(() => {
+    return [...Array(6)].map((_, i) => ({
+      angle: (i / 6) * 360 + 30,
+      delay: i * 0.5,
+      size: 3 + (i % 2) * 2,
+    }));
+  }, []);
+
+  return (
+    <div className={`relative ${className}`} style={{ width: size, height: size }}>
+      <style>{`
+        @keyframes ${id}-pulse {
+          0%, 100% { opacity: 0.4; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(1.05); }
+        }
+        @keyframes ${id}-note-float {
+          0% { transform: translateY(0) scale(0); opacity: 0; }
+          20% { transform: translateY(-5px) scale(1); opacity: 1; }
+          80% { transform: translateY(-15px) scale(1); opacity: 0.8; }
+          100% { transform: translateY(-25px) scale(0.5); opacity: 0; }
+        }
+        @keyframes ${id}-ring-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      {/* Outer glow pulse */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          top: -size * 0.15,
+          left: -size * 0.15,
+          right: -size * 0.15,
+          bottom: -size * 0.15,
+          background: `radial-gradient(circle, rgba(74, 222, 128, 0.3) 0%, rgba(34, 197, 94, 0.15) 40%, transparent 70%)`,
+          animation: `${id}-pulse 3s ease-in-out infinite`,
+        }}
+      />
+
+      {/* Main gradient ring */}
+      <motion.div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: `conic-gradient(
+            from 0deg,
+            #4ade80 0deg,
+            #22c55e 60deg,
+            #16a34a 120deg,
+            #15803d 180deg,
+            #16a34a 240deg,
+            #22c55e 300deg,
+            #4ade80 360deg
+          )`,
+          boxShadow: `0 0 ${size * 0.15}px #22c55e50, inset 0 0 ${size * 0.05}px #00000030`,
+        }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+      />
+
+      {/* Floating note particles */}
+      {notes.map((note, i) => {
+        const rad = (note.angle * Math.PI) / 180;
+        const x = Math.cos(rad) * (size * 0.35);
+        const y = Math.sin(rad) * (size * 0.35);
+        return (
+          <div
+            key={i}
+            className="absolute text-green-400 pointer-events-none"
+            style={{
+              left: '50%',
+              top: '50%',
+              marginLeft: x - note.size,
+              marginTop: y - note.size,
+              fontSize: note.size * 3,
+              animation: `${id}-note-float 3s ease-out infinite`,
+              animationDelay: `${note.delay}s`,
+            }}
+          >
+            ♪
+          </div>
+        );
+      })}
+
+      {/* Inner circle */}
+      <div
+        className="absolute rounded-full bg-zinc-900 overflow-hidden"
+        style={{
+          top: borderWidth,
+          left: borderWidth,
+          right: borderWidth,
+          bottom: borderWidth,
+          boxShadow: `inset 0 0 ${size * 0.1}px rgba(0, 0, 0, 0.5)`,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Payment Ready - Blue connection theme with pulse rings
+export function StarterPaymentReady({ children, size = 120, className = '' }: EnhancedBorderProps) {
+  const borderWidth = Math.max(4, size * 0.045);
+  const id = useMemo(() => `starter-payment-${Math.random().toString(36).substr(2, 9)}`, []);
+
+  return (
+    <div className={`relative ${className}`} style={{ width: size, height: size }}>
+      <style>{`
+        @keyframes ${id}-pulse-ring {
+          0% { transform: scale(0.98); opacity: 0.6; }
+          50% { transform: scale(1.02); opacity: 0.2; }
+          100% { transform: scale(0.98); opacity: 0.6; }
+        }
+        @keyframes ${id}-connection-pulse {
+          0%, 100% { box-shadow: 0 0 ${size * 0.08}px #3b82f6, 0 0 ${size * 0.15}px #1d4ed880; }
+          50% { box-shadow: 0 0 ${size * 0.12}px #60a5fa, 0 0 ${size * 0.2}px #3b82f680; }
+        }
+      `}</style>
+
+      {/* Expanding pulse rings - subtle effect */}
+      {[0, 1].map((i) => (
+        <div
+          key={i}
+          className="absolute rounded-full border border-blue-400/20"
+          style={{
+            top: -size * 0.04 * (i + 1),
+            left: -size * 0.04 * (i + 1),
+            right: -size * 0.04 * (i + 1),
+            bottom: -size * 0.04 * (i + 1),
+            animation: `${id}-pulse-ring 3s ease-in-out infinite`,
+            animationDelay: `${i * 0.5}s`,
+          }}
+        />
+      ))}
+
+      {/* Main gradient ring */}
+      <motion.div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: `conic-gradient(
+            from 0deg,
+            #60a5fa 0deg,
+            #3b82f6 90deg,
+            #2563eb 180deg,
+            #3b82f6 270deg,
+            #60a5fa 360deg
+          )`,
+          animation: `${id}-connection-pulse 2s ease-in-out infinite`,
+        }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+      />
+
+      {/* Connection indicator dots */}
+      {[0, 90, 180, 270].map((angle, i) => {
+        const rad = (angle * Math.PI) / 180;
+        const x = Math.cos(rad) * (size * 0.42);
+        const y = Math.sin(rad) * (size * 0.42);
+        return (
+          <motion.div
+            key={i}
+            className="absolute rounded-full bg-white"
+            style={{
+              left: '50%',
+              top: '50%',
+              marginLeft: x - 3,
+              marginTop: y - 3,
+              width: 6,
+              height: 6,
+              boxShadow: '0 0 8px #60a5fa',
+            }}
+            animate={{ scale: [1, 1.5, 1], opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+          />
+        );
+      })}
+
+      {/* Inner circle */}
+      <div
+        className="absolute rounded-full bg-zinc-900 overflow-hidden"
+        style={{
+          top: borderWidth,
+          left: borderWidth,
+          right: borderWidth,
+          bottom: borderWidth,
+          boxShadow: `inset 0 0 ${size * 0.1}px rgba(0, 0, 0, 0.5)`,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// BRONZE ACHIEVEMENT BORDERS - Upgraded starter achievements
+// =============================================================================
+
+// Bronze First Submission - Music theme with bronze + green metallic blend
+export function BronzeFirstSubmission({ children, size = 120, className = '' }: EnhancedBorderProps) {
+  const borderWidth = Math.max(5, size * 0.05);
+  const id = useMemo(() => `bronze-submission-${Math.random().toString(36).substr(2, 9)}`, []);
+
+  const notes = useMemo(() => {
+    return [...Array(8)].map((_, i) => ({
+      angle: (i / 8) * 360,
+      delay: i * 0.4,
+      size: 2 + (i % 3),
+    }));
+  }, []);
+
+  return (
+    <div className={`relative ${className}`} style={{ width: size, height: size }}>
+      <style>{`
+        @keyframes ${id}-shimmer {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes ${id}-note-rise {
+          0% { transform: translateY(0) rotate(0deg) scale(0); opacity: 0; }
+          15% { transform: translateY(-3px) rotate(10deg) scale(1); opacity: 1; }
+          85% { transform: translateY(-20px) rotate(-10deg) scale(0.8); opacity: 0.6; }
+          100% { transform: translateY(-30px) rotate(0deg) scale(0); opacity: 0; }
+        }
+        @keyframes ${id}-glow-pulse {
+          0%, 100% { filter: drop-shadow(0 0 ${size * 0.08}px #cd7f32) drop-shadow(0 0 ${size * 0.04}px #22c55e); }
+          50% { filter: drop-shadow(0 0 ${size * 0.12}px #e8a54b) drop-shadow(0 0 ${size * 0.06}px #4ade80); }
+        }
+      `}</style>
+
+      {/* Dual-color outer glow */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          top: -size * 0.2,
+          left: -size * 0.2,
+          right: -size * 0.2,
+          bottom: -size * 0.2,
+          background: `radial-gradient(circle,
+            rgba(205, 127, 50, 0.25) 0%,
+            rgba(74, 222, 128, 0.15) 30%,
+            transparent 60%
+          )`,
+        }}
+      />
+
+      {/* Bronze + Green gradient ring */}
+      <motion.div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: `conic-gradient(
+            from 0deg,
+            #cd7f32 0deg,
+            #4ade80 45deg,
+            #22c55e 90deg,
+            #e8a54b 135deg,
+            #cd7f32 180deg,
+            #4ade80 225deg,
+            #22c55e 270deg,
+            #e8a54b 315deg,
+            #cd7f32 360deg
+          )`,
+          animation: `${id}-glow-pulse 3s ease-in-out infinite`,
+        }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+      />
+
+      {/* Shimmer overlay */}
+      <div
+        className="absolute inset-0 rounded-full pointer-events-none"
+        style={{
+          background: `linear-gradient(135deg, transparent 30%, rgba(255, 255, 255, 0.2) 50%, transparent 70%)`,
+          animation: `${id}-shimmer 4s linear infinite`,
+        }}
+      />
+
+      {/* Floating musical notes */}
+      {notes.map((note, i) => {
+        const rad = (note.angle * Math.PI) / 180;
+        const x = Math.cos(rad) * (size * 0.38);
+        const y = Math.sin(rad) * (size * 0.38);
+        return (
+          <div
+            key={i}
+            className="absolute pointer-events-none"
+            style={{
+              left: '50%',
+              top: '50%',
+              marginLeft: x - note.size,
+              marginTop: y - note.size,
+              fontSize: note.size * 3.5,
+              color: i % 2 === 0 ? '#cd7f32' : '#4ade80',
+              textShadow: `0 0 8px ${i % 2 === 0 ? '#cd7f32' : '#22c55e'}`,
+              animation: `${id}-note-rise 3.5s ease-out infinite`,
+              animationDelay: `${note.delay}s`,
+            }}
+          >
+            {i % 3 === 0 ? '♪' : i % 3 === 1 ? '♫' : '♬'}
+          </div>
+        );
+      })}
+
+      {/* Inner circle */}
+      <div
+        className="absolute rounded-full bg-zinc-900 overflow-hidden"
+        style={{
+          top: borderWidth,
+          left: borderWidth,
+          right: borderWidth,
+          bottom: borderWidth,
+          boxShadow: `inset 0 0 ${size * 0.1}px rgba(0, 0, 0, 0.6)`,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Bronze Payment Connected - Bronze + blue with connected circuit lines
+export function BronzePaymentConnected({ children, size = 120, className = '' }: EnhancedBorderProps) {
+  const borderWidth = Math.max(5, size * 0.05);
+  const id = useMemo(() => `bronze-connected-${Math.random().toString(36).substr(2, 9)}`, []);
+
+  // Circuit connection points
+  const connections = useMemo(() => {
+    return [...Array(8)].map((_, i) => ({
+      angle: (i / 8) * 360,
+      delay: i * 0.15,
+    }));
+  }, []);
+
+  return (
+    <div className={`relative ${className}`} style={{ width: size, height: size }}>
+      <style>{`
+        @keyframes ${id}-circuit-flow {
+          0% { stroke-dashoffset: 20; opacity: 0.3; }
+          50% { stroke-dashoffset: 0; opacity: 1; }
+          100% { stroke-dashoffset: -20; opacity: 0.3; }
+        }
+        @keyframes ${id}-node-pulse {
+          0%, 100% { transform: scale(1); box-shadow: 0 0 4px #3b82f6; }
+          50% { transform: scale(1.3); box-shadow: 0 0 12px #60a5fa, 0 0 20px #3b82f680; }
+        }
+        @keyframes ${id}-ring-glow {
+          0%, 100% { box-shadow: 0 0 ${size * 0.1}px #cd7f32, 0 0 ${size * 0.05}px #3b82f6; }
+          50% { box-shadow: 0 0 ${size * 0.15}px #e8a54b, 0 0 ${size * 0.08}px #60a5fa; }
+        }
+      `}</style>
+
+      {/* Outer glow */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          top: -size * 0.15,
+          left: -size * 0.15,
+          right: -size * 0.15,
+          bottom: -size * 0.15,
+          background: `radial-gradient(circle,
+            rgba(205, 127, 50, 0.2) 0%,
+            rgba(59, 130, 246, 0.15) 40%,
+            transparent 65%
+          )`,
+        }}
+      />
+
+      {/* SVG for circuit lines */}
+      <svg
+        className="absolute overflow-visible pointer-events-none"
+        style={{
+          top: -size * 0.2,
+          left: -size * 0.2,
+          width: size * 1.4,
+          height: size * 1.4,
+        }}
+        viewBox="0 0 140 140"
+      >
+        {connections.map((conn, i) => {
+          const rad = (conn.angle * Math.PI) / 180;
+          const innerR = 42;
+          const outerR = 58;
+          const x1 = 70 + Math.cos(rad) * innerR;
+          const y1 = 70 + Math.sin(rad) * innerR;
+          const x2 = 70 + Math.cos(rad) * outerR;
+          const y2 = 70 + Math.sin(rad) * outerR;
+          return (
+            <line
+              key={i}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke={i % 2 === 0 ? '#cd7f32' : '#3b82f6'}
+              strokeWidth="2"
+              strokeDasharray="5 5"
+              style={{
+                animation: `${id}-circuit-flow 1.5s ease-in-out infinite`,
+                animationDelay: `${conn.delay}s`,
+              }}
+            />
+          );
+        })}
+      </svg>
+
+      {/* Main gradient ring */}
+      <motion.div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: `conic-gradient(
+            from 0deg,
+            #cd7f32 0deg,
+            #3b82f6 45deg,
+            #60a5fa 90deg,
+            #e8a54b 135deg,
+            #cd7f32 180deg,
+            #3b82f6 225deg,
+            #60a5fa 270deg,
+            #e8a54b 315deg,
+            #cd7f32 360deg
+          )`,
+          animation: `${id}-ring-glow 2.5s ease-in-out infinite`,
+        }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+      />
+
+      {/* Connection nodes */}
+      {connections.map((conn, i) => {
+        const rad = (conn.angle * Math.PI) / 180;
+        const x = Math.cos(rad) * (size * 0.42);
+        const y = Math.sin(rad) * (size * 0.42);
+        return (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              left: '50%',
+              top: '50%',
+              marginLeft: x - 4,
+              marginTop: y - 4,
+              width: 8,
+              height: 8,
+              background: i % 2 === 0 ? '#e8a54b' : '#60a5fa',
+              animation: `${id}-node-pulse 2s ease-in-out infinite`,
+              animationDelay: `${conn.delay}s`,
+            }}
+          />
+        );
+      })}
+
+      {/* Inner circle */}
+      <div
+        className="absolute rounded-full bg-zinc-900 overflow-hidden"
+        style={{
+          top: borderWidth,
+          left: borderWidth,
+          right: borderWidth,
+          bottom: borderWidth,
+          boxShadow: `inset 0 0 ${size * 0.1}px rgba(0, 0, 0, 0.6)`,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export const ENHANCED_BORDERS = {
   'v1-smooth-metallic': BronzeBorderV1,
   'v2-dual-ring': BronzeBorderV2,
