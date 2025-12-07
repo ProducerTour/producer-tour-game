@@ -22,6 +22,7 @@ import { useChatStore } from '../store/chat.store';
 import { ActivityFeed } from '../components/feed/ActivityFeed';
 import { FindCollaboratorsPane } from '../components/profile/FindCollaboratorsPane';
 import { FollowersModal } from '../components/feed/FollowersModal';
+import { UserAvatarWithBorder } from '../components/UserAvatarWithBorder';
 import { api, feedApi } from '../lib/api';
 import toast from 'react-hot-toast';
 
@@ -132,55 +133,57 @@ export default function WriterProfilePage() {
     }
   };
 
+  // Check if current user is a customer (can't use chat)
+  const canUseChat = user && user.role !== 'CUSTOMER';
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-[1600px] mx-auto px-6 py-6">
+    <div className="min-h-screen bg-gray-50 pb-20 md:pb-6">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
         {/* Back Button */}
         <Link
           to="/my-profile"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-3 sm:mb-4 transition-colors text-sm sm:text-base"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
         </Link>
 
-        <div className="flex gap-6">
-          {/* Main Profile Column - 2/3 */}
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+          {/* Main Profile Column */}
           <div className="flex-1 min-w-0">
             {/* Profile Banner Card */}
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
-              {/* Cover Image */}
-              <div className="h-56 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 relative">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm overflow-hidden mb-4 sm:mb-6">
+              {/* Cover Image - smaller on mobile */}
+              <div className="h-32 sm:h-56 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 relative">
                 {profile.profilePhotoUrl && (
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 opacity-90"></div>
                 )}
               </div>
 
               {/* Profile Info */}
-              <div className="px-8 pb-6">
-                <div className="flex items-end justify-between -mt-20 mb-6">
-                  {/* Avatar */}
-                  <div className="w-40 h-40 rounded-full border-4 border-white bg-white shadow-xl overflow-hidden relative z-10">
-                    {profile.profilePhotoUrl ? (
-                      <img
-                        src={profile.profilePhotoUrl}
-                        alt={fullName}
-                        className="w-full h-full object-cover"
+              <div className="px-4 sm:px-8 pb-4 sm:pb-6">
+                <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between -mt-12 sm:-mt-20 mb-4 sm:mb-6">
+                  {/* Avatar with animated border */}
+                  <div className="relative z-10 mb-3 sm:mb-0">
+                    <div className="w-24 h-24 sm:w-40 sm:h-40 rounded-full border-4 border-white bg-white shadow-xl overflow-visible">
+                      <UserAvatarWithBorder
+                        userId={profile.id}
+                        firstName={profile.firstName}
+                        lastName={profile.lastName}
+                        profilePhotoUrl={profile.profilePhotoUrl}
+                        size="2xl"
+                        className="w-full h-full"
                       />
-                    ) : (
-                      <div className="w-full h-full bg-purple-500 flex items-center justify-center text-white text-5xl font-semibold">
-                        {profile.firstName?.charAt(0) || 'U'}
-                      </div>
-                    )}
+                    </div>
                   </div>
 
-                  {/* Action Buttons */}
+                  {/* Action Buttons - stacked on mobile */}
                   {!isOwnProfile && user && (
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
                       <button
                         onClick={handleFollowToggle}
                         disabled={isFollowLoading}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-full transition-all hover:scale-105 shadow-lg ${
+                        className={`flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full transition-all text-sm sm:text-base shadow-lg flex-1 sm:flex-none ${
                           isFollowing
                             ? 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600'
                             : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl'
@@ -193,22 +196,24 @@ export default function WriterProfilePage() {
                         ) : (
                           <UserPlus className="w-4 h-4" />
                         )}
-                        {isFollowing ? 'Following' : 'Follow'}
+                        <span className="hidden xs:inline">{isFollowing ? 'Following' : 'Follow'}</span>
                       </button>
-                      <button
-                        onClick={() => setOpenChatWithUser(profile.id)}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all hover:scale-105 shadow-lg"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        Message
-                      </button>
+                      {canUseChat && (
+                        <button
+                          onClick={() => setOpenChatWithUser(profile.id)}
+                          className="flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all text-sm sm:text-base shadow-lg flex-1 sm:flex-none"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          <span className="hidden xs:inline">Message</span>
+                        </button>
+                      )}
                     </div>
                   )}
 
                   {isOwnProfile && (
                     <Link
                       to="/my-profile"
-                      className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all hover:scale-105 shadow-lg"
+                      className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all text-sm sm:text-base shadow-lg"
                     >
                       Go to your profile
                     </Link>
@@ -216,49 +221,49 @@ export default function WriterProfilePage() {
                 </div>
 
                 {/* User Details */}
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <div className="flex items-center gap-3 mb-1">
-                      <h2 className="text-3xl font-bold text-gray-900">{fullName}</h2>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+                      <h2 className="text-xl sm:text-3xl font-bold text-gray-900">{fullName}</h2>
                       {profile.role === 'ADMIN' && (
                         <span title="Verified Admin">
-                          <BadgeCheck className="w-7 h-7 text-amber-500 fill-amber-100" />
+                          <BadgeCheck className="w-5 h-5 sm:w-7 sm:h-7 text-amber-500 fill-amber-100" />
                         </span>
                       )}
-                      <span className="text-gray-400">·</span>
-                      <div className="flex items-center gap-3 text-sm">
-                        <button
-                          onClick={() => {
-                            setFollowersModalTab('followers');
-                            setIsFollowersModalOpen(true);
-                          }}
-                          className="hover:underline cursor-pointer"
-                        >
-                          <span className="font-semibold text-gray-900">{profile.stats?.followers?.toLocaleString() || 0}</span>
-                          <span className="text-gray-500 ml-1">Followers</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setFollowersModalTab('following');
-                            setIsFollowersModalOpen(true);
-                          }}
-                          className="hover:underline cursor-pointer"
-                        >
-                          <span className="font-semibold text-gray-900">{profile.stats?.following?.toLocaleString() || 0}</span>
-                          <span className="text-gray-500 ml-1">Following</span>
-                        </button>
-                      </div>
                     </div>
-                    <p className="text-gray-500">@{profile.profileSlug || 'user'}</p>
+                    <p className="text-gray-500 text-sm sm:text-base mb-2">@{profile.profileSlug || 'user'}</p>
+                    {/* Followers/Following - separate row on mobile */}
+                    <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
+                      <button
+                        onClick={() => {
+                          setFollowersModalTab('followers');
+                          setIsFollowersModalOpen(true);
+                        }}
+                        className="hover:underline cursor-pointer"
+                      >
+                        <span className="font-semibold text-gray-900">{profile.stats?.followers?.toLocaleString() || 0}</span>
+                        <span className="text-gray-500 ml-1">Followers</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setFollowersModalTab('following');
+                          setIsFollowersModalOpen(true);
+                        }}
+                        className="hover:underline cursor-pointer"
+                      >
+                        <span className="font-semibold text-gray-900">{profile.stats?.following?.toLocaleString() || 0}</span>
+                        <span className="text-gray-500 ml-1">Following</span>
+                      </button>
+                    </div>
                   </div>
 
                   {profile.bio && (
-                    <p className="text-gray-700 whitespace-pre-line leading-relaxed max-w-2xl">
+                    <p className="text-gray-700 whitespace-pre-line leading-relaxed max-w-2xl text-sm sm:text-base">
                       {profile.bio}
                     </p>
                   )}
 
-                  <div className="flex flex-wrap gap-6 text-gray-600 text-sm">
+                  <div className="flex flex-wrap gap-3 sm:gap-6 text-gray-600 text-xs sm:text-sm">
                     {profile.location && (
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4" />
@@ -398,14 +403,14 @@ export default function WriterProfilePage() {
             </div>
 
             {/* User's Activity Feed */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-6 mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Recent Activity</h3>
               <ActivityFeed userId={profile.id} />
             </div>
           </div>
 
-          {/* Collaborators Sidebar - 1/3 */}
-          <div className="w-[400px] flex-shrink-0 hidden lg:block">
+          {/* Collaborators Sidebar - hidden on mobile */}
+          <div className="w-full lg:w-[400px] flex-shrink-0 hidden lg:block">
             <FindCollaboratorsPane />
           </div>
         </div>

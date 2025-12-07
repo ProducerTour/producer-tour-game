@@ -538,6 +538,40 @@ router.get('/online-users', authenticate, async (req: AuthRequest, res: Response
   }
 });
 
+// Get a specific user by ID (for starting conversations from profile pages)
+router.get('/users/:userId', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        profilePhotoUrl: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Add online status
+    const userWithOnline = {
+      ...user,
+      isOnline: isUserOnline(user.id),
+    };
+
+    res.json(userWithOnline);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
 // Search users for starting conversations
 router.get('/users/search', authenticate, async (req: AuthRequest, res: Response) => {
   try {
