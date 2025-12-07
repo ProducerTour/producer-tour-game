@@ -53,42 +53,42 @@ export default function AchievementGallery() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading achievements...</div>
+        <div className="text-text-secondary">Loading achievements...</div>
       </div>
     );
   }
 
   return (
-    <div>
-      {/* Stats Header */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-        <div className="bg-white border border-blue-200 rounded-xl p-4 shadow-sm">
-          <div className="text-sm text-gray-500 mb-1">Unlocked</div>
-          <div className="text-2xl font-bold text-gray-900">
+    <div className="w-full overflow-hidden">
+      {/* Stats Header - Mobile: 2x2 grid, Desktop: 3 columns */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        <div className="bg-white/5 border border-blue-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 min-w-0">
+          <div className="text-[11px] sm:text-sm text-text-secondary mb-0.5 sm:mb-1">Unlocked</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">
             {stats.unlocked} / {stats.total}
           </div>
-          <div className="text-xs text-blue-500 mt-1">
+          <div className="text-[10px] sm:text-xs text-blue-400 mt-0.5 sm:mt-1">
             {Math.round((stats.unlocked / stats.total) * 100)}% Complete
           </div>
         </div>
 
-        <div className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm">
-          <div className="text-sm text-gray-500 mb-1">Points Earned</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.totalPoints} TM</div>
-          <div className="text-xs text-amber-500 mt-1">From achievements</div>
+        <div className="bg-white/5 border border-amber-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 min-w-0">
+          <div className="text-[11px] sm:text-sm text-text-secondary mb-0.5 sm:mb-1">Points Earned</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">{stats.totalPoints} TM</div>
+          <div className="text-[10px] sm:text-xs text-amber-400 mt-0.5 sm:mt-1">From achievements</div>
         </div>
 
-        <div className="bg-white border border-purple-200 rounded-xl p-4 shadow-sm">
-          <div className="text-sm text-gray-500 mb-1">Remaining</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.total - stats.unlocked}</div>
-          <div className="text-xs text-purple-500 mt-1">To unlock</div>
+        <div className="col-span-2 md:col-span-1 bg-white/5 border border-purple-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 min-w-0">
+          <div className="text-[11px] sm:text-sm text-text-secondary mb-0.5 sm:mb-1">Remaining</div>
+          <div className="text-lg sm:text-2xl font-bold text-white">{stats.total - stats.unlocked}</div>
+          <div className="text-[10px] sm:text-xs text-purple-400 mt-0.5 sm:mt-1">To unlock</div>
         </div>
       </div>
 
       {/* Filters - Mobile optimized with horizontal scroll */}
       <div className="flex flex-col gap-2 sm:gap-3 mb-4 sm:mb-6">
         {/* Category Filter - horizontal scroll on mobile */}
-        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-2 px-2 sm:mx-0 sm:px-0 sm:flex-wrap">
+        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1 sm:mx-0 sm:px-0 sm:flex-wrap">
           {categories.map((category) => (
             <button
               key={category}
@@ -97,7 +97,7 @@ export default function AchievementGallery() {
                 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-medium transition-all whitespace-nowrap flex-shrink-0
                 ${selectedCategory === category
                   ? 'bg-blue-500 text-white shadow-sm'
-                  : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                  : 'bg-white/10 text-text-secondary hover:bg-white/20 border border-white/10'
                 }
               `}
             >
@@ -113,7 +113,7 @@ export default function AchievementGallery() {
             px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-medium transition-all self-start
             ${showUnlockedOnly
               ? 'bg-emerald-500 text-white shadow-sm'
-              : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+              : 'bg-white/10 text-text-secondary hover:bg-white/20 border border-white/10'
             }
           `}
         >
@@ -129,9 +129,9 @@ export default function AchievementGallery() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+        <div className="flex flex-col items-center justify-center h-64 text-text-secondary">
           <div className="text-6xl mb-4">🏆</div>
-          <div className="text-lg text-gray-600">No achievements found</div>
+          <div className="text-lg text-white">No achievements found</div>
           <div className="text-sm mt-2">Try adjusting your filters</div>
         </div>
       )}
