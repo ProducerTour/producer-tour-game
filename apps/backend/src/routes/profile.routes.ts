@@ -186,6 +186,45 @@ router.delete('/banner', authenticate, async (req: AuthRequest, res: Response) =
   }
 });
 
+// Get current user's profile (Tour Hub fields)
+router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        profilePhotoUrl: true,
+        bio: true,
+        location: true,
+        website: true,
+        spotifyArtistUrl: true,
+        instagramHandle: true,
+        twitterHandle: true,
+        linkedinUrl: true,
+        tiktokHandle: true,
+        soundcloudUrl: true,
+        youtubeChannelUrl: true,
+        appleMusicUrl: true,
+        isPublicProfile: true,
+        profileSlug: true,
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ error: 'Failed to get profile' });
+  }
+});
+
 // Update profile (Writer Tour Hub fields)
 router.put('/hub', authenticate, async (req: AuthRequest, res: Response) => {
   try {
