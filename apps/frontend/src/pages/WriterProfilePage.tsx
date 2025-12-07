@@ -60,12 +60,13 @@ export default function WriterProfilePage() {
     queryFn: async () => {
       if (!user?.id) return [];
       const response = await feedApi.getFollowing(user.id);
-      return response.data || [];
+      // API returns { following: [...], pagination: {...} }
+      return response.data?.following || [];
     },
     enabled: !!user?.id && !isOwnProfile,
   });
 
-  const isFollowing = followingList?.some((f: any) => f.id === profile?.id);
+  const isFollowing = Array.isArray(followingList) && followingList.some((f: any) => f.id === profile?.id);
 
   // Follow mutation
   const followMutation = useMutation({
