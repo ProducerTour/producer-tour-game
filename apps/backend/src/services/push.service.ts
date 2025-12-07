@@ -29,24 +29,24 @@ class PushService {
   }
 
   private initialize() {
-    const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } = process.env;
+    const publicKey = process.env.VAPID_PUBLIC_KEY?.trim();
+    const privateKey = process.env.VAPID_PRIVATE_KEY?.trim();
+    const subject = process.env.VAPID_SUBJECT?.trim() || 'mailto:support@producertour.com';
 
-    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    if (!publicKey || !privateKey) {
       console.warn('⚠️  Push service not configured. Set VAPID environment variables to enable push notifications.');
       return;
     }
 
     try {
-      webpush.setVapidDetails(
-        VAPID_SUBJECT || 'mailto:support@producertour.com',
-        VAPID_PUBLIC_KEY,
-        VAPID_PRIVATE_KEY
-      );
+      webpush.setVapidDetails(subject, publicKey, privateKey);
 
       this.isConfigured = true;
       console.log('✅ Push notification service configured');
     } catch (error) {
       console.error('❌ Failed to configure push service:', error);
+      console.error('   Public key length:', publicKey.length);
+      console.error('   Private key length:', privateKey.length);
     }
   }
 
@@ -54,7 +54,7 @@ class PushService {
    * Get the VAPID public key for client subscription
    */
   getPublicKey(): string | null {
-    return process.env.VAPID_PUBLIC_KEY || null;
+    return process.env.VAPID_PUBLIC_KEY?.trim() || null;
   }
 
   /**
