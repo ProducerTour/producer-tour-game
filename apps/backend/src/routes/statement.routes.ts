@@ -1808,9 +1808,19 @@ router.post(
         trackedSongs,   // Songs matched from Manage Placements with calculated splits
         unmatched       // Songs not found in Manage Placements (needs to be added first)
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Smart assign error:', error);
-      res.status(500).json({ error: 'Failed to smart assign writers' });
+      console.error('Error stack:', error?.stack);
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        name: error?.name,
+      });
+      res.status(500).json({
+        error: 'Failed to smart assign writers',
+        details: error?.message || 'Unknown error',
+        code: error?.code
+      });
     }
   }
 );

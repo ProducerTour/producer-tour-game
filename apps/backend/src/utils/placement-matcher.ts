@@ -99,25 +99,32 @@ async function getAllPlacements(forceRefresh = false): Promise<PlacementWithCred
     return placementCache;
   }
 
-  placementCache = await prisma.placement.findMany({
-    where: {
-      status: { in: ['APPROVED', 'TRACKING'] }
-    },
-    include: {
-      credits: {
-        include: {
-          user: {
-            include: {
-              producer: true
+  try {
+    placementCache = await prisma.placement.findMany({
+      where: {
+        status: { in: ['APPROVED', 'TRACKING'] }
+      },
+      include: {
+        credits: {
+          include: {
+            user: {
+              include: {
+                producer: true
+              }
             }
           }
         }
       }
-    }
-  }) as PlacementWithCredits[];
+    }) as PlacementWithCredits[];
 
-  cacheTimestamp = now;
-  return placementCache;
+    cacheTimestamp = now;
+    console.log(`Loaded ${placementCache.length} placements from database`);
+    return placementCache;
+  } catch (error) {
+    console.error('Error fetching placements:', error);
+    // Return empty array on error to prevent cascading failures
+    return [];
+  }
 }
 
 /**
@@ -212,12 +219,19 @@ export async function batchMatchSongsToPlacement(
  * Get PT's publisher IPIs for filtering PT-represented writers
  */
 export async function getPtPublisherIpis(): Promise<string[]> {
-  const ptPublishers = await prisma.producerTourPublisher.findMany({
-    where: { isActive: true },
-    select: { ipiNumber: true }
-  });
+  try {
+    const ptPublishers = await prisma.producerTourPublisher.findMany({
+      where: { isActive: true },
+      select: { ipiNumber: true }
+    });
 
-  return ptPublishers.map(p => p.ipiNumber);
+    const ipis = ptPublishers.map(p => p.ipiNumber);
+    console.log(`Found ${ipis.length} PT publisher IPIs`);
+    return ipis;
+  } catch (error) {
+    console.error('Error fetching PT publisher IPIs:', error);
+    return [];
+  }
 }
 
 /**

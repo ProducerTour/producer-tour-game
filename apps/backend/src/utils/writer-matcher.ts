@@ -540,48 +540,63 @@ export async function smartMatchWithPlacementTracker(
 ): Promise<{ placementMatch: PlacementMatch | null; shares: SplitCalculationResult | null; untracked: boolean }> {
   const { proType } = options;
 
-  // Try to match song to Placement Tracker
-  const placementMatch = await matchSongToPlacement(song.workTitle);
+  try {
+    // Try to match song to Placement Tracker
+    const placementMatch = await matchSongToPlacement(song.workTitle);
 
-  if (!placementMatch) {
+    if (!placementMatch) {
+      return {
+        placementMatch: null,
+        shares: null,
+        untracked: true
+      };
+    }
+
+    // Validate placementMatch has credits
+    if (!placementMatch.credits || !Array.isArray(placementMatch.credits)) {
+      console.warn(`Placement ${placementMatch.placement.id} has no credits array`);
+      return {
+        placementMatch,
+        shares: { shares: [], totalEligibleSplitPercent: 0, totalDistributedRevenue: 0, excludedCredits: [] },
+        untracked: false
+      };
+    }
+
+    // Get PT publisher IPIs for filtering
+    const ptPublisherIpis = await getPtPublisherIpis();
+
+    // Calculate shares based on PRO type
+    let shares: SplitCalculationResult;
+    const revenue = song.revenue || 0;
+
+    switch (proType) {
+      case 'MLC':
+        shares = calculateMlcShares(revenue, placementMatch.credits, ptPublisherIpis);
+        break;
+      case 'BMI':
+        shares = calculateBmiShares(revenue, placementMatch.credits, ptPublisherIpis);
+        break;
+      case 'ASCAP':
+        shares = calculateAscapShares(revenue, placementMatch.credits, ptPublisherIpis);
+        break;
+      default:
+        // For other PROs, include all PT-represented writers
+        shares = calculateWriterShares(revenue, placementMatch.credits, {
+          proAffiliation: null,
+          ptPublisherIpis,
+          includeOnlyPtWriters: true
+        });
+    }
+
     return {
-      placementMatch: null,
-      shares: null,
-      untracked: true
+      placementMatch,
+      shares,
+      untracked: false
     };
+  } catch (error) {
+    console.error(`Error in smartMatchWithPlacementTracker for "${song.workTitle}":`, error);
+    throw error; // Re-throw to let caller handle it
   }
-
-  // Get PT publisher IPIs for filtering
-  const ptPublisherIpis = await getPtPublisherIpis();
-
-  // Calculate shares based on PRO type
-  let shares: SplitCalculationResult;
-  const revenue = song.revenue || 0;
-
-  switch (proType) {
-    case 'MLC':
-      shares = calculateMlcShares(revenue, placementMatch.credits, ptPublisherIpis);
-      break;
-    case 'BMI':
-      shares = calculateBmiShares(revenue, placementMatch.credits, ptPublisherIpis);
-      break;
-    case 'ASCAP':
-      shares = calculateAscapShares(revenue, placementMatch.credits, ptPublisherIpis);
-      break;
-    default:
-      // For other PROs, include all PT-represented writers
-      shares = calculateWriterShares(revenue, placementMatch.credits, {
-        proAffiliation: null,
-        ptPublisherIpis,
-        includeOnlyPtWriters: true
-      });
-  }
-
-  return {
-    placementMatch,
-    shares,
-    untracked: false
-  };
 }
 
 /**
@@ -601,37 +616,63 @@ export async function smartMatchStatementWithPlacementTracker(
   const matched: EnhancedMatchedSong[] = [];
   const untracked: UntrackedSong[] = [];
 
-  for (const song of parsedSongs) {
-    const result = await smartMatchWithPlacementTracker(song, options);
+  console.log(`Starting smart match for ${parsedSongs?.length || 0} songs with PRO type: ${options.proType}`);
 
-    if (result.untracked || !result.placementMatch || !result.shares) {
+  // Safety check for invalid input
+  if (!parsedSongs || !Array.isArray(parsedSongs)) {
+    console.error('Invalid parsedSongs input:', parsedSongs);
+    return { matched: [], untracked: [] };
+  }
+
+  for (const song of parsedSongs) {
+    try {
+      // Safety check for song object
+      if (!song || !song.workTitle) {
+        console.warn('Skipping invalid song entry:', song);
+        continue;
+      }
+
+      const result = await smartMatchWithPlacementTracker(song, options);
+
+      if (result.untracked || !result.placementMatch || !result.shares) {
+        untracked.push({
+          workTitle: song.workTitle,
+          revenue: song.revenue || 0,
+          metadata: song.metadata || {},
+          reason: 'Song not found in Placement Tracker'
+        });
+      } else if (result.shares.shares.length === 0) {
+        // Placement found but no eligible writers (e.g., wrong PRO)
+        untracked.push({
+          workTitle: song.workTitle,
+          revenue: song.revenue || 0,
+          metadata: song.metadata || {},
+          reason: `No eligible writers for ${options.proType || 'this PRO'} (${result.shares.excludedCredits.length} excluded)`
+        });
+      } else {
+        matched.push({
+          workTitle: song.workTitle,
+          revenue: song.revenue || 0,
+          performances: song.performances || 0,
+          metadata: song.metadata || {},
+          placementMatch: result.placementMatch,
+          writerShares: result.shares.shares,
+          excludedCredits: result.shares.excludedCredits
+        });
+      }
+    } catch (songError) {
+      console.error(`Error processing song "${song.workTitle}":`, songError);
+      // Add to untracked with error info
       untracked.push({
-        workTitle: song.workTitle,
+        workTitle: song.workTitle || 'Unknown',
         revenue: song.revenue || 0,
         metadata: song.metadata || {},
-        reason: 'Song not found in Placement Tracker'
-      });
-    } else if (result.shares.shares.length === 0) {
-      // Placement found but no eligible writers (e.g., wrong PRO)
-      untracked.push({
-        workTitle: song.workTitle,
-        revenue: song.revenue || 0,
-        metadata: song.metadata || {},
-        reason: `No eligible writers for ${options.proType || 'this PRO'} (${result.shares.excludedCredits.length} excluded)`
-      });
-    } else {
-      matched.push({
-        workTitle: song.workTitle,
-        revenue: song.revenue || 0,
-        performances: song.performances || 0,
-        metadata: song.metadata || {},
-        placementMatch: result.placementMatch,
-        writerShares: result.shares.shares,
-        excludedCredits: result.shares.excludedCredits
+        reason: `Error processing song: ${(songError as Error).message || 'Unknown error'}`
       });
     }
   }
 
+  console.log(`Smart match complete: ${matched.length} matched, ${untracked.length} untracked`);
   return { matched, untracked };
 }
 

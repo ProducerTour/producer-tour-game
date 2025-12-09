@@ -70,13 +70,30 @@ export function calculateWriterShares(
 
   // Filter credits based on criteria
   for (const credit of placementCredits) {
+    // Safety check for null/undefined credit
+    if (!credit || !credit.id) {
+      console.warn('Skipping invalid credit:', credit);
+      continue;
+    }
+
     // Must have linked user (PT client) unless we're including all
     if (!credit.userId || !credit.user) {
       excludedCredits.push({
         creditId: credit.id,
-        firstName: credit.firstName,
-        lastName: credit.lastName,
+        firstName: credit.firstName || 'Unknown',
+        lastName: credit.lastName || '',
         reason: 'No linked user account'
+      });
+      continue;
+    }
+
+    // Safety check for splitPercentage
+    if (credit.splitPercentage === null || credit.splitPercentage === undefined) {
+      excludedCredits.push({
+        creditId: credit.id,
+        firstName: credit.firstName || 'Unknown',
+        lastName: credit.lastName || '',
+        reason: 'Missing split percentage'
       });
       continue;
     }
