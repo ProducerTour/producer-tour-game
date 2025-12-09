@@ -93,6 +93,24 @@ export default function ManagePlacements() {
     });
   };
 
+  // Delete placement handler
+  const handleDeletePlacement = async (id: string, title: string) => {
+    if (!confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await placementApi.delete(id);
+      toast.success(`"${title}" deleted successfully`);
+      // Remove from local state
+      setPlacements(prev => prev.filter(p => p.id !== id));
+      setFilteredPlacements(prev => prev.filter(p => p.id !== id));
+    } catch (error) {
+      console.error('Failed to delete placement:', error);
+      toast.error('Failed to delete placement');
+    }
+  };
+
   // Handle Spotify track selection
   const handleTrackSelect = async (track: any) => {
     try {
@@ -680,7 +698,19 @@ export default function ManagePlacements() {
                         </div>
                         <p className="text-text-secondary text-lg">{placement.artist}</p>
                       </div>
-                      <SubmissionStatusBadge status={placement.status} />
+                      <div className="flex items-center gap-3">
+                        <SubmissionStatusBadge status={placement.status} />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletePlacement(placement.id, placement.title);
+                          }}
+                          className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-colors"
+                          title="Delete placement"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Writer Info & Metadata */}
