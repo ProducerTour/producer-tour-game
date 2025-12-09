@@ -9,6 +9,76 @@ const router = Router();
 router.use(authenticate);
 
 /**
+ * GET /api/placements/debug/status-breakdown
+ * Diagnostic endpoint to see all placement statuses in the database
+ * TEMPORARY - Remove after debugging
+ */
+router.get('/debug/status-breakdown', async (req: AuthRequest, res: Response) => {
+  try {
+    // Get ALL placements (not just user's)
+    const allPlacements = await prisma.placement.findMany({
+      select: {
+        id: true,
+        title: true,
+        artist: true,
+        status: true,
+        createdAt: true,
+        credits: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            splitPercentage: true,
+            userId: true,
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Group by status
+    const statusBreakdown: Record<string, number> = {};
+    allPlacements.forEach(p => {
+      statusBreakdown[p.status] = (statusBreakdown[p.status] || 0) + 1;
+    });
+
+    // Get sample of APPROVED placements
+    const approvedSamples = allPlacements
+      .filter(p => p.status === 'APPROVED')
+      .slice(0, 10);
+
+    // Get sample of other statuses
+    const otherSamples = allPlacements
+      .filter(p => p.status !== 'APPROVED')
+      .slice(0, 5);
+
+    res.json({
+      success: true,
+      totalPlacements: allPlacements.length,
+      statusBreakdown,
+      approvedCount: allPlacements.filter(p => p.status === 'APPROVED').length,
+      trackingCount: allPlacements.filter(p => p.status === 'TRACKING').length,
+      approvedSamples: approvedSamples.map(p => ({
+        id: p.id,
+        title: p.title,
+        artist: p.artist,
+        status: p.status,
+        creditsCount: p.credits.length,
+        hasLinkedUsers: p.credits.some(c => c.userId !== null),
+      })),
+      otherSamples: otherSamples.map(p => ({
+        id: p.id,
+        title: p.title,
+        status: p.status,
+      })),
+    });
+  } catch (error) {
+    console.error('Debug status-breakdown error:', error);
+    res.status(500).json({ error: 'Failed to get status breakdown', details: String(error) });
+  }
+});
+
+/**
  * GET /api/placements
  * Get all placements for the authenticated user
  */
