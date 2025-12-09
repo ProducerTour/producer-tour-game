@@ -474,7 +474,9 @@ import {
   matchSongToPlacement,
   getPtPublisherIpis,
   PlacementMatch,
-  clearPlacementCache
+  clearPlacementCache,
+  clearPtPublisherIpiCache,
+  normalizeSongTitle
 } from './placement-matcher';
 
 import {
@@ -613,13 +615,24 @@ export async function smartMatchStatementWithPlacementTracker(
   parsedSongs: ParsedSong[],
   options: MatcherOptions = {}
 ): Promise<EnhancedSmartAssignResult> {
-  // Clear cache at start of batch operation
+  // Clear caches at start of batch operation
   clearPlacementCache();
+  clearPtPublisherIpiCache();
 
   const matched: EnhancedMatchedSong[] = [];
   const untracked: UntrackedSong[] = [];
 
-  console.log(`Starting smart match for ${parsedSongs?.length || 0} songs with PRO type: ${options.proType}`);
+  console.log(`[WriterMatcher] Starting smart match for ${parsedSongs?.length || 0} songs with PRO type: ${options.proType}`);
+
+  // Log sample song titles for debugging
+  if (parsedSongs && parsedSongs.length > 0) {
+    const sampleTitles = parsedSongs.slice(0, 5).map(s => `"${s.workTitle}"`).join(', ');
+    console.log(`[WriterMatcher] Sample statement song titles: ${sampleTitles}`);
+
+    // Also show normalized versions for comparison
+    const normalizedSamples = parsedSongs.slice(0, 5).map(s => `"${normalizeSongTitle(s.workTitle)}"`).join(', ');
+    console.log(`[WriterMatcher] Sample normalized titles: ${normalizedSamples}`);
+  }
 
   // Safety check for invalid input
   if (!parsedSongs || !Array.isArray(parsedSongs)) {

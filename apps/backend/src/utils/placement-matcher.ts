@@ -88,6 +88,10 @@ let placementCache: PlacementWithCredits[] | null = null;
 let cacheTimestamp: number = 0;
 const CACHE_TTL_MS = 60000; // 1 minute cache
 
+// Cache for PT publisher IPIs
+let ptPublisherIpiCache: string[] | null = null;
+let ipiCacheTimestamp: number = 0;
+
 /**
  * Get all approved/tracking placements with credits
  * Uses caching for batch operations
@@ -96,10 +100,33 @@ async function getAllPlacements(forceRefresh = false): Promise<PlacementWithCred
   const now = Date.now();
 
   if (!forceRefresh && placementCache && (now - cacheTimestamp) < CACHE_TTL_MS) {
+    console.log(`[PlacementMatcher] Using cached ${placementCache.length} placements`);
     return placementCache;
   }
 
+  console.log(`[PlacementMatcher] Fetching placements from database (forceRefresh=${forceRefresh})...`);
+
   try {
+    // First, let's see ALL placements in the database for diagnosis
+    const allPlacements = await prisma.placement.findMany({
+      select: { id: true, title: true, status: true }
+    });
+    console.log(`[PlacementMatcher] Total placements in DB: ${allPlacements.length}`);
+
+    // Log status breakdown
+    const statusCounts: Record<string, number> = {};
+    allPlacements.forEach(p => {
+      statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
+    });
+    console.log(`[PlacementMatcher] Status breakdown:`, JSON.stringify(statusCounts));
+
+    // Log first 5 placement titles for comparison
+    if (allPlacements.length > 0) {
+      console.log(`[PlacementMatcher] Sample placement titles:`,
+        allPlacements.slice(0, 5).map(p => `"${p.title}" (${p.status})`).join(', ')
+      );
+    }
+
     placementCache = await prisma.placement.findMany({
       where: {
         status: { in: ['APPROVED', 'TRACKING'] }
@@ -118,10 +145,18 @@ async function getAllPlacements(forceRefresh = false): Promise<PlacementWithCred
     }) as PlacementWithCredits[];
 
     cacheTimestamp = now;
-    console.log(`Loaded ${placementCache.length} placements from database`);
+    console.log(`[PlacementMatcher] Loaded ${placementCache.length} APPROVED/TRACKING placements`);
+
+    // Log titles of loaded placements for matching diagnosis
+    if (placementCache.length > 0) {
+      console.log(`[PlacementMatcher] Approved placement titles:`,
+        placementCache.slice(0, 10).map(p => `"${p.title}"`).join(', ')
+      );
+    }
+
     return placementCache;
   } catch (error) {
-    console.error('Error fetching placements:', error);
+    console.error('[PlacementMatcher] Error fetching placements:', error);
     // Return empty array on error to prevent cascading failures
     return [];
   }
@@ -217,21 +252,38 @@ export async function batchMatchSongsToPlacement(
 
 /**
  * Get PT's publisher IPIs for filtering PT-represented writers
+ * Uses caching to avoid repeated DB queries during batch operations
  */
 export async function getPtPublisherIpis(): Promise<string[]> {
+  const now = Date.now();
+
+  // Return from cache if valid
+  if (ptPublisherIpiCache && (now - ipiCacheTimestamp) < CACHE_TTL_MS) {
+    return ptPublisherIpiCache;
+  }
+
   try {
     const ptPublishers = await prisma.producerTourPublisher.findMany({
       where: { isActive: true },
       select: { ipiNumber: true }
     });
 
-    const ipis = ptPublishers.map(p => p.ipiNumber);
-    console.log(`Found ${ipis.length} PT publisher IPIs`);
-    return ipis;
+    ptPublisherIpiCache = ptPublishers.map(p => p.ipiNumber);
+    ipiCacheTimestamp = now;
+    console.log(`[PlacementMatcher] Loaded ${ptPublisherIpiCache.length} PT publisher IPIs`);
+    return ptPublisherIpiCache;
   } catch (error) {
-    console.error('Error fetching PT publisher IPIs:', error);
+    console.error('[PlacementMatcher] Error fetching PT publisher IPIs:', error);
     return [];
   }
+}
+
+/**
+ * Clear PT publisher IPI cache
+ */
+export function clearPtPublisherIpiCache(): void {
+  ptPublisherIpiCache = null;
+  ipiCacheTimestamp = 0;
 }
 
 /**
