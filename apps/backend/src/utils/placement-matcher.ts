@@ -184,6 +184,10 @@ async function getAllPlacements(forceRefresh = false): Promise<PlacementWithCred
       console.log(`[PlacementMatcher] Approved placement titles:`,
         placementCache.slice(0, 10).map(p => `"${p.title}"`).join(', ')
       );
+      // Also show normalized versions
+      console.log(`[PlacementMatcher] Normalized placement titles:`,
+        placementCache.slice(0, 10).map(p => `"${normalizeSongTitle(p.title)}"`).join(', ')
+      );
     }
 
     return placementCache;
@@ -220,6 +224,11 @@ export async function matchSongToPlacement(
   minConfidence: number = 0.80
 ): Promise<PlacementMatch | null> {
   const normalized = normalizeSongTitle(songTitle);
+
+  // Debug logging for first few songs
+  if (songTitle.toUpperCase().includes('COOK') || songTitle.toUpperCase().includes('BLEW') || songTitle.toUpperCase().includes('DEMONS')) {
+    console.log(`[PlacementMatcher] DEBUG: "${songTitle}" → normalized: "${normalized}"`);
+  }
 
   if (!normalized) return null;
 
@@ -306,6 +315,17 @@ export async function matchSongToPlacement(
       confidence: Math.round(bestScore * 100),
       matchedBy: 'fuzzy_title'
     };
+  }
+
+  // Debug: Log when no match found for problematic titles
+  if (songTitle.toUpperCase().includes('COOK') || songTitle.toUpperCase().includes('BLEW') || songTitle.toUpperCase().includes('DEMONS')) {
+    console.log(`[PlacementMatcher] NO MATCH for "${songTitle}" (normalized: "${normalized}", base: "${normalizedBase}")`);
+    // Show top 3 closest placements
+    const topMatches = placementsWithNormalized
+      .map(p => ({ title: p.placement.title, normalized: p.normalized, score: stringSimilarity(normalized, p.normalized) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+    console.log(`[PlacementMatcher] Top candidates:`, topMatches.map(m => `"${m.title}" (${Math.round(m.score * 100)}%)`).join(', '));
   }
 
   return null;
