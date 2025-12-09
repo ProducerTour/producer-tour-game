@@ -269,37 +269,6 @@ const ScoreCircle = ({ score, grade }: { score: number; grade: Grade }) => {
   );
 };
 
-// Get field-specific "not found" message with actionable advice
-const _getNotFoundMessage = (label: string, hasUserValue: boolean): { message: string; action: string } => {
-  const messages: Record<string, { message: string; action: string }> = {
-    'ISRCs': {
-      message: 'No ISRC registered',
-      action: 'Request from your distributor'
-    },
-    'ISWCs': {
-      message: 'No ISWC registered',
-      action: 'Register with your PRO'
-    },
-    'Writers': {
-      message: hasUserValue ? 'Writer not in database' : 'No writer credits found',
-      action: hasUserValue ? 'Verify PRO registration' : 'Add writer credits to metadata'
-    },
-    'Artists': {
-      message: 'Artist not in database',
-      action: 'Submit to MusicBrainz'
-    },
-    'Release Dates': {
-      message: 'No release date found',
-      action: 'Add to distributor metadata'
-    },
-    'Title Variations': {
-      message: 'No variations found',
-      action: 'Good - title is consistent'
-    }
-  };
-  return messages[label] || { message: 'Not found in database', action: 'Check registration' };
-};
-
 // Check if user value matches any found value (fuzzy match)
 const checkValueMatch = (userValue: string, foundValues: string[]): boolean => {
   const normalizedUser = userValue.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -545,31 +514,6 @@ const WritersDetailField = ({
   );
 };
 
-// Legacy ComparisonRow wrapper for backwards compatibility
-const ComparisonRow = ({
-  label,
-  icon: Icon,
-  userValue,
-  foundValues,
-  source
-}: {
-  label: string;
-  icon?: any;
-  userValue?: string;
-  foundValues: string[];
-  source?: string;
-}) => {
-  return (
-    <ComparisonField
-      label={label}
-      icon={Icon}
-      userValue={userValue}
-      foundValues={foundValues}
-      sources={source ? [source] : undefined}
-    />
-  );
-};
-
 // Source Badge Component - Compact inline source indicator
 const SourceBadge = ({
   name,
@@ -607,76 +551,6 @@ const SourceBadge = ({
         <span className={`text-[10px] font-mono ${c.text} opacity-80 ml-1`}>{detail}</span>
       )}
     </div>
-  );
-};
-
-// Source Card Component - Shows detailed info from each source (legacy)
-const _SourceCard = ({
-  name,
-  icon: Icon,
-  found,
-  color,
-  children
-}: {
-  name: string;
-  icon: any;
-  found: boolean;
-  color: string;
-  children?: React.ReactNode;
-}) => {
-  const colors: Record<string, { bg: string; border: string; text: string; icon: string }> = {
-    green: { bg: 'bg-green-500/10', border: 'border-green-500/20', text: 'text-green-400', icon: 'text-green-400' },
-    blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400', icon: 'text-blue-400' },
-    orange: { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400', icon: 'text-orange-400' },
-    purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/20', text: 'text-purple-400', icon: 'text-purple-400' },
-    gray: { bg: 'bg-gray-500/5', border: 'border-gray-500/10', text: 'text-gray-500', icon: 'text-gray-500' }
-  };
-
-  const c = found ? colors[color] : colors.gray;
-
-  return (
-    <div className={`p-3 rounded-lg border ${c.bg} ${c.border}`}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <Icon className={`w-4 h-4 ${c.icon}`} />
-          <span className={`text-sm font-medium ${c.text}`}>{name}</span>
-        </div>
-        {found ? (
-          <CheckCircle2 className={`w-4 h-4 ${c.icon}`} />
-        ) : (
-          <XCircle className="w-4 h-4 text-gray-600" />
-        )}
-      </div>
-      {found && children && (
-        <div className="space-y-1 text-xs">
-          {children}
-        </div>
-      )}
-      {!found && (
-        <p className="text-xs text-gray-600">Not found</p>
-      )}
-    </div>
-  );
-};
-
-// Legacy ComparisonItem for backwards compatibility
-const _ComparisonItem = ({
-  label,
-  userValue,
-  foundValues,
-  isMatch: _isMatch
-}: {
-  label: string;
-  userValue?: string;
-  foundValues: string[];
-  isMatch?: boolean;
-}) => {
-  return (
-    <ComparisonRow
-      label={label}
-      userValue={userValue}
-      foundValues={foundValues}
-    />
   );
 };
 
@@ -721,7 +595,7 @@ export default function LeakScannerPage() {
   const [_uploadSongCount, setUploadSongCount] = useState(0);
 
   // Reports state
-  const [_savedReports, _setSavedReports] = useState<CatalogReport[]>([]);
+  const [savedReports, _setSavedReports] = useState<CatalogReport[]>([]);
 
   // Placements state
   const [userPlacements, setUserPlacements] = useState<PlacementForScan[]>([]);
