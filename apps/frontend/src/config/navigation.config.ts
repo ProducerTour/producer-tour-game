@@ -128,6 +128,7 @@ export const adminNavigation: NavSection[] = [
       },
       { id: 'commission', label: 'Commission Settings', icon: 'briefcase' },
       { id: 'documents', label: 'Documents', icon: 'file' },
+      { id: 'productivity', label: 'Productivity', icon: 'sparkles' },
     ],
   },
 ];

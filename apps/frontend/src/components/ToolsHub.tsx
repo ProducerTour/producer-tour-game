@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, FileCheck, Coins } from 'lucide-react';
+import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, FileCheck, Coins, Shield } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { gamificationApi, toolPermissionsApi } from '../lib/api';
 
@@ -122,6 +122,16 @@ const TOOLS: Tool[] = [
     url: '/tools/session-payout',
     category: 'Financial',
     roles: ['ADMIN', 'WRITER'] // Available to admins and writers
+  },
+  {
+    id: 'leak-scanner',
+    name: 'Leak Scanner',
+    description: 'Upload your catalog to detect metadata issues causing missing royalties. Get a FICO-style score and actionable fixes for each song.',
+    icon: Shield,
+    color: 'from-emerald-500 to-emerald-600',
+    url: '/tools/leak-scanner',
+    category: 'Research',
+    roles: ['ADMIN', 'WRITER', 'MANAGER'] // Available to admins, writers, and managers
   }
 ];
 
@@ -501,7 +511,27 @@ export default function ToolsHub() {
                       </div>
                     </>
                   )}
-                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration', 'metadata-index', 'type-beat-video-maker', 'session-payout'].includes(currentTool.id) && (
+                  {currentTool.id === 'leak-scanner' && (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-theme-foreground-secondary">FICO-style metadata health scores (0-100)</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-theme-foreground-secondary">Cross-check BMI, ASCAP, MusicBrainz & more</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-theme-foreground-secondary">Detect missing ISRCs, ISWCs & publishers</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-theme-foreground-secondary">Batch upload catalogs via CSV/XLSX</span>
+                      </div>
+                    </>
+                  )}
+                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration', 'metadata-index', 'type-beat-video-maker', 'session-payout', 'leak-scanner'].includes(currentTool.id) && (
                     <>
                       <div className="flex items-start gap-3">
                         <Check className="w-5 h-5 text-green-400 flex-shrink-0" />

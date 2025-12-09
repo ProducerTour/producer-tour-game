@@ -1088,3 +1088,172 @@ export const notificationApi = {
   // Delete all notifications
   deleteAll: () => api.delete('/notifications'),
 };
+
+// Leak Scanner API - Metadata health scoring
+export const leakScannerApi = {
+  // Scan a single song with MusicBrainz cross-check
+  scanSingle: (data: {
+    title: string;
+    artist?: string;
+    writer?: string;
+    isrc?: string;
+    iswc?: string;
+    publisher?: string;
+    releaseDate?: string;
+  }) => api.post('/leak-scanner/single', data),
+
+  // Upload a catalog file for scanning
+  uploadCatalog: (file: File) => {
+    const formData = new FormData();
+    formData.append('catalog', file);
+    return api.post('/leak-scanner/upload', formData);
+  },
+
+  // Run full scan on an uploaded catalog
+  runScan: (scanId: string, options?: { limit?: number }) =>
+    api.post(`/leak-scanner/${scanId}/scan`, {}, { params: options }),
+
+  // Get scan results
+  getResults: (scanId: string) =>
+    api.get(`/leak-scanner/${scanId}`),
+
+  // Download report in specified format
+  getReportUrl: (scanId: string, format: 'json' | 'csv' | 'html') =>
+    `${API_URL}/api/leak-scanner/${scanId}/report/${format}`,
+
+  // Get issue definitions
+  getIssueDefinitions: () =>
+    api.get('/leak-scanner/issues/definitions'),
+
+  // Get user's placements for scanning
+  getPlacements: () =>
+    api.get('/leak-scanner/placements'),
+
+  // Scan all or selected placements
+  scanPlacements: (placementIds?: string[]) =>
+    api.post('/leak-scanner/placements/scan', { placementIds }),
+
+  // Scan a single placement
+  scanPlacement: (placementId: string) =>
+    api.post(`/leak-scanner/placements/${placementId}/scan`),
+};
+
+// Productivity Dashboard API - Admin widget dashboard
+export const productivityApi = {
+  // ========== Layout Management ==========
+
+  // Get user's dashboard layout
+  getLayout: () => api.get('/productivity/layout'),
+
+  // Save user's dashboard layout
+  saveLayout: (widgets: Array<{
+    i: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    widgetType: string;
+    config?: any;
+  }>) => api.put('/productivity/layout', { widgets }),
+
+  // Add a widget to the layout
+  addWidget: (widgetType: string, position: { x: number; y: number; w: number; h: number }, config?: any) =>
+    api.post('/productivity/layout/widget', { widgetType, position, config }),
+
+  // Remove a widget from the layout
+  removeWidget: (widgetType: string) =>
+    api.delete(`/productivity/layout/widget/${widgetType}`),
+
+  // ========== Preset Management ==========
+
+  // Get all presets for user
+  getPresets: () => api.get('/productivity/presets'),
+
+  // Create a new preset
+  createPreset: (name: string, layout?: any[]) =>
+    api.post('/productivity/presets', { name, layout }),
+
+  // Update a preset
+  updatePreset: (id: string, data: { name?: string; layout?: any[]; isActive?: boolean }) =>
+    api.put(`/productivity/presets/${id}`, data),
+
+  // Delete a preset
+  deletePreset: (id: string) =>
+    api.delete(`/productivity/presets/${id}`),
+
+  // Load a preset (apply to current layout)
+  loadPreset: (id: string) =>
+    api.post(`/productivity/presets/${id}/load`),
+
+  // ========== Widget Configuration ==========
+
+  // Get widget configuration
+  getWidgetConfig: (widgetType: string) =>
+    api.get(`/productivity/widgets/${widgetType}/config`),
+
+  // Update widget configuration
+  updateWidgetConfig: (widgetType: string, config: any) =>
+    api.put(`/productivity/widgets/${widgetType}/config`, config),
+
+  // ========== Notes / Scratchpad ==========
+
+  // Get admin note
+  getNote: () => api.get('/productivity/notes'),
+
+  // Update admin note
+  updateNote: (content: string) =>
+    api.put('/productivity/notes', { content }),
+
+  // ========== Daily Goals ==========
+
+  // Get daily goals for a specific date
+  getGoals: (date?: string) =>
+    api.get('/productivity/goals', { params: { date } }),
+
+  // Get goal statistics
+  getGoalStats: (days?: number) =>
+    api.get('/productivity/goals/stats', { params: { days } }),
+
+  // Create a daily goal
+  createGoal: (title: string, date?: string) =>
+    api.post('/productivity/goals', { title, date }),
+
+  // Update a daily goal
+  updateGoal: (id: string, data: { title?: string; isCompleted?: boolean; displayOrder?: number }) =>
+    api.put(`/productivity/goals/${id}`, data),
+
+  // Delete a daily goal
+  deleteGoal: (id: string) =>
+    api.delete(`/productivity/goals/${id}`),
+
+  // ========== Pomodoro Sessions ==========
+
+  // Get pomodoro statistics
+  getPomodoroStats: (days?: number) =>
+    api.get('/productivity/pomodoro/stats', { params: { days } }),
+
+  // Start a pomodoro session
+  startPomodoro: (duration?: number, label?: string, isBreak?: boolean) =>
+    api.post('/productivity/pomodoro/start', { duration, label, isBreak }),
+
+  // Complete a pomodoro session
+  completePomodoro: (id: string) =>
+    api.post(`/productivity/pomodoro/${id}/complete`),
+
+  // Abandon a pomodoro session
+  abandonPomodoro: (id: string) =>
+    api.post(`/productivity/pomodoro/${id}/abandon`),
+
+  // ========== Activity Feed ==========
+
+  // Get recent platform activity
+  getActivity: (limit?: number, types?: string[], since?: string) =>
+    api.get('/productivity/activity', {
+      params: { limit, types: types?.join(','), since },
+    }),
+
+  // ========== Online Users ==========
+
+  // Get online users with details
+  getOnlineUsers: () => api.get('/productivity/online-users'),
+};

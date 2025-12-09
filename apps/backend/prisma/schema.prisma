@@ -2455,3 +2455,154 @@ model Follow {
   @@index([followingId])
   @@map("follows")
 }
+
+// ========================================
+// PRODUCTIVITY DASHBOARD SYSTEM
+// Customizable admin widget dashboard
+// ========================================
+
+enum WidgetSize {
+  SMALL   // 1x1 grid cell
+  MEDIUM  // 2x1 grid cells
+  LARGE   // 2x2 grid cells
+  WIDE    // 3x1 grid cells
+  TALL    // 1x2 grid cells
+}
+
+// Layout presets for quick switching
+model DashboardLayoutPreset {
+  id          String   @id @default(cuid())
+  userId      String   // Admin who owns this preset
+  name        String   // "Default", "Focus Mode", "Analytics View"
+  isActive    Boolean  @default(false) // Currently active preset
+  isDefault   Boolean  @default(false) // System default preset
+
+  // Grid configuration
+  columns     Int      @default(12) // 12-column grid
+  rowHeight   Int      @default(80) // Pixels per row
+
+  // Widget positions stored as JSON
+  // Array of: { widgetType, x, y, w, h, config }
+  layout      Json
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([isActive])
+  @@map("dashboard_layout_presets")
+}
+
+// Individual widget configurations
+model DashboardWidget {
+  id            String     @id @default(cuid())
+  userId        String     // Admin who configured this widget
+  widgetType    String     // "quick-actions", "activity-feed", "pomodoro", etc.
+
+  // Position in grid
+  gridX         Int        @default(0)
+  gridY         Int        @default(0)
+  gridW         Int        @default(2) // Width in grid units
+  gridH         Int        @default(2) // Height in grid units
+  size          WidgetSize @default(MEDIUM)
+
+  // Widget-specific configuration
+  config        Json?      // { refreshInterval, showCount, filters, etc. }
+
+  // Visibility
+  isVisible     Boolean    @default(true)
+  isPinned      Boolean    @default(false) // Pinned widgets stay at top
+  displayOrder  Int        @default(0)
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@unique([userId, widgetType]) // One instance per widget type per user
+  @@index([userId])
+  @@index([widgetType])
+  @@map("dashboard_widgets")
+}
+
+// Admin notes/scratchpad persistence
+model AdminNote {
+  id          String   @id @default(cuid())
+  userId      String   @unique // One note pad per admin
+  content     String   @db.Text
+  updatedAt   DateTime @updatedAt
+
+  @@map("admin_notes")
+}
+
+// Daily goals tracking
+model DailyGoal {
+  id          String   @id @default(cuid())
+  userId      String
+  date        DateTime @db.Date
+  title       String
+  isCompleted Boolean  @default(false)
+  displayOrder Int     @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, date, title])
+  @@index([userId, date])
+  @@map("daily_goals")
+}
+
+// Pomodoro session tracking
+model PomodoroSession {
+  id            String   @id @default(cuid())
+  userId        String
+  startedAt     DateTime
+  completedAt   DateTime?
+  duration      Int      // Duration in minutes (25, 50, etc.)
+  isBreak       Boolean  @default(false)
+  wasCompleted  Boolean  @default(false)
+  label         String?  // Optional task label
+
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([startedAt])
+  @@map("pomodoro_sessions")
+}
+
+// Platform activity log for activity feed widget
+model ProductivityActivity {
+  id            String   @id @default(cuid())
+  activityType  String   // "USER_SIGNUP", "PLACEMENT_CREATED", "PAYMENT_SENT", etc.
+  actorId       String?  // User who performed action
+  actorName     String?  // Cached actor name for display
+  targetType    String?  // "user", "placement", "payment", etc.
+  targetId      String?  // ID of target entity
+  targetName    String?  // Cached target name for display
+  metadata      Json?    // Additional context
+
+  createdAt     DateTime @default(now())
+
+  @@index([activityType])
+  @@index([createdAt])
+  @@index([actorId])
+  @@map("productivity_activities")
+}
+
+// External API credentials storage (encrypted)
+model ExternalApiCredential {
+  id            String   @id @default(cuid())
+  userId        String   // Admin who owns these credentials
+  provider      String   // "google_calendar", "outlook", "spotify", etc.
+  accessToken   String   @db.Text // Encrypted
+  refreshToken  String?  @db.Text // Encrypted
+  expiresAt     DateTime?
+  scopes        Json?    // Array of granted scopes
+  metadata      Json?    // Provider-specific data
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("external_api_credentials")
+}

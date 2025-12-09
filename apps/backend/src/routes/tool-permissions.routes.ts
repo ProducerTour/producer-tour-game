@@ -17,6 +17,7 @@ const DEFAULT_TOOL_PERMISSIONS = [
   { toolId: 'metadata-index', toolName: 'Metadata Index', roles: ['ADMIN'] },
   { toolId: 'session-payout', toolName: 'Session Payout & Delivery', roles: ['ADMIN'] },
   { toolId: 'type-beat-video-maker', toolName: 'Type Beat Video Maker', roles: ['ADMIN', 'WRITER', 'CUSTOMER'] },
+  { toolId: 'leak-scanner', toolName: 'Leak Scanner', roles: ['ADMIN', 'WRITER', 'MANAGER'] },
 ];
 
 /**

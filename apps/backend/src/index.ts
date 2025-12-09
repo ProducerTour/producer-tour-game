@@ -49,6 +49,8 @@ import feedRoutes from './routes/feed.routes';
 import marketplaceRoutes from './routes/marketplace.routes';
 import pushRoutes from './routes/push.routes';
 import notificationRoutes from './routes/notification.routes';
+import leakScannerRoutes from './routes/leak-scanner.routes';
+import productivityRoutes from './routes/productivity.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -184,6 +186,8 @@ app.use('/api/feed', feedRoutes);
 app.use('/api/marketplace', marketplaceRoutes);
 app.use('/api/push', pushRoutes); // Web Push notifications
 app.use('/api/notifications', notificationRoutes); // In-app notifications
+app.use('/api/leak-scanner', leakScannerRoutes); // Leak Scanner - metadata health scoring
+app.use('/api/productivity', productivityRoutes); // Productivity dashboard widgets
 
 // Error handling
 app.use(notFoundHandler);

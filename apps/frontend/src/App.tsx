@@ -38,6 +38,7 @@ import MetadataIndexPage from './pages/MetadataIndexPage';
 import PricingPage from './pages/PricingPage';
 import TypeBeatVideoMakerPage from './pages/TypeBeatVideoMakerPage';
 import SessionPayoutTool from './pages/SessionPayoutTool';
+import LeakScannerPage from './pages/LeakScannerPage';
 import BorderPreview from './components/test/BorderPreview';
 import AffiliatesDashboard from './pages/AffiliatesDashboard';
 import AffiliateManagement from './pages/AffiliateManagement';
@@ -154,6 +155,14 @@ function App() {
           element={
             <PrivateRoute roles={['ADMIN', 'WRITER']}>
               <SessionPayoutTool />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/tools/leak-scanner"
+          element={
+            <PrivateRoute roles={['ADMIN', 'WRITER', 'MANAGER']}>
+              <LeakScannerPage />
             </PrivateRoute>
           }
         />

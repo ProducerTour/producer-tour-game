@@ -32,6 +32,7 @@ const ShopTab = lazy(() => import('../components/admin/ShopTab'));
 const ContactsTab = lazy(() => import('../components/admin/ContactsTab'));
 const InsightsTab = lazy(() => import('../components/admin/InsightsTab'));
 const TourBillingTab = lazy(() => import('../components/admin/TourBillingTab'));
+const ProductivityDashboard = lazy(() => import('../components/productivity/ProductivityDashboard'));
 import { ChartCard } from '../components/ChartCard';
 import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
 import { formatIpiDisplay } from '../utils/ipi-helper';
@@ -48,7 +49,7 @@ import {
   AlertDialogTrigger,
 } from '../components/ui';
 
-type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'bmi-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'billing-hub' | 'recording-sessions' | 'active-placements' | 'pending-placements' | 'manage-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config' | 'tour-billing' | 'shop' | 'contacts' | 'insights';
+type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'bmi-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'billing-hub' | 'recording-sessions' | 'active-placements' | 'pending-placements' | 'manage-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config' | 'tour-billing' | 'shop' | 'contacts' | 'insights' | 'productivity';
 
 // Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
 const formatChartCurrency = (value: any): string => {
@@ -178,6 +179,9 @@ export default function AdminDashboard() {
             )}
             {activeTab === 'insights' && (
               <Suspense fallback={<TabSkeleton />}><InsightsTab /></Suspense>
+            )}
+            {activeTab === 'productivity' && (
+              <Suspense fallback={<TabSkeleton />}><ProductivityDashboard /></Suspense>
             )}
           </div>
         </main>
