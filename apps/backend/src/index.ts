@@ -60,6 +60,7 @@ import { authLimiter, apiLimiter } from './middleware/rate-limit.middleware';
 
 // Import startup service
 import { runStartupTasks } from './services/startup.service';
+console.log('[Init] Startup service imported successfully');
 
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
@@ -203,14 +204,21 @@ const httpServer = createServer(app);
 const io = initializeSocket(httpServer);
 
 // Start server
-httpServer.listen(PORT, async () => {
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 CORS enabled for: ${process.env.CORS_ORIGIN}`);
   console.log(`🔌 Socket.io ready for connections`);
 
-  // Run startup tasks (backfill credits, etc.)
-  await runStartupTasks();
+  // Run startup tasks (backfill credits, etc.) - use .then/.catch for better logging
+  console.log('[Init] About to run startup tasks...');
+  runStartupTasks()
+    .then(() => {
+      console.log('[Init] Startup tasks promise resolved');
+    })
+    .catch((err) => {
+      console.error('[Init] Startup tasks failed:', err);
+    });
 });
 
 export { io };
