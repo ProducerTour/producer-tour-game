@@ -26,13 +26,45 @@ export interface PlacementMatch {
 
 /**
  * Normalize song title for matching
- * Removes special characters, extra spaces, and converts to lowercase
+ * - Converts to lowercase
+ * - Removes featuring artists (feat, ft, featuring, with, etc.)
+ * - Removes content in parentheses/brackets that contain feat info
+ * - Removes special characters
+ * - Collapses multiple spaces
  */
 export function normalizeSongTitle(title: string): string {
+  let normalized = title.toLowerCase();
+
+  // Remove content in parentheses/brackets that contains feat/ft/with/featuring
+  // e.g., "Song (feat. Artist)" -> "Song"
+  // e.g., "Song [with Artist]" -> "Song"
+  normalized = normalized.replace(/[\(\[]\s*(feat\.?|ft\.?|featuring|with)\s+[^\)\]]+[\)\]]/gi, '');
+
+  // Remove standalone featuring patterns (not in parentheses)
+  // e.g., "Song feat Artist Name" -> "Song"
+  // e.g., "Song ft. Artist" -> "Song"
+  // Must come after parentheses removal
+  normalized = normalized.replace(/\s+(feat\.?|ft\.?|featuring|with)\s+.*/gi, '');
+
+  // Also handle "PT 1", "PT 2", "PART 1" variations for more flexible matching
+  // Keep them for exact matching but create a fallback without them
+
+  // Remove special characters (but keep spaces)
+  normalized = normalized.replace(/[^a-z0-9\s]/g, '');
+
+  // Collapse multiple spaces and trim
+  normalized = normalized.replace(/\s+/g, ' ').trim();
+
+  return normalized;
+}
+
+/**
+ * Get the base title without part numbers for looser matching
+ * e.g., "made me mad pt 1" -> "made me mad"
+ */
+function getBaseTitleWithoutParts(title: string): string {
   return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '') // Remove special chars
-    .replace(/\s+/g, ' ')        // Collapse multiple spaces
+    .replace(/\s+(pt|part)\s*\d+.*$/i, '')
     .trim();
 }
 
@@ -173,13 +205,19 @@ export function clearPlacementCache(): void {
 /**
  * Match a song title to a Placement in the tracker
  *
+ * Uses multiple matching strategies in order:
+ * 1. Exact match (normalized titles)
+ * 2. Starts-with match (statement title starts with placement title or vice versa)
+ * 3. Base title match (without "pt 1", "part 2", etc.)
+ * 4. Fuzzy match (Levenshtein similarity)
+ *
  * @param songTitle - The song title from the statement
- * @param minConfidence - Minimum confidence threshold (default 0.85 = 85%)
+ * @param minConfidence - Minimum confidence threshold (default 0.80 = 80%)
  * @returns PlacementMatch if found, null otherwise
  */
 export async function matchSongToPlacement(
   songTitle: string,
-  minConfidence: number = 0.85
+  minConfidence: number = 0.80
 ): Promise<PlacementMatch | null> {
   const normalized = normalizeSongTitle(songTitle);
 
@@ -187,30 +225,78 @@ export async function matchSongToPlacement(
 
   const placements = await getAllPlacements();
 
-  // Strategy 1: Exact match (normalized)
-  const exactMatch = placements.find(p =>
-    normalizeSongTitle(p.title) === normalized
-  );
+  // Pre-normalize all placement titles for comparison
+  const placementsWithNormalized = placements.map(p => ({
+    placement: p,
+    normalized: normalizeSongTitle(p.title),
+    baseTitle: getBaseTitleWithoutParts(normalizeSongTitle(p.title))
+  }));
 
+  // Strategy 1: Exact match (normalized)
+  const exactMatch = placementsWithNormalized.find(p => p.normalized === normalized);
   if (exactMatch) {
     return {
-      placement: exactMatch,
+      placement: exactMatch.placement,
       confidence: 100,
       matchedBy: 'exact_title'
     };
   }
 
-  // Strategy 2: Fuzzy match
+  // Strategy 2: Starts-with match
+  // e.g., "cook it" matches "cook it feat blac youngsta" (statement starts with placement)
+  // e.g., "made me mad pt 1 with bloodhou" matches "made me mad" (placement is substring of statement)
+  for (const p of placementsWithNormalized) {
+    // Statement title starts with placement title (e.g., statement="cook it feat..." matches placement="cook it")
+    if (normalized.startsWith(p.normalized + ' ') || normalized === p.normalized) {
+      return {
+        placement: p.placement,
+        confidence: 98,
+        matchedBy: 'exact_title'
+      };
+    }
+    // Placement title starts with statement title (less common but possible)
+    if (p.normalized.startsWith(normalized + ' ')) {
+      return {
+        placement: p.placement,
+        confidence: 95,
+        matchedBy: 'exact_title'
+      };
+    }
+  }
+
+  // Strategy 3: Base title match (without part numbers)
+  const normalizedBase = getBaseTitleWithoutParts(normalized);
+  for (const p of placementsWithNormalized) {
+    if (normalizedBase === p.baseTitle && normalizedBase.length > 3) {
+      return {
+        placement: p.placement,
+        confidence: 95,
+        matchedBy: 'exact_title'
+      };
+    }
+    // Also check if base titles match with starts-with
+    if (normalizedBase.startsWith(p.baseTitle + ' ') || p.baseTitle.startsWith(normalizedBase + ' ')) {
+      return {
+        placement: p.placement,
+        confidence: 92,
+        matchedBy: 'exact_title'
+      };
+    }
+  }
+
+  // Strategy 4: Fuzzy match with lower threshold
   let bestMatch: PlacementWithCredits | null = null;
   let bestScore = 0;
 
-  for (const placement of placements) {
-    const placementNormalized = normalizeSongTitle(placement.title);
-    const similarity = stringSimilarity(normalized, placementNormalized);
+  for (const p of placementsWithNormalized) {
+    // Try matching against both normalized and base title
+    const similarity1 = stringSimilarity(normalized, p.normalized);
+    const similarity2 = stringSimilarity(normalizedBase, p.baseTitle);
+    const similarity = Math.max(similarity1, similarity2);
 
     if (similarity > bestScore && similarity >= minConfidence) {
       bestScore = similarity;
-      bestMatch = placement;
+      bestMatch = p.placement;
     }
   }
 
