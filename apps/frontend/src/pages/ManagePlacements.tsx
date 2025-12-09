@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, Music, Clock, Plus, X,
@@ -13,9 +13,34 @@ import { SpotifyTrackLookup } from '@/components/SpotifyTrackLookup';
 import { CollaboratorForm, Collaborator } from '@/components/CollaboratorForm';
 import { audiodbApi } from '@/lib/audiodbApi';
 
+// Helper function to map database role values to CollaboratorForm role values
+const mapRoleToDisplayRole = (dbRole: string): string => {
+  const roleMap: Record<string, string> = {
+    'WRITER': 'Songwriter (Lyrics)',
+    'COMPOSER': 'Composer (Music)',
+    'PRODUCER': 'Composer (Music)',
+    'LYRICIST': 'Songwriter (Lyrics)',
+    'BOTH': 'Both',
+  };
+  return roleMap[dbRole?.toUpperCase()] || dbRole || 'Composer (Music)';
+};
+
+// Helper function to map display role values back to database role values
+const mapDisplayRoleToDbRole = (displayRole: string): string => {
+  const roleMap: Record<string, string> = {
+    'Songwriter (Lyrics)': 'WRITER',
+    'Composer (Music)': 'COMPOSER',
+    'Both': 'BOTH',
+  };
+  return roleMap[displayRole] || displayRole || 'WRITER';
+};
+
 export default function ManagePlacements() {
   const [placements, setPlacements] = useState<PendingSubmission[]>([]);
   const [filteredPlacements, setFilteredPlacements] = useState<PendingSubmission[]>([]);
+
+  // Track which placements have been processed for artwork to avoid re-fetching
+  const processedArtworkIds = useRef<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -83,56 +108,61 @@ export default function ManagePlacements() {
   }, [searchQuery, placements]);
 
   // Auto-fetch Spotify artwork for placements missing album art
-  useEffect(() => {
-    const fetchMissingArtwork = async () => {
-      const placementsNeedingArt = placements.filter(p => !p.albumArtUrl && p.title && p.artist);
+  // Uses a ref to track processed IDs so we don't re-fetch on every render
+  const fetchMissingArtwork = useCallback(async () => {
+    // Filter placements that need artwork AND haven't been processed yet
+    const placementsNeedingArt = placements.filter(
+      p => !p.albumArtUrl && p.title && p.artist && !processedArtworkIds.current.has(p.id)
+    );
 
-      if (placementsNeedingArt.length === 0) return;
+    if (placementsNeedingArt.length === 0) return;
 
-      // Process in batches to avoid rate limiting
-      const updatedPlacements = [...placements];
-      let hasUpdates = false;
+    // Mark these as being processed to prevent duplicate fetches
+    placementsNeedingArt.forEach(p => processedArtworkIds.current.add(p.id));
 
-      for (const placement of placementsNeedingArt) {
-        try {
-          const searchQuery = `${placement.title} ${placement.artist}`;
-          const response = await toolsApi.spotifySearch(searchQuery, 1);
-          const track = response.data.tracks?.[0];
+    const artworkUpdates: Record<string, string> = {};
 
-          if (track?.image) {
-            const placementIndex = updatedPlacements.findIndex(p => p.id === placement.id);
-            if (placementIndex !== -1) {
-              updatedPlacements[placementIndex] = {
-                ...updatedPlacements[placementIndex],
-                albumArtUrl: track.image,
-              };
-              hasUpdates = true;
+    // Process placements and collect artwork URLs
+    for (const placement of placementsNeedingArt) {
+      try {
+        const query = `${placement.title} ${placement.artist}`;
+        const response = await toolsApi.spotifySearch(query, 1);
+        const track = response.data.tracks?.[0];
 
-              // Save artwork to database so it persists
-              try {
-                await workRegistrationApi.edit(placement.id, {
-                  albumArtUrl: track.image,
-                });
-              } catch (saveError) {
-                console.warn('Could not save artwork to database:', saveError);
-              }
-            }
+        if (track?.image) {
+          artworkUpdates[placement.id] = track.image;
+
+          // Save artwork to database so it persists across page reloads
+          try {
+            await workRegistrationApi.edit(placement.id, {
+              albumArtUrl: track.image,
+            });
+          } catch (saveError) {
+            console.warn('Could not save artwork to database:', saveError);
           }
-        } catch (error) {
-          // Silently fail for individual lookups
-          console.warn(`Could not fetch artwork for ${placement.title}:`, error);
         }
+      } catch (error) {
+        // Silently fail for individual lookups
+        console.warn(`Could not fetch artwork for ${placement.title}:`, error);
       }
+    }
 
-      if (hasUpdates) {
-        setPlacements(updatedPlacements);
-      }
-    };
+    // Update both placements and filteredPlacements with new artwork
+    if (Object.keys(artworkUpdates).length > 0) {
+      setPlacements(prev => prev.map(p =>
+        artworkUpdates[p.id] ? { ...p, albumArtUrl: artworkUpdates[p.id] } : p
+      ));
+      setFilteredPlacements(prev => prev.map(p =>
+        artworkUpdates[p.id] ? { ...p, albumArtUrl: artworkUpdates[p.id] } : p
+      ));
+    }
+  }, [placements]);
 
+  useEffect(() => {
     if (placements.length > 0) {
       fetchMissingArtwork();
     }
-  }, [placements.length]); // Only run when placements count changes
+  }, [placements.length, fetchMissingArtwork]);
 
   const loadApprovedPlacements = async () => {
     try {
@@ -181,34 +211,40 @@ export default function ManagePlacements() {
 
   // Open edit modal
   const openEditModal = (placement: PendingSubmission) => {
-    setEditingPlacement(placement);
-    setEditEntry({
-      title: placement.title || '',
-      artist: placement.artist || '',
-      albumName: placement.albumName || '',
-      isrc: placement.isrc || '',
-      genre: placement.genre || '',
-      releaseYear: placement.releaseYear || '',
-      label: placement.label || '',
-      notes: placement.notes || '',
-    });
-    // Convert credits to collaborators format
-    const collabs: Collaborator[] = (placement.credits || []).map((c: any) => ({
-      id: c.id,
-      firstName: c.firstName || '',
-      lastName: c.lastName || '',
-      role: c.role || 'WRITER',
-      splitPercentage: c.splitPercentage || 0,
-      pro: c.pro || '',
-      ipiNumber: c.ipiNumber || '',
-      isPrimary: c.isPrimary || false,
-      notes: c.notes || '',
-      userId: c.userId || undefined,
-      publisherIpiNumber: c.publisherIpiNumber || '',
-      isExternalWriter: c.isExternalWriter || false,
-    }));
-    setEditCollaborators(collabs);
-    setShowEditModal(true);
+    try {
+      setEditingPlacement(placement);
+      setEditEntry({
+        title: placement.title || '',
+        artist: placement.artist || '',
+        albumName: placement.albumName || '',
+        isrc: placement.isrc || '',
+        genre: placement.genre || '',
+        releaseYear: placement.releaseYear || '',
+        label: placement.label || '',
+        notes: placement.notes || '',
+      });
+      // Convert credits to collaborators format with proper role mapping
+      const collabs: Collaborator[] = (placement.credits || []).map((c: any) => ({
+        id: c.id || `temp-${Date.now()}-${Math.random()}`,
+        firstName: c.firstName || '',
+        lastName: c.lastName || '',
+        // Map database role values to CollaboratorForm expected values
+        role: mapRoleToDisplayRole(c.role),
+        splitPercentage: typeof c.splitPercentage === 'number' ? c.splitPercentage : parseFloat(c.splitPercentage) || 0,
+        pro: c.pro || '',
+        ipiNumber: c.ipiNumber || '',
+        isPrimary: Boolean(c.isPrimary),
+        notes: c.notes || '',
+        userId: c.userId || undefined,
+        publisherIpiNumber: c.publisherIpiNumber || '',
+        isExternalWriter: Boolean(c.isExternalWriter),
+      }));
+      setEditCollaborators(collabs);
+      setShowEditModal(true);
+    } catch (error) {
+      console.error('Error opening edit modal:', error);
+      toast.error('Failed to open edit modal. Please try again.');
+    }
   };
 
   // Handle edit submission
@@ -243,7 +279,8 @@ export default function ManagePlacements() {
         credits: editCollaborators.map((c, idx) => ({
           firstName: c.firstName,
           lastName: c.lastName,
-          role: c.role,
+          // Map display role back to database role format
+          role: mapDisplayRoleToDbRole(c.role),
           splitPercentage: c.splitPercentage,
           pro: c.pro || undefined,
           ipiNumber: c.ipiNumber || undefined,
