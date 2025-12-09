@@ -58,6 +58,9 @@ import { errorHandler } from './middleware/error.middleware';
 import { notFoundHandler } from './middleware/notFound.middleware';
 import { authLimiter, apiLimiter } from './middleware/rate-limit.middleware';
 
+// Import startup service
+import { runStartupTasks } from './services/startup.service';
+
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
 
@@ -200,11 +203,14 @@ const httpServer = createServer(app);
 const io = initializeSocket(httpServer);
 
 // Start server
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 CORS enabled for: ${process.env.CORS_ORIGIN}`);
   console.log(`🔌 Socket.io ready for connections`);
+
+  // Run startup tasks (backfill credits, etc.)
+  await runStartupTasks();
 });
 
 export { io };
