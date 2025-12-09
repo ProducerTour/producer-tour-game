@@ -370,6 +370,47 @@ router.post('/', async (req: AuthRequest, res: Response) => {
           error: `Split percentages must equal exactly 100%. Current total: ${totalSplit.toFixed(2)}%`
         });
       }
+
+      // Auto-link credits to users based on name (simple matching)
+      for (const credit of credits) {
+        // Skip if already linked to a user
+        if (credit.userId) continue;
+
+        // Match by first name + last name (case-insensitive)
+        if (credit.firstName && credit.lastName) {
+          const matchedUser = await prisma.user.findFirst({
+            where: {
+              firstName: { equals: credit.firstName, mode: 'insensitive' },
+              lastName: { equals: credit.lastName, mode: 'insensitive' }
+            },
+            select: {
+              id: true,
+              writerIpiNumber: true,
+              publisherIpiNumber: true,
+              producer: {
+                select: {
+                  proAffiliation: true
+                }
+              }
+            }
+          });
+
+          if (matchedUser) {
+            credit.userId = matchedUser.id;
+            // Copy user's IPI and PRO info to credit if not already set
+            if (!credit.ipiNumber && matchedUser.writerIpiNumber) {
+              credit.ipiNumber = matchedUser.writerIpiNumber;
+            }
+            if (!credit.pro && matchedUser.producer?.proAffiliation) {
+              credit.pro = matchedUser.producer.proAffiliation;
+            }
+            if (!credit.publisherIpiNumber && matchedUser.publisherIpiNumber) {
+              credit.publisherIpiNumber = matchedUser.publisherIpiNumber;
+            }
+            console.log(`[Placements] Auto-linked credit "${credit.firstName} ${credit.lastName}" to user ${matchedUser.id}`);
+          }
+        }
+      }
     }
 
     const placement = await prisma.placement.create({
@@ -562,6 +603,47 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
       await prisma.placementCredit.deleteMany({
         where: { placementId: id },
       });
+
+      // Auto-link credits to users based on name (simple matching)
+      for (const credit of credits) {
+        // Skip if already linked to a user
+        if (credit.userId) continue;
+
+        // Match by first name + last name (case-insensitive)
+        if (credit.firstName && credit.lastName) {
+          const matchedUser = await prisma.user.findFirst({
+            where: {
+              firstName: { equals: credit.firstName, mode: 'insensitive' },
+              lastName: { equals: credit.lastName, mode: 'insensitive' }
+            },
+            select: {
+              id: true,
+              writerIpiNumber: true,
+              publisherIpiNumber: true,
+              producer: {
+                select: {
+                  proAffiliation: true
+                }
+              }
+            }
+          });
+
+          if (matchedUser) {
+            credit.userId = matchedUser.id;
+            // Copy user's IPI and PRO info to credit if not already set
+            if (!credit.ipiNumber && matchedUser.writerIpiNumber) {
+              credit.ipiNumber = matchedUser.writerIpiNumber;
+            }
+            if (!credit.pro && matchedUser.producer?.proAffiliation) {
+              credit.pro = matchedUser.producer.proAffiliation;
+            }
+            if (!credit.publisherIpiNumber && matchedUser.publisherIpiNumber) {
+              credit.publisherIpiNumber = matchedUser.publisherIpiNumber;
+            }
+            console.log(`[Placements] Auto-linked credit "${credit.firstName} ${credit.lastName}" to user ${matchedUser.id}`);
+          }
+        }
+      }
 
       // Create new credits
       if (credits.length > 0) {
