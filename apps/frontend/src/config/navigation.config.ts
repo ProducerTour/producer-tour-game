@@ -39,7 +39,7 @@ export const writerNavigation: NavSection[] = [
       { id: 'statements', label: 'My Statements', icon: 'chart' },
       { id: 'documents', label: 'Documents', icon: 'file' },
       { id: 'billing', label: 'Billing & Payments', icon: 'credit-card' },
-      { id: 'claims', label: 'Claims', icon: 'check-circle' },
+      { id: 'placements', label: 'My Placements', icon: 'music' },
       { id: 'tour-miles', label: 'Tour Miles', icon: 'target', path: '/tour-miles' },
       { id: 'profile', label: 'User Info', icon: 'user' },
       { id: 'tools', label: 'Tools Hub', icon: 'tools' },

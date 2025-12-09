@@ -77,7 +77,7 @@ export default function PendingPlacementsQueue() {
       toast.success(
         <div>
           <div className="font-semibold">Submission Approved!</div>
-          <div className="text-sm text-text-muted">Added to writer's Claims</div>
+          <div className="text-sm text-text-muted">Added to writer's Placements</div>
         </div>,
         { icon: <Check className="w-5 h-5 text-green-500" />, duration: 4000 }
       );
@@ -374,7 +374,7 @@ export default function PendingPlacementsQueue() {
                         className="px-6 py-2.5 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium flex items-center gap-2 transition-colors"
                       >
                         <CheckCircle2 className="w-5 h-5" />
-                        Approve and send to Claims
+                        Approve and send to Placements
                       </button>
 
                       <button
@@ -753,7 +753,7 @@ function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
           {/* Info */}
           <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
             <p className="text-green-300 text-sm flex items-center gap-2">
-              <Check className="w-4 h-4" /> This will create a case in Manage Placements and notify the writer
+              <Check className="w-4 h-4" /> This will add to the writer's Placements and create a case in Manage Placements
             </p>
           </div>
 

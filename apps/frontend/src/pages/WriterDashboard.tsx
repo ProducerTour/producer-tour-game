@@ -15,7 +15,7 @@ import { formatIpiDisplay } from '../utils/ipi-helper';
 import { X, Bell, ClipboardList, Users, Paperclip, Upload, FileText, Loader2, DollarSign, Calendar, BarChart3, Music, TrendingUp } from 'lucide-react';
 import { RechartsRevenueChart } from '../components/charts';
 
-type TabType = 'overview' | 'songs' | 'statements' | 'documents' | 'billing' | 'profile' | 'tools' | 'claims';
+type TabType = 'overview' | 'songs' | 'statements' | 'documents' | 'billing' | 'profile' | 'tools' | 'placements';
 
 export default function WriterDashboard() {
   const location = useLocation();
@@ -149,7 +149,7 @@ export default function WriterDashboard() {
         {/* Left Sidebar */}
         <Sidebar
           activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as 'overview' | 'songs' | 'statements' | 'documents' | 'billing' | 'profile' | 'tools' | 'claims')}
+          onTabChange={(tab) => setActiveTab(tab as TabType)}
         />
 
         {/* Main Content Area */}
@@ -296,7 +296,7 @@ export default function WriterDashboard() {
               </div>
             )}
 
-            {activeTab === 'claims' && <ClaimsSection />}
+            {activeTab === 'placements' && <PlacementsSection />}
 
             {activeTab === 'profile' && <ProfileSection />}
 
@@ -393,7 +393,7 @@ export default function WriterDashboard() {
   );
 }
 
-function ClaimsSection() {
+function PlacementsSection() {
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'approved' | 'pending' | 'denied' | 'documents_requested'>('all');
@@ -404,7 +404,7 @@ function ClaimsSection() {
   });
 
   // Document upload state
-  const [uploadModalClaim, setUploadModalClaim] = useState<any>(null);
+  const [uploadModalPlacement, setUploadModalPlacement] = useState<any>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadDescription, setUploadDescription] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -423,10 +423,10 @@ function ClaimsSection() {
   });
 
   const allSubmissions = submissionsData?.submissions || [];
-  const approvedClaims = allSubmissions.filter((s: any) => s.status === 'APPROVED');
-  const pendingClaims = allSubmissions.filter((s: any) => s.status === 'PENDING');
-  const deniedClaims = allSubmissions.filter((s: any) => s.status === 'DENIED');
-  const documentsRequestedClaims = allSubmissions.filter((s: any) => s.status === 'DOCUMENTS_REQUESTED');
+  const approvedPlacements = allSubmissions.filter((s: any) => s.status === 'APPROVED');
+  const pendingPlacements = allSubmissions.filter((s: any) => s.status === 'PENDING');
+  const deniedPlacements = allSubmissions.filter((s: any) => s.status === 'DENIED');
+  const documentsRequestedPlacements = allSubmissions.filter((s: any) => s.status === 'DOCUMENTS_REQUESTED');
 
   // Get recent notifications (reviewed in last 7 days) excluding dismissed ones
   const recentNotifications = allSubmissions
@@ -443,19 +443,19 @@ function ClaimsSection() {
 
   // Document upload handler
   const handleDocumentUpload = async () => {
-    if (!uploadFile || !uploadModalClaim) return;
+    if (!uploadFile || !uploadModalPlacement) return;
 
     setIsUploading(true);
     try {
       await documentApi.upload(uploadFile, {
         category: 'OTHER',
-        description: uploadDescription || `Document for claim: ${uploadModalClaim.songTitle || 'Work submission'}`,
+        description: uploadDescription || `Document for placement: ${uploadModalPlacement.songTitle || 'Work submission'}`,
         visibility: 'USER_SPECIFIC',
-        placementId: uploadModalClaim.id,
+        placementId: uploadModalPlacement.id,
       });
       toast.success('Document uploaded successfully!');
       queryClient.invalidateQueries({ queryKey: ['my-work-submissions'] });
-      setUploadModalClaim(null);
+      setUploadModalPlacement(null);
       setUploadFile(null);
       setUploadDescription('');
     } catch (error: any) {
@@ -466,10 +466,10 @@ function ClaimsSection() {
   };
 
   const filteredSubmissions = activeFilter === 'all' ? allSubmissions :
-    activeFilter === 'approved' ? approvedClaims :
-    activeFilter === 'pending' ? pendingClaims :
-    activeFilter === 'denied' ? deniedClaims :
-    documentsRequestedClaims;
+    activeFilter === 'approved' ? approvedPlacements :
+    activeFilter === 'pending' ? pendingPlacements :
+    activeFilter === 'denied' ? deniedPlacements :
+    documentsRequestedPlacements;
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
@@ -512,9 +512,9 @@ function ClaimsSection() {
   return (
     <div>
       <div className="mb-6">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">My Claims & Submissions</h3>
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">My Placements</h3>
         <p className="text-gray-500 text-sm">
-          Track all your work registrations and their current status
+          Track all your registered works, placements, and their current status
         </p>
       </div>
 
@@ -588,7 +588,7 @@ function ClaimsSection() {
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
               }`}
             >
-              Approved ({approvedClaims.length})
+              Approved ({approvedPlacements.length})
             </button>
             <button
               onClick={() => setActiveFilter('pending')}
@@ -598,7 +598,7 @@ function ClaimsSection() {
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
               }`}
             >
-              Pending ({pendingClaims.length})
+              Pending ({pendingPlacements.length})
             </button>
             <button
               onClick={() => setActiveFilter('documents_requested')}
@@ -608,7 +608,7 @@ function ClaimsSection() {
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
               }`}
             >
-              Docs Requested ({documentsRequestedClaims.length})
+              Docs Requested ({documentsRequestedPlacements.length})
             </button>
             <button
               onClick={() => setActiveFilter('denied')}
@@ -618,7 +618,7 @@ function ClaimsSection() {
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
               }`}
             >
-              Denied ({deniedClaims.length})
+              Denied ({deniedPlacements.length})
             </button>
           </div>
 
@@ -687,7 +687,7 @@ function ClaimsSection() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setUploadModalClaim(claim);
+                                  setUploadModalPlacement(claim);
                                 }}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 text-xs rounded-lg border border-amber-200 transition-colors"
                               >
@@ -824,7 +824,7 @@ function ClaimsSection() {
       )}
 
       {/* Document Upload Modal */}
-      {uploadModalClaim && (
+      {uploadModalPlacement && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
@@ -834,7 +834,7 @@ function ClaimsSection() {
               </h3>
               <button
                 onClick={() => {
-                  setUploadModalClaim(null);
+                  setUploadModalPlacement(null);
                   setUploadFile(null);
                   setUploadDescription('');
                 }}
@@ -847,7 +847,7 @@ function ClaimsSection() {
             <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-sm text-amber-700 font-medium mb-2">Requested Documents:</p>
               <div className="space-y-1.5">
-                {uploadModalClaim.documentsRequested?.split('\n').filter((line: string) => line.trim()).map((item: string, idx: number) => (
+                {uploadModalPlacement.documentsRequested?.split('\n').filter((line: string) => line.trim()).map((item: string, idx: number) => (
                   <div key={idx} className="flex items-start gap-2 text-xs text-gray-600">
                     <div className="w-4 h-4 rounded border border-amber-300 flex-shrink-0 mt-0.5" />
                     <span>{item.trim()}</span>
@@ -891,7 +891,7 @@ function ClaimsSection() {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => {
-                    setUploadModalClaim(null);
+                    setUploadModalPlacement(null);
                     setUploadFile(null);
                     setUploadDescription('');
                   }}

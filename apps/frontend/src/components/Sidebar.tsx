@@ -86,8 +86,8 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
-  // Fetch claims count for writers
-  const { data: claimsData } = useQuery({
+  // Fetch placements count for writers
+  const { data: placementsData } = useQuery({
     queryKey: ['my-work-submissions'],
     queryFn: async () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/work-registration/my-submissions`, {
@@ -101,7 +101,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
     enabled: !isAdmin, // Only fetch for writers
   });
 
-  const approvedClaimsCount = claimsData?.submissions?.filter((s: any) => s.status === 'APPROVED').length || 0;
+  const approvedPlacementsCount = placementsData?.submissions?.filter((s: any) => s.status === 'APPROVED').length || 0;
 
   // Navigation helpers
   const toggleSection = (section: string) => {
@@ -139,18 +139,18 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
     return baseNav.map((section) => ({
       ...section,
       items: section.items.map((item) => {
-        // Add claims badge for writers
-        if (item.id === 'claims' && !isAdmin) {
+        // Add placements badge for writers
+        if (item.id === 'placements' && !isAdmin) {
           return {
             ...item,
-            badge: approvedClaimsCount > 0 ? approvedClaimsCount : undefined,
-            badgeColor: 'yellow' as const,
+            badge: approvedPlacementsCount > 0 ? approvedPlacementsCount : undefined,
+            badgeColor: 'green' as const,
           };
         }
         return item;
       }),
     }));
-  }, [user?.role, tabs, approvedClaimsCount, isAdmin]);
+  }, [user?.role, tabs, approvedPlacementsCount, isAdmin]);
 
   // Render icon helper
   const renderIcon = (icon: IconName, size: 'sm' | 'md' = 'md') => {
