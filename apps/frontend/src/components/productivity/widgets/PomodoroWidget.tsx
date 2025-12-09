@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { productivityApi } from '../../../lib/api';
+import { audioService } from '../../../services/audio.service';
 import { Play, Pause, RotateCcw, Coffee } from 'lucide-react';
 import type { WidgetProps, PomodoroConfig, PomodoroStats } from '../../../types/productivity.types';
 
@@ -87,12 +88,8 @@ export default function PomodoroWidget({ config, isEditing }: WidgetProps) {
       completeSessionMutation.mutate(currentSessionId);
     }
 
-    // Play notification sound (optional)
-    try {
-      const audio = new Audio('/notification.mp3');
-      audio.volume = 0.5;
-      audio.play().catch(() => {}); // Ignore errors if file doesn't exist
-    } catch {}
+    // Play timer completion sound
+    audioService.playNotification('timer');
 
     if (mode === 'focus') {
       const newSessions = sessionsCompleted + 1;

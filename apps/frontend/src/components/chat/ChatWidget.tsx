@@ -10,45 +10,11 @@ import { useChatStore } from '../../store/chat.store';
 import { api, chatSettingsApi } from '../../lib/api';
 import { UserAvatarWithBorder } from '../UserAvatarWithBorder';
 import { usePlatform } from '../../hooks/usePlatform';
+import { audioService, type SoundType } from '../../services/audio.service';
 
-// Sound configuration for different notification types
-type SoundType = 'chime' | 'pop' | 'ding' | 'bell' | 'subtle';
-
-const SOUND_CONFIGS: Record<SoundType, { frequency: number; duration: number; type: OscillatorType; volume: number; notes?: number[] }> = {
-  chime: { frequency: 880, duration: 0.3, type: 'sine', volume: 0.3, notes: [880, 1100] },
-  pop: { frequency: 600, duration: 0.15, type: 'sine', volume: 0.25 },
-  ding: { frequency: 1200, duration: 0.4, type: 'triangle', volume: 0.25 },
-  bell: { frequency: 800, duration: 0.5, type: 'sine', volume: 0.2, notes: [800, 1000, 1200] },
-  subtle: { frequency: 440, duration: 0.2, type: 'sine', volume: 0.15 },
-};
-
-// Play notification sound using Web Audio API
+// Play notification sound using centralized AudioService
 const playNotificationSound = (soundType: SoundType = 'chime') => {
-  try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const config = SOUND_CONFIGS[soundType] || SOUND_CONFIGS.chime;
-    const notes = config.notes || [config.frequency];
-
-    notes.forEach((freq, index) => {
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.frequency.value = freq;
-      oscillator.type = config.type;
-
-      const startTime = audioContext.currentTime + (index * 0.1);
-      gainNode.gain.setValueAtTime(config.volume, startTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + config.duration);
-
-      oscillator.start(startTime);
-      oscillator.stop(startTime + config.duration);
-    });
-  } catch (error) {
-    console.warn('Could not play notification sound:', error);
-  }
+  audioService.playNotification(soundType);
 };
 
 interface User {

@@ -51,6 +51,7 @@ import pushRoutes from './routes/push.routes';
 import notificationRoutes from './routes/notification.routes';
 import leakScannerRoutes from './routes/leak-scanner.routes';
 import productivityRoutes from './routes/productivity.routes';
+import audioRoutes from './routes/audio.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -188,6 +189,7 @@ app.use('/api/push', pushRoutes); // Web Push notifications
 app.use('/api/notifications', notificationRoutes); // In-app notifications
 app.use('/api/leak-scanner', leakScannerRoutes); // Leak Scanner - metadata health scoring
 app.use('/api/productivity', productivityRoutes); // Productivity dashboard widgets
+app.use('/api/audio', audioRoutes); // Audio streaming proxy for ambient sounds/music
 
 // Error handling
 app.use(notFoundHandler);
