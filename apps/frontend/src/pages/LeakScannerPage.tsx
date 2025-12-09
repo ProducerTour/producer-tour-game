@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, Upload, FileText, ChevronLeft, ChevronDown, AlertTriangle, Check, X, Clock,
+  Search, Upload, FileText, ChevronLeft, ChevronDown, AlertTriangle, Check, Clock,
   Download, RefreshCw, Music, Database, DollarSign, Globe, TrendingDown,
-  FileSpreadsheet, Loader2, Info, Zap, Shield, BarChart3, ExternalLink,
+  FileSpreadsheet, Loader2, Info, Zap, Shield, BarChart3,
   CheckCircle2, XCircle, ArrowRight, Disc, Eye, ListMusic, Users, Percent
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -270,7 +270,7 @@ const ScoreCircle = ({ score, grade }: { score: number; grade: Grade }) => {
 };
 
 // Get field-specific "not found" message with actionable advice
-const getNotFoundMessage = (label: string, hasUserValue: boolean): { message: string; action: string } => {
+const _getNotFoundMessage = (label: string, hasUserValue: boolean): { message: string; action: string } => {
   const messages: Record<string, { message: string; action: string }> = {
     'ISRCs': {
       message: 'No ISRC registered',
@@ -316,7 +316,7 @@ const ComparisonField = ({
   icon: Icon,
   userValue,
   foundValues,
-  sources,
+  sources: _sources,
   isIdentifier = false
 }: {
   label: string;
@@ -611,7 +611,7 @@ const SourceBadge = ({
 };
 
 // Source Card Component - Shows detailed info from each source (legacy)
-const SourceCard = ({
+const _SourceCard = ({
   name,
   icon: Icon,
   found,
@@ -660,11 +660,11 @@ const SourceCard = ({
 };
 
 // Legacy ComparisonItem for backwards compatibility
-const ComparisonItem = ({
+const _ComparisonItem = ({
   label,
   userValue,
   foundValues,
-  isMatch
+  isMatch: _isMatch
 }: {
   label: string;
   userValue?: string;
@@ -718,10 +718,10 @@ export default function LeakScannerPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [catalogReport, setCatalogReport] = useState<CatalogReport | null>(null);
-  const [uploadSongCount, setUploadSongCount] = useState(0);
+  const [_uploadSongCount, setUploadSongCount] = useState(0);
 
   // Reports state
-  const [savedReports, setSavedReports] = useState<CatalogReport[]>([]);
+  const [_savedReports, _setSavedReports] = useState<CatalogReport[]>([]);
 
   // Placements state
   const [userPlacements, setUserPlacements] = useState<PlacementForScan[]>([]);
