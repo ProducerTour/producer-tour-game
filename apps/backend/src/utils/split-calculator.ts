@@ -14,23 +14,25 @@ import Decimal from 'decimal.js';
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
 export interface WriterShare {
-  userId: string;
+  userId: string | null;           // Null if credit not linked to user account
   creditId: string;
   firstName: string;
   lastName: string;
-  email: string;
+  email: string | null;            // Null if credit not linked to user account
   writerIpiNumber: string | null;
   publisherIpiNumber: string | null;
   proAffiliation: string | null;
   originalSplitPercent: number;    // From PlacementCredit (e.g., 16.67%)
   relativeSplitPercent: number;    // Relative to eligible writers' share (e.g., 33.34%)
   revenueAmount: number;           // Actual dollar amount (6 decimal precision)
+  isLinked: boolean;               // Whether this credit is linked to a user account
 }
 
 export interface SplitCalculationFilters {
   proAffiliation?: 'BMI' | 'ASCAP' | 'SESAC' | 'GMR' | null;  // Filter by PRO (for BMI/ASCAP statements)
   ptPublisherIpis: string[];                                    // PT's publisher IPIs
   includeOnlyPtWriters: boolean;                               // Only PT-represented writers
+  requireLinkedUser?: boolean;                                  // Require credits to have linked user accounts (default: true)
 }
 
 export interface SplitCalculationResult {
@@ -68,22 +70,14 @@ export function calculateWriterShares(
   const eligibleCredits: PlacementCreditWithUser[] = [];
   const excludedCredits: ExcludedCredit[] = [];
 
+  // Default to requiring linked user unless explicitly set to false
+  const requireLinkedUser = filters.requireLinkedUser !== false;
+
   // Filter credits based on criteria
   for (const credit of placementCredits) {
     // Safety check for null/undefined credit
     if (!credit || !credit.id) {
       console.warn('Skipping invalid credit:', credit);
-      continue;
-    }
-
-    // Must have linked user (PT client) unless we're including all
-    if (!credit.userId || !credit.user) {
-      excludedCredits.push({
-        creditId: credit.id,
-        firstName: credit.firstName || 'Unknown',
-        lastName: credit.lastName || '',
-        reason: 'No linked user account'
-      });
       continue;
     }
 
@@ -98,9 +92,21 @@ export function calculateWriterShares(
       continue;
     }
 
+    // Only require linked user if the flag is set
+    if (requireLinkedUser && (!credit.userId || !credit.user)) {
+      excludedCredits.push({
+        creditId: credit.id,
+        firstName: credit.firstName || 'Unknown',
+        lastName: credit.lastName || '',
+        reason: 'No linked user account'
+      });
+      continue;
+    }
+
     // Filter by PRO if specified (for BMI/ASCAP statements)
+    // Use credit.pro if no linked user, otherwise use user's PRO affiliation
     if (filters.proAffiliation) {
-      const userProAffiliation = credit.user.producer?.proAffiliation || credit.pro;
+      const userProAffiliation = credit.user?.producer?.proAffiliation || credit.pro;
       if (userProAffiliation !== filters.proAffiliation) {
         excludedCredits.push({
           creditId: credit.id,
@@ -114,7 +120,7 @@ export function calculateWriterShares(
 
     // Filter by PT representation if required
     if (filters.includeOnlyPtWriters) {
-      const writerPublisherIpi = credit.publisherIpiNumber || credit.user.publisherIpiNumber;
+      const writerPublisherIpi = credit.publisherIpiNumber || credit.user?.publisherIpiNumber;
       if (!isPtRepresentedWriter(writerPublisherIpi, filters.ptPublisherIpis)) {
         excludedCredits.push({
           creditId: credit.id,
@@ -161,18 +167,22 @@ export function calculateWriterShares(
 
     totalDistributed = totalDistributed.plus(revenue);
 
+    // Handle both linked and unlinked credits
+    const isLinked = !!(credit.userId && credit.user);
+
     shares.push({
-      userId: credit.userId!,
+      userId: credit.userId || null,
       creditId: credit.id,
       firstName: credit.firstName,
       lastName: credit.lastName,
-      email: credit.user!.email,
-      writerIpiNumber: credit.ipiNumber || credit.user!.writerIpiNumber,
-      publisherIpiNumber: credit.publisherIpiNumber || credit.user!.publisherIpiNumber,
-      proAffiliation: credit.user!.producer?.proAffiliation || credit.pro || null,
+      email: credit.user?.email || null,
+      writerIpiNumber: credit.ipiNumber || credit.user?.writerIpiNumber || null,
+      publisherIpiNumber: credit.publisherIpiNumber || credit.user?.publisherIpiNumber || null,
+      proAffiliation: credit.user?.producer?.proAffiliation || credit.pro || null,
       originalSplitPercent: originalSplit.toNumber(),
       relativeSplitPercent: Number(relativeSplit.toFixed(6)),  // 6 decimal precision
-      revenueAmount: Number(revenue.toFixed(6))                // 6 decimal precision
+      revenueAmount: Number(revenue.toFixed(6)),               // 6 decimal precision
+      isLinked
     });
   }
 
@@ -202,7 +212,8 @@ export function calculateMlcShares(
   return calculateWriterShares(lineRevenue, placementCredits, {
     proAffiliation: null,  // MLC includes all PROs
     ptPublisherIpis,
-    includeOnlyPtWriters: true  // Only PT-represented writers get this line
+    includeOnlyPtWriters: false,  // Include all writers for now (PT filtering can be added later)
+    requireLinkedUser: false       // Allow unlinked credits from bulk import
   });
 }
 
@@ -223,10 +234,13 @@ export function calculateBmiShares(
   placementCredits: PlacementCreditWithUser[],
   ptPublisherIpis: string[]
 ): SplitCalculationResult {
+  // For now, don't filter by PRO - just use placement splits
+  // PRO filtering can be re-enabled once credits have PRO affiliations set
   return calculateWriterShares(lineRevenue, placementCredits, {
-    proAffiliation: 'BMI',  // Only BMI writers get BMI royalties
+    proAffiliation: null,  // Temporarily disabled: 'BMI'
     ptPublisherIpis,
-    includeOnlyPtWriters: true
+    includeOnlyPtWriters: false,  // Include all writers for now
+    requireLinkedUser: false       // Allow unlinked credits from bulk import
   });
 }
 
@@ -245,10 +259,13 @@ export function calculateAscapShares(
   placementCredits: PlacementCreditWithUser[],
   ptPublisherIpis: string[]
 ): SplitCalculationResult {
+  // For now, don't filter by PRO - just use placement splits
+  // PRO filtering can be re-enabled once credits have PRO affiliations set
   return calculateWriterShares(lineRevenue, placementCredits, {
-    proAffiliation: 'ASCAP',  // Only ASCAP writers get ASCAP royalties
+    proAffiliation: null,  // Temporarily disabled: 'ASCAP'
     ptPublisherIpis,
-    includeOnlyPtWriters: true
+    includeOnlyPtWriters: false,  // Include all writers for now
+    requireLinkedUser: false       // Allow unlinked credits from bulk import
   });
 }
 
