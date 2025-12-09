@@ -392,24 +392,30 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
 /**
  * PUT /api/placements/:id
- * Update a placement
+ * Update a placement (owner or admin can update)
  */
 router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
+    const userRole = req.user?.role;
     const { id } = req.params;
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Check ownership
-    const existing = await prisma.placement.findFirst({
-      where: { id, userId },
+    // Check if placement exists
+    const existing = await prisma.placement.findUnique({
+      where: { id },
     });
 
     if (!existing) {
       return res.status(404).json({ error: 'Placement not found' });
+    }
+
+    // Allow if user is admin OR owns the placement
+    if (userRole !== 'ADMIN' && existing.userId !== userId) {
+      return res.status(403).json({ error: 'Not authorized to update this placement' });
     }
 
     const {
@@ -424,6 +430,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
       status,
       metadata,
       notes,
+      credits,
       // AudioDB enrichment fields
       albumName,
       genre,
@@ -439,6 +446,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
       audioDbData,
     } = req.body;
 
+    // Update placement
     const placement = await prisma.placement.update({
       where: { id },
       data: {
@@ -470,9 +478,54 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
       },
     });
 
+    // Update credits if provided
+    if (credits && Array.isArray(credits)) {
+      // Validate splits equal 100%
+      const totalSplit = credits.reduce((sum: number, c: any) => sum + (Number(c.splitPercentage) || 0), 0);
+      if (Math.abs(totalSplit - 100) > 0.1) {
+        return res.status(400).json({
+          error: `Split percentages must equal 100%. Current total: ${totalSplit.toFixed(2)}%`
+        });
+      }
+
+      // Delete existing credits
+      await prisma.placementCredit.deleteMany({
+        where: { placementId: id },
+      });
+
+      // Create new credits
+      if (credits.length > 0) {
+        await prisma.placementCredit.createMany({
+          data: credits.map((credit: any, index: number) => ({
+            placementId: id,
+            firstName: credit.firstName || '',
+            lastName: credit.lastName || '',
+            role: credit.role || 'WRITER',
+            splitPercentage: credit.splitPercentage || 0,
+            pro: credit.pro || null,
+            ipiNumber: credit.ipiNumber || null,
+            isPrimary: index === 0,
+            notes: credit.notes || null,
+            userId: credit.userId || null,
+            publisherIpiNumber: credit.publisherIpiNumber || null,
+            isExternalWriter: credit.isExternalWriter || false,
+          })),
+        });
+      }
+    }
+
+    // Fetch updated placement with credits
+    const updatedPlacement = await prisma.placement.findUnique({
+      where: { id },
+      include: {
+        credits: true,
+        documents: true,
+      },
+    });
+
     res.json({
       success: true,
-      placement,
+      placement: updatedPlacement,
     });
   } catch (error) {
     console.error('Update placement error:', error);
@@ -482,25 +535,41 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
 /**
  * DELETE /api/placements/:id
- * Delete a placement
+ * Delete a placement (owner or admin can delete)
  */
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
+    const userRole = req.user?.role;
     const { id } = req.params;
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Check ownership
-    const existing = await prisma.placement.findFirst({
-      where: { id, userId },
+    // Check if placement exists
+    const existing = await prisma.placement.findUnique({
+      where: { id },
     });
 
     if (!existing) {
       return res.status(404).json({ error: 'Placement not found' });
     }
+
+    // Allow if user is admin OR owns the placement
+    if (userRole !== 'ADMIN' && existing.userId !== userId) {
+      return res.status(403).json({ error: 'Not authorized to delete this placement' });
+    }
+
+    // Delete associated credits first
+    await prisma.placementCredit.deleteMany({
+      where: { placementId: id },
+    });
+
+    // Delete associated documents
+    await prisma.document.deleteMany({
+      where: { placementId: id },
+    });
 
     await prisma.placement.delete({
       where: { id },

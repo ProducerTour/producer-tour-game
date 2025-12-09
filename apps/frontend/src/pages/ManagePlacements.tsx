@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, Music, Clock, Plus, X,
   ChevronDown, Search, Users, Calendar, DollarSign, Percent, FileText, Trash2,
-  Upload, Download, AlertCircle, FileSpreadsheet
+  Upload, Download, AlertCircle, FileSpreadsheet, Edit3
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { workRegistrationApi, PendingSubmission } from '@/lib/workRegistrationApi';
@@ -43,6 +43,22 @@ export default function ManagePlacements() {
   const [bulkErrors, setBulkErrors] = useState<string[]>([]);
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+
+  // Edit Placement State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPlacement, setEditingPlacement] = useState<PendingSubmission | null>(null);
+  const [editCollaborators, setEditCollaborators] = useState<Collaborator[]>([]);
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [editEntry, setEditEntry] = useState({
+    title: '',
+    artist: '',
+    albumName: '',
+    isrc: '',
+    genre: '',
+    releaseYear: '',
+    label: '',
+    notes: '',
+  });
 
   useEffect(() => {
     loadApprovedPlacements();
@@ -108,6 +124,94 @@ export default function ManagePlacements() {
     } catch (error) {
       console.error('Failed to delete placement:', error);
       toast.error('Failed to delete placement');
+    }
+  };
+
+  // Open edit modal
+  const openEditModal = (placement: PendingSubmission) => {
+    setEditingPlacement(placement);
+    setEditEntry({
+      title: placement.title || '',
+      artist: placement.artist || '',
+      albumName: placement.albumName || '',
+      isrc: placement.isrc || '',
+      genre: placement.genre || '',
+      releaseYear: placement.releaseYear || '',
+      label: placement.label || '',
+      notes: placement.notes || '',
+    });
+    // Convert credits to collaborators format
+    const collabs: Collaborator[] = (placement.credits || []).map((c: any) => ({
+      id: c.id,
+      firstName: c.firstName || '',
+      lastName: c.lastName || '',
+      role: c.role || 'WRITER',
+      splitPercentage: c.splitPercentage || 0,
+      pro: c.pro || '',
+      ipiNumber: c.ipiNumber || '',
+      isPrimary: c.isPrimary || false,
+      notes: c.notes || '',
+      userId: c.userId || undefined,
+      publisherIpiNumber: c.publisherIpiNumber || '',
+      isExternalWriter: c.isExternalWriter || false,
+    }));
+    setEditCollaborators(collabs);
+    setShowEditModal(true);
+  };
+
+  // Handle edit submission
+  const handleEditSubmit = async () => {
+    if (!editingPlacement) return;
+
+    // Validate
+    if (!editEntry.title.trim() || !editEntry.artist.trim()) {
+      toast.error('Title and artist are required');
+      return;
+    }
+
+    // Validate splits
+    const totalSplit = editCollaborators.reduce((sum, c) => sum + (c.splitPercentage || 0), 0);
+    if (editCollaborators.length > 0 && Math.abs(100 - totalSplit) > 0.1) {
+      toast.error(`Split percentages must equal 100%. Current total: ${totalSplit.toFixed(2)}%`);
+      return;
+    }
+
+    setIsEditSubmitting(true);
+
+    try {
+      await placementApi.update(editingPlacement.id, {
+        title: editEntry.title,
+        artist: editEntry.artist,
+        albumName: editEntry.albumName || undefined,
+        isrc: editEntry.isrc || undefined,
+        genre: editEntry.genre || undefined,
+        releaseYear: editEntry.releaseYear || undefined,
+        label: editEntry.label || undefined,
+        notes: editEntry.notes || undefined,
+        credits: editCollaborators.map((c, idx) => ({
+          firstName: c.firstName,
+          lastName: c.lastName,
+          role: c.role,
+          splitPercentage: c.splitPercentage,
+          pro: c.pro || undefined,
+          ipiNumber: c.ipiNumber || undefined,
+          isPrimary: idx === 0,
+          notes: c.notes || undefined,
+          userId: c.userId || undefined,
+          publisherIpiNumber: c.publisherIpiNumber || undefined,
+          isExternalWriter: c.isExternalWriter || false,
+        })),
+      });
+
+      toast.success('Placement updated successfully!');
+      setShowEditModal(false);
+      setEditingPlacement(null);
+      loadApprovedPlacements();
+    } catch (error: any) {
+      console.error('Failed to update placement:', error);
+      toast.error(error.response?.data?.error || 'Failed to update placement');
+    } finally {
+      setIsEditSubmitting(false);
     }
   };
 
@@ -740,6 +844,16 @@ export default function ManagePlacements() {
                       </div>
                       <div className="flex items-center gap-3">
                         <SubmissionStatusBadge status={placement.status} />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditModal(placement);
+                          }}
+                          className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-lg transition-colors"
+                          title="Edit placement"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1397,6 +1511,207 @@ export default function ManagePlacements() {
                       <>
                         <Upload className="w-5 h-5" />
                         Import {bulkData.length} Placement{bulkData.length !== 1 ? 's' : ''}
+                      </>
+                    )}
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Placement Modal */}
+      <AnimatePresence>
+        {showEditModal && editingPlacement && (
+          <motion.div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowEditModal(false)}
+          >
+            <motion.div
+              className="bg-theme-card rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-theme-border"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-theme-card border-b border-theme-border p-6 flex items-center justify-between z-10">
+                <div>
+                  <h2 className="text-2xl font-bold text-theme-foreground flex items-center gap-3">
+                    <Edit3 className="w-6 h-6 text-blue-400" />
+                    Edit Placement
+                  </h2>
+                  <p className="text-theme-foreground-muted mt-1">
+                    Update placement details and collaborator splits
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="p-2 text-gray-400 hover:text-theme-foreground rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Song Information */}
+                <div>
+                  <h3 className="text-lg font-semibold text-theme-foreground mb-4">Song Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Title *</label>
+                      <input
+                        type="text"
+                        value={editEntry.title}
+                        onChange={(e) => setEditEntry({ ...editEntry, title: e.target.value })}
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="Song title"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Artist *</label>
+                      <input
+                        type="text"
+                        value={editEntry.artist}
+                        onChange={(e) => setEditEntry({ ...editEntry, artist: e.target.value })}
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="Artist name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Album</label>
+                      <input
+                        type="text"
+                        value={editEntry.albumName}
+                        onChange={(e) => setEditEntry({ ...editEntry, albumName: e.target.value })}
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="Album name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-text-muted mb-2">ISRC</label>
+                      <input
+                        type="text"
+                        value={editEntry.isrc}
+                        onChange={(e) => setEditEntry({ ...editEntry, isrc: e.target.value })}
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="ISRC code"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Genre</label>
+                      <input
+                        type="text"
+                        value={editEntry.genre}
+                        onChange={(e) => setEditEntry({ ...editEntry, genre: e.target.value })}
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="Genre"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Release Year</label>
+                      <input
+                        type="text"
+                        value={editEntry.releaseYear}
+                        onChange={(e) => setEditEntry({ ...editEntry, releaseYear: e.target.value })}
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="e.g., 2024"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Label</label>
+                      <input
+                        type="text"
+                        value={editEntry.label}
+                        onChange={(e) => setEditEntry({ ...editEntry, label: e.target.value })}
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="Record label"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm text-theme-foreground-muted mb-2">Notes</label>
+                      <textarea
+                        value={editEntry.notes}
+                        onChange={(e) => setEditEntry({ ...editEntry, notes: e.target.value })}
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                        placeholder="Additional notes..."
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Collaborators */}
+                <div>
+                  <h3 className="text-lg font-semibold text-theme-foreground mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-purple-400" />
+                    Collaborators & Splits
+                  </h3>
+
+                  {/* Split Total Indicator */}
+                  {(() => {
+                    const editTotalSplit = editCollaborators.reduce((sum, c) => sum + (c.splitPercentage || 0), 0);
+                    const isEditValidSplit = Math.abs(100 - editTotalSplit) < 0.1;
+                    return (
+                      <div className={`mb-4 p-3 rounded-lg border ${
+                        isEditValidSplit
+                          ? 'bg-green-500/10 border-green-500/30'
+                          : 'bg-amber-500/10 border-amber-500/30'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-sm font-medium ${isEditValidSplit ? 'text-green-400' : 'text-amber-400'}`}>
+                            Total Split: {editTotalSplit.toFixed(2)}%
+                          </span>
+                          {!isEditValidSplit && (
+                            <span className="text-sm text-amber-400">
+                              {editTotalSplit < 100 ? `${(100 - editTotalSplit).toFixed(2)}% remaining` : `${(editTotalSplit - 100).toFixed(2)}% over`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <CollaboratorForm
+                    collaborators={editCollaborators}
+                    onChange={setEditCollaborators}
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end gap-3 pt-4 border-t border-white/[0.08]">
+                  <motion.button
+                    onClick={() => setShowEditModal(false)}
+                    className="px-6 py-3 bg-white/10 hover:bg-white/20 text-theme-foreground rounded-xl font-semibold transition-colors"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    onClick={handleEditSubmit}
+                    disabled={isEditSubmitting || !editEntry.title || !editEntry.artist}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-blue-600/30"
+                    whileHover={{ scale: isEditSubmitting ? 1 : 1.02 }}
+                    whileTap={{ scale: isEditSubmitting ? 1 : 0.98 }}
+                  >
+                    {isEditSubmitting ? (
+                      <>
+                        <motion.div
+                          className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-5 h-5" />
+                        Save Changes
                       </>
                     )}
                   </motion.button>
