@@ -136,6 +136,8 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       canUploadStatements: canUploadStatements === true || canUploadStatements === 'true',
       resetToken,
       resetTokenExpiry,
+      // Store PRO affiliation directly on User for simplified statement processing
+      writerProAffiliation: proAffiliation || null,
     };
 
     // Add commission override if provided
@@ -143,7 +145,7 @@ router.post('/', requireAdmin, async (req: AuthRequest, res: Response) => {
       createData.commissionOverrideRate = parseFloat(commissionOverrideRate);
     }
 
-    // Only create producer profile for WRITER role
+    // Also create producer profile for WRITER role (for backwards compatibility)
     if (userRole === 'WRITER') {
       createData.producer = {
         create: {
@@ -243,6 +245,10 @@ router.put('/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
     }
     if (password) {
       userData.password = await bcrypt.hash(password, 10);
+    }
+    // Also update writerProAffiliation directly on User for simplified statement processing
+    if (proAffiliation !== undefined) {
+      userData.writerProAffiliation = proAffiliation;
     }
 
     // Get current user to check role

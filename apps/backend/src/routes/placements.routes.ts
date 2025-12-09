@@ -140,7 +140,7 @@ router.post('/backfill-credits', async (req: AuthRequest, res: Response) => {
           continue;
         }
 
-        // Find user by name (case-insensitive)
+        // Find user by name (case-insensitive) - prefer writers
         const matchedUser = await prisma.user.findFirst({
           where: {
             firstName: { equals: credit.firstName, mode: 'insensitive' },
@@ -148,11 +148,13 @@ router.post('/backfill-credits', async (req: AuthRequest, res: Response) => {
           },
           select: {
             id: true,
+            role: true,
             writerIpiNumber: true,
             publisherIpiNumber: true,
+            writerProAffiliation: true,  // Use consolidated field on User
             producer: {
               select: {
-                proAffiliation: true,
+                proAffiliation: true,  // Fallback for legacy data
               }
             }
           }
@@ -169,6 +171,9 @@ router.post('/backfill-credits', async (req: AuthRequest, res: Response) => {
           continue;
         }
 
+        // Get PRO from User.writerProAffiliation first, fallback to Producer
+        const userPro = matchedUser.writerProAffiliation || matchedUser.producer?.proAffiliation;
+
         // Update the credit with user info
         await prisma.placementCredit.update({
           where: { id: credit.id },
@@ -178,8 +183,8 @@ router.post('/backfill-credits', async (req: AuthRequest, res: Response) => {
             ...((!credit.ipiNumber && matchedUser.writerIpiNumber) && {
               ipiNumber: matchedUser.writerIpiNumber,
             }),
-            ...((!credit.pro && matchedUser.producer?.proAffiliation) && {
-              pro: matchedUser.producer.proAffiliation,
+            ...((!credit.pro && userPro) && {
+              pro: userPro,
             }),
             ...((!credit.publisherIpiNumber && matchedUser.publisherIpiNumber) && {
               publisherIpiNumber: matchedUser.publisherIpiNumber,
@@ -530,9 +535,10 @@ router.post('/', async (req: AuthRequest, res: Response) => {
               id: true,
               writerIpiNumber: true,
               publisherIpiNumber: true,
+              writerProAffiliation: true,  // Use consolidated field on User
               producer: {
                 select: {
-                  proAffiliation: true
+                  proAffiliation: true  // Fallback for legacy data
                 }
               }
             }
@@ -540,12 +546,14 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
           if (matchedUser) {
             credit.userId = matchedUser.id;
+            // Get PRO from User.writerProAffiliation first, fallback to Producer
+            const userPro = matchedUser.writerProAffiliation || matchedUser.producer?.proAffiliation;
             // Copy user's IPI and PRO info to credit if not already set
             if (!credit.ipiNumber && matchedUser.writerIpiNumber) {
               credit.ipiNumber = matchedUser.writerIpiNumber;
             }
-            if (!credit.pro && matchedUser.producer?.proAffiliation) {
-              credit.pro = matchedUser.producer.proAffiliation;
+            if (!credit.pro && userPro) {
+              credit.pro = userPro;
             }
             if (!credit.publisherIpiNumber && matchedUser.publisherIpiNumber) {
               credit.publisherIpiNumber = matchedUser.publisherIpiNumber;
@@ -763,9 +771,10 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
               id: true,
               writerIpiNumber: true,
               publisherIpiNumber: true,
+              writerProAffiliation: true,  // Use consolidated field on User
               producer: {
                 select: {
-                  proAffiliation: true
+                  proAffiliation: true  // Fallback for legacy data
                 }
               }
             }
@@ -773,12 +782,14 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
           if (matchedUser) {
             credit.userId = matchedUser.id;
+            // Get PRO from User.writerProAffiliation first, fallback to Producer
+            const userPro = matchedUser.writerProAffiliation || matchedUser.producer?.proAffiliation;
             // Copy user's IPI and PRO info to credit if not already set
             if (!credit.ipiNumber && matchedUser.writerIpiNumber) {
               credit.ipiNumber = matchedUser.writerIpiNumber;
             }
-            if (!credit.pro && matchedUser.producer?.proAffiliation) {
-              credit.pro = matchedUser.producer.proAffiliation;
+            if (!credit.pro && userPro) {
+              credit.pro = userPro;
             }
             if (!credit.publisherIpiNumber && matchedUser.publisherIpiNumber) {
               credit.publisherIpiNumber = matchedUser.publisherIpiNumber;

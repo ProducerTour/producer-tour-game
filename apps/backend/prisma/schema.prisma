@@ -150,6 +150,7 @@ model User {
   publisherIpiNumber String?  // Publisher IPI/CAE number for publishing registration
   subPublisherName String?  // Sub Publisher Name / Administrator (not related to admin role)
   subPublisherIpiNumber String?  // Sub Publisher IPI number
+  writerProAffiliation ProType?  // Writer's PRO affiliation (BMI, ASCAP, SESAC, GMR, MLC, OTHER) - consolidated from Producer
   // Optional per-writer commission override (percentage 0.00-100.00). If null, use global CommissionSettings
   commissionOverrideRate Decimal? @db.Decimal(5, 2)
   // Upload access for VIEWER role (allows statement uploads)

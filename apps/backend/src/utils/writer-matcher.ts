@@ -687,7 +687,32 @@ export async function smartMatchStatementWithPlacementTracker(
     }
   }
 
-  console.log(`Smart match complete: ${matched.length} matched, ${untracked.length} untracked`);
+  // Detailed diagnostic breakdown
+  const titleNotFound = untracked.filter(u => u.reason === 'Song not found in Placement Tracker');
+  const creditsFiltered = untracked.filter(u => u.reason.includes('No eligible writers'));
+  const errors = untracked.filter(u => u.reason.includes('Error processing'));
+
+  console.log(`[WriterMatcher] ═══════════════════════════════════════════════════`);
+  console.log(`[WriterMatcher] SMART MATCH COMPLETE`);
+  console.log(`[WriterMatcher] ───────────────────────────────────────────────────`);
+  console.log(`[WriterMatcher] ✅ Matched line items: ${matched.length}`);
+  console.log(`[WriterMatcher] ❌ Untracked line items: ${untracked.length}`);
+  console.log(`[WriterMatcher]    ├─ Title not in Manage Placements: ${titleNotFound.length}`);
+  console.log(`[WriterMatcher]    ├─ Title matched but credits filtered: ${creditsFiltered.length}`);
+  console.log(`[WriterMatcher]    └─ Processing errors: ${errors.length}`);
+
+  // Show sample untracked titles for each category
+  if (titleNotFound.length > 0) {
+    console.log(`[WriterMatcher] Sample titles NOT FOUND in placements:`);
+    titleNotFound.slice(0, 5).forEach(u => console.log(`[WriterMatcher]    - "${u.workTitle}"`));
+  }
+
+  if (creditsFiltered.length > 0) {
+    console.log(`[WriterMatcher] Sample titles where CREDITS WERE FILTERED:`);
+    creditsFiltered.slice(0, 5).forEach(u => console.log(`[WriterMatcher]    - "${u.workTitle}" → ${u.reason}`));
+  }
+  console.log(`[WriterMatcher] ═══════════════════════════════════════════════════`);
+
   return { matched, untracked };
 }
 

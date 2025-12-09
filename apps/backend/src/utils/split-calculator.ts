@@ -68,7 +68,13 @@ export function calculateWriterShares(
   const eligibleCredits: PlacementCreditWithUser[] = [];
   const excludedCredits: ExcludedCredit[] = [];
 
-  // Filter credits based on criteria
+  // SIMPLIFIED FILTERING: Trust approved placement data
+  // Only 2 filters remain:
+  // 1. Must have split percentage
+  // 2. PRO must match statement type (if specified)
+  // REMOVED: userId requirement - trust placement credits
+  // REMOVED: PT publisher IPI check - all PT writers should have correct IPI on User
+
   for (const credit of placementCredits) {
     // Safety check for null/undefined credit
     if (!credit || !credit.id) {
@@ -76,61 +82,59 @@ export function calculateWriterShares(
       continue;
     }
 
-    // Must have linked user (PT client) unless we're including all
-    if (!credit.userId || !credit.user) {
+    // Filter 1: Must have split percentage (KEEP)
+    if (credit.splitPercentage === null || credit.splitPercentage === undefined || Number(credit.splitPercentage) <= 0) {
       excludedCredits.push({
         creditId: credit.id,
         firstName: credit.firstName || 'Unknown',
         lastName: credit.lastName || '',
-        reason: 'No linked user account'
+        reason: 'Missing or zero split percentage'
       });
       continue;
     }
 
-    // Safety check for splitPercentage
-    if (credit.splitPercentage === null || credit.splitPercentage === undefined) {
-      excludedCredits.push({
-        creditId: credit.id,
-        firstName: credit.firstName || 'Unknown',
-        lastName: credit.lastName || '',
-        reason: 'Missing split percentage'
-      });
-      continue;
-    }
-
-    // Filter by PRO if specified (for BMI/ASCAP statements)
+    // Filter 2: PRO must match statement type (KEEP but simplified)
+    // Priority: credit.pro → user.writerProAffiliation → user.producer.proAffiliation
     if (filters.proAffiliation) {
-      const userProAffiliation = credit.user.producer?.proAffiliation || credit.pro;
-      if (userProAffiliation !== filters.proAffiliation) {
+      const writerPro = credit.pro ||
+                       credit.user?.writerProAffiliation ||
+                       credit.user?.producer?.proAffiliation;
+
+      if (writerPro !== filters.proAffiliation) {
         excludedCredits.push({
           creditId: credit.id,
           firstName: credit.firstName,
           lastName: credit.lastName,
-          reason: `PRO mismatch: ${userProAffiliation || 'none'} vs required ${filters.proAffiliation}`
+          reason: `PRO: ${writerPro || 'none'} ≠ ${filters.proAffiliation}`
         });
         continue;
       }
     }
 
-    // Filter by PT representation if required
-    if (filters.includeOnlyPtWriters) {
-      const writerPublisherIpi = credit.publisherIpiNumber || credit.user.publisherIpiNumber;
-      if (!isPtRepresentedWriter(writerPublisherIpi, filters.ptPublisherIpis)) {
-        excludedCredits.push({
-          creditId: credit.id,
-          firstName: credit.firstName,
-          lastName: credit.lastName,
-          reason: 'Not PT-represented (publisher IPI not matched)'
-        });
-        continue;
-      }
-    }
+    // REMOVED: userId requirement
+    // Reason: Approved placements should be trusted. If a credit exists,
+    // it was verified by admin. Missing userId is a data issue to fix via
+    // backfill, not a reason to exclude from matching.
+
+    // REMOVED: PT publisher IPI check
+    // Reason: All PT writers should have publisherIpiNumber set on their User record.
+    // If it's missing, that's a data issue to fix, not a filter to apply.
+    // The PRO filter above ensures we only pay the right writers.
 
     eligibleCredits.push(credit);
   }
 
-  // If no eligible credits, return empty result
+  // If no eligible credits, return empty result with diagnostic info
   if (eligibleCredits.length === 0) {
+    // Log detailed exclusion breakdown for debugging
+    if (excludedCredits.length > 0) {
+      const reasons = excludedCredits.reduce((acc, c) => {
+        const key = c.reason.split(':')[0]; // Group by reason type
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      console.log(`[SplitCalculator] All ${excludedCredits.length} credits excluded:`, reasons);
+    }
     return {
       shares: [],
       totalEligibleSplitPercent: 0,

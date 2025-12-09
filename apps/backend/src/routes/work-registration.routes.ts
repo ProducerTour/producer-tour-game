@@ -178,6 +178,50 @@ router.post('/:id/approve', async (req: AuthRequest, res: Response) => {
 
     const caseNumber = `PT-${year}-${caseSequence.toString().padStart(3, '0')}`;
 
+    // Auto-link unlinked credits to PT users before approval
+    // This ensures all credits have complete data for statement processing
+    for (const credit of submission.credits) {
+      if (!credit.userId) {
+        // Try to find matching writer by name
+        const matchedUser = await prisma.user.findFirst({
+          where: {
+            firstName: { equals: credit.firstName, mode: 'insensitive' },
+            lastName: { equals: credit.lastName, mode: 'insensitive' },
+            role: 'writer'
+          },
+          select: {
+            id: true,
+            writerIpiNumber: true,
+            publisherIpiNumber: true,
+            writerProAffiliation: true,
+            producer: {
+              select: {
+                proAffiliation: true
+              }
+            }
+          }
+        });
+
+        if (matchedUser) {
+          // Get PRO from User (prefer writerProAffiliation, fallback to Producer)
+          const userPro = matchedUser.writerProAffiliation || matchedUser.producer?.proAffiliation;
+
+          await prisma.placementCredit.update({
+            where: { id: credit.id },
+            data: {
+              userId: matchedUser.id,
+              pro: credit.pro || userPro || undefined,
+              ipiNumber: credit.ipiNumber || matchedUser.writerIpiNumber || undefined,
+              publisherIpiNumber: credit.publisherIpiNumber || matchedUser.publisherIpiNumber || undefined,
+              isExternalWriter: false
+            }
+          });
+
+          console.log(`[Approval] Auto-linked credit: ${credit.firstName} ${credit.lastName} → ${matchedUser.id}`);
+        }
+      }
+    }
+
     // Update submission to APPROVED status
     const approved = await prisma.placement.update({
       where: { id },
