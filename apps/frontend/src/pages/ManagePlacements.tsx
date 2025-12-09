@@ -178,21 +178,54 @@ export default function ManagePlacements() {
     URL.revokeObjectURL(url);
   };
 
+  // Parse a CSV line properly (handles quoted values with commas)
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          // Escaped quote
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
   // Parse CSV file
   const parseCSV = (text: string): any[] => {
-    const lines = text.trim().split('\n');
+    // Normalize line endings
+    const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = normalizedText.trim().split('\n');
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+    console.log('CSV Headers detected:', headers);
     const rows: any[] = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
+      if (!lines[i].trim()) continue; // Skip empty lines
+      const values = parseCSVLine(lines[i]).map(v => v.replace(/^["']|["']$/g, '').trim());
       const row: any = {};
 
       headers.forEach((header, idx) => {
         row[header] = values[idx] || '';
       });
+      console.log(`Row ${i} data:`, row);
 
       // Parse writers from row
       const writers = [];
@@ -200,11 +233,16 @@ export default function ManagePlacements() {
         const firstName = row[`writer${w}_firstname`] || '';
         const lastName = row[`writer${w}_lastname`] || '';
         if (firstName || lastName) {
+          // Parse split percentage - handle %, commas, spaces
+          const splitRaw = row[`writer${w}_split`] || '0';
+          const splitClean = splitRaw.replace(/[%,\s]/g, '');
+          const splitValue = parseFloat(splitClean) || 0;
+
           writers.push({
             firstName,
             lastName,
             role: row[`writer${w}_role`] || 'WRITER',
-            splitPercentage: parseFloat(row[`writer${w}_split`]) || 0,
+            splitPercentage: splitValue,
             pro: row[`writer${w}_pro`] || '',
             ipiNumber: row[`writer${w}_ipi`] || '',
           });
@@ -262,7 +300,8 @@ export default function ManagePlacements() {
 
           const totalSplit = row.writers.reduce((sum: number, w: any) => sum + w.splitPercentage, 0);
           if (Math.abs(totalSplit - 100) > 0.01) {
-            errors.push(`Row ${rowNum}: Split percentages equal ${totalSplit}%, must equal 100%`);
+            const splitDetails = row.writers.map((w: any) => `${w.firstName} ${w.lastName}: ${w.splitPercentage}%`).join(', ');
+            errors.push(`Row ${rowNum}: Split percentages equal ${totalSplit}%, must equal 100% (${splitDetails})`);
             return;
           }
 
