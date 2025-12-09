@@ -584,12 +584,11 @@ export async function smartMatchWithPlacementTracker(
         shares = calculateAscapShares(revenue, credits, ptPublisherIpis);
         break;
       default:
-        // For other PROs, include all writers with their placement splits
+        // For other PROs, include all PT-represented writers
         shares = calculateWriterShares(revenue, credits, {
           proAffiliation: null,
           ptPublisherIpis,
-          includeOnlyPtWriters: false,  // Include all writers for now
-          requireLinkedUser: false       // Allow unlinked credits from bulk import
+          includeOnlyPtWriters: true
         });
     }
 
