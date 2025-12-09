@@ -346,7 +346,7 @@ export default function ManagePlacements() {
         const placementData = {
           title: row.title,
           artist: row.artist,
-          platform: 'MANUAL',
+          platform: 'OTHER',
           releaseDate: new Date().toISOString(),
           isrc: row.isrc || undefined,
           status: 'APPROVED',
