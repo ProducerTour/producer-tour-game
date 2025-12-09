@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { workRegistrationApi, PendingSubmission } from '@/lib/workRegistrationApi';
-import { placementApi } from '@/lib/api';
+import { placementApi, toolsApi } from '@/lib/api';
 import { SubmissionStatusBadge } from '@/components/SubmissionStatusBadge';
 import { SpotifyTrackLookup } from '@/components/SpotifyTrackLookup';
 import { CollaboratorForm, Collaborator } from '@/components/CollaboratorForm';
@@ -81,6 +81,58 @@ export default function ManagePlacements() {
       );
     }
   }, [searchQuery, placements]);
+
+  // Auto-fetch Spotify artwork for placements missing album art
+  useEffect(() => {
+    const fetchMissingArtwork = async () => {
+      const placementsNeedingArt = placements.filter(p => !p.albumArtUrl && p.title && p.artist);
+
+      if (placementsNeedingArt.length === 0) return;
+
+      // Process in batches to avoid rate limiting
+      const updatedPlacements = [...placements];
+      let hasUpdates = false;
+
+      for (const placement of placementsNeedingArt) {
+        try {
+          const searchQuery = `${placement.title} ${placement.artist}`;
+          const response = await toolsApi.spotifySearch(searchQuery, 1);
+          const track = response.data.tracks?.[0];
+
+          if (track?.image) {
+            const placementIndex = updatedPlacements.findIndex(p => p.id === placement.id);
+            if (placementIndex !== -1) {
+              updatedPlacements[placementIndex] = {
+                ...updatedPlacements[placementIndex],
+                albumArtUrl: track.image,
+              };
+              hasUpdates = true;
+
+              // Save artwork to database so it persists
+              try {
+                await workRegistrationApi.edit(placement.id, {
+                  albumArtUrl: track.image,
+                });
+              } catch (saveError) {
+                console.warn('Could not save artwork to database:', saveError);
+              }
+            }
+          }
+        } catch (error) {
+          // Silently fail for individual lookups
+          console.warn(`Could not fetch artwork for ${placement.title}:`, error);
+        }
+      }
+
+      if (hasUpdates) {
+        setPlacements(updatedPlacements);
+      }
+    };
+
+    if (placements.length > 0) {
+      fetchMissingArtwork();
+    }
+  }, [placements.length]); // Only run when placements count changes
 
   const loadApprovedPlacements = async () => {
     try {

@@ -414,7 +414,7 @@ router.put('/:id/edit', async (req: AuthRequest, res: Response) => {
     const userRole = req.user?.role;
     const isAdmin = userRole === 'ADMIN';
     const { id } = req.params;
-    const { title, artist, albumName, isrc, genre, releaseYear, label, notes, credits } = req.body;
+    const { title, artist, albumName, albumArtUrl, isrc, genre, releaseYear, label, notes, credits } = req.body;
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -447,6 +447,7 @@ router.put('/:id/edit', async (req: AuthRequest, res: Response) => {
     if (title !== undefined) updateData.title = title;
     if (artist !== undefined) updateData.artist = artist;
     if (albumName !== undefined) updateData.albumName = albumName;
+    if (albumArtUrl !== undefined) updateData.albumArtUrl = albumArtUrl;
     if (isrc !== undefined) updateData.isrc = isrc;
     if (genre !== undefined) updateData.genre = genre;
     if (releaseYear !== undefined) updateData.releaseYear = releaseYear;

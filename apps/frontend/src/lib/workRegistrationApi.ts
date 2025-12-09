@@ -189,6 +189,7 @@ class WorkRegistrationAPI {
       title?: string;
       artist?: string;
       albumName?: string;
+      albumArtUrl?: string;
       isrc?: string;
       genre?: string;
       releaseYear?: string;
