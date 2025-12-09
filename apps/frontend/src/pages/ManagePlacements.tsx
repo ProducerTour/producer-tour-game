@@ -168,12 +168,15 @@ export default function ManagePlacements() {
     });
   };
 
-  // CSV Template columns
+  // CSV Template columns (supports up to 6 writers)
   const csvTemplateHeaders = [
     'title', 'artist', 'albumName', 'isrc', 'genre', 'releaseYear', 'label',
     'writer1_firstName', 'writer1_lastName', 'writer1_role', 'writer1_split', 'writer1_pro', 'writer1_ipi',
     'writer2_firstName', 'writer2_lastName', 'writer2_role', 'writer2_split', 'writer2_pro', 'writer2_ipi',
     'writer3_firstName', 'writer3_lastName', 'writer3_role', 'writer3_split', 'writer3_pro', 'writer3_ipi',
+    'writer4_firstName', 'writer4_lastName', 'writer4_role', 'writer4_split', 'writer4_pro', 'writer4_ipi',
+    'writer5_firstName', 'writer5_lastName', 'writer5_role', 'writer5_split', 'writer5_pro', 'writer5_ipi',
+    'writer6_firstName', 'writer6_lastName', 'writer6_role', 'writer6_split', 'writer6_pro', 'writer6_ipi',
     'notes'
   ];
 
@@ -181,8 +184,11 @@ export default function ManagePlacements() {
   const downloadTemplate = () => {
     const exampleRow = [
       'Song Title', 'Artist Name', 'Album Name', 'USRC12345678', 'Pop', '2024', 'Record Label',
-      'John', 'Doe', 'WRITER', '50', 'ASCAP', '123456789',
-      'Jane', 'Smith', 'PRODUCER', '50', 'BMI', '987654321',
+      'John', 'Doe', 'WRITER', '25', 'ASCAP', '123456789',
+      'Jane', 'Smith', 'PRODUCER', '25', 'BMI', '987654321',
+      'Bob', 'Johnson', 'COMPOSER', '25', 'SESAC', '456789123',
+      'Alice', 'Brown', 'LYRICIST', '25', 'ASCAP', '789123456',
+      '', '', '', '', '', '',
       '', '', '', '', '', '',
       'Optional notes'
     ];
@@ -245,9 +251,9 @@ export default function ManagePlacements() {
       });
       console.log(`Row ${i} data:`, row);
 
-      // Parse writers from row
+      // Parse writers from row (supports up to 6 writers)
       const writers = [];
-      for (let w = 1; w <= 3; w++) {
+      for (let w = 1; w <= 6; w++) {
         const firstName = row[`writer${w}_firstname`] || '';
         const lastName = row[`writer${w}_lastname`] || '';
         if (firstName || lastName) {
@@ -284,12 +290,12 @@ export default function ManagePlacements() {
   };
 
   // Handle CSV file upload
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const text = e.target?.result as string;
         const parsed = parseCSV(text);
@@ -297,40 +303,73 @@ export default function ManagePlacements() {
         // Validate parsed data
         const errors: string[] = [];
         const validRows: any[] = [];
+        const duplicateWarnings: string[] = [];
 
-        parsed.forEach((row, idx) => {
+        // First pass: basic validation
+        for (let idx = 0; idx < parsed.length; idx++) {
+          const row = parsed[idx];
           const rowNum = idx + 2; // +2 because row 1 is headers, and we're 0-indexed
 
           if (!row.title) {
             errors.push(`Row ${rowNum}: Missing title`);
-            return;
+            continue;
           }
           if (!row.artist) {
             errors.push(`Row ${rowNum}: Missing artist`);
-            return;
+            continue;
           }
 
           // Validate writers
           if (row.writers.length === 0) {
             errors.push(`Row ${rowNum}: No writers/collaborators defined`);
-            return;
+            continue;
           }
 
           const totalSplit = row.writers.reduce((sum: number, w: any) => sum + w.splitPercentage, 0);
           if (Math.abs(totalSplit - 100) > 0.01) {
             const splitDetails = row.writers.map((w: any) => `${w.firstName} ${w.lastName}: ${w.splitPercentage}%`).join(', ');
-            errors.push(`Row ${rowNum}: Split percentages equal ${totalSplit}%, must equal 100% (${splitDetails})`);
-            return;
+            errors.push(`Row ${rowNum}: Split percentages equal ${totalSplit.toFixed(2)}%, must equal 100% (${splitDetails})`);
+            continue;
           }
 
-          validRows.push(row);
-        });
+          validRows.push({ ...row, rowNum });
+        }
 
-        setBulkErrors(errors);
-        setBulkData(validRows);
+        // Second pass: check for duplicates in the database
+        toast.loading('Checking for duplicates...', { id: 'duplicate-check' });
+        const finalValidRows: any[] = [];
 
-        if (validRows.length > 0) {
-          toast.success(`Parsed ${validRows.length} valid placement${validRows.length !== 1 ? 's' : ''}`);
+        for (const row of validRows) {
+          try {
+            const duplicateCheck = await placementApi.checkDuplicate(row.title);
+            if (duplicateCheck.data.isDuplicate) {
+              const existing = duplicateCheck.data.existingPlacement;
+              duplicateWarnings.push(
+                `Row ${row.rowNum}: "${row.title}" already exists${existing.caseNumber ? ` (Case: ${existing.caseNumber})` : ''}`
+              );
+            } else {
+              finalValidRows.push(row);
+            }
+          } catch (error) {
+            // If duplicate check fails, still allow the row
+            console.warn(`Duplicate check failed for row ${row.rowNum}:`, error);
+            finalValidRows.push(row);
+          }
+        }
+
+        toast.dismiss('duplicate-check');
+
+        // Add duplicate warnings to errors
+        const allIssues = [...errors, ...duplicateWarnings.map(w => `⚠️ DUPLICATE: ${w}`)];
+
+        setBulkErrors(allIssues);
+        setBulkData(finalValidRows);
+
+        if (finalValidRows.length > 0) {
+          toast.success(`Parsed ${finalValidRows.length} valid placement${finalValidRows.length !== 1 ? 's' : ''}`);
+        }
+        if (duplicateWarnings.length > 0) {
+          toast(`${duplicateWarnings.length} duplicate${duplicateWarnings.length !== 1 ? 's' : ''} found and skipped`, { icon: '⚠️' });
         }
         if (errors.length > 0) {
           toast.error(`${errors.length} row${errors.length !== 1 ? 's' : ''} have errors`);
@@ -338,6 +377,7 @@ export default function ManagePlacements() {
       } catch (error) {
         console.error('CSV parse error:', error);
         toast.error('Failed to parse CSV file');
+        toast.dismiss('duplicate-check');
       }
     };
     reader.readAsText(file);
@@ -1215,17 +1255,20 @@ export default function ManagePlacements() {
                 <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
                   <h3 className="text-blue-400 font-semibold mb-2">CSV Format Instructions</h3>
                   <p className="text-text-muted text-sm mb-3">
-                    Your CSV file should include the following columns (in order):
+                    Your CSV file should include the following columns. Supports up to 6 writers per song:
                   </p>
                   <div className="text-xs text-text-muted font-mono bg-black/20 p-3 rounded-lg overflow-x-auto">
                     title, artist, albumName, isrc, genre, releaseYear, label,<br />
                     writer1_firstName, writer1_lastName, writer1_role, writer1_split, writer1_pro, writer1_ipi,<br />
-                    writer2_firstName, writer2_lastName, writer2_role, writer2_split, writer2_pro, writer2_ipi,<br />
-                    writer3_firstName, writer3_lastName, writer3_role, writer3_split, writer3_pro, writer3_ipi,<br />
+                    writer2_firstName, ... writer2_ipi,<br />
+                    writer3_firstName, ... writer3_ipi,<br />
+                    writer4_firstName, ... writer4_ipi,<br />
+                    writer5_firstName, ... writer5_ipi,<br />
+                    writer6_firstName, ... writer6_ipi,<br />
                     notes
                   </div>
                   <p className="text-text-muted text-sm mt-3">
-                    <strong>Note:</strong> Split percentages must equal exactly 100% for each song.
+                    <strong>Note:</strong> Split percentages must equal exactly 100% for each song (across all writers).
                     Roles can be: WRITER, PRODUCER, COMPOSER, LYRICIST.
                   </p>
                 </div>
