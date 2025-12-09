@@ -79,6 +79,149 @@ router.get('/debug/status-breakdown', async (req: AuthRequest, res: Response) =>
 });
 
 /**
+ * POST /api/placements/backfill-credits
+ * Backfill existing placement credits to link them to users by name matching.
+ * This is a one-time operation to fix credits created before auto-linking was added.
+ * Admin only.
+ */
+router.post('/backfill-credits', async (req: AuthRequest, res: Response) => {
+  try {
+    const userRole = req.user?.role;
+
+    // Admin only
+    if (userRole !== 'ADMIN') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    console.log('[Placements] Starting credit backfill...');
+
+    // Find all credits without a userId
+    const unlinkedCredits = await prisma.placementCredit.findMany({
+      where: {
+        userId: null,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        ipiNumber: true,
+        pro: true,
+        publisherIpiNumber: true,
+        placement: {
+          select: {
+            id: true,
+            title: true,
+          }
+        }
+      }
+    });
+
+    console.log(`[Placements] Found ${unlinkedCredits.length} unlinked credits`);
+
+    const results = {
+      total: unlinkedCredits.length,
+      linked: 0,
+      notFound: 0,
+      errors: 0,
+      details: [] as { creditId: string; name: string; song: string; status: string; userId?: string }[],
+    };
+
+    // Process each unlinked credit
+    for (const credit of unlinkedCredits) {
+      try {
+        if (!credit.firstName || !credit.lastName) {
+          results.notFound++;
+          results.details.push({
+            creditId: credit.id,
+            name: `${credit.firstName || ''} ${credit.lastName || ''}`.trim() || 'Unknown',
+            song: credit.placement?.title || 'Unknown',
+            status: 'skipped - missing name',
+          });
+          continue;
+        }
+
+        // Find user by name (case-insensitive)
+        const matchedUser = await prisma.user.findFirst({
+          where: {
+            firstName: { equals: credit.firstName, mode: 'insensitive' },
+            lastName: { equals: credit.lastName, mode: 'insensitive' },
+          },
+          select: {
+            id: true,
+            writerIpiNumber: true,
+            publisherIpiNumber: true,
+            producer: {
+              select: {
+                proAffiliation: true,
+              }
+            }
+          }
+        });
+
+        if (!matchedUser) {
+          results.notFound++;
+          results.details.push({
+            creditId: credit.id,
+            name: `${credit.firstName} ${credit.lastName}`,
+            song: credit.placement?.title || 'Unknown',
+            status: 'no matching user found',
+          });
+          continue;
+        }
+
+        // Update the credit with user info
+        await prisma.placementCredit.update({
+          where: { id: credit.id },
+          data: {
+            userId: matchedUser.id,
+            // Only update IPI/PRO if not already set
+            ...((!credit.ipiNumber && matchedUser.writerIpiNumber) && {
+              ipiNumber: matchedUser.writerIpiNumber,
+            }),
+            ...((!credit.pro && matchedUser.producer?.proAffiliation) && {
+              pro: matchedUser.producer.proAffiliation,
+            }),
+            ...((!credit.publisherIpiNumber && matchedUser.publisherIpiNumber) && {
+              publisherIpiNumber: matchedUser.publisherIpiNumber,
+            }),
+          },
+        });
+
+        results.linked++;
+        results.details.push({
+          creditId: credit.id,
+          name: `${credit.firstName} ${credit.lastName}`,
+          song: credit.placement?.title || 'Unknown',
+          status: 'linked',
+          userId: matchedUser.id,
+        });
+
+        console.log(`[Placements] Linked credit "${credit.firstName} ${credit.lastName}" to user ${matchedUser.id}`);
+      } catch (err) {
+        results.errors++;
+        results.details.push({
+          creditId: credit.id,
+          name: `${credit.firstName || ''} ${credit.lastName || ''}`.trim() || 'Unknown',
+          song: credit.placement?.title || 'Unknown',
+          status: `error: ${err}`,
+        });
+      }
+    }
+
+    console.log(`[Placements] Backfill complete. Linked: ${results.linked}, Not found: ${results.notFound}, Errors: ${results.errors}`);
+
+    res.json({
+      success: true,
+      message: `Backfill complete. Linked ${results.linked} of ${results.total} credits.`,
+      results,
+    });
+  } catch (error) {
+    console.error('Backfill credits error:', error);
+    res.status(500).json({ error: 'Failed to backfill credits', details: String(error) });
+  }
+});
+
+/**
  * GET /api/placements
  * Get all placements for the authenticated user
  */
