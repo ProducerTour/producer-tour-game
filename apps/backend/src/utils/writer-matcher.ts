@@ -552,8 +552,11 @@ export async function smartMatchWithPlacementTracker(
       };
     }
 
+    // Get credits from the placement (credits are on placement.credits, not placementMatch.credits)
+    const credits = placementMatch.placement.credits;
+
     // Validate placementMatch has credits
-    if (!placementMatch.credits || !Array.isArray(placementMatch.credits)) {
+    if (!credits || !Array.isArray(credits)) {
       console.warn(`Placement ${placementMatch.placement.id} has no credits array`);
       return {
         placementMatch,
@@ -571,17 +574,17 @@ export async function smartMatchWithPlacementTracker(
 
     switch (proType) {
       case 'MLC':
-        shares = calculateMlcShares(revenue, placementMatch.credits, ptPublisherIpis);
+        shares = calculateMlcShares(revenue, credits, ptPublisherIpis);
         break;
       case 'BMI':
-        shares = calculateBmiShares(revenue, placementMatch.credits, ptPublisherIpis);
+        shares = calculateBmiShares(revenue, credits, ptPublisherIpis);
         break;
       case 'ASCAP':
-        shares = calculateAscapShares(revenue, placementMatch.credits, ptPublisherIpis);
+        shares = calculateAscapShares(revenue, credits, ptPublisherIpis);
         break;
       default:
         // For other PROs, include all PT-represented writers
-        shares = calculateWriterShares(revenue, placementMatch.credits, {
+        shares = calculateWriterShares(revenue, credits, {
           proAffiliation: null,
           ptPublisherIpis,
           includeOnlyPtWriters: true
