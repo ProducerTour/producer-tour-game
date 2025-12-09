@@ -406,12 +406,15 @@ router.post('/:id/request-documents', async (req: AuthRequest, res: Response) =>
 /**
  * PUT /api/work-registration/:id/edit
  * Writer edits their submission (only allowed for PENDING and DOCUMENTS_REQUESTED status)
+ * Admin can edit any submission including APPROVED
  */
 router.put('/:id/edit', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
+    const userRole = req.user?.role;
+    const isAdmin = userRole === 'ADMIN';
     const { id } = req.params;
-    const { title, artist, notes, credits } = req.body;
+    const { title, artist, albumName, isrc, genre, releaseYear, label, notes, credits } = req.body;
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -427,12 +430,13 @@ router.put('/:id/edit', async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Submission not found' });
     }
 
-    if (submission.userId !== userId) {
+    // Admin can edit any placement; writers can only edit their own
+    if (!isAdmin && submission.userId !== userId) {
       return res.status(403).json({ error: 'Not your submission' });
     }
 
-    // Only allow editing for PENDING and DOCUMENTS_REQUESTED status
-    if (submission.status !== 'PENDING' && submission.status !== 'DOCUMENTS_REQUESTED') {
+    // Writers can only edit PENDING and DOCUMENTS_REQUESTED; Admins can edit any status
+    if (!isAdmin && submission.status !== 'PENDING' && submission.status !== 'DOCUMENTS_REQUESTED') {
       return res.status(400).json({
         error: 'Cannot edit submission. Only pending or documents-requested submissions can be edited.'
       });
@@ -442,6 +446,11 @@ router.put('/:id/edit', async (req: AuthRequest, res: Response) => {
     const updateData: any = {};
     if (title !== undefined) updateData.title = title;
     if (artist !== undefined) updateData.artist = artist;
+    if (albumName !== undefined) updateData.albumName = albumName;
+    if (isrc !== undefined) updateData.isrc = isrc;
+    if (genre !== undefined) updateData.genre = genre;
+    if (releaseYear !== undefined) updateData.releaseYear = releaseYear;
+    if (label !== undefined) updateData.label = label;
     if (notes !== undefined) updateData.notes = notes;
 
     const updatedPlacement = await prisma.placement.update({

@@ -188,6 +188,11 @@ class WorkRegistrationAPI {
     data: {
       title?: string;
       artist?: string;
+      albumName?: string;
+      isrc?: string;
+      genre?: string;
+      releaseYear?: string;
+      label?: string;
       notes?: string;
       credits?: Array<{
         firstName: string;
@@ -196,6 +201,11 @@ class WorkRegistrationAPI {
         splitPercentage: number;
         pro?: string;
         ipiNumber?: string;
+        isPrimary?: boolean;
+        notes?: string;
+        userId?: string;
+        publisherIpiNumber?: string;
+        isExternalWriter?: boolean;
       }>;
     }
   ): Promise<any> {

@@ -179,7 +179,7 @@ export default function ManagePlacements() {
     setIsEditSubmitting(true);
 
     try {
-      await placementApi.update(editingPlacement.id, {
+      await workRegistrationApi.edit(editingPlacement.id, {
         title: editEntry.title,
         artist: editEntry.artist,
         albumName: editEntry.albumName || undefined,
