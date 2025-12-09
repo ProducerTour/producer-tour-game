@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, FileCheck, Coins, Shield } from 'lucide-react';
+import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, FileCheck, Coins, Shield, Scale } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { gamificationApi, toolPermissionsApi } from '../lib/api';
 
@@ -132,6 +132,16 @@ const TOOLS: Tool[] = [
     url: '/tools/leak-scanner',
     category: 'Research',
     roles: ['ADMIN', 'WRITER', 'MANAGER'] // Available to admins, writers, and managers
+  },
+  {
+    id: 'trifecta-planner',
+    name: 'Trifecta Planner',
+    description: 'Model the Trifecta tax strategy: Operating LLC → IP Holdings → Family Trust. Calculate tax savings and visualize multi-entity cash flows.',
+    icon: Scale,
+    color: 'from-indigo-500 to-indigo-600',
+    url: '/tools/trifecta-planner',
+    category: 'Financial',
+    roles: ['ADMIN', 'WRITER'] // Available to admins and writers
   }
 ];
 
@@ -531,7 +541,27 @@ export default function ToolsHub() {
                       </div>
                     </>
                   )}
-                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration', 'metadata-index', 'type-beat-video-maker', 'session-payout', 'leak-scanner'].includes(currentTool.id) && (
+                  {currentTool.id === 'trifecta-planner' && (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-theme-foreground-secondary">Model Operating LLC → Holdings → Trust flows</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-theme-foreground-secondary">Augusta Rule rent deductions (up to 14 days)</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-theme-foreground-secondary">IP royalty rate & trust sweep modeling</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-theme-foreground-secondary">Visual charts & compliance checklist</span>
+                      </div>
+                    </>
+                  )}
+                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration', 'metadata-index', 'type-beat-video-maker', 'session-payout', 'leak-scanner', 'trifecta-planner'].includes(currentTool.id) && (
                     <>
                       <div className="flex items-start gap-3">
                         <Check className="w-5 h-5 text-green-400 flex-shrink-0" />

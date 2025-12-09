@@ -54,6 +54,7 @@ import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
 import ContactPage from './pages/ContactPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ToolsPage from './pages/ToolsPage';
+import TrifectaPlannerPage from './pages/TrifectaPlannerPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -163,6 +164,14 @@ function App() {
           element={
             <PrivateRoute roles={['ADMIN', 'WRITER', 'MANAGER']}>
               <LeakScannerPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/tools/trifecta-planner"
+          element={
+            <PrivateRoute roles={['ADMIN', 'WRITER']}>
+              <TrifectaPlannerPage />
             </PrivateRoute>
           }
         />
