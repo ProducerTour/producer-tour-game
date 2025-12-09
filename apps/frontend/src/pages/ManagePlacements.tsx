@@ -786,7 +786,7 @@ export default function ManagePlacements() {
       )}
 
       {/* Placements List */}
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence>
         <div className="space-y-4">
           {filteredPlacements.map((placement, index) => (
             <motion.div
@@ -796,7 +796,6 @@ export default function ManagePlacements() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ delay: index * 0.05 }}
-              layout
             >
               <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
               {/* Main Content */}
