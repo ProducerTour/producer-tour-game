@@ -475,8 +475,7 @@ import {
   getPtPublisherIpis,
   PlacementMatch,
   clearPlacementCache,
-  clearPtPublisherIpiCache,
-  normalizeSongTitle
+  clearPtPublisherIpiCache
 } from './placement-matcher';
 
 import {
