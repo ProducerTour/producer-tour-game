@@ -129,23 +129,26 @@ router.get('/pending', async (req: AuthRequest, res: Response) => {
 
 /**
  * POST /api/work-registration/:id/approve
- * Approve a submission and send to placement tracker (ADMIN only)
+ * Approve a submission, send to writer's Placements, and create Producer Clearance entry (ADMIN only)
  */
 router.post('/:id/approve', async (req: AuthRequest, res: Response) => {
   try {
     const userRole = req.user?.role;
     const adminId = req.user?.id;
     const { id } = req.params;
-    const { dealTerms, advanceAmount, royaltyPercentage, notes } = req.body;
+    const { notes } = req.body;
 
     if (userRole !== 'ADMIN') {
       return res.status(403).json({ error: 'Admin access required' });
     }
 
-    // Get the submission
+    // Get the submission with credits
     const submission = await prisma.placement.findUnique({
       where: { id },
-      include: { user: true },
+      include: {
+        user: true,
+        credits: true,
+      },
     });
 
     if (!submission) {
@@ -183,19 +186,47 @@ router.post('/:id/approve', async (req: AuthRequest, res: Response) => {
         reviewedAt: new Date(),
         reviewedBy: adminId,
         caseNumber,
-        dealTerms,
-        advanceAmount: advanceAmount ? parseFloat(advanceAmount) : null,
-        royaltyPercentage: royaltyPercentage ? parseFloat(royaltyPercentage) : null,
         notes: notes || submission.notes,
       },
     });
 
-    // Send email notification to writer (if they have notifications enabled)
+    // Create a corresponding PlacementDeal (Producer Clearance) entry
+    // with publicPerf and mech set to "Collecting"
     const writerName = submission.user.firstName && submission.user.lastName
       ? `${submission.user.firstName} ${submission.user.lastName}`
       : submission.user.email;
 
-    // Check if user has email notifications enabled
+    // Get primary credit for p/k/a name
+    const primaryCredit = submission.credits?.find(c => c.isPrimary);
+    const pkaName = primaryCredit
+      ? `${primaryCredit.firstName} ${primaryCredit.lastName}`.trim()
+      : writerName;
+
+    // Get co-producers (non-primary credits)
+    const coProducers = submission.credits
+      ?.filter(c => !c.isPrimary)
+      .map(c => `${c.firstName} ${c.lastName}`.trim())
+      .join(', ') || '';
+
+    await prisma.placementDeal.create({
+      data: {
+        clientFullName: writerName,
+        clientPKA: pkaName,
+        songTitle: submission.title,
+        artistName: submission.artist,
+        streams: submission.streams?.toString() || '0',
+        label: submission.label || '',
+        coProducers: coProducers,
+        status: 'Approved',
+        // Set clearance fields to "Collecting"
+        publicPerf: 'Collecting',
+        mech: 'Collecting',
+        createdById: adminId,
+        notes: `Auto-created from work submission ${caseNumber}`,
+      },
+    });
+
+    // Send email notification to writer (if they have notifications enabled)
     const fullUserData = await prisma.user.findUnique({
       where: { id: submission.userId },
       select: { emailNotificationsEnabled: true },
@@ -212,7 +243,7 @@ router.post('/:id/approve', async (req: AuthRequest, res: Response) => {
 
     res.json({
       success: true,
-      message: 'Submission approved and sent to placement tracker',
+      message: 'Submission approved, added to Placements, and created Producer Clearance entry',
       placement: approved,
       caseNumber,
     });

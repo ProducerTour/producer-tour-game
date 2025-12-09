@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, XCircle, FileText, Music, AlertCircle,
-  DollarSign, Percent, Calendar, Clock,
-  ChevronDown, Search, Users, Paperclip, Download, Check, X, AlertTriangle
+  Calendar, Clock, ChevronDown, Search, Users, Paperclip, Download, Check, X, AlertTriangle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { workRegistrationApi, WorkSubmission } from '@/lib/workRegistrationApi';
@@ -65,23 +64,16 @@ export default function PendingPlacementsQueue() {
     setActionType(null);
   };
 
-  const handleApprove = async (data: {
-    dealTerms: string;
-    advanceAmount?: number;
-    royaltyPercentage?: number;
-  }) => {
-    if (!selectedSubmission) return;
-
+  const handleDirectApprove = async (submission: WorkSubmission) => {
     try {
-      await workRegistrationApi.approve(selectedSubmission.id, data);
+      await workRegistrationApi.approve(submission.id, {});
       toast.success(
         <div>
           <div className="font-semibold">Submission Approved!</div>
-          <div className="text-sm text-text-muted">Added to writer's Placements</div>
+          <div className="text-sm text-text-muted">Added to writer's Placements & Producer Clearances</div>
         </div>,
         { icon: <Check className="w-5 h-5 text-green-500" />, duration: 4000 }
       );
-      closeModal();
       loadPendingSubmissions();
     } catch (error: any) {
       console.error('Failed to approve:', error);
@@ -369,12 +361,12 @@ export default function PendingPlacementsQueue() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleAction(submission, 'approve');
+                          handleDirectApprove(submission);
                         }}
                         className="px-6 py-2.5 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium flex items-center gap-2 transition-colors"
                       >
                         <CheckCircle2 className="w-5 h-5" />
-                        Approve and send to Placements
+                        Approve
                       </button>
 
                       <button
@@ -635,165 +627,12 @@ export default function PendingPlacementsQueue() {
       </AnimatePresence>
 
       {/* Modals */}
-      {selectedSubmission && actionType === 'approve' && (
-        <ApprovalModal submission={selectedSubmission} onClose={closeModal} onSubmit={handleApprove} />
-      )}
       {selectedSubmission && actionType === 'deny' && (
         <DenyModal submission={selectedSubmission} onClose={closeModal} onSubmit={handleDeny} />
       )}
       {selectedSubmission && actionType === 'request_documents' && (
         <RequestDocumentsModal submission={selectedSubmission} onClose={closeModal} onSubmit={handleRequestDocuments} />
       )}
-    </div>
-  );
-}
-
-// Approval Modal
-interface ApprovalModalProps {
-  submission: WorkSubmission;
-  onClose: () => void;
-  onSubmit: (data: { dealTerms: string; advanceAmount?: number; royaltyPercentage?: number }) => void;
-}
-
-function ApprovalModal({ submission, onClose, onSubmit }: ApprovalModalProps) {
-  const [dealTerms, setDealTerms] = useState('');
-  const [advanceAmount, setAdvanceAmount] = useState('');
-  const [royaltyPercentage, setRoyaltyPercentage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!dealTerms.trim()) {
-      toast.error('Please enter deal terms');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await onSubmit({
-        dealTerms,
-        advanceAmount: advanceAmount ? parseFloat(advanceAmount) : undefined,
-        royaltyPercentage: royaltyPercentage ? parseFloat(royaltyPercentage) : undefined,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <motion.div
-        className="bg-theme-card rounded-2xl w-full max-w-2xl border border-theme-border overflow-hidden max-h-[90vh] overflow-y-auto"
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-      >
-        {/* Header */}
-        <div className="p-6 border-b border-theme-border bg-gradient-to-r from-green-600/20 to-emerald-600/20">
-          <h2 className="text-2xl font-bold text-theme-foreground flex items-center gap-3">
-            <CheckCircle2 className="w-6 h-6 text-green-400" />
-            Approve Submission
-          </h2>
-          <p className="text-theme-foreground-secondary mt-2">
-            <span className="font-semibold">{submission.title}</span> by {submission.artist}
-          </p>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Deal Terms */}
-          <div>
-            <label className="block text-theme-foreground-secondary font-semibold mb-2">
-              Deal Terms <span className="text-red-400">*</span>
-            </label>
-            <textarea
-              value={dealTerms}
-              onChange={(e) => setDealTerms(e.target.value)}
-              placeholder="Enter the deal terms and agreements for this placement..."
-              className="w-full px-4 py-3 bg-theme-input border border-theme-border-strong rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-green-500/50 min-h-[120px]"
-              rows={5}
-            />
-          </div>
-
-          {/* Financial Terms */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-theme-foreground-secondary font-semibold mb-2 flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                Advance Amount (Optional)
-              </label>
-              <input
-                type="number"
-                value={advanceAmount}
-                onChange={(e) => setAdvanceAmount(e.target.value)}
-                placeholder="0.00"
-                step="0.01"
-                min="0"
-                className="w-full px-4 py-3 bg-theme-input border border-theme-border-strong rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-green-500/50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-theme-foreground-secondary font-semibold mb-2 flex items-center gap-2">
-                <Percent className="w-4 h-4" />
-                Royalty Percentage (Optional)
-              </label>
-              <input
-                type="number"
-                value={royaltyPercentage}
-                onChange={(e) => setRoyaltyPercentage(e.target.value)}
-                placeholder="0.00"
-                step="0.01"
-                min="0"
-                max="100"
-                className="w-full px-4 py-3 bg-theme-input border border-theme-border-strong rounded-lg text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-green-500/50"
-              />
-            </div>
-          </div>
-
-          {/* Info */}
-          <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
-            <p className="text-green-300 text-sm flex items-center gap-2">
-              <Check className="w-4 h-4" /> This will add to the writer's Placements and create a case in Manage Placements
-            </p>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3">
-            <motion.button
-              onClick={handleSubmit}
-              disabled={isSubmitting || !dealTerms.trim()}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-white/10 disabled:to-white/10 text-white rounded-xl font-semibold shadow-lg flex items-center justify-center gap-2"
-              whileHover={!isSubmitting && dealTerms.trim() ? { scale: 1.02 } : {}}
-              whileTap={!isSubmitting && dealTerms.trim() ? { scale: 0.98 } : {}}
-            >
-              {isSubmitting ? (
-                <>
-                  <motion.div
-                    className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  />
-                  Approving...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-5 h-5" />
-                  Approve & Create Case
-                </>
-              )}
-            </motion.button>
-            <motion.button
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-6 py-3 bg-theme-border hover:bg-theme-border-hover disabled:bg-theme-border text-theme-foreground rounded-xl font-semibold"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              Cancel
-            </motion.button>
-          </div>
-        </div>
-      </motion.div>
     </div>
   );
 }
