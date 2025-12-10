@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X, Save } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { X, Save, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { productivityApi } from '../../lib/api';
 import { getWidget } from '../../config/widget-registry';
 import type { WidgetConfig } from '../../types/productivity.types';
 
@@ -14,6 +17,7 @@ interface WidgetSettingsModalProps {
  * WidgetSettingsModal - Modal for editing widget-specific settings
  *
  * Renders different settings fields based on widget type
+ * Saves directly to database for immediate persistence
  */
 export function WidgetSettingsModal({
   widgetType,
@@ -21,6 +25,7 @@ export function WidgetSettingsModal({
   onSave,
   onClose,
 }: WidgetSettingsModalProps) {
+  const queryClient = useQueryClient();
   const [localConfig, setLocalConfig] = useState<WidgetConfig>(config);
   const widgetDef = getWidget(widgetType);
 
@@ -28,9 +33,27 @@ export function WidgetSettingsModal({
     setLocalConfig(config);
   }, [config]);
 
+  // Save config directly to database
+  const saveConfigMutation = useMutation({
+    mutationFn: async (newConfig: WidgetConfig) => {
+      const response = await productivityApi.updateWidgetConfig(widgetType, newConfig);
+      return response.data;
+    },
+    onSuccess: () => {
+      // Update local state via parent callback
+      onSave(localConfig);
+      // Invalidate layout query to refresh widget configs
+      queryClient.invalidateQueries({ queryKey: ['productivity-layout'] });
+      toast.success('Widget settings saved');
+      onClose();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to save settings');
+    },
+  });
+
   const handleSave = () => {
-    onSave(localConfig);
-    onClose();
+    saveConfigMutation.mutate(localConfig);
   };
 
   // Render settings based on widget type
@@ -307,18 +330,25 @@ export function WidgetSettingsModal({
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-white/10 bg-white/5">
           <button
             onClick={onClose}
+            disabled={saveConfigMutation.isPending}
             className="px-4 py-2 text-sm rounded-lg bg-white/5 hover:bg-white/10
-              text-theme-foreground transition-colors"
+              text-theme-foreground transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
+            disabled={saveConfigMutation.isPending}
             className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg
-              bg-theme-primary hover:bg-theme-primary/90 text-white transition-colors"
+              bg-theme-primary hover:bg-theme-primary/90 text-white transition-colors
+              disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Save className="w-4 h-4" />
-            Save Settings
+            {saveConfigMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {saveConfigMutation.isPending ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
       </div>
