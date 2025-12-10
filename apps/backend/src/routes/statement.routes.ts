@@ -899,6 +899,19 @@ router.post(
         });
       });
 
+      // IDEMPOTENCY: Delete any existing items for this statement before creating new ones
+      // This prevents duplicates if publish is retried after a timeout/failure
+      const existingItemsCount = await prisma.statementItem.count({
+        where: { statementId: id }
+      });
+
+      if (existingItemsCount > 0) {
+        console.log(`Cleaning up ${existingItemsCount} existing items before republish`);
+        await prisma.statementItem.deleteMany({
+          where: { statementId: id }
+        });
+      }
+
       // Process batches separately to avoid connection timeouts on large statements
       // Each batch gets its own short transaction instead of one long-running transaction
       const BATCH_SIZE = 200; // Smaller batches for reliability
