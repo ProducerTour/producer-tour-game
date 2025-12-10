@@ -1241,7 +1241,7 @@ router.post(
         return res.status(404).json({ error: 'No statements found' });
       }
 
-      // Aggregate data across all statements
+      // Aggregate data across all statements using StatementItems (matches dashboard)
       const writerTotals = new Map<string, {
         userId: string;
         name: string;
@@ -1258,67 +1258,46 @@ router.post(
       let grandTotalCommission = 0;
       let grandTotalNet = 0;
 
-      // Process each statement
+      // Process each statement using StatementItems (consistent with dashboard)
       for (const statement of statements) {
-        const metadata = statement.metadata as any;
-        const parsedItems = metadata?.parsedItems || [];
-        const assignments = metadata?.writerAssignments || {};
+        // Track writers in this statement for statement count
+        const writersInStatement = new Set<string>();
 
-        // Get commission rates from existing StatementItems
-        const commissionRates = new Map<string, number>();
-        statement.items.forEach(item => {
-          commissionRates.set(item.userId, Number(item.commissionRate) || 0);
-        });
+        // Use StatementItems directly - this matches what the dashboard shows
+        for (const item of statement.items) {
+          const userId = item.userId;
+          writersInStatement.add(userId);
 
-        // Calculate totals from metadata (full precision)
-        parsedItems.forEach((item: any) => {
-          let assignmentKey = item.workTitle;
-          if (metadata.pro === 'MLC') {
-            const publisherIpi = item.metadata?.originalPublisherIpi || 'none';
-            const dspName = item.metadata?.dspName || 'none';
-            assignmentKey = `${item.workTitle}|${publisherIpi}|${dspName}`;
+          if (!writerTotals.has(userId)) {
+            writerTotals.set(userId, {
+              userId: userId,
+              name: `${item.user.firstName || ''} ${item.user.middleName ? item.user.middleName + ' ' : ''}${item.user.lastName || ''}`.trim() || item.user.email,
+              email: item.user.email,
+              grossRevenue: 0,
+              commissionAmount: 0,
+              netRevenue: 0,
+              songCount: 0,
+              statementCount: 0,
+              uniqueSongs: new Set()
+            });
           }
 
-          const songAssignments = assignments[assignmentKey] || [];
+          const writer = writerTotals.get(userId)!;
+          const gross = Number(item.revenue);
+          const commission = Number(item.commissionAmount);
+          const net = Number(item.netRevenue);
 
-          songAssignments.forEach((assignment: any) => {
-            const userId = assignment.userId;
+          writer.grossRevenue += gross;
+          writer.commissionAmount += commission;
+          writer.netRevenue += net;
+          writer.uniqueSongs.add(item.workTitle);
 
-            if (!writerTotals.has(userId)) {
-              const userItem = statement.items.find(i => i.userId === userId);
-              writerTotals.set(userId, {
-                userId: userId,
-                name: userItem ? `${userItem.user.firstName || ''} ${userItem.user.middleName ? userItem.user.middleName + ' ' : ''}${userItem.user.lastName || ''}`.trim() || userItem.user.email : 'Unknown',
-                email: userItem?.user.email || '',
-                grossRevenue: 0,
-                commissionAmount: 0,
-                netRevenue: 0,
-                songCount: 0,
-                statementCount: 0,
-                uniqueSongs: new Set()
-              });
-            }
-
-            const writer = writerTotals.get(userId)!;
-            const splitPercentage = parseFloat(assignment.splitPercentage) || 100;
-            const writerRevenue = (parseFloat(item.revenue) * splitPercentage) / 100;
-            const commissionRate = commissionRates.get(userId) || 0;
-            const commission = (writerRevenue * commissionRate) / 100;
-
-            writer.grossRevenue += writerRevenue;
-            writer.commissionAmount += commission;
-            writer.uniqueSongs.add(item.workTitle);
-
-            grandTotalGross += writerRevenue;
-            grandTotalCommission += commission;
-          });
-        });
+          grandTotalGross += gross;
+          grandTotalCommission += commission;
+          grandTotalNet += net;
+        }
 
         // Count statement appearances per writer
-        const writersInStatement = new Set<string>();
-        for (const item of statement.items) {
-          writersInStatement.add(item.userId);
-        }
         for (const userId of writersInStatement) {
           if (writerTotals.has(userId)) {
             writerTotals.get(userId)!.statementCount++;
@@ -1340,10 +1319,8 @@ router.post(
         writer.songCount = writer.uniqueSongs.size;
         writer.grossRevenue = smartRound(writer.grossRevenue);
         writer.commissionAmount = smartRound(writer.commissionAmount);
-        writer.netRevenue = smartRound(writer.grossRevenue - writer.commissionAmount);
+        writer.netRevenue = smartRound(writer.netRevenue);
       }
-
-      grandTotalNet = grandTotalGross - grandTotalCommission;
 
       // Build CSV
       const headers = [
