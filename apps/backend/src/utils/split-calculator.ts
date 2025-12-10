@@ -68,12 +68,14 @@ export function calculateWriterShares(
   const eligibleCredits: PlacementCreditWithUser[] = [];
   const excludedCredits: ExcludedCredit[] = [];
 
-  // SIMPLIFIED FILTERING: Trust approved placement data
-  // Only 2 filters remain:
+  // FILTERING LOGIC for BMI/ASCAP statements:
   // 1. Must have split percentage
-  // 2. PRO must match statement type (if specified)
-  // REMOVED: userId requirement - trust placement credits
-  // REMOVED: PT publisher IPI check - all PT writers should have correct IPI on User
+  // 2. Must be PT-represented writer (userId linked, not external)
+  // 3. PRO must match statement type (BMI writers for BMI statements, etc.)
+  //
+  // KEY INSIGHT: Each BMI/ASCAP statement line is for ONE writer.
+  // We split the line ONLY among PT-represented writers on that song.
+  // If Kiyan is the only PT writer on "Prayer" → he gets 100% of that line.
 
   for (const credit of placementCredits) {
     // Safety check for null/undefined credit
@@ -93,7 +95,24 @@ export function calculateWriterShares(
       continue;
     }
 
-    // Filter 2: PRO must match statement type (KEEP but simplified)
+    // Filter 2: Must be a PT-represented writer (not external collaborator)
+    // PT writers are identified by having a userId linked OR isExternalWriter === false
+    // External collaborators should NOT receive royalties - only PT writers
+    if (filters.includeOnlyPtWriters) {
+      const isPtWriter = credit.userId && !credit.isExternalWriter;
+
+      if (!isPtWriter) {
+        excludedCredits.push({
+          creditId: credit.id,
+          firstName: credit.firstName,
+          lastName: credit.lastName,
+          reason: 'External writer (not PT-represented)'
+        });
+        continue;
+      }
+    }
+
+    // Filter 3: PRO must match statement type (for BMI/ASCAP statements)
     // Priority: credit.pro → user.writerProAffiliation → user.producer.proAffiliation
     if (filters.proAffiliation) {
       const writerPro = credit.pro ||
@@ -110,16 +129,6 @@ export function calculateWriterShares(
         continue;
       }
     }
-
-    // REMOVED: userId requirement
-    // Reason: Approved placements should be trusted. If a credit exists,
-    // it was verified by admin. Missing userId is a data issue to fix via
-    // backfill, not a reason to exclude from matching.
-
-    // REMOVED: PT publisher IPI check
-    // Reason: All PT writers should have publisherIpiNumber set on their User record.
-    // If it's missing, that's a data issue to fix, not a filter to apply.
-    // The PRO filter above ensures we only pay the right writers.
 
     eligibleCredits.push(credit);
   }
