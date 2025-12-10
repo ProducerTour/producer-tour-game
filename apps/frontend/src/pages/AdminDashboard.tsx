@@ -201,6 +201,8 @@ function _DashboardOverview() {
       const response = await dashboardApi.getStats();
       return response.data;
     },
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   const { data: statementsData } = useQuery({

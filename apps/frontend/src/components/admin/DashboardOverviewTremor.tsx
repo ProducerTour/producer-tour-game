@@ -146,6 +146,8 @@ export default function DashboardOverviewTremor() {
       const response = await dashboardApi.getStats();
       return response.data;
     },
+    refetchOnMount: 'always', // Always refetch when component mounts
+    staleTime: 0, // Data is immediately stale, ensuring fresh data on navigation
   });
 
   const { data: statementsData } = useQuery({
@@ -154,6 +156,8 @@ export default function DashboardOverviewTremor() {
       const response = await statementApi.list();
       return response.data;
     },
+    refetchOnMount: 'always', // Always refetch when component mounts
+    staleTime: 0, // Data is immediately stale, ensuring fresh data on navigation
   });
 
   const recentStatements = statementsData?.statements?.slice(0, 5) || [];
