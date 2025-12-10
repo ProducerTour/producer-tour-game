@@ -575,7 +575,9 @@ export async function smartMatchWithPlacementTracker(
 
     switch (proType) {
       case 'MLC':
-        shares = calculateMlcShares(revenue, credits, ptPublisherIpis);
+        // Pass line-level originalPublisherIpi for correct split filtering
+        const originalPublisherIpi = (song.metadata as any)?.originalPublisherIpi || null;
+        shares = calculateMlcShares(revenue, credits, ptPublisherIpis, originalPublisherIpi);
         break;
       case 'BMI':
         shares = calculateBmiShares(revenue, credits, ptPublisherIpis);

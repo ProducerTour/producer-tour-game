@@ -57,8 +57,24 @@ function parseBMIQuarter(quarter: string): { period: string; start: Date; end: D
   };
 }
 
-// Parse MLC dates
+// Parse MLC dates - Use distributionDate, NOT usage period range
+// MLC statements span multiple usage periods (historical playback) but represent a single distribution
 function parseMLCPeriod(items: ParsedItem[]): { period: string; start: Date; end: Date } | null {
+  // First, try to get distributionDate - this is what the user expects to see
+  // (e.g., "Aug 2024" for an August distribution, not "May 2023 - May 2025" usage range)
+  for (const item of items) {
+    const distributionDateStr = item.metadata?.distributionDate;
+    if (distributionDateStr) {
+      const distributionDate = new Date(distributionDateStr);
+      if (!isNaN(distributionDate.getTime())) {
+        const period = distributionDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        // Use same date for start/end since it's a single distribution
+        return { period, start: distributionDate, end: distributionDate };
+      }
+    }
+  }
+
+  // Fallback to usage period range if no distribution date (for backwards compatibility)
   let minStart: Date | null = null;
   let maxEnd: Date | null = null;
 
