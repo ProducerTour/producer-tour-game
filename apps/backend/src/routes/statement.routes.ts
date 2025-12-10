@@ -1158,6 +1158,257 @@ router.delete(
 );
 
 /**
+ * PATCH /api/statements/:id
+ * Update statement metadata (displayName, period info) (Admin only)
+ * Used for renaming statements and setting payout period
+ */
+router.patch(
+  '/:id',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { displayName, statementPeriod, periodStart, periodEnd } = req.body;
+
+      const statement = await prisma.statement.findUnique({ where: { id } });
+      if (!statement) {
+        return res.status(404).json({ error: 'Statement not found' });
+      }
+
+      // Build update data - only include fields that were provided
+      const updateData: any = {};
+      if (displayName !== undefined) updateData.displayName = displayName;
+      if (statementPeriod !== undefined) updateData.statementPeriod = statementPeriod;
+      if (periodStart !== undefined) updateData.periodStart = periodStart ? new Date(periodStart) : null;
+      if (periodEnd !== undefined) updateData.periodEnd = periodEnd ? new Date(periodEnd) : null;
+
+      const updatedStatement = await prisma.statement.update({
+        where: { id },
+        data: updateData,
+        include: {
+          _count: { select: { items: true } }
+        }
+      });
+
+      res.json(updatedStatement);
+    } catch (error) {
+      console.error('Update statement error:', error);
+      res.status(500).json({ error: 'Failed to update statement' });
+    }
+  }
+);
+
+/**
+ * POST /api/statements/export/bulk
+ * Export multiple statements as combined CSV breakdown (Admin only)
+ * Used for selecting multiple statements and getting aggregated data
+ */
+router.post(
+  '/export/bulk',
+  authenticate,
+  requireAdmin,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const { statementIds, format = 'csv' } = req.body;
+
+      if (!statementIds || !Array.isArray(statementIds) || statementIds.length === 0) {
+        return res.status(400).json({ error: 'statementIds array is required' });
+      }
+
+      // Fetch all selected statements with items
+      const statements = await prisma.statement.findMany({
+        where: { id: { in: statementIds } },
+        include: {
+          items: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  middleName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { publishedAt: 'desc' }
+      });
+
+      if (statements.length === 0) {
+        return res.status(404).json({ error: 'No statements found' });
+      }
+
+      // Aggregate data across all statements
+      const writerTotals = new Map<string, {
+        userId: string;
+        name: string;
+        email: string;
+        grossRevenue: number;
+        commissionAmount: number;
+        netRevenue: number;
+        songCount: number;
+        statementCount: number;
+        uniqueSongs: Set<string>;
+      }>();
+
+      let grandTotalGross = 0;
+      let grandTotalCommission = 0;
+      let grandTotalNet = 0;
+
+      // Process each statement
+      for (const statement of statements) {
+        const metadata = statement.metadata as any;
+        const parsedItems = metadata?.parsedItems || [];
+        const assignments = metadata?.writerAssignments || {};
+
+        // Get commission rates from existing StatementItems
+        const commissionRates = new Map<string, number>();
+        statement.items.forEach(item => {
+          commissionRates.set(item.userId, Number(item.commissionRate) || 0);
+        });
+
+        // Calculate totals from metadata (full precision)
+        parsedItems.forEach((item: any) => {
+          let assignmentKey = item.workTitle;
+          if (metadata.pro === 'MLC') {
+            const publisherIpi = item.metadata?.originalPublisherIpi || 'none';
+            const dspName = item.metadata?.dspName || 'none';
+            assignmentKey = `${item.workTitle}|${publisherIpi}|${dspName}`;
+          }
+
+          const songAssignments = assignments[assignmentKey] || [];
+
+          songAssignments.forEach((assignment: any) => {
+            const userId = assignment.userId;
+
+            if (!writerTotals.has(userId)) {
+              const userItem = statement.items.find(i => i.userId === userId);
+              writerTotals.set(userId, {
+                userId: userId,
+                name: userItem ? `${userItem.user.firstName || ''} ${userItem.user.middleName ? userItem.user.middleName + ' ' : ''}${userItem.user.lastName || ''}`.trim() || userItem.user.email : 'Unknown',
+                email: userItem?.user.email || '',
+                grossRevenue: 0,
+                commissionAmount: 0,
+                netRevenue: 0,
+                songCount: 0,
+                statementCount: 0,
+                uniqueSongs: new Set()
+              });
+            }
+
+            const writer = writerTotals.get(userId)!;
+            const splitPercentage = parseFloat(assignment.splitPercentage) || 100;
+            const writerRevenue = (parseFloat(item.revenue) * splitPercentage) / 100;
+            const commissionRate = commissionRates.get(userId) || 0;
+            const commission = (writerRevenue * commissionRate) / 100;
+
+            writer.grossRevenue += writerRevenue;
+            writer.commissionAmount += commission;
+            writer.uniqueSongs.add(item.workTitle);
+
+            grandTotalGross += writerRevenue;
+            grandTotalCommission += commission;
+          });
+        });
+
+        // Count statement appearances per writer
+        const writersInStatement = new Set<string>();
+        for (const item of statement.items) {
+          writersInStatement.add(item.userId);
+        }
+        for (const userId of writersInStatement) {
+          if (writerTotals.has(userId)) {
+            writerTotals.get(userId)!.statementCount++;
+          }
+        }
+      }
+
+      // Smart rounding helper
+      const smartRound = (value: number): number => {
+        const rounded2 = Math.round(value * 100) / 100;
+        if (rounded2 === 0 && value > 0) {
+          return Math.round(value * 10000) / 10000;
+        }
+        return rounded2;
+      };
+
+      // Finalize writer totals
+      for (const writer of writerTotals.values()) {
+        writer.songCount = writer.uniqueSongs.size;
+        writer.grossRevenue = smartRound(writer.grossRevenue);
+        writer.commissionAmount = smartRound(writer.commissionAmount);
+        writer.netRevenue = smartRound(writer.grossRevenue - writer.commissionAmount);
+      }
+
+      grandTotalNet = grandTotalGross - grandTotalCommission;
+
+      // Build CSV
+      const headers = [
+        'Writer Name',
+        'Email',
+        'Statements',
+        'Unique Songs',
+        'Gross Revenue',
+        'Commission',
+        'Net Revenue'
+      ];
+
+      const rows: string[] = [];
+      const sortedWriters = Array.from(writerTotals.values()).sort((a, b) => b.netRevenue - a.netRevenue);
+
+      for (const writer of sortedWriters) {
+        rows.push([
+          `"${writer.name.replace(/"/g, '""')}"`,
+          `"${writer.email.replace(/"/g, '""')}"`,
+          writer.statementCount.toString(),
+          writer.songCount.toString(),
+          `$${writer.grossRevenue.toFixed(2)}`,
+          `$${writer.commissionAmount.toFixed(2)}`,
+          `$${writer.netRevenue.toFixed(2)}`
+        ].join(','));
+      }
+
+      // Add empty row and grand totals
+      rows.push('');
+      rows.push([
+        '"GRAND TOTAL"',
+        '',
+        statements.length.toString(),
+        '',
+        `$${smartRound(grandTotalGross).toFixed(2)}`,
+        `$${smartRound(grandTotalCommission).toFixed(2)}`,
+        `$${smartRound(grandTotalNet).toFixed(2)}`
+      ].join(','));
+
+      // Add header info
+      const statementInfo = statements.map(s =>
+        `# - ${s.displayName || s.filename} (${s.proType})`
+      ).join('\n');
+
+      const headerInfo = [
+        `# Bulk Statement Export`,
+        `# Statements: ${statements.length}`,
+        statementInfo,
+        `# Generated: ${formatExportDate(new Date())}`,
+        ``
+      ].join('\n');
+
+      const csv = headerInfo + [headers.join(','), ...rows].join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="bulk-statement-export-${formatExportDate(new Date())}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error('Bulk export error:', error);
+      res.status(500).json({ error: 'Failed to export statements' });
+    }
+  }
+);
+
+/**
  * GET /api/statements/:id/payment-summary
  * Get detailed payment breakdown for a statement (Admin only)
  */

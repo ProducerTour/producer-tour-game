@@ -358,6 +358,7 @@ model Statement {
   id                String          @id @default(cuid())
   proType           ProType
   filename          String
+  displayName       String?         // Custom display name for cleaner organization
   filePath          String?
   status            StatementStatus @default(UPLOADED)
   uploadDate        DateTime        @default(now())

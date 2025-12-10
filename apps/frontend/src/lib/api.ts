@@ -170,6 +170,14 @@ export const statementApi = {
   smartAssign: (id: string) =>
     api.post(`/statements/${id}/smart-assign`),
 
+  // Update statement (displayName, period info)
+  update: (id: string, data: {
+    displayName?: string;
+    statementPeriod?: string;
+    periodStart?: string | null;
+    periodEnd?: string | null;
+  }) => api.patch(`/statements/${id}`, data),
+
   // Export methods
   exportCSV: (id: string) => {
     const token = getAuthToken();
@@ -184,6 +192,24 @@ export const statementApi = {
   exportUnpaidSummary: () => {
     const token = getAuthToken();
     window.open(`${API_URL}/api/statements/export/unpaid-summary?token=${token}`, '_blank');
+  },
+
+  // Bulk export multiple statements
+  exportBulk: async (statementIds: string[]) => {
+    const response = await api.post('/statements/export/bulk', { statementIds }, {
+      responseType: 'blob'
+    });
+    // Download the file
+    const blob = new Blob([response.data], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bulk-statement-export-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    return response;
   },
 
   // Writer methods - access own statement data

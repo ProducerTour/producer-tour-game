@@ -2,7 +2,7 @@ import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { statementApi, payoutApi, sessionPayoutApi } from '../lib/api';
-import { DollarSign, Download, Send, CheckCircle, Clock, XCircle, Filter, Wallet, User, RefreshCw, AlertTriangle, Eye, X, Users, Music, FileCheck, CreditCard, FileText, ExternalLink, Clipboard, Calendar, MapPin, Headphones } from 'lucide-react';
+import { DollarSign, Download, Send, CheckCircle, Clock, XCircle, Filter, Wallet, User, RefreshCw, AlertTriangle, Eye, X, Users, Music, FileCheck, CreditCard, FileText, ExternalLink, Clipboard, Calendar, MapPin, Headphones, Edit2, Check } from 'lucide-react';
 import { format } from 'date-fns';
 
 // Error boundary to catch rendering errors
@@ -62,6 +62,7 @@ class PayoutsErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 interface Statement {
   id: string;
   filename: string;
+  displayName?: string;
   proType: string;
   uploadedAt: string;
   totalRevenue: number;
@@ -70,6 +71,9 @@ interface Statement {
   itemCount: number;
   paymentStatus: 'UNPAID' | 'PENDING' | 'PAID';
   paymentProcessedAt?: string;
+  statementPeriod?: string;
+  periodStart?: string;
+  periodEnd?: string;
   writerCount?: number;
   writerBreakdown?: Array<{
     userId: string;
@@ -128,6 +132,13 @@ const PayoutsTab: React.FC = () => {
   const [selectedStatementForDetails, setSelectedStatementForDetails] = useState<string | null>(null);
   const [selectedSessionPayout, setSelectedSessionPayout] = useState<any>(null);
   const [showSessionPayoutModal, setShowSessionPayoutModal] = useState(false);
+  // Statement rename modal state
+  const [editingStatement, setEditingStatement] = useState<Statement | null>(null);
+  const [newDisplayName, setNewDisplayName] = useState('');
+  const [isRenaming, setIsRenaming] = useState(false);
+  // Multi-select for History table
+  const [selectedHistoryStatements, setSelectedHistoryStatements] = useState<Set<string>>(new Set());
+  const [isBulkExporting, setIsBulkExporting] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch all statements for payment processing
@@ -349,6 +360,70 @@ const PayoutsTab: React.FC = () => {
         await processPaymentMutation.mutateAsync(id);
       }
     }
+  };
+
+  // Statement rename handlers
+  const openRenameModal = (statement: Statement) => {
+    setEditingStatement(statement);
+    setNewDisplayName(statement.displayName || statement.filename);
+  };
+
+  const closeRenameModal = () => {
+    setEditingStatement(null);
+    setNewDisplayName('');
+  };
+
+  const handleRenameStatement = async () => {
+    if (!editingStatement || !newDisplayName.trim()) return;
+
+    setIsRenaming(true);
+    try {
+      await statementApi.update(editingStatement.id, { displayName: newDisplayName.trim() });
+      toast.success('Statement renamed successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin-statements'] });
+      closeRenameModal();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to rename statement');
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  // Multi-select handlers for History table
+  const handleSelectHistoryStatement = (id: string) => {
+    const newSelected = new Set(selectedHistoryStatements);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedHistoryStatements(newSelected);
+  };
+
+  const handleSelectAllHistory = () => {
+    if (selectedHistoryStatements.size === paymentHistory.length) {
+      setSelectedHistoryStatements(new Set());
+    } else {
+      setSelectedHistoryStatements(new Set(paymentHistory.map(s => s.id)));
+    }
+  };
+
+  const handleBulkExport = async () => {
+    if (selectedHistoryStatements.size === 0) return;
+
+    setIsBulkExporting(true);
+    try {
+      await statementApi.exportBulk(Array.from(selectedHistoryStatements));
+      toast.success('Export downloaded successfully');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to export statements');
+    } finally {
+      setIsBulkExporting(false);
+    }
+  };
+
+  const clearHistorySelection = () => {
+    setSelectedHistoryStatements(new Set());
   };
 
   const handleApproveWithdrawal = async (payoutId: string, writerName: string, amount: number) => {
@@ -991,6 +1066,36 @@ const PayoutsTab: React.FC = () => {
           </div>
         </div>
 
+        {/* Bulk Actions Bar - visible when statements are selected */}
+        {selectedHistoryStatements.size > 0 && (
+          <div className="mx-6 mb-4 p-4 bg-theme-primary/10 border border-theme-primary/30 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-white font-medium">
+                {selectedHistoryStatements.size} statement{selectedHistoryStatements.size !== 1 ? 's' : ''} selected
+              </span>
+              <span className="text-theme-foreground-muted text-sm">
+                Total: {formatCurrency(paymentHistory.filter(s => selectedHistoryStatements.has(s.id)).reduce((sum, s) => sum + Number(s.totalNet || 0), 0))}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleBulkExport}
+                disabled={isBulkExporting}
+                className="px-4 py-2 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium text-sm inline-flex items-center gap-2 disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" />
+                {isBulkExporting ? 'Exporting...' : 'Export Combined CSV'}
+              </button>
+              <button
+                onClick={clearHistorySelection}
+                className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm"
+              >
+                Clear Selection
+              </button>
+            </div>
+          </div>
+        )}
+
         {paymentHistory.length === 0 ? (
           <div className="text-center py-12">
             <Clock className="h-12 w-12 mx-auto mb-3 text-white/20" />
@@ -1001,12 +1106,21 @@ const PayoutsTab: React.FC = () => {
             <table className="w-full">
               <thead className="border-b border-theme-border-strong">
                 <tr>
+                  <th className="py-3 px-2 w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedHistoryStatements.size === paymentHistory.length && paymentHistory.length > 0}
+                      onChange={handleSelectAllHistory}
+                      className="w-4 h-4 bg-theme-input border-theme-border-strong text-theme-primary focus:ring-theme-primary focus:ring-offset-0 cursor-pointer"
+                    />
+                  </th>
                   <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Statement</th>
                   <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Type</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Period</th>
                   <th className="text-center text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Status</th>
                   <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Items</th>
                   <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Net Paid</th>
-                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Processed Date</th>
+                  <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Processed</th>
                   <th className="text-center text-xs font-medium text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Actions</th>
                 </tr>
               </thead>
@@ -1014,13 +1128,40 @@ const PayoutsTab: React.FC = () => {
                 {paymentHistory.map(statement => (
                   <tr
                     key={statement.id}
-                    className="border-b border-theme-border hover:bg-black/30 transition-colors"
+                    className={`border-b border-theme-border hover:bg-black/30 transition-colors ${selectedHistoryStatements.has(statement.id) ? 'bg-theme-primary/5' : ''}`}
                   >
-                    <td className="py-3 px-2 text-white font-medium">{statement.filename}</td>
+                    <td className="py-3 px-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedHistoryStatements.has(statement.id)}
+                        onChange={() => handleSelectHistoryStatement(statement.id)}
+                        className="w-4 h-4 bg-theme-input border-theme-border-strong text-theme-primary focus:ring-theme-primary focus:ring-offset-0 cursor-pointer"
+                      />
+                    </td>
+                    <td className="py-3 px-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium">{statement.displayName || statement.filename}</span>
+                        <button
+                          onClick={() => openRenameModal(statement)}
+                          className="p-1 hover:bg-white/10 text-theme-foreground-muted hover:text-white transition-colors"
+                          title="Rename statement"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      {statement.displayName && statement.displayName !== statement.filename && (
+                        <div className="text-xs text-theme-foreground-muted mt-0.5 truncate max-w-[200px]" title={statement.filename}>
+                          {statement.filename}
+                        </div>
+                      )}
+                    </td>
                     <td className="py-3 px-2">
                       <span className="px-2 py-0.5 bg-theme-primary/10 text-theme-primary text-xs font-medium">
                         {statement.proType}
                       </span>
+                    </td>
+                    <td className="py-3 px-2 text-sm text-theme-foreground-secondary">
+                      {statement.statementPeriod || '-'}
                     </td>
                     <td className="py-3 px-2 text-center">
                       {getStatusBadge(statement.paymentStatus)}
@@ -1056,7 +1197,7 @@ const PayoutsTab: React.FC = () => {
               </tbody>
               <tfoot className="border-t border-theme-border-strong bg-black/20">
                 <tr>
-                  <td colSpan={3} className="py-3 px-2 text-white font-medium text-sm uppercase tracking-wider">Total Paid</td>
+                  <td colSpan={5} className="py-3 px-2 text-white font-medium text-sm uppercase tracking-wider">Total Paid</td>
                   <td className="py-3 px-2 text-right text-white font-medium">
                     {paymentHistory.reduce((sum, s) => sum + Number(s.itemCount || 0), 0).toLocaleString()}
                   </td>
@@ -1788,6 +1929,94 @@ const PayoutsTab: React.FC = () => {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rename Statement Modal */}
+      {editingStatement && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl w-full max-w-md overflow-hidden border border-slate-700 shadow-2xl">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Edit2 className="h-5 w-5 text-blue-400" />
+                  Rename Statement
+                </h2>
+                <p className="text-sm text-gray-400 mt-1">
+                  {editingStatement.proType} • {editingStatement.filename}
+                </p>
+              </div>
+              <button
+                onClick={closeRenameModal}
+                className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Display Name
+                </label>
+                <input
+                  type="text"
+                  value={newDisplayName}
+                  onChange={(e) => setNewDisplayName(e.target.value)}
+                  placeholder="e.g., BMI Q1 2025"
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !isRenaming) {
+                      handleRenameStatement();
+                    } else if (e.key === 'Escape') {
+                      closeRenameModal();
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  This name will be shown instead of the filename. Leave empty to show the original filename.
+                </p>
+              </div>
+
+              {/* Current filename reference */}
+              <div className="bg-slate-700/50 rounded-lg p-3">
+                <p className="text-xs text-gray-400 mb-1">Original filename:</p>
+                <p className="text-sm text-gray-300 font-mono truncate">
+                  {editingStatement.filename}
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-slate-900/50 border-t border-slate-700 flex justify-end gap-3">
+              <button
+                onClick={closeRenameModal}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRenameStatement}
+                disabled={isRenaming || !newDisplayName.trim()}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isRenaming ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Save
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
