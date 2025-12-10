@@ -94,9 +94,15 @@ export function RechartsRevenueChart({
 
   // Format month label (2024-01 -> Jan '24)
   const formatMonth = (month: string) => {
+    if (!month || typeof month !== 'string' || !month.includes('-')) {
+      return month || 'N/A';
+    }
     const [year, m] = month.split('-');
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthIndex = parseInt(m, 10) - 1;
+    if (isNaN(monthIndex) || monthIndex < 0 || monthIndex > 11 || !year) {
+      return month;
+    }
     return `${monthNames[monthIndex]} '${year.slice(-2)}`;
   };
 
