@@ -209,6 +209,8 @@ function _DashboardOverview() {
       const response = await statementApi.list();
       return response.data;
     },
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   const recentStatements = statementsData?.statements?.slice(0, 5) || [];
@@ -454,6 +456,8 @@ function StatementsTab() {
       const response = await statementApi.list();
       return response.data;
     },
+    refetchOnMount: 'always', // Always refetch when tab becomes active
+    staleTime: 0, // Data is immediately stale, ensuring fresh data on navigation
   });
 
   const { data: usersData } = useQuery({

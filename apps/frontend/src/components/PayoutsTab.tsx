@@ -138,6 +138,8 @@ const PayoutsTab: React.FC = () => {
       return (response.data.statements || []) as Statement[];
     },
     retry: 2,
+    refetchOnMount: 'always', // Always refetch when tab becomes active
+    staleTime: 0, // Data is immediately stale, ensuring fresh data on navigation
   });
 
   // Process payment mutation
