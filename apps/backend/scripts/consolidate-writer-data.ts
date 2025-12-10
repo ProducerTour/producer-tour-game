@@ -111,16 +111,51 @@ async function consolidateWriterData() {
     }
   });
 
+  // Get all writers for fuzzy matching
+  const allWriters = await prisma.user.findMany({
+    where: { role: 'WRITER' },
+    include: { producer: true }
+  });
+
+  // Helper to normalize names for matching (remove suffixes, trim, lowercase)
+  const normalizeName = (name: string): string => {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/\s+(jr|sr|ii|iii|iv)\.?$/i, '')  // Remove suffixes
+      .replace(/\s+/g, ' ');  // Normalize whitespace
+  };
+
   let linkedCredits = 0;
   for (const credit of unlinkedCredits) {
-    // Try to find matching writer by name
-    const matchedUser = await prisma.user.findFirst({
-      where: {
-        firstName: { equals: credit.firstName, mode: 'insensitive' },
-        lastName: { equals: credit.lastName, mode: 'insensitive' },
-        role: 'writer' as any
-      },
-      include: { producer: true }
+    // Normalize credit name
+    const creditFirstNorm = normalizeName(credit.firstName);
+    const creditLastNorm = normalizeName(credit.lastName);
+
+    // Try to find matching writer with fuzzy matching
+    const matchedUser = allWriters.find(user => {
+      const userFirstNorm = normalizeName(user.firstName || '');
+      const userLastNorm = normalizeName(user.lastName || '');
+
+      // Exact match after normalization
+      if (userFirstNorm === creditFirstNorm && userLastNorm === creditLastNorm) {
+        return true;
+      }
+
+      // First name matches and last name starts with or contains credit last name
+      if (userFirstNorm === creditFirstNorm &&
+          (userLastNorm.startsWith(creditLastNorm) || creditLastNorm.startsWith(userLastNorm))) {
+        return true;
+      }
+
+      // Full name contains check (handles "Alberto Delgado" matching "Alberto Delgado Jr")
+      const userFull = `${userFirstNorm} ${userLastNorm}`;
+      const creditFull = `${creditFirstNorm} ${creditLastNorm}`;
+      if (userFull.includes(creditFull) || creditFull.includes(userFull)) {
+        return true;
+      }
+
+      return false;
     });
 
     if (matchedUser) {
