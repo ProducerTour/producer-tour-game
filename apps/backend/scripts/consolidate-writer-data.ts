@@ -25,7 +25,7 @@ async function consolidateWriterData() {
   console.log('└─────────────────────────────────────────────────────────────────────────┘\n');
 
   const writers = await prisma.user.findMany({
-    where: { role: 'WRITER' },
+    where: { role: 'writer' as any },  // Prisma enum expects lowercase string in DB
     include: { producer: true }
   });
 
@@ -118,7 +118,7 @@ async function consolidateWriterData() {
       where: {
         firstName: { equals: credit.firstName, mode: 'insensitive' },
         lastName: { equals: credit.lastName, mode: 'insensitive' },
-        role: 'WRITER'
+        role: 'writer' as any
       },
       include: { producer: true }
     });

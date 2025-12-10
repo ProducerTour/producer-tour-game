@@ -50,7 +50,7 @@ async function diagnoseWriterMatching() {
   console.log('└─────────────────────────────────────────────────────────────────────────┘');
 
   const writers = await prisma.user.findMany({
-    where: { role: 'writer' },
+    where: { role: 'writer' as any },  // Cast to handle Prisma enum
     include: {
       producer: {
         select: {
