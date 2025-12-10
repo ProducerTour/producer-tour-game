@@ -53,6 +53,25 @@ class EmailService {
     this.initialize();
   }
 
+  /**
+   * Check if system emails are enabled via admin settings
+   * Returns true if emails should be sent, false if disabled
+   */
+  private async areSystemEmailsEnabled(): Promise<boolean> {
+    try {
+      const settings = await prisma.systemSettings.findFirst();
+      // If no settings exist yet, default to enabled
+      if (!settings) {
+        return true;
+      }
+      return settings.emailsEnabled;
+    } catch (error) {
+      console.error('Error checking email settings:', error);
+      // Default to enabled if we can't check settings
+      return true;
+    }
+  }
+
   private initialize() {
     const {
       SMTP_HOST,
@@ -120,6 +139,13 @@ class EmailService {
   ): Promise<boolean> {
     if (!this.isConfigured || !this.transporter) {
       console.warn('Email service not configured');
+      return false;
+    }
+
+    // Check if system emails are disabled by admin
+    const emailsEnabled = await this.areSystemEmailsEnabled();
+    if (!emailsEnabled) {
+      console.log(`📧 System emails DISABLED - skipping email to ${recipientEmail}`);
       return false;
     }
 

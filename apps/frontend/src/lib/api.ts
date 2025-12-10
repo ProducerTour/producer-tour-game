@@ -494,6 +494,7 @@ export const systemSettingsApi = {
   // Update system settings
   updateSettings: (settings: {
     minimumWithdrawalAmount?: number;
+    emailsEnabled?: boolean;
   }) => api.patch('/settings/system', settings),
 };
 

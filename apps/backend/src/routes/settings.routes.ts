@@ -140,14 +140,16 @@ router.get('/system', async (req: AuthRequest, res: Response) => {
       // Create default settings if none exist
       settings = await prisma.systemSettings.create({
         data: {
-          minimumWithdrawalAmount: 50.00
+          minimumWithdrawalAmount: 50.00,
+          emailsEnabled: true
         }
       });
       console.log('✅ Created default settings:', settings);
     }
 
     const response = {
-      minimumWithdrawalAmount: Number(settings.minimumWithdrawalAmount)
+      minimumWithdrawalAmount: Number(settings.minimumWithdrawalAmount),
+      emailsEnabled: settings.emailsEnabled
     };
     console.log('📤 Returning to client:', response);
 
@@ -164,8 +166,8 @@ router.get('/system', async (req: AuthRequest, res: Response) => {
  */
 router.patch('/system', async (req: AuthRequest, res: Response) => {
   try {
-    const { minimumWithdrawalAmount } = req.body;
-    console.log('📝 Received update request:', { minimumWithdrawalAmount });
+    const { minimumWithdrawalAmount, emailsEnabled } = req.body;
+    console.log('📝 Received update request:', { minimumWithdrawalAmount, emailsEnabled });
 
     // Validation
     if (minimumWithdrawalAmount !== undefined) {
@@ -185,7 +187,8 @@ router.patch('/system', async (req: AuthRequest, res: Response) => {
       console.log('🆕 Creating new settings record');
       settings = await prisma.systemSettings.create({
         data: {
-          minimumWithdrawalAmount: minimumWithdrawalAmount || 50.00
+          minimumWithdrawalAmount: minimumWithdrawalAmount || 50.00,
+          emailsEnabled: emailsEnabled !== undefined ? emailsEnabled : true
         }
       });
     } else {
@@ -195,17 +198,26 @@ router.patch('/system', async (req: AuthRequest, res: Response) => {
         data: {
           minimumWithdrawalAmount: minimumWithdrawalAmount !== undefined
             ? minimumWithdrawalAmount
-            : settings.minimumWithdrawalAmount
+            : settings.minimumWithdrawalAmount,
+          emailsEnabled: emailsEnabled !== undefined
+            ? emailsEnabled
+            : settings.emailsEnabled
         }
       });
     }
 
     console.log('✅ Settings after save:', settings);
 
+    // Log email toggle changes for audit trail
+    if (emailsEnabled !== undefined) {
+      console.log(`📧 System emails ${emailsEnabled ? 'ENABLED' : 'DISABLED'} by admin ${req.user?.email}`);
+    }
+
     res.json({
       message: 'System settings updated successfully',
       settings: {
-        minimumWithdrawalAmount: Number(settings.minimumWithdrawalAmount)
+        minimumWithdrawalAmount: Number(settings.minimumWithdrawalAmount),
+        emailsEnabled: settings.emailsEnabled
       }
     });
   } catch (error) {

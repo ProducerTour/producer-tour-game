@@ -892,6 +892,7 @@ model PayoutRequest {
 model SystemSettings {
   id                      String   @id @default(cuid())
   minimumWithdrawalAmount Decimal  @default(50) @db.Decimal(12, 2) // Minimum withdrawal amount in dollars
+  emailsEnabled           Boolean  @default(true) // Master toggle for all system emails (admin can disable for testing)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

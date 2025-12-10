@@ -98,6 +98,7 @@ export default function SettingsPage() {
   // System settings state
   const [systemSettings, setSystemSettings] = useState({
     minimumWithdrawalAmount: 50,
+    emailsEnabled: true,
   });
 
   // Profile photo state
@@ -238,6 +239,7 @@ export default function SettingsPage() {
       console.log('📥 System settings data loaded:', systemSettingsData);
       setSystemSettings({
         minimumWithdrawalAmount: (systemSettingsData as any).minimumWithdrawalAmount || 50,
+        emailsEnabled: (systemSettingsData as any).emailsEnabled ?? true,
       });
     }
   }, [systemSettingsData]);
@@ -1927,6 +1929,40 @@ export default function SettingsPage() {
                       <p className="text-xs text-theme-foreground-muted mt-2">
                         Current: ${systemSettings.minimumWithdrawalAmount.toFixed(2)} • Recommended: $50.00 - $100.00
                       </p>
+                    </div>
+
+                    {/* System Emails Toggle */}
+                    <div className="bg-theme-card-hover border border-theme-border p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium text-theme-foreground-secondary mb-1">
+                            System Emails
+                          </label>
+                          <p className="text-sm text-theme-foreground-muted">
+                            Enable or disable all system emails (payment notifications, welcome emails, etc.). Useful when testing.
+                          </p>
+                        </div>
+                        <div className="ml-4 flex items-center gap-3">
+                          <Switch
+                            checked={systemSettings.emailsEnabled}
+                            onCheckedChange={(checked) => {
+                              setSystemSettings({ ...systemSettings, emailsEnabled: checked });
+                              updateSystemSettingsMutation.mutate({ emailsEnabled: checked });
+                            }}
+                          />
+                          <span className={`text-sm font-medium ${systemSettings.emailsEnabled ? 'text-green-500' : 'text-red-500'}`}>
+                            {systemSettings.emailsEnabled ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </div>
+                      </div>
+                      {!systemSettings.emailsEnabled && (
+                        <div className="mt-4 bg-amber-500/10 border border-amber-500/30 p-3 rounded flex items-start gap-2">
+                          <Info className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                          <p className="text-sm text-amber-500">
+                            System emails are currently disabled. No emails will be sent to users until this is re-enabled.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Info Box */}
