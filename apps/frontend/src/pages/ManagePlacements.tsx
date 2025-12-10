@@ -236,7 +236,7 @@ export default function ManagePlacements() {
         isPrimary: Boolean(c.isPrimary),
         notes: c.notes || '',
         userId: c.userId || undefined,
-        publisherIpiNumber: c.publisherIpiNumber || '',
+        publisherIpiNumber: c.publisherIpiNumber || undefined,  // Use undefined consistently, not empty string
         isExternalWriter: Boolean(c.isExternalWriter),
       }));
       setEditCollaborators(collabs);

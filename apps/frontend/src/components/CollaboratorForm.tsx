@@ -78,7 +78,21 @@ export function CollaboratorForm({ collaborators, onChange, currentUserName }: C
   // Update collaborator
   const updateCollaborator = (index: number, field: keyof Collaborator, value: any) => {
     const updated = [...collaborators];
-    updated[index] = { ...updated[index], [field]: value };
+    const current = updated[index];
+
+    // If changing firstName or lastName, clear the userId link since
+    // the credit is no longer associated with that user
+    if ((field === 'firstName' || field === 'lastName') && current.userId) {
+      updated[index] = {
+        ...current,
+        [field]: value,
+        userId: undefined,  // Clear user link when name changes
+        publisherIpiNumber: undefined,  // Clear publisher IPI too
+      };
+      console.log(`[CollaboratorForm] Name changed, clearing userId link for ${current.firstName} ${current.lastName}`);
+    } else {
+      updated[index] = { ...current, [field]: value };
+    }
     onChange(updated);
   };
 
