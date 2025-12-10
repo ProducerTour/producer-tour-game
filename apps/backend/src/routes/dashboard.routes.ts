@@ -264,16 +264,16 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
       }),
 
       // Revenue stats: gross, net, and commissions (PAID statements only)
-      prisma.statementItem.aggregate({
+      // Use statement-level totals for consistency with Statement History display
+      prisma.statement.aggregate({
         where: {
-          statement: {
-            paymentStatus: 'PAID'
-          }
+          paymentStatus: 'PAID',
+          status: 'PUBLISHED'
         },
         _sum: {
-          revenue: true,  // Gross revenue (before commission)
-          netRevenue: true,  // Net revenue (after commission)
-          commissionAmount: true  // Total commissions
+          totalRevenue: true,      // Gross revenue (before commission)
+          totalNet: true,          // Net revenue (after commission)
+          totalCommission: true    // Total commissions
         }
       }),
 
@@ -435,8 +435,8 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
 
     // Calculate month-over-month percentage changes
     const revenueComparison = calculatePercentageChange(
-      revenueStats._sum.revenue || 0,
-      prevRevenueStats._sum.revenue || 0,
+      Number(revenueStats._sum.totalRevenue || 0),
+      Number(prevRevenueStats._sum.revenue || 0),
       true // isRevenue
     );
 
@@ -468,12 +468,12 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
       processedStatementsChange: statementsComparison.percentageChange,
       processedStatementsTrend: statementsComparison.trend,
 
-      // Revenue breakdown: gross, net, and commissions
-      totalRevenue: revenueStats._sum.revenue || 0,  // Gross
+      // Revenue breakdown: gross, net, and commissions (from statement totals)
+      totalRevenue: Number(revenueStats._sum.totalRevenue || 0),  // Gross
       totalRevenueChange: revenueComparison.percentageChange,
       totalRevenueTrend: revenueComparison.trend,
-      totalNet: revenueStats._sum.netRevenue || 0,  // Net (what writers receive)
-      totalCommission: revenueStats._sum.commissionAmount || 0,  // Total commissions
+      totalNet: Number(revenueStats._sum.totalNet || 0),  // Net (what writers receive)
+      totalCommission: Number(revenueStats._sum.totalCommission || 0),  // Total commissions
 
       uniqueWorks: uniqueWorks.length,
       uniqueWorksChange: worksComparison.percentageChange,
