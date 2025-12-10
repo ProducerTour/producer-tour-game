@@ -899,33 +899,40 @@ router.post(
         });
       });
 
-      // Use transaction with batched createMany to prevent connection pool exhaustion
-      // Process in batches of 500 to handle very large statements
-      const BATCH_SIZE = 500;
-      await prisma.$transaction(async (tx) => {
-        // Insert items in batches
-        for (let i = 0; i < itemsToCreate.length; i += BATCH_SIZE) {
-          const batch = itemsToCreate.slice(i, i + BATCH_SIZE);
-          await tx.statementItem.createMany({
-            data: batch,
-          });
-        }
+      // Process batches separately to avoid connection timeouts on large statements
+      // Each batch gets its own short transaction instead of one long-running transaction
+      const BATCH_SIZE = 200; // Smaller batches for reliability
+      const totalBatches = Math.ceil(itemsToCreate.length / BATCH_SIZE);
 
-        // Update statement status
-        await tx.statement.update({
-          where: { id },
-          data: {
-            status: 'PUBLISHED',
-            paymentStatus: 'UNPAID', // Mark as unpaid until admin processes payment
-            publishedAt: new Date(),
-            publishedById: req.user!.id,
-            totalCommission: totalCommission,
-            totalNet: totalNet,
-          },
+      console.log(`Publishing statement: ${itemsToCreate.length} items in ${totalBatches} batches`);
+
+      // Insert items in separate batches (not wrapped in a single transaction)
+      for (let i = 0; i < itemsToCreate.length; i += BATCH_SIZE) {
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const batch = itemsToCreate.slice(i, i + BATCH_SIZE);
+
+        // Each batch is its own small transaction
+        await prisma.statementItem.createMany({
+          data: batch,
         });
-      }, {
-        timeout: 120000, // 2 minute timeout for large statements
+
+        console.log(`Batch ${batchNum}/${totalBatches} complete (${batch.length} items)`);
+      }
+
+      // Update statement status after all items are inserted
+      await prisma.statement.update({
+        where: { id },
+        data: {
+          status: 'PUBLISHED',
+          paymentStatus: 'UNPAID', // Mark as unpaid until admin processes payment
+          publishedAt: new Date(),
+          publishedById: req.user!.id,
+          totalCommission: totalCommission,
+          totalNet: totalNet,
+        },
       });
+
+      console.log(`Statement ${id} published successfully`);
 
       const updatedStatement = await prisma.statement.findUnique({
         where: { id },
