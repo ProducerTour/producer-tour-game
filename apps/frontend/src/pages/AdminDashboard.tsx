@@ -51,14 +51,14 @@ import {
 
 type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'bmi-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'billing-hub' | 'recording-sessions' | 'active-placements' | 'pending-placements' | 'manage-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config' | 'tour-billing' | 'shop' | 'contacts' | 'insights' | 'productivity';
 
-// Smart currency formatter for charts: 2 decimals normally, 4 decimals for micro-amounts
+// Smart currency formatter for charts: 3 decimals for precision
 const formatChartCurrency = (value: any): string => {
   const num = Number(value);
-  const rounded2 = Math.round(num * 100) / 100;
-  if (rounded2 === 0 && num > 0) {
+  const rounded3 = Math.round(num * 1000) / 1000;
+  if (rounded3 === 0 && num > 0) {
     return `$${(Math.round(num * 10000) / 10000).toFixed(4)}`;
   }
-  return `$${rounded2.toFixed(2)}`;
+  return `$${rounded3.toFixed(3)}`;
 };
 
 // Loading skeleton for lazy-loaded tabs
@@ -910,13 +910,13 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
   }, [displayRows, searchQuery, statusFilter, sortBy, smartAssignResults, isMLC]);
 
   const formatCurrency = (amount: number): string => {
-    // Smart rounding: 2 decimals normally, 4 decimals for micro-amounts
-    const rounded2 = Math.round(amount * 100) / 100;
-    if (rounded2 === 0 && amount > 0) {
+    // Use 3 decimals for precision in calculations
+    const rounded3 = Math.round(amount * 1000) / 1000;
+    if (rounded3 === 0 && amount > 0) {
       // Micro-amount: use 4 decimals
       return (Math.round(amount * 10000) / 10000).toFixed(4);
     }
-    return rounded2.toFixed(2);
+    return rounded3.toFixed(3);
   };
 
   const handleAssignAll = () => {
