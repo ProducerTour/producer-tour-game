@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { emailService } from '../services/email.service';
 import { pushService } from '../services/push.service';
 import { notificationService } from '../services/notification.service';
+import { registerUserConnection, unregisterUserConnection } from '../services/productivity.service';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -95,13 +96,22 @@ export function initializeSocket(httpServer: HttpServer): Server {
     console.log(`User connected: ${userId} (socket: ${socket.id})`);
 
     // Track online status
-    if (!onlineUsers.has(userId)) {
+    const isNewConnection = !onlineUsers.has(userId);
+    if (isNewConnection) {
       onlineUsers.set(userId, new Set());
     }
     onlineUsers.get(userId)!.add(socket.id);
 
+    // Register connection time for productivity widget
+    if (isNewConnection) {
+      registerUserConnection(userId);
+    }
+
     // Broadcast online status
     io?.emit('user:online', { userId });
+
+    // Broadcast updated online count for productivity widgets
+    io?.emit('users:online-update', { count: onlineUsers.size });
 
     // Join user's conversation rooms
     joinUserConversations(socket, userId);
@@ -367,10 +377,15 @@ export function initializeSocket(httpServer: HttpServer): Server {
         userSockets.delete(socket.id);
         if (userSockets.size === 0) {
           onlineUsers.delete(userId);
+          // Unregister from productivity tracking
+          unregisterUserConnection(userId);
           // Broadcast offline status
           io?.emit('user:offline', { userId });
         }
       }
+
+      // Broadcast updated online count for productivity widgets
+      io?.emit('users:online-update', { count: onlineUsers.size });
     });
   });
 

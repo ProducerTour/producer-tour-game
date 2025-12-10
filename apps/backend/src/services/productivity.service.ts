@@ -28,10 +28,14 @@ export interface WidgetConfigInput {
  * Get user's current dashboard layout
  */
 export const getUserLayout = async (userId: string): Promise<LayoutItem[]> => {
+  console.log(`[Productivity] getUserLayout called for user: ${userId}`);
+
   const widgets = await prisma.dashboardWidget.findMany({
     where: { userId, isVisible: true },
     orderBy: { displayOrder: 'asc' },
   });
+
+  console.log(`[Productivity] Found ${widgets.length} visible widgets for user ${userId}`);
 
   return widgets.map(w => ({
     i: w.id,
@@ -51,14 +55,21 @@ export const saveUserLayout = async (
   userId: string,
   widgets: LayoutItem[]
 ): Promise<LayoutItem[]> => {
+  console.log(`[Productivity] saveUserLayout called for user: ${userId} with ${widgets.length} widgets`);
+
   // Delete widgets that are no longer in the layout
   const widgetTypes = widgets.map(w => w.widgetType);
-  await prisma.dashboardWidget.deleteMany({
-    where: {
-      userId,
-      widgetType: { notIn: widgetTypes },
-    },
-  });
+
+  // Only delete if we have widgets to save (avoid deleting all when empty array passed)
+  if (widgetTypes.length > 0) {
+    const deleted = await prisma.dashboardWidget.deleteMany({
+      where: {
+        userId,
+        widgetType: { notIn: widgetTypes },
+      },
+    });
+    console.log(`[Productivity] Deleted ${deleted.count} widgets not in new layout`);
+  }
 
   // Upsert each widget position
   const upsertPromises = widgets.map((widget, index) =>
@@ -75,6 +86,7 @@ export const saveUserLayout = async (
         gridH: widget.h,
         displayOrder: index,
         config: widget.config || {},
+        isVisible: true,
       },
       update: {
         gridX: widget.x,
@@ -83,12 +95,16 @@ export const saveUserLayout = async (
         gridH: widget.h,
         displayOrder: index,
         config: widget.config,
+        isVisible: true, // Ensure widget is visible when saved
       },
     })
   );
 
   await Promise.all(upsertPromises);
-  return getUserLayout(userId);
+
+  const savedLayout = await getUserLayout(userId);
+  console.log(`[Productivity] Saved and returning ${savedLayout.length} widgets`);
+  return savedLayout;
 };
 
 /**
@@ -561,18 +577,34 @@ export const getRecentActivity = async (options: {
 // ONLINE USERS (uses socket.io tracking)
 // ========================================
 
-// This will be populated by socket.io events
-let onlineUsersMap: Map<string, { socketId: string; connectedAt: Date }> = new Map();
+// Import from socket module to get actual online users
+import { getOnlineUsers as getSocketOnlineUsers } from '../socket';
 
-export const setOnlineUsersMap = (map: Map<string, { socketId: string; connectedAt: Date }>) => {
-  onlineUsersMap = map;
+// Track connection times for users
+const userConnectionTimes: Map<string, Date> = new Map();
+
+/**
+ * Register a user as connected (called from socket on connection)
+ */
+export const registerUserConnection = (userId: string) => {
+  if (!userConnectionTimes.has(userId)) {
+    userConnectionTimes.set(userId, new Date());
+  }
+};
+
+/**
+ * Unregister a user connection (called from socket on disconnect when no sockets remain)
+ */
+export const unregisterUserConnection = (userId: string) => {
+  userConnectionTimes.delete(userId);
 };
 
 /**
  * Get online users with their details
  */
 export const getOnlineUsersWithDetails = async () => {
-  const onlineUserIds = Array.from(onlineUsersMap.keys());
+  // Get online user IDs from socket module
+  const onlineUserIds = getSocketOnlineUsers();
 
   if (onlineUserIds.length === 0) return [];
 
@@ -590,7 +622,7 @@ export const getOnlineUsersWithDetails = async () => {
 
   return users.map(user => ({
     ...user,
-    connectedAt: onlineUsersMap.get(user.id)?.connectedAt,
+    connectedAt: userConnectionTimes.get(user.id) || new Date(),
   }));
 };
 
@@ -598,7 +630,7 @@ export const getOnlineUsersWithDetails = async () => {
  * Get online user count
  */
 export const getOnlineUserCount = () => {
-  return onlineUsersMap.size;
+  return getSocketOnlineUsers().length;
 };
 
 // ========================================
