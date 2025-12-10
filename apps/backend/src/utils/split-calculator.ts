@@ -166,14 +166,14 @@ export function calculateWriterShares(
     totalDistributed = totalDistributed.plus(revenue);
 
     shares.push({
-      userId: credit.userId!,
+      userId: credit.userId || '',  // May be empty for unlinked credits
       creditId: credit.id,
       firstName: credit.firstName,
       lastName: credit.lastName,
-      email: credit.user!.email,
-      writerIpiNumber: credit.ipiNumber || credit.user!.writerIpiNumber,
-      publisherIpiNumber: credit.publisherIpiNumber || credit.user!.publisherIpiNumber,
-      proAffiliation: credit.user!.producer?.proAffiliation || credit.pro || null,
+      email: credit.user?.email || '',  // Safe access for unlinked credits
+      writerIpiNumber: credit.ipiNumber || credit.user?.writerIpiNumber || null,
+      publisherIpiNumber: credit.publisherIpiNumber || credit.user?.publisherIpiNumber || null,
+      proAffiliation: credit.pro || credit.user?.writerProAffiliation || credit.user?.producer?.proAffiliation || null,
       originalSplitPercent: originalSplit.toNumber(),
       relativeSplitPercent: Number(relativeSplit.toFixed(6)),  // 6 decimal precision
       revenueAmount: Number(revenue.toFixed(6))                // 6 decimal precision
