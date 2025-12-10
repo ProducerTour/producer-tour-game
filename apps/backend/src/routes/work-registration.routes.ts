@@ -187,7 +187,7 @@ router.post('/:id/approve', async (req: AuthRequest, res: Response) => {
           where: {
             firstName: { equals: credit.firstName, mode: 'insensitive' },
             lastName: { equals: credit.lastName, mode: 'insensitive' },
-            role: 'writer'
+            role: 'WRITER'
           },
           select: {
             id: true,
