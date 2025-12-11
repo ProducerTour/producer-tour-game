@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, ExternalLink, Music2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Pause, ExternalLink, Music2 } from 'lucide-react';
 import { Container, Section } from './ui';
 import { ScrollReveal } from './animations';
 
@@ -95,6 +95,51 @@ export function HitSongsCarousel() {
   const [songs, setSongs] = useState<HitSong[]>(hitSongsData);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [, setIsLoading] = useState(true);
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Toggle play/pause for a song preview
+  const togglePlay = useCallback((index: number, previewUrl?: string) => {
+    if (!previewUrl) return;
+
+    if (playingIndex === index) {
+      // Pause current song
+      audioRef.current?.pause();
+      setPlayingIndex(null);
+    } else {
+      // Play new song
+      if (audioRef.current) {
+        audioRef.current.src = previewUrl;
+        audioRef.current.play().catch((err) => {
+          console.error('Failed to play preview:', err);
+          setPlayingIndex(null);
+        });
+      }
+      setPlayingIndex(index);
+    }
+  }, [playingIndex]);
+
+  // Handle audio ended and cleanup on unmount
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleEnded = () => setPlayingIndex(null);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('ended', handleEnded);
+      audio.pause();
+    };
+  }, []);
+
+  // Stop audio when navigating to a different slide
+  useEffect(() => {
+    if (playingIndex !== null && playingIndex !== selectedIndex) {
+      audioRef.current?.pause();
+      setPlayingIndex(null);
+    }
+  }, [selectedIndex, playingIndex]);
 
   // Fetch songs from Spotify API
   useEffect(() => {
@@ -219,9 +264,22 @@ export function HitSongsCarousel() {
 
                           {/* Play button overlay */}
                           {song.previewUrl && (
-                            <button className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity">
-                              <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                <Play className="w-8 h-8 text-white ml-1" />
+                            <button
+                              onClick={() => togglePlay(index, song.previewUrl)}
+                              className={`absolute inset-0 flex items-center justify-center bg-black/20 transition-opacity ${
+                                playingIndex === index ? 'opacity-100' : 'opacity-0 hover:opacity-100'
+                              }`}
+                            >
+                              <div className={`w-16 h-16 rounded-full backdrop-blur-sm flex items-center justify-center transition-all ${
+                                playingIndex === index
+                                  ? 'bg-green-500/80 scale-110'
+                                  : 'bg-white/20 hover:bg-white/30'
+                              }`}>
+                                {playingIndex === index ? (
+                                  <Pause className="w-8 h-8 text-white" />
+                                ) : (
+                                  <Play className="w-8 h-8 text-white ml-1" />
+                                )}
                               </div>
                             </button>
                           )}
@@ -368,6 +426,9 @@ export function HitSongsCarousel() {
           </div>
         </ScrollReveal>
       </Container>
+
+      {/* Hidden audio element for previews */}
+      <audio ref={audioRef} className="hidden" />
     </Section>
   );
 }
