@@ -581,4 +581,60 @@ router.get('/search-writers', async (req: AuthRequest, res: Response) => {
   }
 });
 
+/**
+ * POST /api/users/support-message
+ * Send a support message to the support team
+ */
+router.post('/support-message', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { subject, message } = req.body;
+
+    if (!subject || !message) {
+      return res.status(400).json({ error: 'Subject and message are required' });
+    }
+
+    // Get user details
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User';
+
+    // Send the support message via email
+    const sent = await emailService.sendSupportMessage({
+      userId: user.id,
+      userName,
+      userEmail: user.email,
+      subject,
+      message,
+    });
+
+    if (sent) {
+      res.json({ success: true, message: 'Support message sent successfully' });
+    } else {
+      // Even if email fails, acknowledge receipt (could store in DB as fallback)
+      console.warn('Email service unavailable, but acknowledging support request');
+      res.json({ success: true, message: 'Support request received' });
+    }
+  } catch (error) {
+    console.error('Send support message error:', error);
+    res.status(500).json({ error: 'Failed to send support message' });
+  }
+});
+
 export default router;

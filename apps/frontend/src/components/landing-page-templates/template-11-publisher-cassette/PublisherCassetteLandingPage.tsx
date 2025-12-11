@@ -611,8 +611,7 @@ function HeroSection() {
             transition={{ delay: BEAT * 8, duration: 0.6 }}
             className="mt-8 max-w-xl text-lg md:text-xl text-white/50 font-light leading-relaxed"
           >
-            We track, collect, and distribute your publishing royalties. Transparent.
-            Monthly. No surprises.
+            Your music earns. We make sure you do too. Full transparency, quarterly payouts, zero hassle.
           </motion.p>
 
           {/* CTA with magnetic effect */}
@@ -785,7 +784,7 @@ function ServicesSection() {
 
   const services = [
     { icon: BarChart3, title: 'Real-Time Royalty Tracking', description: 'Track revenue by song, territory, and PRO—all in one dashboard.' },
-    { icon: Wallet, title: 'Automated Payouts', description: 'Get paid monthly once you hit $50. Direct deposits with complete transparency.' },
+    { icon: Wallet, title: 'Automated Payouts', description: 'Get paid quarterly. Direct deposits with complete transparency.' },
     { icon: FileText, title: 'Statement Processing', description: 'We parse complex PRO statements. You see clean data, not chaos.' },
     { icon: Users2, title: 'Smart Collaboration Splits', description: 'Add collaborators, set percentages. Everyone gets paid automatically.' },
     { icon: Globe2, title: 'Global Territory Insights', description: 'Visual heatmaps show where your music earns worldwide.' },

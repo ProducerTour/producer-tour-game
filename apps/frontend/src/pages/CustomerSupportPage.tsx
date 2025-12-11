@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import Sidebar from '../components/Sidebar';
 import ImpersonationBanner from '../components/ImpersonationBanner';
-import { Send, MessageCircle, Clock, CheckCircle, HelpCircle } from 'lucide-react';
+import { userApi } from '../lib/api';
+import { Send, MessageCircle, Clock, CheckCircle, HelpCircle, Loader2 } from 'lucide-react';
 
 interface SupportMessage {
   id: string;
@@ -26,7 +28,34 @@ export default function CustomerSupportPage() {
   const [newMessage, setNewMessage] = useState('');
   const [newSubject, setNewSubject] = useState('');
   const [showNewTicketForm, setShowNewTicketForm] = useState(false);
+  const [messageSent, setMessageSent] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Support message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: (data: { subject: string; message: string }) => userApi.sendSupportMessage(data),
+    onSuccess: () => {
+      toast.success('Message sent! We\'ll get back to you within 24 hours.');
+      setNewSubject('');
+      setNewMessage('');
+      setShowNewTicketForm(false);
+      setMessageSent(true);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to send message. Please try again.');
+    },
+  });
+
+  const handleSendMessage = () => {
+    if (!newSubject.trim() || !newMessage.trim()) {
+      toast.error('Please fill in both subject and message');
+      return;
+    }
+    sendMessageMutation.mutate({
+      subject: newSubject.trim(),
+      message: newMessage.trim(),
+    });
+  };
 
   // Track sidebar collapse state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -177,16 +206,27 @@ export default function CustomerSupportPage() {
                           setNewSubject('');
                           setNewMessage('');
                         }}
-                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                        disabled={sendMessageMutation.isPending}
+                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                       >
                         Cancel
                       </button>
                       <button
-                        disabled={!newSubject.trim() || !newMessage.trim()}
+                        onClick={handleSendMessage}
+                        disabled={!newSubject.trim() || !newMessage.trim() || sendMessageMutation.isPending}
                         className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                       >
-                        <Send className="w-4 h-4" />
-                        Send Message
+                        {sendMessageMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            Send Message
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -237,6 +277,25 @@ export default function CustomerSupportPage() {
                       )}
                     </div>
                   ))}
+                </div>
+              ) : messageSent ? (
+                <div className="p-12 text-center">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-500" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Message Sent!</h3>
+                  <p className="text-gray-500 mb-6">
+                    We've received your message and will respond within 24 hours.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setMessageSent(false);
+                      setShowNewTicketForm(true);
+                    }}
+                    className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Send Another Message
+                  </button>
                 </div>
               ) : (
                 <div className="p-12 text-center">

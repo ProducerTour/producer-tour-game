@@ -238,6 +238,10 @@ export const userApi = {
   // Search for writers by name, IPI, or email - used for collaborator linking
   searchWriters: (query: string) =>
     api.get('/users/search-writers', { params: { q: query } }),
+
+  // Send a support message to the support team
+  sendSupportMessage: (data: { subject: string; message: string }) =>
+    api.post('/users/support-message', data),
 };
 
 export const opportunityApi = {

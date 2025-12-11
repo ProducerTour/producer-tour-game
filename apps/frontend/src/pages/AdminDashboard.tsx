@@ -3,10 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { dashboardApi, statementApi, userApi, authApi } from '../lib/api';
+import { dashboardApi, statementApi, userApi, authApi, applicationApi } from '../lib/api';
 import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Users, BarChart3, CheckCircle2, Music, DollarSign, FileText, TrendingUp, Sparkles, Loader2, AlertTriangle, X, Brain, Maximize2, Minimize2, MoreVertical, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Users, BarChart3, CheckCircle2, Music, DollarSign, FileText, TrendingUp, Sparkles, Loader2, AlertTriangle, X, Brain, Maximize2, Minimize2, MoreVertical, Eye, Pencil, Trash2, ClipboardList, Mail, Phone, Clock, CheckCircle, XCircle, MessageSquare, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { DashboardHeader } from '../components/DashboardHeader';
 import ToolsHub from '../components/ToolsHub';
@@ -1521,6 +1521,440 @@ function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
 }
 
 function UsersTab() {
+  const [activeSubTab, setActiveSubTab] = useState<'users' | 'applications'>('users');
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-light text-theme-foreground mb-2">User Management</h2>
+        <p className="text-theme-foreground-muted">Manage writers, admins, and platform users</p>
+      </div>
+
+      {/* Sub-tabs */}
+      <div className="flex gap-1 p-1 bg-theme-background-30 border border-theme-border w-fit">
+        <button
+          onClick={() => setActiveSubTab('users')}
+          className={`px-4 py-2 text-sm font-medium transition-all ${
+            activeSubTab === 'users'
+              ? 'bg-theme-card text-theme-foreground shadow-sm border border-theme-border'
+              : 'text-theme-foreground-muted hover:text-theme-foreground'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Users
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveSubTab('applications')}
+          className={`px-4 py-2 text-sm font-medium transition-all ${
+            activeSubTab === 'applications'
+              ? 'bg-theme-card text-theme-foreground shadow-sm border border-theme-border'
+              : 'text-theme-foreground-muted hover:text-theme-foreground'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <ClipboardList className="w-4 h-4" />
+            Applications
+          </span>
+        </button>
+      </div>
+
+      {activeSubTab === 'users' ? (
+        <UsersListSection />
+      ) : (
+        <ApplicationsSection />
+      )}
+    </div>
+  );
+}
+
+// Applications Section - displays and manages applications
+function ApplicationsSection() {
+  const queryClient = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [tierFilter, setTierFilter] = useState<string>('all');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingNotes, setEditingNotes] = useState<{ id: string; notes: string } | null>(null);
+
+  const { data: applicationsData, isLoading } = useQuery({
+    queryKey: ['admin-applications', statusFilter, tierFilter],
+    queryFn: async () => {
+      const params: any = {};
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (tierFilter !== 'all') params.tier = tierFilter;
+      const response = await applicationApi.list(params);
+      return response.data;
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => applicationApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-applications'] });
+      toast.success('Application updated');
+      setEditingNotes(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to update application');
+    },
+  });
+
+  const handleStatusChange = (id: string, status: string) => {
+    updateMutation.mutate({ id, data: { status } });
+  };
+
+  const handleSaveNotes = () => {
+    if (editingNotes) {
+      updateMutation.mutate({ id: editingNotes.id, data: { internalNotes: editingNotes.notes } });
+    }
+  };
+
+  const getTierBadge = (tier: string) => {
+    const styles: Record<string, string> = {
+      PRIORITY_A: 'bg-green-500/20 text-green-400 border-green-500/30',
+      PRIORITY_B: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      PRIORITY_C: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      PRIORITY_D: 'bg-theme-background-30 text-theme-foreground-muted border-theme-border',
+    };
+    const labels: Record<string, string> = {
+      PRIORITY_A: 'A',
+      PRIORITY_B: 'B',
+      PRIORITY_C: 'C',
+      PRIORITY_D: 'D',
+    };
+    return (
+      <span className={`px-2 py-0.5 text-xs font-bold border ${styles[tier] || styles.PRIORITY_D}`}>
+        {labels[tier] || tier}
+      </span>
+    );
+  };
+
+  const getStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      PENDING: 'bg-yellow-500/20 text-yellow-400',
+      APPROVED: 'bg-green-500/20 text-green-400',
+      REJECTED: 'bg-red-500/20 text-red-400',
+      CONTACTED: 'bg-blue-500/20 text-blue-400',
+    };
+    return (
+      <span className={`px-2 py-1 text-xs font-medium ${styles[status] || 'bg-theme-background-30 text-theme-foreground-muted'}`}>
+        {status}
+      </span>
+    );
+  };
+
+  const applications = applicationsData?.applications || [];
+
+  // Calculate stats
+  const stats = {
+    total: applications.length,
+    pending: applications.filter((a: any) => a.status === 'PENDING').length,
+    priorityA: applications.filter((a: any) => a.tier === 'PRIORITY_A').length,
+    avgScore: applications.length > 0
+      ? Math.round(applications.reduce((sum: number, a: any) => sum + (a.score || 0), 0) / applications.length)
+      : 0,
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-theme-card border border-theme-border p-4">
+          <div className="text-2xl font-bold text-theme-foreground">{stats.total}</div>
+          <div className="text-xs text-theme-foreground-muted uppercase tracking-wider">Total Applications</div>
+        </div>
+        <div className="bg-theme-card border border-theme-border p-4">
+          <div className="text-2xl font-bold text-yellow-400">{stats.pending}</div>
+          <div className="text-xs text-theme-foreground-muted uppercase tracking-wider">Pending Review</div>
+        </div>
+        <div className="bg-theme-card border border-theme-border p-4">
+          <div className="text-2xl font-bold text-green-400">{stats.priorityA}</div>
+          <div className="text-xs text-theme-foreground-muted uppercase tracking-wider">Priority A</div>
+        </div>
+        <div className="bg-theme-card border border-theme-border p-4">
+          <div className="text-2xl font-bold text-theme-primary">{stats.avgScore}</div>
+          <div className="text-xs text-theme-foreground-muted uppercase tracking-wider">Avg Score</div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4">
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-3 py-2 bg-theme-input border border-theme-border text-theme-foreground text-sm focus:outline-none focus:border-theme-input-focus"
+        >
+          <option value="all">All Statuses</option>
+          <option value="PENDING">Pending</option>
+          <option value="CONTACTED">Contacted</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+        <select
+          value={tierFilter}
+          onChange={(e) => setTierFilter(e.target.value)}
+          className="px-3 py-2 bg-theme-input border border-theme-border text-theme-foreground text-sm focus:outline-none focus:border-theme-input-focus"
+        >
+          <option value="all">All Tiers</option>
+          <option value="PRIORITY_A">Priority A (80+)</option>
+          <option value="PRIORITY_B">Priority B (60-79)</option>
+          <option value="PRIORITY_C">Priority C (40-59)</option>
+          <option value="PRIORITY_D">Priority D (0-39)</option>
+        </select>
+      </div>
+
+      {/* Applications List */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
+        </div>
+      ) : applications.length > 0 ? (
+        <div className="space-y-3">
+          {applications.map((app: any) => (
+            <div
+              key={app.id}
+              className="bg-theme-card border border-theme-border overflow-hidden"
+            >
+              {/* Header Row */}
+              <div
+                className="flex items-center justify-between p-4 cursor-pointer hover:bg-theme-background-20 transition-colors"
+                onClick={() => setExpandedId(expandedId === app.id ? null : app.id)}
+              >
+                <div className="flex items-center gap-4">
+                  {/* Score Circle */}
+                  <div className="w-12 h-12 rounded-full bg-theme-background-30 border border-theme-border flex items-center justify-center">
+                    <span className="text-lg font-bold text-theme-foreground">{app.score || 0}</span>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-theme-foreground">{app.name}</span>
+                      {getTierBadge(app.tier)}
+                      {getStatusBadge(app.status)}
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-theme-foreground-muted mt-1">
+                      <span className="flex items-center gap-1">
+                        <Mail className="w-3 h-3" />
+                        {app.email}
+                      </span>
+                      {app.phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          {app.phone}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(app.submittedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Quick Actions */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="px-3 py-1.5 text-xs font-medium bg-theme-background-30 border border-theme-border text-theme-foreground-secondary hover:bg-theme-background-20 transition-colors"
+                      >
+                        Set Status
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'PENDING')}>
+                        <Clock className="w-4 h-4 mr-2 text-yellow-400" />
+                        Pending
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'CONTACTED')}>
+                        <MessageSquare className="w-4 h-4 mr-2 text-blue-400" />
+                        Contacted
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'APPROVED')}>
+                        <CheckCircle className="w-4 h-4 mr-2 text-green-400" />
+                        Approved
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'REJECTED')}>
+                        <XCircle className="w-4 h-4 mr-2 text-red-400" />
+                        Rejected
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {expandedId === app.id ? (
+                    <ChevronUp className="w-5 h-5 text-theme-foreground-muted" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-theme-foreground-muted" />
+                  )}
+                </div>
+              </div>
+
+              {/* Expanded Details */}
+              {expandedId === app.id && (
+                <div className="border-t border-theme-border p-4 bg-theme-background-20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Music Info */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Music Portfolio</h4>
+                      <div className="space-y-2">
+                        {app.primaryLink && (
+                          <a
+                            href={app.primaryLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm text-theme-primary hover:underline"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Primary Link
+                          </a>
+                        )}
+                        {app.otherLinks && (
+                          <div className="text-sm text-theme-foreground-secondary">
+                            <span className="text-theme-foreground-muted">Other Links:</span> {app.otherLinks}
+                          </div>
+                        )}
+                        {app.pro && (
+                          <div className="text-sm">
+                            <span className="text-theme-foreground-muted">PRO:</span>{' '}
+                            <span className="text-theme-foreground-secondary">{app.pro}</span>
+                          </div>
+                        )}
+                        {app.distributor && (
+                          <div className="text-sm">
+                            <span className="text-theme-foreground-muted">Distributor:</span>{' '}
+                            <span className="text-theme-foreground-secondary">{app.distributor}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Catalog Info */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Catalog Details</h4>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-theme-foreground-muted">Catalog Size:</span>{' '}
+                          <span className="text-theme-foreground-secondary">{app.catalogSize}</span>
+                        </div>
+                        <div>
+                          <span className="text-theme-foreground-muted">Placements:</span>{' '}
+                          <span className="text-theme-foreground-secondary">{app.placements}</span>
+                        </div>
+                        <div>
+                          <span className="text-theme-foreground-muted">Royalties:</span>{' '}
+                          <span className="text-theme-foreground-secondary">{app.royalties}</span>
+                        </div>
+                        <div>
+                          <span className="text-theme-foreground-muted">Engagement:</span>{' '}
+                          <span className="text-theme-foreground-secondary">{app.engagement}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Readiness & Needs */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Readiness</h4>
+                      {app.readiness && Array.isArray(app.readiness) && app.readiness.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {app.readiness.map((item: string, idx: number) => (
+                            <span key={idx} className="px-2 py-0.5 text-xs bg-theme-primary-15 text-theme-primary">
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-theme-foreground-muted">None specified</span>
+                      )}
+
+                      <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mt-4">Needs</h4>
+                      {app.needs && Array.isArray(app.needs) && app.needs.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {app.needs.map((item: string, idx: number) => (
+                            <span key={idx} className="px-2 py-0.5 text-xs bg-theme-background-30 text-theme-foreground-secondary">
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-theme-foreground-muted">None specified</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Notes Section */}
+                  {app.notes && (
+                    <div className="mt-4 pt-4 border-t border-theme-border">
+                      <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">Applicant Notes</h4>
+                      <p className="text-sm text-theme-foreground-secondary">{app.notes}</p>
+                    </div>
+                  )}
+
+                  {/* Internal Notes */}
+                  <div className="mt-4 pt-4 border-t border-theme-border">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Internal Notes</h4>
+                      {editingNotes?.id !== app.id && (
+                        <button
+                          onClick={() => setEditingNotes({ id: app.id, notes: app.internalNotes || '' })}
+                          className="text-xs text-theme-primary hover:underline"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
+                    {editingNotes && editingNotes.id === app.id ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={editingNotes.notes}
+                          onChange={(e) => setEditingNotes({ id: editingNotes.id, notes: e.target.value })}
+                          className="w-full px-3 py-2 bg-theme-input border border-theme-border text-theme-foreground text-sm focus:outline-none focus:border-theme-input-focus resize-none"
+                          rows={3}
+                          placeholder="Add internal notes about this application..."
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleSaveNotes}
+                            disabled={updateMutation.isPending}
+                            className="px-3 py-1.5 text-xs font-medium bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover disabled:opacity-50 transition-colors"
+                          >
+                            {updateMutation.isPending ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            onClick={() => setEditingNotes(null)}
+                            className="px-3 py-1.5 text-xs font-medium bg-theme-background-30 text-theme-foreground-secondary hover:bg-theme-background-20 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-theme-foreground-secondary">
+                        {app.internalNotes || <span className="text-theme-foreground-muted italic">No internal notes</span>}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-12 text-theme-foreground-muted">
+          <ClipboardList className="w-12 h-12 mb-3 text-theme-primary/30" />
+          <p className="text-lg">No applications found</p>
+          <p className="text-sm">Applications will appear here when submitted</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Users List Section - extracted from original UsersTab
+function UsersListSection() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { startImpersonation } = useAuthStore();
@@ -1638,12 +2072,6 @@ function UsersTab() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-light text-theme-foreground mb-2">User Management</h2>
-        <p className="text-theme-foreground-muted">Manage writers, admins, and platform users</p>
-      </div>
-
       <div className="flex justify-between items-center">
         <div className="text-theme-foreground-muted text-sm">
           {usersData?.users?.length || 0} users total
@@ -1656,7 +2084,7 @@ function UsersTab() {
         </button>
       </div>
 
-      {/* Users Table - Redesigned with condensed columns and dropdown actions */}
+      {/* Users Table */}
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
           <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />

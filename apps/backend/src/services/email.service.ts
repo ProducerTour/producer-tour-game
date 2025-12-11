@@ -2172,6 +2172,100 @@ User ID: ${data.reporterId}
 
     return sent;
   }
+
+  /**
+   * Send support message to support team
+   */
+  async sendSupportMessage(data: {
+    userId: string;
+    userName: string;
+    userEmail: string;
+    subject: string;
+    message: string;
+  }): Promise<boolean> {
+    if (!this.isConfigured || !this.transporter) {
+      console.warn('Email service not configured - skipping support message');
+      return false;
+    }
+
+    const supportEmail = 'support@producertour.com';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://producertour.com';
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: supportEmail,
+      replyTo: data.userEmail,
+      subject: `[Support Request] ${data.subject}`,
+      html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 20px; border-radius: 10px 10px 0 0; }
+    .content { background: #f9fafb; padding: 20px; border-radius: 0 0 10px 10px; }
+    .detail-row { margin: 10px 0; padding: 10px; background: white; border-radius: 6px; border-left: 4px solid #3b82f6; }
+    .label { font-weight: 600; color: #6b7280; }
+    .message-box { background: white; padding: 20px; border-radius: 8px; margin: 15px 0; border: 1px solid #e5e7eb; }
+    a { color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📬 New Support Request</h1>
+  </div>
+  <div class="content">
+    <div class="detail-row">
+      <span class="label">Subject:</span> ${data.subject}
+    </div>
+    <div class="detail-row">
+      <span class="label">From:</span> ${data.userName} (<a href="mailto:${data.userEmail}">${data.userEmail}</a>)
+    </div>
+    <div class="detail-row">
+      <span class="label">User ID:</span> ${data.userId}
+    </div>
+    <div class="detail-row">
+      <span class="label">Admin Link:</span> <a href="${frontendUrl}/admin/users">View in Admin</a>
+    </div>
+    <h3>Message:</h3>
+    <div class="message-box">
+      ${data.message.replace(/\n/g, '<br>')}
+    </div>
+    <p style="color: #6b7280; font-size: 13px;">
+      Reply directly to this email to respond to the user.
+    </p>
+  </div>
+</body>
+</html>
+      `,
+      text: `
+Support Request
+
+Subject: ${data.subject}
+From: ${data.userName} (${data.userEmail})
+User ID: ${data.userId}
+
+Message:
+${data.message}
+
+---
+Reply directly to this email to respond to the user.
+      `.trim(),
+      envelope: {
+        from: this.fromEmail,
+        to: supportEmail,
+      },
+    };
+
+    const sent = await this.sendEmailWithRetry(mailOptions, supportEmail);
+
+    if (sent) {
+      console.log(`✅ Support message sent from ${data.userEmail}`);
+    }
+
+    return sent;
+  }
 }
 
 // Export singleton instance

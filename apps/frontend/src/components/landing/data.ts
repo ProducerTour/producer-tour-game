@@ -102,7 +102,7 @@ export const featuresData: Feature[] = [
   {
     icon: '💰',
     title: 'Automated Payouts',
-    description: 'Get paid monthly once you hit $50. Direct deposits to your bank with complete transparency on every dollar.'
+    description: 'Get paid quarterly. Direct deposits with complete transparency.'
   },
   {
     icon: '📋',
