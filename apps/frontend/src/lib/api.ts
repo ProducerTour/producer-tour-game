@@ -302,6 +302,10 @@ export const placementApi = {
   // Check if a song title already exists in Manage Placements
   checkDuplicate: (title: string) =>
     api.get('/placements/check-duplicate', { params: { title } }),
+
+  // Get writer's own placements with revenue data
+  getMyCredits: () =>
+    api.get('/placements/my-credits'),
 };
 
 export const creditApi = {

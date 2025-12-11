@@ -35,11 +35,10 @@ export const writerNavigation: NavSection[] = [
     items: [
       { id: 'tour-profile', label: 'My Tour Profile', icon: 'plane', path: '/my-profile' },
       { id: 'overview', label: 'Dashboard', icon: 'dashboard' },
-      { id: 'songs', label: 'My Songs', icon: 'music' },
+      { id: 'placements', label: 'My Placements', icon: 'music' },
       { id: 'statements', label: 'My Statements', icon: 'chart' },
       { id: 'documents', label: 'Documents', icon: 'file' },
       { id: 'billing', label: 'Billing & Payments', icon: 'credit-card' },
-      { id: 'placements', label: 'My Placements', icon: 'music' },
       { id: 'tour-miles', label: 'Tour Miles', icon: 'target', path: '/tour-miles' },
       { id: 'profile', label: 'User Info', icon: 'user' },
       { id: 'tools', label: 'Tools Hub', icon: 'tools' },

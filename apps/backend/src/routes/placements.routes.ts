@@ -227,6 +227,179 @@ router.post('/backfill-credits', async (req: AuthRequest, res: Response) => {
 });
 
 /**
+ * GET /api/placements/my-credits
+ * Get all placements where the user has a credit (is listed as a writer/collaborator)
+ * Includes revenue data from StatementItems
+ */
+router.get('/my-credits', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Find all placement credits for this user
+    const userCredits = await prisma.placementCredit.findMany({
+      where: { userId },
+      include: {
+        placement: {
+          include: {
+            credits: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+                splitPercentage: true,
+                userId: true,
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Get unique placement IDs
+    const placementIds = [...new Set(userCredits.map(c => c.placementId))];
+
+    // Get revenue data for these placements from StatementItems
+    // Group by workTitle to match placement titles
+    const revenueByPlacement: Record<string, {
+      totalRevenue: number;
+      netRevenue: number;
+      itemCount: number;
+      territories: Record<string, { revenue: number; count: number }>;
+      periods: Record<string, { revenue: number; net: number }>;
+    }> = {};
+
+    // Get the user's statement items
+    const statementItems = await prisma.statementItem.findMany({
+      where: { userId },
+      include: {
+        statement: {
+          select: {
+            periodStart: true,
+            periodEnd: true,
+          }
+        }
+      }
+    });
+
+    // Aggregate by workTitle
+    for (const item of statementItems) {
+      const title = item.workTitle?.toLowerCase().trim() || '';
+      if (!revenueByPlacement[title]) {
+        revenueByPlacement[title] = {
+          totalRevenue: 0,
+          netRevenue: 0,
+          itemCount: 0,
+          territories: {},
+          periods: {},
+        };
+      }
+
+      const revenue = Number(item.revenue) || 0;
+      const net = Number(item.netRevenue) || 0;
+
+      revenueByPlacement[title].totalRevenue += revenue;
+      revenueByPlacement[title].netRevenue += net;
+      revenueByPlacement[title].itemCount += 1;
+
+      // Track by territory
+      const territory = item.territory || 'Unknown';
+      if (!revenueByPlacement[title].territories[territory]) {
+        revenueByPlacement[title].territories[territory] = { revenue: 0, count: 0 };
+      }
+      revenueByPlacement[title].territories[territory].revenue += revenue;
+      revenueByPlacement[title].territories[territory].count += 1;
+
+      // Track by period
+      if (item.statement?.periodStart) {
+        const period = item.statement.periodStart.toISOString().slice(0, 7); // YYYY-MM
+        if (!revenueByPlacement[title].periods[period]) {
+          revenueByPlacement[title].periods[period] = { revenue: 0, net: 0 };
+        }
+        revenueByPlacement[title].periods[period].revenue += revenue;
+        revenueByPlacement[title].periods[period].net += net;
+      }
+    }
+
+    // Build enriched placement data
+    const enrichedPlacements = userCredits.map(credit => {
+      const placement = credit.placement;
+      const titleKey = placement.title?.toLowerCase().trim() || '';
+      const revenueData = revenueByPlacement[titleKey] || {
+        totalRevenue: 0,
+        netRevenue: 0,
+        itemCount: 0,
+        territories: {},
+        periods: {},
+      };
+
+      return {
+        id: placement.id,
+        title: placement.title,
+        artist: placement.artist,
+        albumName: placement.albumName,
+        albumArtUrl: placement.albumArtUrl,
+        releaseDate: placement.releaseDate,
+        status: placement.status,
+        isrc: placement.isrc,
+        genre: placement.genre,
+        label: placement.label,
+        // User's credit info
+        userCredit: {
+          role: credit.role,
+          splitPercentage: Number(credit.splitPercentage),
+        },
+        // All credits on this placement
+        credits: placement.credits,
+        // Revenue data
+        revenue: {
+          total: revenueData.totalRevenue,
+          net: revenueData.netRevenue,
+          userShare: revenueData.netRevenue, // Already their share from StatementItems
+          itemCount: revenueData.itemCount,
+        },
+        // Territory breakdown (top 5)
+        topTerritories: Object.entries(revenueData.territories)
+          .map(([territory, data]) => ({ territory, ...data }))
+          .sort((a, b) => b.revenue - a.revenue)
+          .slice(0, 5),
+        // Period breakdown (recent 6)
+        recentPeriods: Object.entries(revenueData.periods)
+          .map(([period, data]) => ({ period, ...data }))
+          .sort((a, b) => b.period.localeCompare(a.period))
+          .slice(0, 6),
+      };
+    });
+
+    // Remove duplicates (same placement appearing multiple times)
+    const uniquePlacements = enrichedPlacements.filter((p, index, self) =>
+      index === self.findIndex(t => t.id === p.id)
+    );
+
+    // Sort by total revenue descending
+    uniquePlacements.sort((a, b) => b.revenue.total - a.revenue.total);
+
+    res.json({
+      success: true,
+      count: uniquePlacements.length,
+      placements: uniquePlacements,
+      summary: {
+        totalPlacements: uniquePlacements.length,
+        totalRevenue: uniquePlacements.reduce((sum, p) => sum + p.revenue.total, 0),
+        totalNet: uniquePlacements.reduce((sum, p) => sum + p.revenue.net, 0),
+      }
+    });
+  } catch (error) {
+    console.error('Get my credits error:', error);
+    res.status(500).json({ error: 'Failed to fetch placements' });
+  }
+});
+
+/**
  * GET /api/placements
  * Get all placements for the authenticated user
  */
