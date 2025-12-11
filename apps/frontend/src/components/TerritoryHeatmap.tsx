@@ -1,15 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ComposableMap,
   Geographies,
   Geography,
   ZoomableGroup
 } from 'react-simple-maps';
-import { scaleLinear } from 'd3-scale';
+import { scaleLinear, scaleLog, scaleSqrt } from 'd3-scale';
 import { aggregateTerritoryData } from '../utils/territory-mapper';
 
 // Using Natural Earth data with ISO codes - better for territory matching
 const geoUrl = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
+
+type ScaleType = 'linear' | 'log' | 'sqrt';
 
 interface TerritoryHeatmapProps {
   territories: Array<{
@@ -20,11 +22,52 @@ interface TerritoryHeatmapProps {
   isAdmin?: boolean;
 }
 
+// Gradient colors that work on both light and dark themes
+const GRADIENT_COLORS = {
+  low: '#3b82f6',      // Blue
+  mid: '#8b5cf6',      // Purple
+  high: '#ec4899',     // Pink
+  max: '#f97316',      // Orange
+};
+
 export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
   territories,
 }) => {
   const [tooltipContent, setTooltipContent] = useState<string>('');
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [scaleType, setScaleType] = useState<ScaleType>('sqrt');
+  const [isDarkTheme, setIsDarkTheme] = useState(true);
+
+  // Detect theme from document
+  useEffect(() => {
+    const checkTheme = () => {
+      const html = document.documentElement;
+      const theme = html.getAttribute('data-theme') || '';
+      // Light themes: default, light, minimal
+      // Dark themes: cassette, dark, etc.
+      const lightThemes = ['default', 'light', 'minimal'];
+      setIsDarkTheme(!lightThemes.includes(theme));
+    };
+
+    checkTheme();
+
+    // Watch for theme changes
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Theme-aware colors
+  const themeColors = useMemo(() => ({
+    empty: isDarkTheme ? '#1e293b' : '#e2e8f0',        // slate-800 / slate-200
+    stroke: isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+    emptyHover: isDarkTheme ? '#334155' : '#cbd5e1',   // slate-700 / slate-300
+    highlight: '#facc15',                               // yellow-400 (works on both)
+  }), [isDarkTheme]);
 
   // Aggregate territory data into country codes
   const countryData = useMemo(() => {
@@ -36,23 +79,108 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
     return result;
   }, [territories]);
 
-  // Calculate color scale based on revenue
-  const maxRevenue = useMemo(() => {
-    return Math.max(...Object.values(countryData).map(d => d.revenue), 1);
+  // Calculate min and max revenue (excluding zeros for log scale)
+  const { minRevenue, maxRevenue } = useMemo(() => {
+    const revenues = Object.values(countryData).map(d => d.revenue).filter(r => r > 0);
+    return {
+      minRevenue: Math.min(...revenues, 1),
+      maxRevenue: Math.max(...revenues, 1)
+    };
   }, [countryData]);
 
+  // Create color scale based on selected type
   const colorScale = useMemo(() => {
-    return scaleLinear<string>()
-      .domain([0, maxRevenue * 0.3, maxRevenue * 0.6, maxRevenue])
-      .range(['#e2e8f0', '#3b82f6', '#10b981', '#22c55e']);
-  }, [maxRevenue]);
+    const colorRange = [GRADIENT_COLORS.low, GRADIENT_COLORS.mid, GRADIENT_COLORS.high, GRADIENT_COLORS.max];
+
+    // Ensure we have a valid domain for log scale
+    const safeMin = Math.max(minRevenue, 0.01);
+    const safeMax = Math.max(maxRevenue, safeMin * 10);
+
+    switch (scaleType) {
+      case 'log':
+        return scaleLog<string>()
+          .domain([safeMin, safeMax ** 0.33, safeMax ** 0.67, safeMax])
+          .range(colorRange)
+          .clamp(true);
+      case 'sqrt':
+        return scaleSqrt<string>()
+          .domain([0, safeMax * 0.25, safeMax * 0.5, safeMax])
+          .range(colorRange);
+      case 'linear':
+      default:
+        return scaleLinear<string>()
+          .domain([0, safeMax * 0.33, safeMax * 0.67, safeMax])
+          .range(colorRange);
+    }
+  }, [scaleType, minRevenue, maxRevenue]);
+
+  // Generate gradient stops for the legend
+  const gradientStops = useMemo(() => {
+    const stops = [];
+    const steps = 20;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      let value: number;
+
+      switch (scaleType) {
+        case 'log':
+          value = Math.exp(Math.log(Math.max(minRevenue, 0.01)) + t * (Math.log(maxRevenue) - Math.log(Math.max(minRevenue, 0.01))));
+          break;
+        case 'sqrt':
+          value = (t * Math.sqrt(maxRevenue)) ** 2;
+          break;
+        default:
+          value = t * maxRevenue;
+      }
+
+      stops.push({
+        offset: `${t * 100}%`,
+        color: colorScale(Math.max(value, 0.01))
+      });
+    }
+    return stops;
+  }, [scaleType, minRevenue, maxRevenue, colorScale]);
 
   const formatCurrency = (value: number): string => {
+    if (value >= 1000) {
+      return `$${(value / 1000).toFixed(1)}K`;
+    }
     return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const formatCurrencyFull = (value: number): string => {
+    return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  // Get fill color for a country
+  const getFillColor = (countryCode: string): string => {
+    const data = countryData[countryCode];
+    if (!data || data.revenue === 0) {
+      return themeColors.empty;
+    }
+    return colorScale(Math.max(data.revenue, 0.01));
   };
 
   return (
     <div className="relative w-full h-full">
+      {/* Scale Type Selector */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-1 bg-theme-card/95 backdrop-blur-sm px-2 py-1.5 rounded-lg border border-theme-border shadow-sm">
+        <span className="text-[10px] text-theme-foreground-muted mr-1 uppercase tracking-wide">Scale:</span>
+        {(['linear', 'sqrt', 'log'] as ScaleType[]).map((type) => (
+          <button
+            key={type}
+            onClick={() => setScaleType(type)}
+            className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
+              scaleType === type
+                ? 'bg-theme-primary text-theme-primary-foreground'
+                : 'text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-background-20'
+            }`}
+          >
+            {type === 'sqrt' ? '√' : type === 'log' ? 'log' : 'lin'}
+          </button>
+        ))}
+      </div>
+
       {/* Map Container */}
       <ComposableMap
         projection="geoMercator"
@@ -71,19 +199,19 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
                 // Use ISO_A2 from properties instead of numeric id
                 const countryCode = geo.properties?.ISO_A2 || geo.properties?.iso_a2 || geo.id;
                 const data = countryData[countryCode];
-                const fillColor = data ? colorScale(data.revenue) : '#e2e8f0';
+                const fillColor = getFillColor(countryCode);
 
                 return (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
                     fill={fillColor}
-                    stroke="#cbd5e1"
+                    stroke={themeColors.stroke}
                     strokeWidth={0.5}
                     style={{
                       default: { outline: 'none' },
                       hover: {
-                        fill: data ? '#facc15' : '#d1d5db',
+                        fill: data ? themeColors.highlight : themeColors.emptyHover,
                         outline: 'none',
                         cursor: data ? 'pointer' : 'default'
                       },
@@ -97,7 +225,7 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
                           y: rect.top
                         });
                         setTooltipContent(
-                          `${data.name}\nRevenue: ${formatCurrency(data.revenue)}\nItems: ${data.count}`
+                          `${data.name}\nRevenue: ${formatCurrencyFull(data.revenue)}\nItems: ${data.count.toLocaleString()}`
                         );
                       }
                     }}
@@ -115,7 +243,7 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
       {/* Tooltip */}
       {tooltipContent && (
         <div
-          className="fixed z-50 pointer-events-none bg-white text-gray-900 text-sm px-3 py-2 rounded-lg shadow-lg border border-gray-200"
+          className="fixed z-50 pointer-events-none bg-theme-card text-theme-foreground text-sm px-3 py-2 rounded-lg shadow-lg border border-theme-border"
           style={{
             left: `${tooltipPosition.x}px`,
             top: `${tooltipPosition.y - 80}px`,
@@ -127,24 +255,41 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
         </div>
       )}
 
-      {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm px-4 py-3 rounded-xl text-xs text-gray-600 border border-gray-200 shadow-sm">
-        <div className="font-semibold text-gray-900 mb-2">Revenue Scale</div>
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-6 h-4 rounded border border-gray-200" style={{ backgroundColor: '#e2e8f0' }}></div>
+      {/* Gradient Legend */}
+      <div className="absolute bottom-4 left-4 bg-theme-card/95 backdrop-blur-sm px-4 py-3 rounded-xl border border-theme-border shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-semibold text-theme-foreground text-xs">Revenue</span>
+          <span className="text-[10px] text-theme-foreground-muted capitalize">{scaleType} scale</span>
+        </div>
+
+        {/* Gradient Bar */}
+        <div className="relative h-3 w-40 rounded-full overflow-hidden mb-2 border border-theme-border/30">
+          <svg width="100%" height="100%">
+            <defs>
+              <linearGradient id="heatmapGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                {gradientStops.map((stop, i) => (
+                  <stop key={i} offset={stop.offset} stopColor={stop.color} />
+                ))}
+              </linearGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#heatmapGradient)" />
+          </svg>
+        </div>
+
+        {/* Scale Labels */}
+        <div className="flex justify-between text-[10px] text-theme-foreground-muted">
           <span>$0</span>
-        </div>
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-6 h-4 rounded" style={{ backgroundColor: '#3b82f6' }}></div>
-          <span>{formatCurrency(maxRevenue * 0.3)}</span>
-        </div>
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-6 h-4 rounded" style={{ backgroundColor: '#10b981' }}></div>
-          <span>{formatCurrency(maxRevenue * 0.6)}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-4 rounded" style={{ backgroundColor: '#22c55e' }}></div>
+          <span>{formatCurrency(maxRevenue * 0.5)}</span>
           <span>{formatCurrency(maxRevenue)}</span>
+        </div>
+
+        {/* No Data Indicator */}
+        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-theme-border/50">
+          <div
+            className="w-4 h-3 rounded border border-theme-border/30"
+            style={{ backgroundColor: themeColors.empty }}
+          />
+          <span className="text-[10px] text-theme-foreground-muted">No data</span>
         </div>
       </div>
     </div>
