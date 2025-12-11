@@ -35,6 +35,7 @@ import { useCartStore } from '../../../store/cart.store';
 import { faqData, processSteps } from '../../landing/data';
 import ptLogo from '../../../assets/images/logos/whitetransparentpt.png';
 import { InstallAppButton } from '../../mobile/InstallAppButton';
+import { RoyaltyGlobe } from '../../landing/RoyaltyGlobe';
 
 // ============================================
 // ANIMATION CONSTANTS - "Beat" timing
@@ -678,19 +679,12 @@ function TickerSection() {
 }
 
 // ============================================
-// ABOUT SECTION - Split with counter stats
+// ABOUT SECTION - Split with animated visual
 // ============================================
 
 function AboutSection() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
-
-  const stats = [
-    { value: '$5M+', label: 'Collected' },
-    { value: '1,200+', label: 'Songwriters' },
-    { value: '45+', label: 'Countries' },
-    { value: '100%', label: 'Transparency' },
-  ];
 
   return (
     <Section id="about" className="py-32">
@@ -711,7 +705,7 @@ function AboutSection() {
               variants={fadeUpItem}
               className="text-4xl md:text-5xl lg:text-6xl font-normal text-white leading-[1.1]"
             >
-              Publishing administration,{' '}
+              Global publishing administration,{' '}
               <YellowText>reimagined.</YellowText>
             </motion.h2>
 
@@ -732,41 +726,26 @@ function AboutSection() {
             </motion.div>
           </motion.div>
 
-          {/* Right - Stats in a single card */}
+          {/* Right - 3D Globe showing global royalty collection */}
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            whileHover={{ y: -8, transition: { duration: 0.3 } }}
-            className="relative group cursor-pointer"
+            transition={{ duration: 1, ease: "easeOut" }}
+            className="relative h-[400px] lg:h-[500px]"
           >
-            {/* Main card */}
-            <div className="bg-[#19181a] border border-white/10 group-hover:border-[#f0e226]/30 p-10 md:p-12 relative overflow-hidden transition-colors duration-300">
-              {/* Yellow accent line at top */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-[#f0e226]" />
-
-              {/* Stats grid */}
-              <div className="grid grid-cols-2 gap-x-12 gap-y-10">
-                {stats.map((stat, i) => (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.2 + i * 0.1, duration: 0.5 }}
-                    className="relative"
-                  >
-                    <div className="text-4xl md:text-5xl lg:text-6xl font-light text-[#f0e226] tracking-tight">
-                      {stat.value}
-                    </div>
-                    <div className="mt-2 text-sm uppercase tracking-[0.2em] text-white/50 group-hover:text-white/70 transition-colors">
-                      {stat.label}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+            <RoyaltyGlobe />
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.8, duration: 0.5 }}
+              className="absolute bottom-4 left-0 right-0 text-center"
+            >
+              <p className="text-sm uppercase tracking-[0.3em] text-white/40">
+                Collecting royalties from <span className="text-[#f0e226]">45+ countries</span>
+              </p>
+            </motion.div>
           </motion.div>
         </div>
       </div>
