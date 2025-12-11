@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Header } from '../components/landing/Header';
+import { applicationApi } from '../lib/api';
 
 interface FormData {
   // Personal Information
@@ -113,8 +114,47 @@ export default function ApplicationPage() {
     setSubmitMessage({type: '', text: ''});
 
     try {
-      // TODO: Replace with actual API endpoint
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+      // Map form data to backend schema
+      const primaryLink = formData.spotifyLink || formData.appleMusicLink || formData.soundcloudLink;
+      const otherLinks = [formData.spotifyLink, formData.appleMusicLink, formData.soundcloudLink, formData.instagramHandle]
+        .filter(Boolean)
+        .join(', ');
+
+      // Map monthly streams to catalog size for scoring
+      let catalogSize = '0-10';
+      if (['50k-100k', '100k-500k', '500k+'].includes(formData.monthlyStreams)) {
+        catalogSize = '50+';
+      } else if (['10k-50k'].includes(formData.monthlyStreams)) {
+        catalogSize = '10-50';
+      }
+
+      // Map experience to placements tier
+      let placements = 'indie';
+      if (['5-10', '10+'].includes(formData.yearsExperience)) {
+        placements = 'major';
+      } else if (['3-5'].includes(formData.yearsExperience)) {
+        placements = 'regional';
+      }
+
+      const applicationData = {
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        email: formData.email,
+        phone: formData.phone || undefined,
+        social: formData.instagramHandle || undefined,
+        primaryLink,
+        otherLinks: otherLinks || undefined,
+        pro: formData.artistName,
+        distributor: formData.hasDistribution === 'yes' ? 'Yes' : 'No',
+        catalogSize,
+        placements,
+        royalties: 'uncollected', // Default - they're applying so likely have uncollected royalties
+        engagement: formData.monthlyStreams.includes('100k') || formData.monthlyStreams.includes('500k') ? 'high' : 'medium',
+        readiness: [],
+        needs: [formData.hearAboutUs],
+        notes: formData.additionalInfo || undefined,
+      };
+
+      await applicationApi.submit(applicationData);
 
       setSubmitMessage({
         type: 'success',
