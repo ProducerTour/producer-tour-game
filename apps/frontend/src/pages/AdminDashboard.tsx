@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { dashboardApi, statementApi, userApi, authApi } from '../lib/api';
 import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Users, BarChart3, CheckCircle2, Music, DollarSign, FileText, TrendingUp, Sparkles, Loader2, AlertTriangle, X, Brain, Maximize2, Minimize2 } from 'lucide-react';
+import { Users, BarChart3, CheckCircle2, Music, DollarSign, FileText, TrendingUp, Sparkles, Loader2, AlertTriangle, X, Brain, Maximize2, Minimize2, MoreVertical, Eye, Pencil, Trash2 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { DashboardHeader } from '../components/DashboardHeader';
 import ToolsHub from '../components/ToolsHub';
@@ -47,6 +47,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '../components/ui';
 
 type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'bmi-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'billing-hub' | 'recording-sessions' | 'active-placements' | 'pending-placements' | 'manage-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config' | 'tour-billing' | 'shop' | 'contacts' | 'insights' | 'productivity';
@@ -1651,105 +1656,142 @@ function UsersTab() {
         </button>
       </div>
 
-      {/* Users Table */}
+      {/* Users Table - Redesigned with condensed columns and dropdown actions */}
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
           <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
         </div>
       ) : usersData?.users?.length > 0 ? (
-        <div className="relative overflow-hidden bg-theme-card border border-theme-border overflow-x-auto">
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border">
           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
           <table className="w-full">
             <thead className="bg-theme-background-30">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
-                  Name
+                <th className="px-4 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
+                  User
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Writer IPI</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Publisher IPI</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">PRO</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Commission</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
+                <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
+                  IPI Numbers
+                </th>
+                <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
+                  PRO
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
+                  Commission
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-theme-foreground-muted uppercase tracking-wider w-16">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-theme-border/50">
               {usersData.users.map((user: any) => (
-                <tr key={user.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-theme-foreground">
-                      {user.firstName || user.middleName || user.lastName
-                        ? `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim().replace(/\s+/g, ' ')
-                        : '-'}
+                <tr key={user.id} className="hover:bg-theme-background-20 transition-colors group">
+                  {/* User: Name + Email stacked */}
+                  <td className="px-4 py-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-theme-foreground truncate">
+                        {user.firstName || user.middleName || user.lastName
+                          ? `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim().replace(/\s+/g, ' ')
+                          : '-'}
+                      </div>
+                      <div className="text-xs text-theme-foreground-muted truncate">{user.email}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-theme-foreground-secondary">{user.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium border ${
+                  {/* Role badge */}
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded ${
                       user.role === 'ADMIN'
-                        ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                        ? 'bg-red-500/20 text-red-400'
                         : user.role === 'CUSTOMER'
-                        ? 'bg-white/10 text-theme-foreground-secondary border-theme-border-strong'
-                        : 'bg-theme-primary-15 text-theme-primary border-theme-border-hover'
+                        ? 'bg-theme-background-30 text-theme-foreground-secondary'
+                        : 'bg-theme-primary-15 text-theme-primary'
                     }`}>
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-theme-foreground-muted">{user.role === 'CUSTOMER' ? '-' : formatIpiDisplay(user.writerIpiNumber)}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-theme-foreground-muted">{user.role === 'CUSTOMER' ? '-' : formatIpiDisplay(user.publisherIpiNumber)}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-theme-foreground-muted">{user.role === 'CUSTOMER' ? '-' : (user.producer?.proAffiliation || '-')}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-theme-foreground-muted">{user.role === 'CUSTOMER' ? '-' : (user.commissionOverrideRate != null ? `${Number(user.commissionOverrideRate).toFixed(2)}%` : 'Default')}</div></td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex gap-2 justify-end">
-                      <button
-                        onClick={() => handleViewAs(user)}
-                        className="text-theme-primary hover:text-theme-primary/80 transition-colors"
-                        title="View dashboard as this user"
-                      >
-                        View As
-                      </button>
-                      <button
-                        onClick={() => setEditingUser({ ...user, password: '' })}
-                        className="text-theme-foreground-secondary hover:text-white transition-colors"
-                      >
-                        Edit
-                      </button>
-                      {user.role !== 'ADMIN' && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <button className="text-theme-foreground-muted hover:text-red-400 transition-colors">
-                              Delete
-                            </button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete User</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete {user.email}? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => userDeleteMutation.mutate(user.id)}
-                                className="bg-red-500 hover:bg-red-600"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
+                  {/* IPI Numbers: Writer + Publisher stacked */}
+                  <td className="hidden md:table-cell px-4 py-3">
+                    {user.role === 'CUSTOMER' ? (
+                      <span className="text-sm text-theme-foreground-muted">-</span>
+                    ) : (
+                      <div className="text-xs space-y-0.5">
+                        <div className="text-theme-foreground-secondary">
+                          <span className="text-theme-foreground-muted">W:</span> {formatIpiDisplay(user.writerIpiNumber)}
+                        </div>
+                        <div className="text-theme-foreground-secondary">
+                          <span className="text-theme-foreground-muted">P:</span> {formatIpiDisplay(user.publisherIpiNumber)}
+                        </div>
+                      </div>
+                    )}
+                  </td>
+                  {/* PRO affiliation */}
+                  <td className="hidden lg:table-cell px-4 py-3">
+                    <div className="text-sm text-theme-foreground-secondary">
+                      {user.role === 'CUSTOMER' ? '-' : (user.producer?.proAffiliation || '-')}
                     </div>
+                  </td>
+                  {/* Commission rate */}
+                  <td className="px-4 py-3">
+                    <div className="text-sm text-theme-foreground-secondary">
+                      {user.role === 'CUSTOMER' ? '-' : (user.commissionOverrideRate != null ? `${Number(user.commissionOverrideRate).toFixed(2)}%` : 'Default')}
+                    </div>
+                  </td>
+                  {/* Actions dropdown */}
+                  <td className="px-4 py-3 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1.5 rounded-lg text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-background-30 transition-colors focus:outline-none focus:ring-2 focus:ring-theme-primary/50">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem onClick={() => handleViewAs(user)}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          View As
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEditingUser({ ...user, password: '' })}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        {user.role !== 'ADMIN' && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem
+                                  className="text-red-400 focus:text-red-400 focus:bg-red-500/10"
+                                  onSelect={(e) => e.preventDefault()}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete {user.email}? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => userDeleteMutation.mutate(user.id)}
+                                    className="bg-red-500 hover:bg-red-600"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
