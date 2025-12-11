@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
-import { Music, Trophy, ShoppingBag, Plane, TrendingUp, UserPlus, Heart, MessageCircle, Share2, MoreHorizontal, Send, Loader2, Edit3, Trash2, Pencil } from 'lucide-react';
+import { Music, Trophy, ShoppingBag, Plane, TrendingUp, UserPlus, Heart, MessageCircle, Share2, MoreHorizontal, Send, Loader2, Edit3, Trash2, Pencil, Flag } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { feedApi } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import toast from 'react-hot-toast';
+import { CommentItem } from './CommentItem';
+import { ReportModal } from './ReportModal';
 
 interface ActivityFeedItemProps {
   item: {
@@ -78,6 +80,17 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
   const [editTitle, setEditTitle] = useState(item.title);
   const [editDescription, setEditDescription] = useState(item.description || '');
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Report modal state
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportEntityType, setReportEntityType] = useState<'post' | 'comment'>('post');
+  const [reportEntityId, setReportEntityId] = useState(item.id);
+
+  const handleOpenReport = (entityType: 'post' | 'comment', entityId: string) => {
+    setReportEntityType(entityType);
+    setReportEntityId(entityId);
+    setReportModalOpen(true);
+  };
 
   // Check if current user owns this post
   const isOwner = user?.id === item.userId;
@@ -310,7 +323,7 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
             </button>
 
             {/* Dropdown menu */}
-            {showMenu && canModify && (
+            {showMenu && (
               <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
                 {isOwner && (
                   <button
@@ -321,14 +334,28 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
                     Edit
                   </button>
                 )}
-                <button
-                  onClick={handleDelete}
-                  disabled={deleteMutation.isPending}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-                </button>
+                {canModify && (
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleteMutation.isPending}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                  </button>
+                )}
+                {!isOwner && (
+                  <button
+                    onClick={() => {
+                      handleOpenReport('post', item.id);
+                      setShowMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <Flag className="w-4 h-4" />
+                    Report
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -497,38 +524,13 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
           ) : comments.length > 0 ? (
             <div className="space-y-3">
               {comments.map((comment: any) => (
-                <div key={comment.id} className="flex gap-3">
-                  <Link
-                    to={comment.user.profileSlug ? `/user/${comment.user.profileSlug}` : `/user/id/${comment.user.id}`}
-                    className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
-                  >
-                    {comment.user.profilePhotoUrl ? (
-                      <img
-                        src={comment.user.profilePhotoUrl}
-                        alt={comment.user.firstName || 'User'}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs font-semibold">
-                        {comment.user.firstName?.charAt(0) || 'U'}
-                      </div>
-                    )}
-                  </Link>
-                  <div className="flex-1 bg-white rounded-lg px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        to={comment.user.profileSlug ? `/user/${comment.user.profileSlug}` : `/user/id/${comment.user.id}`}
-                        className="font-medium text-sm text-gray-900 hover:underline"
-                      >
-                        {comment.user.firstName} {comment.user.lastName}
-                      </Link>
-                      <span className="text-xs text-gray-400">
-                        {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 mt-0.5">{comment.content}</p>
-                  </div>
-                </div>
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  feedItemId={item.id}
+                  feedItemUserId={item.userId}
+                  onOpenReport={handleOpenReport}
+                />
               ))}
             </div>
           ) : (
@@ -574,6 +576,14 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
           </div>
         </div>
       )}
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        entityType={reportEntityType}
+        entityId={reportEntityId}
+      />
     </div>
   );
 }

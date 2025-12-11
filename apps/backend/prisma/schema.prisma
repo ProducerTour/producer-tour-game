@@ -134,6 +134,7 @@ enum NotificationType {
   REFERRAL_CONVERTED   // Referral became a paying user
   SYSTEM_ANNOUNCEMENT  // Admin broadcast message
   MILESTONE_REACHED    // Earnings/activity milestone
+  COMMENT_LIKED_BY_AUTHOR // Post author liked your comment
 }
 
 // Models
@@ -267,6 +268,7 @@ model User {
   // Feed engagement relations
   feedLikes                FeedLike[]             @relation("FeedLikes")   // Likes on feed items
   feedComments             FeedComment[]          @relation("FeedComments") // Comments on feed items
+  commentLikes             CommentLike[]          @relation("CommentLikes") // Likes on comments
 
   // Push notification subscriptions
   pushSubscriptions        PushSubscription[]
@@ -2422,7 +2424,7 @@ model FeedLike {
   @@map("feed_likes")
 }
 
-// Feed Comments - Comments on activity items
+// Feed Comments - Comments on activity items with threading support
 model FeedComment {
   id          String           @id @default(cuid())
   userId      String
@@ -2431,12 +2433,38 @@ model FeedComment {
   feedItem    ActivityFeedItem @relation(fields: [feedItemId], references: [id], onDelete: Cascade)
   content     String           @db.Text
 
+  // Threading support
+  parentId    String?          // NULL = top-level comment, ID = reply to another comment
+  parent      FeedComment?     @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     FeedComment[]    @relation("CommentReplies")
+
+  // Like tracking
+  likes       CommentLike[]
+  likeCount   Int              @default(0) // Cached count for performance
+
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
-  @@index([feedItemId])
+  @@index([feedItemId, parentId, createdAt])
   @@index([userId])
+  @@index([parentId])
   @@map("feed_comments")
+}
+
+// Comment Likes - Tracks who liked which comment
+model CommentLike {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation("CommentLikes", fields: [userId], references: [id], onDelete: Cascade)
+  commentId   String
+  comment     FeedComment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime     @default(now())
+
+  @@unique([userId, commentId])  // User can only like a comment once
+  @@index([commentId])
+  @@index([userId])
+  @@map("comment_likes")
 }
 
 // ========================================

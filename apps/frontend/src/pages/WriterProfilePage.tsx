@@ -216,23 +216,28 @@ export default function WriterProfilePage() {
               {/* Profile Info */}
               <div className="px-4 sm:px-8 pb-4 sm:pb-6">
                 <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between -mt-12 sm:-mt-20 mb-4 sm:mb-6">
-                  {/* Avatar with animated border */}
-                  <div className="relative z-10 mb-3 sm:mb-0">
-                    <div className="w-24 h-24 sm:w-40 sm:h-40 rounded-full border-4 border-white bg-white shadow-xl overflow-visible">
-                      <UserAvatarWithBorder
-                        userId={profile.id}
-                        firstName={profile.firstName}
-                        lastName={profile.lastName}
-                        profilePhotoUrl={profile.profilePhotoUrl}
-                        size="2xl"
-                        className="w-full h-full"
-                      />
+                  {/* Avatar with animated border - responsive scaling */}
+                  <div className="relative mb-3 sm:mb-0 flex-shrink-0">
+                    <div className="w-24 h-24 sm:w-40 sm:h-40 flex items-center justify-center">
+                      <div
+                        className="scale-[0.6] sm:scale-100"
+                        style={{ clipPath: 'circle(50%)' }}
+                      >
+                        <UserAvatarWithBorder
+                          userId={profile.id}
+                          firstName={profile.firstName}
+                          lastName={profile.lastName}
+                          profilePhotoUrl={profile.profilePhotoUrl}
+                          size="2xl"
+                          className="w-full h-full"
+                        />
+                      </div>
                     </div>
                   </div>
 
                   {/* Action Buttons - stacked on mobile */}
                   {!isOwnProfile && user && (
-                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                    <div className="flex flex-wrap gap-2 sm:gap-3 relative z-10">
                       <button
                         onClick={handleFollowToggle}
                         disabled={isFollowLoading}
@@ -266,7 +271,7 @@ export default function WriterProfilePage() {
                   {isOwnProfile && (
                     <Link
                       to="/my-profile"
-                      className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all text-sm sm:text-base shadow-lg"
+                      className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-all text-sm sm:text-base shadow-lg relative z-10"
                     >
                       Go to your profile
                     </Link>

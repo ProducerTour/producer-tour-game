@@ -10,6 +10,7 @@ import { AdminPostsWidget } from '../components/profile/AdminPostsWidget';
 import { FollowersModal } from '../components/feed/FollowersModal';
 import { ContactsModal } from '../components/feed/ContactsModal';
 import { BannerCropperModal } from '../components/profile/BannerCropperModal';
+import { ProfilePhotoCropperModal } from '../components/profile/ProfilePhotoCropperModal';
 import SocialSidebar from '../components/SocialSidebar';
 import SocialHeader from '../components/SocialHeader';
 import { AnimatedBorder, parseBorderConfig } from '../components/AnimatedBorder';
@@ -55,6 +56,8 @@ export default function ActivityFeedPage() {
   const [isContactsModalOpen, setIsContactsModalOpen] = useState(false);
   const [isBannerCropperOpen, setIsBannerCropperOpen] = useState(false);
   const [tempBannerUrl, setTempBannerUrl] = useState<string | null>(null);
+  const [isProfilePhotoCropperOpen, setIsProfilePhotoCropperOpen] = useState(false);
+  const [tempProfilePhotoUrl, setTempProfilePhotoUrl] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Refs for file inputs
@@ -169,7 +172,31 @@ export default function ActivityFeedPage() {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      uploadAvatarMutation.mutate(file);
+      // Check file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Profile photo must be less than 5MB');
+        return;
+      }
+      // Create preview URL and open cropper
+      const previewUrl = URL.createObjectURL(file);
+      setTempProfilePhotoUrl(previewUrl);
+      setIsProfilePhotoCropperOpen(true);
+    }
+    // Reset input so the same file can be selected again
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = '';
+    }
+  };
+
+  const handleProfilePhotoCropComplete = (croppedBlob: Blob) => {
+    // Convert blob to file
+    const croppedFile = new File([croppedBlob], 'profile-photo.jpg', { type: 'image/jpeg' });
+    uploadAvatarMutation.mutate(croppedFile);
+
+    // Clean up
+    if (tempProfilePhotoUrl) {
+      URL.revokeObjectURL(tempProfilePhotoUrl);
+      setTempProfilePhotoUrl(null);
     }
   };
 
@@ -399,29 +426,36 @@ export default function ActivityFeedPage() {
               {/* Profile Info */}
               <div className="px-4 md:px-8 pb-6">
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-16 sm:-mt-20 mb-6 gap-4">
-                  {/* Avatar with Gamification Border */}
+                  {/* Avatar with Gamification Border - responsive scaling */}
                   <div
-                    className="relative z-10 group cursor-pointer"
+                    className="relative group cursor-pointer flex-shrink-0"
                     onClick={() => avatarInputRef.current?.click()}
                   >
-                    <AnimatedBorder
-                      border={equippedBorder}
-                      size="2xl"
-                      showBorder={!!equippedBorder}
-                      className="shadow-xl"
-                    >
-                      {profile?.profilePhotoUrl ? (
-                        <img
-                          src={profile.profilePhotoUrl}
-                          alt={fullName}
-                          className="absolute inset-0 w-full h-full rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 w-full h-full rounded-full bg-purple-500 flex items-center justify-center text-white text-5xl font-semibold">
-                          {profile?.firstName?.charAt(0) || 'U'}
-                        </div>
-                      )}
-                    </AnimatedBorder>
+                    <div className="w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center">
+                      <div
+                        className="scale-[0.8] sm:scale-100"
+                        style={{ clipPath: 'circle(50%)' }}
+                      >
+                        <AnimatedBorder
+                          border={equippedBorder}
+                          size="2xl"
+                          showBorder={!!equippedBorder}
+                          className="shadow-xl"
+                        >
+                          {profile?.profilePhotoUrl ? (
+                            <img
+                              src={profile.profilePhotoUrl}
+                              alt={fullName}
+                              className="absolute inset-0 w-full h-full rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 w-full h-full rounded-full bg-purple-500 flex items-center justify-center text-white text-5xl font-semibold">
+                              {profile?.firstName?.charAt(0) || 'U'}
+                            </div>
+                          )}
+                        </AnimatedBorder>
+                      </div>
+                    </div>
                     {/* Hover overlay for avatar */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 rounded-full transition-all duration-200 flex items-center justify-center">
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center gap-1 text-white">
@@ -886,6 +920,22 @@ export default function ActivityFeedPage() {
           }}
           imageUrl={tempBannerUrl}
           onCropComplete={handleBannerCropComplete}
+        />
+      )}
+
+      {/* Profile Photo Cropper Modal */}
+      {tempProfilePhotoUrl && (
+        <ProfilePhotoCropperModal
+          isOpen={isProfilePhotoCropperOpen}
+          onClose={() => {
+            setIsProfilePhotoCropperOpen(false);
+            if (tempProfilePhotoUrl) {
+              URL.revokeObjectURL(tempProfilePhotoUrl);
+              setTempProfilePhotoUrl(null);
+            }
+          }}
+          imageUrl={tempProfilePhotoUrl}
+          onCropComplete={handleProfilePhotoCropComplete}
         />
       )}
     </div>

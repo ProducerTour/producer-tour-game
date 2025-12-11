@@ -2046,6 +2046,132 @@ Manage your notification settings: https://producertour.com/settings/notificatio
       return false;
     }
   }
+
+  /**
+   * Send content report email to support
+   */
+  async sendReportEmail(data: {
+    reporterId: string;
+    reporterName: string;
+    reporterEmail: string;
+    entityType: 'post' | 'comment' | 'user';
+    entityId: string;
+    reason: string;
+    details?: string;
+    contentPreview?: string;
+  }): Promise<boolean> {
+    if (!this.isConfigured || !this.transporter) {
+      console.warn('Email service not configured - skipping report email');
+      return false;
+    }
+
+    const supportEmail = 'support@producertour.com';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://producertour.com';
+
+    // Generate direct link based on entity type
+    let entityLink = '';
+    if (data.entityType === 'post') {
+      entityLink = `${frontendUrl}/post/${data.entityId}`;
+    } else if (data.entityType === 'user') {
+      entityLink = `${frontendUrl}/profile/${data.entityId}`;
+    } else if (data.entityType === 'comment') {
+      entityLink = `Post comment (ID: ${data.entityId})`;
+    }
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: supportEmail,
+      replyTo: data.reporterEmail,
+      subject: `[Report] ${data.entityType.charAt(0).toUpperCase() + data.entityType.slice(1)} reported by ${data.reporterName}`,
+      html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 20px; border-radius: 10px 10px 0 0; }
+    .content { background: #f9fafb; padding: 20px; border-radius: 0 0 10px 10px; }
+    .detail-row { margin: 10px 0; padding: 10px; background: white; border-radius: 6px; border-left: 4px solid #ef4444; }
+    .label { font-weight: 600; color: #6b7280; }
+    .preview { background: #fef2f2; padding: 15px; border-radius: 6px; margin: 15px 0; font-style: italic; }
+    a { color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>⚠️ Content Report</h1>
+  </div>
+  <div class="content">
+    <div class="detail-row">
+      <span class="label">Entity Type:</span> ${data.entityType.toUpperCase()}
+    </div>
+    <div class="detail-row">
+      <span class="label">Entity ID:</span> ${data.entityId}
+    </div>
+    <div class="detail-row">
+      <span class="label">Link:</span> <a href="${entityLink}">${entityLink}</a>
+    </div>
+    <div class="detail-row">
+      <span class="label">Reason:</span> ${data.reason}
+    </div>
+    ${data.details ? `
+    <div class="detail-row">
+      <span class="label">Additional Details:</span><br/>
+      ${data.details}
+    </div>
+    ` : ''}
+    ${data.contentPreview ? `
+    <div class="preview">
+      <span class="label">Content Preview:</span><br/>
+      "${data.contentPreview}"
+    </div>
+    ` : ''}
+    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+    <h3>Reporter Information</h3>
+    <div class="detail-row">
+      <span class="label">Name:</span> ${data.reporterName}
+    </div>
+    <div class="detail-row">
+      <span class="label">Email:</span> <a href="mailto:${data.reporterEmail}">${data.reporterEmail}</a>
+    </div>
+    <div class="detail-row">
+      <span class="label">User ID:</span> ${data.reporterId}
+    </div>
+  </div>
+</body>
+</html>
+      `,
+      text: `
+Content Report
+
+Entity Type: ${data.entityType.toUpperCase()}
+Entity ID: ${data.entityId}
+Link: ${entityLink}
+Reason: ${data.reason}
+${data.details ? `Additional Details: ${data.details}` : ''}
+${data.contentPreview ? `Content Preview: "${data.contentPreview}"` : ''}
+
+---
+Reporter Information:
+Name: ${data.reporterName}
+Email: ${data.reporterEmail}
+User ID: ${data.reporterId}
+      `.trim(),
+      envelope: {
+        from: this.fromEmail,
+        to: supportEmail,
+      },
+    };
+
+    const sent = await this.sendEmailWithRetry(mailOptions, supportEmail);
+
+    if (sent) {
+      console.log(`✅ Report email sent to support for ${data.entityType} ${data.entityId}`);
+    }
+
+    return sent;
+  }
 }
 
 // Export singleton instance

@@ -941,13 +941,39 @@ export const feedApi = {
     offset?: number;
   }) => api.get(`/feed/${feedItemId}/comments`, { params }),
 
-  // Add a comment to a feed item
-  addComment: (feedItemId: string, content: string) =>
-    api.post(`/feed/${feedItemId}/comment`, { content }),
+  // Add a comment or reply to a feed item
+  addComment: (feedItemId: string, content: string, parentId?: string) =>
+    api.post(`/feed/${feedItemId}/comment`, { content, parentId }),
 
   // Delete a comment
   deleteComment: (commentId: string) =>
     api.delete(`/feed/comment/${commentId}`),
+
+  // Edit a comment
+  editComment: (commentId: string, content: string) =>
+    api.put(`/feed/comment/${commentId}`, { content }),
+
+  // Like a comment
+  likeComment: (commentId: string) =>
+    api.post(`/feed/comment/${commentId}/like`),
+
+  // Unlike a comment
+  unlikeComment: (commentId: string) =>
+    api.delete(`/feed/comment/${commentId}/like`),
+
+  // Get more replies for a comment
+  getCommentReplies: (commentId: string, params?: {
+    limit?: number;
+    offset?: number;
+  }) => api.get(`/feed/comment/${commentId}/replies`, { params }),
+
+  // Report content (post, comment, or user)
+  report: (data: {
+    entityType: 'post' | 'comment' | 'user';
+    entityId: string;
+    reason: 'spam' | 'harassment' | 'inappropriate' | 'other';
+    details?: string;
+  }) => api.post('/feed/report', data),
 
   // Get admin posts/announcements
   getAdminPosts: (params?: { limit?: number }) =>

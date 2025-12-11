@@ -4,6 +4,7 @@ import { UploadedFile } from 'express-fileupload';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 import { pushService } from '../services/push.service';
+import { emailService } from '../services/email.service';
 
 // Media upload constants
 const ALLOWED_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -32,6 +33,18 @@ const createPostSchema = z.object({
 
 const createCommentSchema = z.object({
   content: z.string().min(1).max(1000),
+  parentId: z.string().optional(), // For reply threading
+});
+
+const editCommentSchema = z.object({
+  content: z.string().min(1).max(1000),
+});
+
+const reportSchema = z.object({
+  entityType: z.enum(['post', 'comment', 'user']),
+  entityId: z.string().min(1),
+  reason: z.enum(['spam', 'harassment', 'inappropriate', 'other']),
+  details: z.string().max(1000).optional(),
 });
 
 // POST /api/feed/upload-image - Upload an image for a post
@@ -385,15 +398,20 @@ router.delete('/:id/like', authenticate, async (req: AuthRequest, res: Response)
   }
 });
 
-// GET /api/feed/:id/comments - Get comments for a feed item
+// GET /api/feed/:id/comments - Get comments for a feed item with threading
 router.get('/:id/comments', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    const currentUserId = req.user!.id;
     const { id: feedItemId } = req.params;
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = parseInt(req.query.offset as string) || 0;
 
+    // Fetch top-level comments (no parentId) with their first replies
     const comments = await prisma.feedComment.findMany({
-      where: { feedItemId },
+      where: {
+        feedItemId,
+        parentId: null, // Only top-level comments
+      },
       include: {
         user: {
           select: {
@@ -404,18 +422,61 @@ router.get('/:id/comments', authenticate, async (req: AuthRequest, res: Response
             profileSlug: true,
           },
         },
+        likes: {
+          where: { userId: currentUserId },
+          select: { id: true },
+        },
+        replies: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                profilePhotoUrl: true,
+                profileSlug: true,
+              },
+            },
+            likes: {
+              where: { userId: currentUserId },
+              select: { id: true },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+          take: 2, // Show first 2 replies, rest need "view more"
+        },
+        _count: {
+          select: { replies: true },
+        },
       },
       orderBy: { createdAt: 'asc' },
       take: limit,
       skip: offset,
     });
 
+    // Transform to add isLiked flag
+    const transformedComments = comments.map(comment => ({
+      ...comment,
+      isLiked: comment.likes.length > 0,
+      likes: undefined,
+      replyCount: comment._count.replies,
+      _count: undefined,
+      replies: comment.replies.map(reply => ({
+        ...reply,
+        isLiked: reply.likes.length > 0,
+        likes: undefined,
+      })),
+    }));
+
     const totalCount = await prisma.feedComment.count({
-      where: { feedItemId },
+      where: {
+        feedItemId,
+        parentId: null,
+      },
     });
 
     res.json({
-      comments,
+      comments: transformedComments,
       pagination: {
         limit,
         offset,
@@ -429,12 +490,12 @@ router.get('/:id/comments', authenticate, async (req: AuthRequest, res: Response
   }
 });
 
-// POST /api/feed/:id/comment - Add a comment to a feed item
+// POST /api/feed/:id/comment - Add a comment or reply to a feed item
 router.post('/:id/comment', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const { id: feedItemId } = req.params;
-    const { content } = createCommentSchema.parse(req.body);
+    const { content, parentId } = createCommentSchema.parse(req.body);
 
     // Check if feed item exists
     const feedItem = await prisma.activityFeedItem.findUnique({
@@ -445,6 +506,17 @@ router.post('/:id/comment', authenticate, async (req: AuthRequest, res: Response
       return res.status(404).json({ error: 'Feed item not found' });
     }
 
+    // If this is a reply, verify parent comment exists and belongs to the same feed item
+    if (parentId) {
+      const parentComment = await prisma.feedComment.findUnique({
+        where: { id: parentId },
+      });
+
+      if (!parentComment || parentComment.feedItemId !== feedItemId) {
+        return res.status(400).json({ error: 'Invalid parent comment' });
+      }
+    }
+
     // Create comment and increment count in a transaction
     const [comment] = await prisma.$transaction([
       prisma.feedComment.create({
@@ -452,6 +524,7 @@ router.post('/:id/comment', authenticate, async (req: AuthRequest, res: Response
           userId,
           feedItemId,
           content,
+          parentId: parentId || null,
         },
         include: {
           user: {
@@ -486,7 +559,33 @@ router.post('/:id/comment', authenticate, async (req: AuthRequest, res: Response
       });
     }
 
-    res.status(201).json(comment);
+    // If this is a reply, also notify the parent comment author
+    if (parentId) {
+      const parentComment = await prisma.feedComment.findUnique({
+        where: { id: parentId },
+        select: { userId: true },
+      });
+
+      if (parentComment && parentComment.userId !== userId && parentComment.userId !== feedItem.userId) {
+        const replierName = `${comment.user.firstName || ''} ${comment.user.lastName || ''}`.trim() || 'Someone';
+
+        pushService.sendCommentNotification(
+          parentComment.userId,
+          replierName,
+          'your comment',
+          feedItemId,
+          content
+        ).catch((err) => {
+          console.error('Failed to send reply push notification:', err);
+        });
+      }
+    }
+
+    res.status(201).json({
+      ...comment,
+      isLiked: false,
+      likeCount: 0,
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
@@ -497,12 +596,67 @@ router.post('/:id/comment', authenticate, async (req: AuthRequest, res: Response
 });
 
 // DELETE /api/feed/comment/:commentId - Delete a comment
+// Allowed: comment owner, post owner, or admin
 router.delete('/comment/:commentId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const { commentId } = req.params;
 
-    // Get comment to check ownership and get feedItemId
+    // Get comment with feed item to check ownership
+    const comment = await prisma.feedComment.findUnique({
+      where: { id: commentId },
+      include: {
+        feedItem: {
+          select: { userId: true },
+        },
+        _count: {
+          select: { replies: true },
+        },
+      },
+    });
+
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    // Check authorization: comment owner, post owner, or admin
+    const isCommentOwner = comment.userId === userId;
+    const isPostOwner = comment.feedItem.userId === userId;
+    const isAdmin = req.user!.role === 'ADMIN';
+
+    if (!isCommentOwner && !isPostOwner && !isAdmin) {
+      return res.status(403).json({ error: 'Not authorized to delete this comment' });
+    }
+
+    // Count total comments to delete (including replies if this is a parent)
+    const deleteCount = 1 + comment._count.replies;
+
+    // Delete comment (cascades to replies) and decrement count in a transaction
+    await prisma.$transaction([
+      prisma.feedComment.delete({
+        where: { id: commentId },
+      }),
+      prisma.activityFeedItem.update({
+        where: { id: comment.feedItemId },
+        data: { commentCount: { decrement: deleteCount } },
+      }),
+    ]);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete comment error:', error);
+    res.status(500).json({ error: 'Failed to delete comment' });
+  }
+});
+
+// PUT /api/feed/comment/:commentId - Edit a comment (owner only)
+router.put('/comment/:commentId', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { commentId } = req.params;
+    const { content } = editCommentSchema.parse(req.body);
+
+    // Get comment to check ownership
     const comment = await prisma.feedComment.findUnique({
       where: { id: commentId },
     });
@@ -511,26 +665,230 @@ router.delete('/comment/:commentId', authenticate, async (req: AuthRequest, res:
       return res.status(404).json({ error: 'Comment not found' });
     }
 
-    // Check if user owns the comment or is admin
-    if (comment.userId !== userId && req.user!.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Not authorized to delete this comment' });
+    // Only owner can edit
+    if (comment.userId !== userId) {
+      return res.status(403).json({ error: 'Not authorized to edit this comment' });
     }
 
-    // Delete comment and decrement count in a transaction
+    const updatedComment = await prisma.feedComment.update({
+      where: { id: commentId },
+      data: { content },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            profilePhotoUrl: true,
+            profileSlug: true,
+          },
+        },
+      },
+    });
+
+    res.json(updatedComment);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Edit comment error:', error);
+    res.status(500).json({ error: 'Failed to edit comment' });
+  }
+});
+
+// POST /api/feed/comment/:commentId/like - Like a comment
+router.post('/comment/:commentId/like', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { commentId } = req.params;
+
+    // Check if comment exists with feed item info
+    const comment = await prisma.feedComment.findUnique({
+      where: { id: commentId },
+      include: {
+        feedItem: {
+          select: { userId: true, id: true, title: true },
+        },
+        user: {
+          select: { firstName: true, lastName: true },
+        },
+      },
+    });
+
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    // Check if already liked
+    const existingLike = await prisma.commentLike.findUnique({
+      where: {
+        userId_commentId: {
+          userId,
+          commentId,
+        },
+      },
+    });
+
+    if (existingLike) {
+      return res.json({ success: true, alreadyLiked: true });
+    }
+
+    // Create like and increment count in a transaction
     await prisma.$transaction([
-      prisma.feedComment.delete({
-        where: { id: commentId },
+      prisma.commentLike.create({
+        data: {
+          userId,
+          commentId,
+        },
       }),
-      prisma.activityFeedItem.update({
-        where: { id: comment.feedItemId },
-        data: { commentCount: { decrement: 1 } },
+      prisma.feedComment.update({
+        where: { id: commentId },
+        data: { likeCount: { increment: 1 } },
+      }),
+    ]);
+
+    // Check if the liker is the post author (for author like notification)
+    const isPostAuthor = comment.feedItem.userId === userId;
+    const isNotOwnComment = comment.userId !== userId;
+
+    if (isPostAuthor && isNotOwnComment) {
+      // Get liker's name from database
+      const liker = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { firstName: true, lastName: true },
+      });
+      const likerName = `${liker?.firstName || ''} ${liker?.lastName || ''}`.trim() || 'The author';
+
+      // Create "author liked your comment" notification
+      await prisma.notification.create({
+        data: {
+          userId: comment.userId, // Notify the comment author
+          type: 'COMMENT_LIKED_BY_AUTHOR',
+          title: 'Author liked your comment',
+          message: `${likerName} liked your comment on "${comment.feedItem.title || 'their post'}"`,
+          actorId: userId,
+          entityType: 'comment',
+          entityId: commentId,
+          actionUrl: `/post/${comment.feedItem.id}`,
+        },
+      });
+
+      // Send push notification using existing like notification method
+      pushService.sendLikeNotification(
+        comment.userId,
+        likerName,
+        `your comment on "${comment.feedItem.title || 'their post'}"`,
+        comment.feedItem.id
+      ).catch((err) => {
+        console.error('Failed to send author like push notification:', err);
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return res.json({ success: true, alreadyLiked: true });
+    }
+    console.error('Like comment error:', error);
+    res.status(500).json({ error: 'Failed to like comment' });
+  }
+});
+
+// DELETE /api/feed/comment/:commentId/like - Unlike a comment
+router.delete('/comment/:commentId/like', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { commentId } = req.params;
+
+    // Check if like exists
+    const existingLike = await prisma.commentLike.findUnique({
+      where: {
+        userId_commentId: {
+          userId,
+          commentId,
+        },
+      },
+    });
+
+    if (!existingLike) {
+      return res.json({ success: true, alreadyUnliked: true });
+    }
+
+    // Delete like and decrement count in a transaction
+    await prisma.$transaction([
+      prisma.commentLike.delete({
+        where: {
+          userId_commentId: {
+            userId,
+            commentId,
+          },
+        },
+      }),
+      prisma.feedComment.update({
+        where: { id: commentId },
+        data: { likeCount: { decrement: 1 } },
       }),
     ]);
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Delete comment error:', error);
-    res.status(500).json({ error: 'Failed to delete comment' });
+    console.error('Unlike comment error:', error);
+    res.status(500).json({ error: 'Failed to unlike comment' });
+  }
+});
+
+// GET /api/feed/comment/:commentId/replies - Get more replies for a comment
+router.get('/comment/:commentId/replies', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const currentUserId = req.user!.id;
+    const { commentId } = req.params;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    const replies = await prisma.feedComment.findMany({
+      where: { parentId: commentId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            profilePhotoUrl: true,
+            profileSlug: true,
+          },
+        },
+        likes: {
+          where: { userId: currentUserId },
+          select: { id: true },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: limit,
+      skip: offset,
+    });
+
+    const transformedReplies = replies.map(reply => ({
+      ...reply,
+      isLiked: reply.likes.length > 0,
+      likes: undefined,
+    }));
+
+    const totalCount = await prisma.feedComment.count({
+      where: { parentId: commentId },
+    });
+
+    res.json({
+      replies: transformedReplies,
+      pagination: {
+        limit,
+        offset,
+        total: totalCount,
+        hasMore: offset + limit < totalCount,
+      },
+    });
+  } catch (error) {
+    console.error('Get replies error:', error);
+    res.status(500).json({ error: 'Failed to fetch replies' });
   }
 });
 
@@ -1301,6 +1659,70 @@ router.get('/notifications', authenticate, async (req: AuthRequest, res: Respons
   } catch (error) {
     console.error('Get notifications error:', error);
     res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+// POST /api/feed/report - Report content (sends email to support)
+router.post('/report', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const data = reportSchema.parse(req.body);
+
+    // Get reporter info
+    const reporter = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true, email: true },
+    });
+
+    if (!reporter) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const reporterName = `${reporter.firstName || ''} ${reporter.lastName || ''}`.trim() || 'Anonymous';
+
+    // Get content preview based on entity type
+    let contentPreview = '';
+    if (data.entityType === 'post') {
+      const post = await prisma.activityFeedItem.findUnique({
+        where: { id: data.entityId },
+        select: { title: true, description: true },
+      });
+      contentPreview = post ? `${post.title || ''} - ${post.description?.substring(0, 100) || ''}` : '';
+    } else if (data.entityType === 'comment') {
+      const comment = await prisma.feedComment.findUnique({
+        where: { id: data.entityId },
+        select: { content: true },
+      });
+      contentPreview = comment?.content?.substring(0, 200) || '';
+    }
+
+    // Map reason to readable text
+    const reasonMap: Record<string, string> = {
+      spam: 'Spam or misleading content',
+      harassment: 'Harassment or bullying',
+      inappropriate: 'Inappropriate or offensive content',
+      other: 'Other',
+    };
+
+    // Send report email
+    await emailService.sendReportEmail({
+      reporterId: userId,
+      reporterName,
+      reporterEmail: reporter.email,
+      entityType: data.entityType,
+      entityId: data.entityId,
+      reason: reasonMap[data.reason] || data.reason,
+      details: data.details,
+      contentPreview,
+    });
+
+    res.json({ success: true, message: 'Report submitted successfully' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Report error:', error);
+    res.status(500).json({ error: 'Failed to submit report' });
   }
 });
 
