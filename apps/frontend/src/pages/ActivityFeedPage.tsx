@@ -69,11 +69,12 @@ export default function ActivityFeedPage() {
 
   // Fetch user's full profile data
   const { data: profile, isLoading } = useQuery({
-    queryKey: ['my-profile'],
+    queryKey: ['my-profile', user?.id],
     queryFn: async () => {
       const response = await api.get('/profile/hub/me');
       return response.data.writer;
     },
+    enabled: !!user?.id,
   });
 
   // Fetch user's gamification customizations (border)
@@ -101,7 +102,7 @@ export default function ActivityFeedPage() {
     },
     onSuccess: () => {
       toast.success('Profile photo updated!');
-      queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile', user?.id] });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to update profile photo');
@@ -119,7 +120,7 @@ export default function ActivityFeedPage() {
     },
     onSuccess: () => {
       toast.success('Cover banner updated!');
-      queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile', user?.id] });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to update cover banner');
@@ -885,7 +886,7 @@ export default function ActivityFeedPage() {
         onClose={() => setIsEditModalOpen(false)}
         profile={profile}
         onSave={() => {
-          queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+          queryClient.invalidateQueries({ queryKey: ['my-profile', user?.id] });
           queryClient.invalidateQueries({ queryKey: ['user-profile'] }); // Sync with Settings page
         }}
       />

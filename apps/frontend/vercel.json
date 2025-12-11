@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/share/:id",
+      "destination": "https://website-0qgn.onrender.com/api/feed/og/:id"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

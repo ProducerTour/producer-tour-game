@@ -342,7 +342,7 @@ export default function SettingsPage() {
     onSuccess: (response) => {
       toast.success('Profile updated successfully!');
       queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-      queryClient.invalidateQueries({ queryKey: ['my-profile'] }); // Sync with Social Profile page
+      queryClient.invalidateQueries({ queryKey: ['my-profile', user?.id] }); // Sync with Social Profile page
       if (response.data.user) {
         updateUser({ ...user!, ...response.data.user });
       }

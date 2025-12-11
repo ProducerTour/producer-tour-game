@@ -208,8 +208,14 @@ export default function WriterProfilePage() {
             <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm overflow-hidden mb-4 sm:mb-6">
               {/* Cover Image - smaller on mobile */}
               <div className="h-32 sm:h-56 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 relative">
-                {profile.profilePhotoUrl && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 opacity-90"></div>
+                {profile.coverBannerUrl ? (
+                  <img
+                    src={profile.coverBannerUrl}
+                    alt="Cover banner"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500"></div>
                 )}
               </div>
 

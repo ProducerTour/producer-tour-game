@@ -181,7 +181,7 @@ export function FindCollaboratorsPane() {
     onMutate: (userId) => setLoadingUserId(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-following'] });
-      queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile', user?.id] });
     },
     onSettled: () => setLoadingUserId(null),
   });
@@ -192,7 +192,7 @@ export function FindCollaboratorsPane() {
     onMutate: (userId) => setLoadingUserId(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-following'] });
-      queryClient.invalidateQueries({ queryKey: ['my-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile', user?.id] });
     },
     onSettled: () => setLoadingUserId(null),
   });

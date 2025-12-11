@@ -230,9 +230,9 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
   };
 
   const handleShare = async () => {
-    // Use the backend OG endpoint for sharing (provides rich previews)
-    const backendUrl = import.meta.env.VITE_API_URL || 'https://website-0qgn.onrender.com';
-    const shareUrl = `${backendUrl}/api/feed/og/${item.id}`;
+    // Use the frontend share URL (Vercel rewrites to backend OG endpoint for rich previews)
+    const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 'https://producertour.com';
+    const shareUrl = `${frontendUrl}/share/${item.id}`;
 
     // Try to use native share if available (mobile), otherwise copy to clipboard
     if (navigator.share) {
