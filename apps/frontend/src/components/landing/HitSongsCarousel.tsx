@@ -248,7 +248,7 @@ export function HitSongsCarousel() {
                       {/* Album Art Side */}
                       <div className="md:w-2/5 relative">
                         <div
-                          className={`h-52 md:h-full w-full bg-gradient-to-br ${song.gradient} flex items-center justify-center`}
+                          className={`h-52 md:h-full w-full bg-gradient-to-br ${song.gradient} flex items-center justify-center relative`}
                         >
                           {song.coverArt ? (
                             <img
@@ -263,10 +263,13 @@ export function HitSongsCarousel() {
                           )}
 
                           {/* Play button overlay */}
-                          {song.previewUrl && (
+                          {song.previewUrl ? (
                             <button
-                              onClick={() => togglePlay(index, song.previewUrl)}
-                              className={`absolute inset-0 flex items-center justify-center bg-black/20 transition-opacity ${
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                togglePlay(index, song.previewUrl);
+                              }}
+                              className={`absolute inset-0 z-10 flex items-center justify-center bg-black/20 transition-opacity cursor-pointer ${
                                 playingIndex === index ? 'opacity-100' : 'opacity-0 hover:opacity-100'
                               }`}
                             >
@@ -282,6 +285,12 @@ export function HitSongsCarousel() {
                                 )}
                               </div>
                             </button>
+                          ) : (
+                            <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/20">
+                              <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                <Play className="w-8 h-8 text-white/50 ml-1" />
+                              </div>
+                            </div>
                           )}
                         </div>
                         {/* Overlay gradient */}
