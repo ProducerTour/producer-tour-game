@@ -61,12 +61,19 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  // Theme-aware colors
+  // Theme-aware colors - using explicit hex values for SVG compatibility
   const themeColors = useMemo(() => ({
     empty: isDarkTheme ? '#1e293b' : '#e2e8f0',        // slate-800 / slate-200
     stroke: isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
     emptyHover: isDarkTheme ? '#334155' : '#cbd5e1',   // slate-700 / slate-300
     highlight: '#facc15',                               // yellow-400 (works on both)
+    // UI overlay colors
+    cardBg: isDarkTheme ? '#1A1A1C' : '#ffffff',       // dark gray / white
+    cardBorder: isDarkTheme ? '#2A2A2E' : '#e2e8f0',   // lighter dark gray / slate-200
+    text: isDarkTheme ? '#f1f5f9' : '#1e293b',         // slate-100 / slate-800
+    textMuted: isDarkTheme ? '#94a3b8' : '#64748b',    // slate-400 / slate-500
+    buttonActive: isDarkTheme ? '#3b82f6' : '#2563eb', // blue-500 / blue-600
+    buttonActiveFg: '#ffffff',                          // white
   }), [isDarkTheme]);
 
   // Aggregate territory data into country codes
@@ -164,17 +171,30 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
   return (
     <div className="relative w-full h-full">
       {/* Scale Type Selector */}
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-1 bg-theme-card/95 backdrop-blur-sm px-2 py-1.5 rounded-lg border border-theme-border shadow-sm">
-        <span className="text-[10px] text-theme-foreground-muted mr-1 uppercase tracking-wide">Scale:</span>
+      <div
+        className="absolute top-4 right-4 z-10 flex items-center gap-1 backdrop-blur-sm px-2 py-1.5 rounded-lg shadow-lg"
+        style={{
+          backgroundColor: themeColors.cardBg,
+          borderWidth: 1,
+          borderStyle: 'solid',
+          borderColor: themeColors.cardBorder
+        }}
+      >
+        <span
+          className="text-[10px] mr-1 uppercase tracking-wide"
+          style={{ color: themeColors.textMuted }}
+        >
+          Scale:
+        </span>
         {(['linear', 'sqrt', 'log'] as ScaleType[]).map((type) => (
           <button
             key={type}
             onClick={() => setScaleType(type)}
-            className={`px-2 py-1 text-[10px] font-medium rounded transition-colors ${
-              scaleType === type
-                ? 'bg-theme-primary text-theme-primary-foreground'
-                : 'text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-background-20'
-            }`}
+            className="px-2 py-1 text-[10px] font-medium rounded transition-colors"
+            style={{
+              backgroundColor: scaleType === type ? themeColors.buttonActive : 'transparent',
+              color: scaleType === type ? themeColors.buttonActiveFg : themeColors.textMuted,
+            }}
           >
             {type === 'sqrt' ? '√' : type === 'log' ? 'log' : 'lin'}
           </button>
@@ -243,12 +263,17 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
       {/* Tooltip */}
       {tooltipContent && (
         <div
-          className="fixed z-50 pointer-events-none bg-theme-card text-theme-foreground text-sm px-3 py-2 rounded-lg shadow-lg border border-theme-border"
+          className="fixed z-50 pointer-events-none text-sm px-3 py-2 rounded-lg shadow-lg"
           style={{
             left: `${tooltipPosition.x}px`,
             top: `${tooltipPosition.y - 80}px`,
             transform: 'translateX(-50%)',
-            whiteSpace: 'pre-line'
+            whiteSpace: 'pre-line',
+            backgroundColor: themeColors.cardBg,
+            color: themeColors.text,
+            borderWidth: 1,
+            borderStyle: 'solid',
+            borderColor: themeColors.cardBorder
           }}
         >
           {tooltipContent}
@@ -256,14 +281,25 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
       )}
 
       {/* Gradient Legend */}
-      <div className="absolute bottom-4 left-4 bg-theme-card/95 backdrop-blur-sm px-4 py-3 rounded-xl border border-theme-border shadow-sm">
+      <div
+        className="absolute bottom-4 left-4 backdrop-blur-sm px-4 py-3 rounded-xl shadow-lg"
+        style={{
+          backgroundColor: themeColors.cardBg,
+          borderWidth: 1,
+          borderStyle: 'solid',
+          borderColor: themeColors.cardBorder
+        }}
+      >
         <div className="flex items-center justify-between mb-2">
-          <span className="font-semibold text-theme-foreground text-xs">Revenue</span>
-          <span className="text-[10px] text-theme-foreground-muted capitalize">{scaleType} scale</span>
+          <span className="font-semibold text-xs" style={{ color: themeColors.text }}>Revenue</span>
+          <span className="text-[10px] capitalize" style={{ color: themeColors.textMuted }}>{scaleType} scale</span>
         </div>
 
         {/* Gradient Bar */}
-        <div className="relative h-3 w-40 rounded-full overflow-hidden mb-2 border border-theme-border/30">
+        <div
+          className="relative h-3 w-40 rounded-full overflow-hidden mb-2"
+          style={{ borderWidth: 1, borderStyle: 'solid', borderColor: themeColors.cardBorder }}
+        >
           <svg width="100%" height="100%">
             <defs>
               <linearGradient id="heatmapGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -277,19 +313,27 @@ export const TerritoryHeatmap: React.FC<TerritoryHeatmapProps> = ({
         </div>
 
         {/* Scale Labels */}
-        <div className="flex justify-between text-[10px] text-theme-foreground-muted">
+        <div className="flex justify-between text-[10px]" style={{ color: themeColors.textMuted }}>
           <span>$0</span>
           <span>{formatCurrency(maxRevenue * 0.5)}</span>
           <span>{formatCurrency(maxRevenue)}</span>
         </div>
 
         {/* No Data Indicator */}
-        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-theme-border/50">
+        <div
+          className="flex items-center gap-2 mt-2 pt-2"
+          style={{ borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: themeColors.cardBorder }}
+        >
           <div
-            className="w-4 h-3 rounded border border-theme-border/30"
-            style={{ backgroundColor: themeColors.empty }}
+            className="w-4 h-3 rounded"
+            style={{
+              backgroundColor: themeColors.empty,
+              borderWidth: 1,
+              borderStyle: 'solid',
+              borderColor: themeColors.cardBorder
+            }}
           />
-          <span className="text-[10px] text-theme-foreground-muted">No data</span>
+          <span className="text-[10px]" style={{ color: themeColors.textMuted }}>No data</span>
         </div>
       </div>
     </div>

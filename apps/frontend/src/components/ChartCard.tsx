@@ -17,18 +17,18 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   children,
 }) => {
   return (
-    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+    <div className="bg-theme-card rounded-2xl p-6 border border-theme-border shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <h3 className="text-lg font-semibold text-theme-foreground">{title}</h3>
         <button
           onClick={() => onToggleExpand(chartId)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-theme-background-20 rounded-lg transition-colors"
           aria-label={isExpanded ? 'Collapse chart' : 'Expand chart'}
         >
           {isExpanded ? (
-            <ChevronUp className="h-5 w-5 text-gray-500" />
+            <ChevronUp className="h-5 w-5 text-theme-foreground-muted" />
           ) : (
-            <ChevronDown className="h-5 w-5 text-gray-500" />
+            <ChevronDown className="h-5 w-5 text-theme-foreground-muted" />
           )}
         </button>
       </div>
