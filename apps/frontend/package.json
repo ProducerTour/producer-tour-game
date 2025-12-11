@@ -65,6 +65,7 @@
     "react-dropzone": "^14.3.8",
     "react-easy-crop": "^5.5.6",
     "react-error-boundary": "^6.0.0",
+    "react-globe.gl": "^2.37.0",
     "react-grid-layout": "^1.5.3",
     "react-hook-form": "^7.66.1",
     "react-hot-toast": "^2.6.0",
