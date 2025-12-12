@@ -10,8 +10,10 @@ import { PaymentSettings } from '../components/PaymentSettings';
 import { WithdrawalHistory } from '../components/WithdrawalHistory';
 import ToolsHub from '../components/ToolsHub';
 import WriterOverviewTremor from '../components/writer/WriterOverviewTremor';
+import { GuidedTour } from '../components/ui/GuidedTour';
 import { useAuthStore } from '../store/auth.store';
 import { formatIpiDisplay } from '../utils/ipi-helper';
+import { writerDashboardSteps, TOUR_IDS } from '../config/tour-steps';
 import { X, Bell, ClipboardList, Users, Paperclip, Upload, FileText, Loader2, DollarSign, Calendar, BarChart3, Music, TrendingUp, Grid, List, Search, MapPin, Disc } from 'lucide-react';
 import { RechartsRevenueChart } from '../components/charts';
 
@@ -155,7 +157,9 @@ export default function WriterDashboard() {
         {/* Main Content Area */}
         <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} overflow-y-auto transition-all duration-300 bg-slate-50`}>
           {/* Top Header - Now visible on mobile too */}
-          <DashboardHeader title="Dashboard" />
+          <div data-tour-id="writer-welcome">
+            <DashboardHeader title="Dashboard" />
+          </div>
 
           <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 sm:pb-8">
 
@@ -185,13 +189,15 @@ export default function WriterDashboard() {
             ) : (
               <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
                 {/* Hero Card - Total Earnings */}
-                <HeroEarningsCard
-                  value={Number(summary?.totalEarnings || 0)}
-                  trend={summary?.earningsTrend || 0}
-                />
+                <div data-tour-id="writer-earnings">
+                  <HeroEarningsCard
+                    value={Number(summary?.totalEarnings || 0)}
+                    trend={summary?.earningsTrend || 0}
+                  />
+                </div>
 
                 {/* Stats Grid - 2x2 */}
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div data-tour-id="writer-stats" className="grid grid-cols-2 gap-3 sm:gap-4">
                   <StatCard
                     title="Year to Date"
                     value={`$${Number(summary?.yearToDate || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -227,7 +233,7 @@ export default function WriterDashboard() {
         )}
 
         {/* Content */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
+        <div data-tour-id="writer-tabs" className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
             {activeTab === 'overview' && (
               <WriterOverviewTremor onWithdrawClick={handleWithdrawClick} />
             )}
@@ -389,6 +395,14 @@ export default function WriterDashboard() {
         </div>
       )}
       </div>
+
+      {/* Guided Tour for new users */}
+      {activeTab === 'overview' && (
+        <GuidedTour
+          tourId={TOUR_IDS.WRITER_DASHBOARD}
+          steps={writerDashboardSteps}
+        />
+      )}
     </div>
   );
 }
@@ -448,7 +462,7 @@ function PlacementsSection() {
 function WriterPlacementsTab() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedPlacement, setSelectedPlacement] = useState<any>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['my-placement-credits'],
@@ -459,23 +473,29 @@ function WriterPlacementsTab() {
   });
 
   const placements = data?.placements || [];
-  const summary = data?.summary || { totalPlacements: 0, totalRevenue: 0, topTerritory: null };
+  const summary = data?.summary || { totalPlacements: 0, totalRevenue: 0, totalNet: 0 };
 
-  // Filter placements by search query
+  // Filter placements by search query - FIXED: use correct field names from API
   const filteredPlacements = placements.filter((p: any) =>
-    p.songTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.artistName?.toLowerCase().includes(searchQuery.toLowerCase())
+    p.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.artist?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatCurrency = (value: number) => {
     return `$${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  const formatPeriod = (period: string) => {
+    const [year, month] = period.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  };
+
   if (isLoading) {
     return (
       <div className="text-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto" />
-        <p className="text-gray-500 mt-3">Loading your placements...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-theme-primary mx-auto" />
+        <p className="text-theme-foreground-muted mt-3">Loading your placements...</p>
       </div>
     );
   }
@@ -483,11 +503,11 @@ function WriterPlacementsTab() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-100 border border-red-200 mb-4">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 mb-4">
           <X className="w-8 h-8 text-red-500" />
         </div>
-        <h4 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Placements</h4>
-        <p className="text-gray-500">Please try again later</p>
+        <h4 className="text-xl font-semibold text-theme-foreground mb-2">Error Loading Placements</h4>
+        <p className="text-theme-foreground-muted">Please try again later</p>
       </div>
     );
   }
@@ -495,57 +515,76 @@ function WriterPlacementsTab() {
   if (placements.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gray-100 border border-gray-200 mb-4">
-          <Disc className="w-8 h-8 text-gray-400" />
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-theme-card border border-theme-border mb-4">
+          <Disc className="w-8 h-8 text-theme-foreground-muted" />
         </div>
-        <h4 className="text-xl font-semibold text-gray-900 mb-2">No Placements Yet</h4>
-        <p className="text-gray-500">Your placements will appear here once you have credits on released works</p>
+        <h4 className="text-xl font-semibold text-theme-foreground mb-2">No Placements Yet</h4>
+        <p className="text-theme-foreground-muted">Your placements will appear here once you have credits on released works</p>
       </div>
     );
   }
 
   return (
     <div>
-      {/* Summary Cards */}
+      {/* Summary Cards - Theme aware */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
-          <p className="text-xs text-emerald-600 font-medium uppercase tracking-wider mb-1">Total Revenue</p>
-          <p className="text-2xl font-bold text-emerald-700">{formatCurrency(summary.totalRevenue)}</p>
-        </div>
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-          <p className="text-xs text-blue-600 font-medium uppercase tracking-wider mb-1">Placements</p>
-          <p className="text-2xl font-bold text-blue-700">{summary.totalPlacements}</p>
-        </div>
-        {summary.topTerritory && (
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200 col-span-2 md:col-span-1">
-            <p className="text-xs text-purple-600 font-medium uppercase tracking-wider mb-1">Top Territory</p>
-            <p className="text-lg font-bold text-purple-700 flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              {summary.topTerritory}
-            </p>
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border rounded-xl p-4 group hover:border-emerald-500/50 transition-all">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-50" />
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-emerald-500" />
+              </div>
+              <p className="text-xs text-theme-foreground-muted font-medium uppercase tracking-wider">Total Revenue</p>
+            </div>
+            <p className="text-2xl font-bold text-emerald-500">{formatCurrency(summary.totalRevenue)}</p>
           </div>
-        )}
+        </div>
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border rounded-xl p-4 group hover:border-blue-500/50 transition-all">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-50" />
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                <Music className="w-4 h-4 text-blue-500" />
+              </div>
+              <p className="text-xs text-theme-foreground-muted font-medium uppercase tracking-wider">Placements</p>
+            </div>
+            <p className="text-2xl font-bold text-blue-500">{summary.totalPlacements}</p>
+          </div>
+        </div>
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border rounded-xl p-4 group hover:border-purple-500/50 transition-all col-span-2 md:col-span-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-50" />
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-purple-500" />
+              </div>
+              <p className="text-xs text-theme-foreground-muted font-medium uppercase tracking-wider">Net Earnings</p>
+            </div>
+            <p className="text-2xl font-bold text-purple-500">{formatCurrency(summary.totalNet || 0)}</p>
+          </div>
+        </div>
       </div>
 
-      {/* Search & View Toggle */}
+      {/* Search & View Toggle - Theme aware */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-foreground-muted" />
           <input
             type="text"
-            placeholder="Search placements..."
+            placeholder="Search by title or artist..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2.5 bg-theme-input border border-theme-border rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-theme-primary/50 focus:border-theme-primary transition-all"
           />
         </div>
-        <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+        <div className="flex gap-1 p-1 bg-theme-card border border-theme-border rounded-xl">
           <button
             onClick={() => setViewMode('grid')}
             className={`p-2 rounded-lg transition-all ${
               viewMode === 'grid'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-theme-primary text-white shadow-sm'
+                : 'text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-card-hover'
             }`}
             title="Grid view"
           >
@@ -555,8 +594,8 @@ function WriterPlacementsTab() {
             onClick={() => setViewMode('list')}
             className={`p-2 rounded-lg transition-all ${
               viewMode === 'list'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-theme-primary text-white shadow-sm'
+                : 'text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-card-hover'
             }`}
             title="List view"
           >
@@ -567,104 +606,82 @@ function WriterPlacementsTab() {
 
       {/* Placements */}
       {filteredPlacements.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No placements match your search</p>
+        <div className="text-center py-12 bg-theme-card border border-theme-border rounded-xl">
+          <Search className="w-12 h-12 text-theme-foreground-muted mx-auto mb-3 opacity-50" />
+          <p className="text-theme-foreground-muted">No placements match your search</p>
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPlacements.map((placement: any) => (
             <div
               key={placement.id}
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer"
-              onClick={() => setExpandedId(expandedId === placement.id ? null : placement.id)}
+              className="group bg-theme-card border border-theme-border rounded-xl overflow-hidden hover:border-theme-primary/50 hover:shadow-lg hover:shadow-theme-primary/10 transition-all cursor-pointer"
+              onClick={() => setSelectedPlacement(placement)}
             >
-              {/* Album Art */}
-              <div className="relative h-32 bg-gradient-to-br from-gray-100 to-gray-200">
+              {/* Album Art with overlay */}
+              <div className="relative h-40 bg-gradient-to-br from-theme-card to-theme-background">
                 {placement.albumArtUrl ? (
                   <img
                     src={placement.albumArtUrl}
-                    alt={placement.songTitle}
-                    className="w-full h-full object-cover"
+                    alt={placement.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Music className="w-12 h-12 text-gray-300" />
+                    <div className="w-20 h-20 rounded-full bg-theme-primary/10 flex items-center justify-center">
+                      <Music className="w-10 h-10 text-theme-primary/50" />
+                    </div>
                   </div>
                 )}
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 {/* Revenue Badge */}
-                <div className="absolute top-2 right-2 px-2 py-1 bg-emerald-500/90 backdrop-blur-sm text-white text-xs font-bold rounded-lg">
-                  {formatCurrency(placement.totalRevenue)}
+                <div className="absolute top-3 right-3 px-3 py-1.5 bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-lg">
+                  {formatCurrency(placement.revenue?.total || 0)}
+                </div>
+                {/* Title overlay on image */}
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <h4 className="font-bold text-white text-lg truncate drop-shadow-lg">{placement.title}</h4>
+                  <p className="text-white/80 text-sm truncate">{placement.artist || 'Unknown Artist'}</p>
                 </div>
               </div>
 
               {/* Content */}
               <div className="p-4">
-                <h4 className="font-semibold text-gray-900 truncate">{placement.songTitle}</h4>
-                <p className="text-sm text-gray-500 truncate">{placement.artistName || 'Unknown Artist'}</p>
-
-                <div className="flex items-center gap-2 mt-3">
-                  <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded border border-blue-100">
-                    {placement.splitPercentage}% Split
-                  </span>
-                  {placement.role && (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                      {placement.role}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="px-2.5 py-1 bg-blue-500/10 text-blue-500 text-xs font-semibold rounded-lg border border-blue-500/20">
+                      {placement.userCredit?.splitPercentage || 0}% Split
                     </span>
-                  )}
+                    {placement.userCredit?.role && (
+                      <span className="px-2.5 py-1 bg-theme-card-hover text-theme-foreground-muted text-xs rounded-lg">
+                        {placement.userCredit.role}
+                      </span>
+                    )}
+                  </div>
+                  <BarChart3 className="w-4 h-4 text-theme-foreground-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
 
-                {/* Top Territories */}
-                {placement.topTerritories?.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <p className="text-xs text-gray-400 mb-1">Top Territories</p>
-                    <div className="flex flex-wrap gap-1">
-                      {placement.topTerritories.slice(0, 3).map((t: any, idx: number) => (
-                        <span key={idx} className="text-xs text-gray-600 bg-gray-50 px-2 py-0.5 rounded">
-                          {t.territory}: {formatCurrency(t.revenue)}
-                        </span>
-                      ))}
+                {/* Quick stats */}
+                {(placement.topTerritories?.length > 0 || placement.recentPeriods?.length > 0) && (
+                  <div className="mt-3 pt-3 border-t border-theme-border">
+                    <div className="flex items-center justify-between text-xs">
+                      {placement.topTerritories?.[0] && (
+                        <div className="flex items-center gap-1.5 text-theme-foreground-muted">
+                          <MapPin className="w-3 h-3" />
+                          <span>{placement.topTerritories[0].territory}</span>
+                        </div>
+                      )}
+                      {placement.recentPeriods?.[0] && (
+                        <div className="flex items-center gap-1.5 text-emerald-500">
+                          <Calendar className="w-3 h-3" />
+                          <span>{formatPeriod(placement.recentPeriods[0].period)}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
-
-              {/* Expanded Details */}
-              {expandedId === placement.id && (
-                <div className="px-4 pb-4 pt-2 border-t border-gray-100 bg-gray-50">
-                  {/* Credits */}
-                  {placement.credits?.length > 0 && (
-                    <div className="mb-3">
-                      <p className="text-xs text-gray-400 mb-2">All Credits</p>
-                      <div className="space-y-1">
-                        {placement.credits.map((credit: any, idx: number) => (
-                          <div key={idx} className="flex justify-between text-xs">
-                            <span className="text-gray-700">
-                              {credit.firstName} {credit.lastName}
-                              {credit.role && <span className="text-gray-400 ml-1">({credit.role})</span>}
-                            </span>
-                            <span className="font-medium text-gray-900">{credit.splitPercentage}%</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Recent Periods */}
-                  {placement.recentPeriods?.length > 0 && (
-                    <div>
-                      <p className="text-xs text-gray-400 mb-2">Recent Earnings</p>
-                      <div className="space-y-1">
-                        {placement.recentPeriods.map((period: any, idx: number) => (
-                          <div key={idx} className="flex justify-between text-xs">
-                            <span className="text-gray-600">{period.period}</span>
-                            <span className="font-medium text-emerald-600">{formatCurrency(period.revenue)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -674,103 +691,232 @@ function WriterPlacementsTab() {
           {filteredPlacements.map((placement: any) => (
             <div
               key={placement.id}
-              className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer"
-              onClick={() => setExpandedId(expandedId === placement.id ? null : placement.id)}
+              className="group bg-theme-card border border-theme-border rounded-xl p-4 hover:border-theme-primary/50 hover:shadow-lg transition-all cursor-pointer"
+              onClick={() => setSelectedPlacement(placement)}
             >
               <div className="flex items-center gap-4">
                 {/* Thumbnail */}
-                <div className="w-14 h-14 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
+                <div className="w-16 h-16 rounded-xl bg-theme-card-hover flex-shrink-0 overflow-hidden">
                   {placement.albumArtUrl ? (
                     <img
                       src={placement.albumArtUrl}
-                      alt={placement.songTitle}
-                      className="w-full h-full object-cover"
+                      alt={placement.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Music className="w-6 h-6 text-gray-300" />
+                      <Music className="w-7 h-7 text-theme-foreground-muted" />
                     </div>
                   )}
                 </div>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-gray-900 truncate">{placement.songTitle}</h4>
-                  <p className="text-sm text-gray-500 truncate">{placement.artistName || 'Unknown Artist'}</p>
+                  <h4 className="font-semibold text-theme-foreground truncate">{placement.title}</h4>
+                  <p className="text-sm text-theme-foreground-muted truncate">{placement.artist || 'Unknown Artist'}</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-xs font-medium rounded">
+                      {placement.userCredit?.splitPercentage || 0}%
+                    </span>
+                    {placement.userCredit?.role && (
+                      <span className="text-xs text-theme-foreground-muted">{placement.userCredit.role}</span>
+                    )}
+                  </div>
                 </div>
 
-                {/* Split & Revenue */}
+                {/* Revenue & Stats */}
                 <div className="text-right flex-shrink-0">
-                  <p className="text-lg font-bold text-emerald-600">{formatCurrency(placement.totalRevenue)}</p>
-                  <p className="text-xs text-gray-400">{placement.splitPercentage}% split</p>
+                  <p className="text-xl font-bold text-emerald-500">{formatCurrency(placement.revenue?.total || 0)}</p>
+                  {placement.topTerritories?.[0] && (
+                    <p className="text-xs text-theme-foreground-muted flex items-center justify-end gap-1 mt-1">
+                      <MapPin className="w-3 h-3" />
+                      {placement.topTerritories[0].territory}
+                    </p>
+                  )}
                 </div>
 
-                {/* Expand Icon */}
+                {/* Arrow */}
                 <svg
-                  className={`w-5 h-5 text-gray-400 transition-transform ${expandedId === placement.id ? 'rotate-180' : ''}`}
+                  className="w-5 h-5 text-theme-foreground-muted opacity-0 group-hover:opacity-100 transition-opacity"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
+            </div>
+          ))}
+        </div>
+      )}
 
-              {/* Expanded Details */}
-              {expandedId === placement.id && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {/* Credits */}
-                    {placement.credits?.length > 0 && (
-                      <div>
-                        <p className="text-xs text-gray-400 mb-2">Credits</p>
-                        <div className="space-y-1">
-                          {placement.credits.map((credit: any, idx: number) => (
-                            <div key={idx} className="flex justify-between text-xs">
-                              <span className="text-gray-700 truncate">
-                                {credit.firstName} {credit.lastName}
-                              </span>
-                              <span className="font-medium text-gray-900 ml-2">{credit.splitPercentage}%</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+      {/* Placement Analytics Modal */}
+      {selectedPlacement && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedPlacement(null)}
+        >
+          <div
+            className="bg-theme-card border border-theme-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header with Album Art */}
+            <div className="relative h-48 bg-gradient-to-br from-theme-card to-theme-background">
+              {selectedPlacement.albumArtUrl ? (
+                <img
+                  src={selectedPlacement.albumArtUrl}
+                  alt={selectedPlacement.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Music className="w-20 h-20 text-theme-foreground-muted opacity-30" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+              <button
+                onClick={() => setSelectedPlacement(null)}
+                className="absolute top-4 right-4 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <h2 className="text-2xl font-bold text-white mb-1">{selectedPlacement.title}</h2>
+                <p className="text-white/80">{selectedPlacement.artist || 'Unknown Artist'}</p>
+              </div>
+            </div>
 
-                    {/* Top Territories */}
-                    {placement.topTerritories?.length > 0 && (
-                      <div>
-                        <p className="text-xs text-gray-400 mb-2">Top Territories</p>
-                        <div className="space-y-1">
-                          {placement.topTerritories.slice(0, 3).map((t: any, idx: number) => (
-                            <div key={idx} className="flex justify-between text-xs">
-                              <span className="text-gray-600">{t.territory}</span>
-                              <span className="font-medium text-emerald-600">{formatCurrency(t.revenue)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Revenue Stats */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium uppercase tracking-wider mb-1">Total Revenue</p>
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(selectedPlacement.revenue?.total || 0)}</p>
+                </div>
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center">
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium uppercase tracking-wider mb-1">Your Split</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{selectedPlacement.userCredit?.splitPercentage || 0}%</p>
+                </div>
+                <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 text-center">
+                  <p className="text-xs text-purple-600 dark:text-purple-400 font-medium uppercase tracking-wider mb-1">Net Earnings</p>
+                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{formatCurrency(selectedPlacement.revenue?.net || 0)}</p>
+                </div>
+              </div>
 
-                    {/* Recent Periods */}
-                    {placement.recentPeriods?.length > 0 && (
-                      <div>
-                        <p className="text-xs text-gray-400 mb-2">Recent Earnings</p>
-                        <div className="space-y-1">
-                          {placement.recentPeriods.map((period: any, idx: number) => (
-                            <div key={idx} className="flex justify-between text-xs">
-                              <span className="text-gray-600">{period.period}</span>
-                              <span className="font-medium text-emerald-600">{formatCurrency(period.revenue)}</span>
-                            </div>
-                          ))}
+              {/* Song Details */}
+              <div className="bg-theme-card-hover rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-theme-foreground mb-3 flex items-center gap-2">
+                  <Music className="w-4 h-4 text-theme-primary" />
+                  Song Details
+                </h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {selectedPlacement.albumName && (
+                    <div>
+                      <p className="text-theme-foreground-muted text-xs">Album</p>
+                      <p className="text-theme-foreground font-medium">{selectedPlacement.albumName}</p>
+                    </div>
+                  )}
+                  {selectedPlacement.genre && (
+                    <div>
+                      <p className="text-theme-foreground-muted text-xs">Genre</p>
+                      <p className="text-theme-foreground font-medium">{selectedPlacement.genre}</p>
+                    </div>
+                  )}
+                  {selectedPlacement.isrc && (
+                    <div>
+                      <p className="text-theme-foreground-muted text-xs">ISRC</p>
+                      <p className="text-theme-foreground font-mono text-xs">{selectedPlacement.isrc}</p>
+                    </div>
+                  )}
+                  {selectedPlacement.label && (
+                    <div>
+                      <p className="text-theme-foreground-muted text-xs">Label</p>
+                      <p className="text-theme-foreground font-medium">{selectedPlacement.label}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Top Territories */}
+              {selectedPlacement.topTerritories?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-theme-foreground mb-3 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-theme-primary" />
+                    Top Territories
+                  </h3>
+                  <div className="space-y-2">
+                    {selectedPlacement.topTerritories.map((t: any, idx: number) => {
+                      const maxRevenue = selectedPlacement.topTerritories[0]?.revenue || 1;
+                      const percentage = (t.revenue / maxRevenue) * 100;
+                      return (
+                        <div key={idx} className="flex items-center gap-3">
+                          <span className="text-sm text-theme-foreground w-24 truncate">{t.territory}</span>
+                          <div className="flex-1 h-2 bg-theme-card-hover rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-theme-primary to-emerald-500 rounded-full transition-all duration-500"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-semibold text-emerald-500 w-24 text-right">{formatCurrency(t.revenue)}</span>
                         </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Earnings by Period */}
+              {selectedPlacement.recentPeriods?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-theme-foreground mb-3 flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-theme-primary" />
+                    Recent Earnings
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {selectedPlacement.recentPeriods.map((period: any, idx: number) => (
+                      <div key={idx} className="bg-theme-card-hover rounded-xl p-3 text-center">
+                        <p className="text-xs text-theme-foreground-muted mb-1">{formatPeriod(period.period)}</p>
+                        <p className="text-lg font-bold text-emerald-500">{formatCurrency(period.revenue)}</p>
                       </div>
-                    )}
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* All Credits */}
+              {selectedPlacement.credits?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-theme-foreground mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-theme-primary" />
+                    All Credits ({selectedPlacement.credits.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {selectedPlacement.credits.map((credit: any, idx: number) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-theme-card-hover rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-theme-primary/10 flex items-center justify-center">
+                            <span className="text-xs font-bold text-theme-primary">
+                              {credit.firstName?.[0]}{credit.lastName?.[0]}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-theme-foreground">
+                              {credit.firstName} {credit.lastName}
+                            </p>
+                            {credit.role && (
+                              <p className="text-xs text-theme-foreground-muted">{credit.role}</p>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-lg font-bold text-theme-primary">{credit.splitPercentage}%</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
-          ))}
+          </div>
         </div>
       )}
     </div>

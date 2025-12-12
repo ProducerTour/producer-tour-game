@@ -6,8 +6,10 @@ import ImpersonationBanner from '../components/ImpersonationBanner';
 import { DashboardHeader } from '../components/DashboardHeader';
 import ToolsHub from '../components/ToolsHub';
 import { InstallAppButton } from '../components/mobile/InstallAppButton';
+import { GuidedTour } from '../components/ui/GuidedTour';
 import { useAuthStore } from '../store/auth.store';
 import { gamificationApi } from '../lib/api';
+import { customerDashboardSteps, TOUR_IDS } from '../config/tour-steps';
 import {
   Sparkles,
   Target,
@@ -103,7 +105,7 @@ export default function CustomerDashboard() {
             {activeTab === 'overview' && (
               <>
                 {/* Welcome Header with Avatar - Mobile Style */}
-                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <div data-tour-id="customer-welcome" className="flex items-center justify-between mb-4 sm:mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg">
                       {user?.firstName?.[0] || 'P'}
@@ -122,7 +124,7 @@ export default function CustomerDashboard() {
                 </div>
 
                 {/* Hero Card - Tour Miles Balance */}
-                <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-5 sm:p-8 mb-4 sm:mb-6 shadow-xl">
+                <div data-tour-id="customer-tour-miles" className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-5 sm:p-8 mb-4 sm:mb-6 shadow-xl">
                   {/* Enhanced Sparkline Chart */}
                   <svg className="absolute bottom-0 left-0 right-0 h-28 sm:h-36" viewBox="0 0 400 120" preserveAspectRatio="none">
                     {/* Gradient definitions */}
@@ -214,7 +216,7 @@ export default function CustomerDashboard() {
                 </div>
 
                 {/* Stats Grid - 2x2 */}
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div data-tour-id="customer-stats" className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
                   {/* Day Streak */}
                   <div className="relative overflow-hidden bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-100 border-l-4 border-l-orange-500">
                     <div className="relative">
@@ -305,7 +307,7 @@ export default function CustomerDashboard() {
                 </div>
 
                 {/* Quick Actions - Hidden on mobile, visible on larger screens */}
-                <div className="hidden sm:grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div data-tour-id="customer-quick-actions" className="hidden sm:grid grid-cols-2 md:grid-cols-3 gap-4">
                   <Link
                     to="/customer/tour-miles"
                     className="bg-white hover:bg-gray-50 border border-gray-100 rounded-2xl p-6 transition-all group shadow-sm"
@@ -414,6 +416,14 @@ export default function CustomerDashboard() {
           </div>
         </main>
       </div>
+
+      {/* Guided Tour for new users */}
+      {activeTab === 'overview' && (
+        <GuidedTour
+          tourId={TOUR_IDS.CUSTOMER_DASHBOARD}
+          steps={customerDashboardSteps}
+        />
+      )}
     </div>
   );
 }

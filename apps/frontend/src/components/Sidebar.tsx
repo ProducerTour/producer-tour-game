@@ -194,7 +194,9 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
       )}
 
       {/* Sidebar */}
-      <div className={`
+      <div
+        data-tour-id="sidebar"
+        className={`
         fixed left-0 top-0 flex flex-col h-screen bg-theme-background border-r border-theme-border z-[60] transition-all duration-300
         ${isCollapsed ? 'w-20' : 'w-64'}
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -314,7 +316,7 @@ export default function Sidebar({ activeTab, onTabChange, tabs }: SidebarProps) 
                   const isExpanded = expandedTabs.includes(item.id);
 
                   return (
-                    <div key={item.id}>
+                    <div key={item.id} data-tour-id={`nav-${item.id}`}>
                       {/* Use Link for navigation paths, button for tab changes */}
                       {item.path && !hasChildren ? (
                         <Link

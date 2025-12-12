@@ -114,3 +114,6 @@ export { Button, buttonVariants } from './Button';
 
 // Balancer (text wrap balancing for headlines)
 export { Balancer } from './Balancer';
+
+// Guided Tour (onboarding walkthrough)
+export { GuidedTour, type TourStep, type GuidedTourProps } from './GuidedTour';
