@@ -851,7 +851,7 @@ export default function VideoMaker() {
               {/* Back Button - Desktop only */}
               <button
                 onClick={() => navigate(-1)}
-                className="hidden md:flex items-center gap-2 text-text-secondary hover:text-white transition-colors w-full p-2 rounded-lg hover:bg-zinc-800"
+                className="hidden md:flex items-center gap-2 text-theme-foreground-muted hover:text-white transition-colors w-full p-2 rounded-lg hover:bg-zinc-800"
               >
                 <ArrowLeft size={18} />
                 <span className="text-sm">Back to Tools</span>

@@ -34,8 +34,8 @@ export default function ToolsPage() {
           <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pt-16 md:pt-8 pb-24 md:pb-8">
             {/* Header */}
             <div className="mb-4 sm:mb-8">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">Tools</h1>
-              <p className="text-text-secondary text-sm sm:text-base">Access your production and management tools.</p>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-theme-foreground mb-1 sm:mb-2">Tools</h1>
+              <p className="text-theme-foreground-muted text-sm sm:text-base">Access your production and management tools.</p>
             </div>
 
             {/* Tools Grid */}

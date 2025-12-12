@@ -61,7 +61,7 @@ export default function CheckoutSuccessPage() {
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
                 Thank You for Your Order!
               </h1>
-              <p className="text-xl text-text-secondary mb-8">
+              <p className="text-xl text-theme-foreground-muted mb-8">
                 Your payment was successful and your order has been confirmed.
               </p>
             </motion.div>
@@ -80,7 +80,7 @@ export default function CheckoutSuccessPage() {
                 </div>
               )}
 
-              <div className="flex items-center justify-center gap-2 text-text-secondary mb-6">
+              <div className="flex items-center justify-center gap-2 text-theme-foreground-muted mb-6">
                 <Mail className="w-5 h-5" />
                 <span>A confirmation email has been sent to your inbox</span>
               </div>
@@ -95,7 +95,7 @@ export default function CheckoutSuccessPage() {
                     </div>
                     <div>
                       <p className="text-white font-medium">Digital Products</p>
-                      <p className="text-text-secondary text-sm">
+                      <p className="text-theme-foreground-muted text-sm">
                         Access your digital purchases immediately in your dashboard
                       </p>
                     </div>
@@ -106,7 +106,7 @@ export default function CheckoutSuccessPage() {
                     </div>
                     <div>
                       <p className="text-white font-medium">Downloadable Files</p>
-                      <p className="text-text-secondary text-sm">
+                      <p className="text-theme-foreground-muted text-sm">
                         Download links have been sent to your email
                       </p>
                     </div>

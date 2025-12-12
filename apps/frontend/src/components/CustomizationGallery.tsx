@@ -27,12 +27,12 @@ export function CustomizationGallery({ onClose, initialTab = 'badges' }: Customi
           </div>
           <div>
             <h2 className="text-sm sm:text-lg font-semibold text-white">Customize Profile</h2>
-            <p className="text-xs sm:text-sm text-text-secondary hidden sm:block">Choose your badge and border</p>
+            <p className="text-xs sm:text-sm text-theme-foreground-muted hidden sm:block">Choose your badge and border</p>
           </div>
         </div>
         {onClose && (
           <button onClick={onClose} className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-colors">
-            <X className="w-4 h-4 sm:w-5 sm:h-5 text-text-secondary" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5 text-theme-foreground-muted" />
           </button>
         )}
       </div>
@@ -42,7 +42,7 @@ export function CustomizationGallery({ onClose, initialTab = 'badges' }: Customi
         <button
           onClick={() => setActiveTab('badges')}
           className={`flex-1 px-3 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-medium transition-colors relative ${
-            activeTab === 'badges' ? 'text-white' : 'text-text-secondary hover:text-white'
+            activeTab === 'badges' ? 'text-white' : 'text-theme-foreground-muted hover:text-white'
           }`}
         >
           <span className="flex items-center justify-center gap-1.5 sm:gap-2">
@@ -59,7 +59,7 @@ export function CustomizationGallery({ onClose, initialTab = 'badges' }: Customi
         <button
           onClick={() => setActiveTab('borders')}
           className={`flex-1 px-3 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-medium transition-colors relative ${
-            activeTab === 'borders' ? 'text-white' : 'text-text-secondary hover:text-white'
+            activeTab === 'borders' ? 'text-white' : 'text-theme-foreground-muted hover:text-white'
           }`}
         >
           <span className="flex items-center justify-center gap-1.5 sm:gap-2">
@@ -182,12 +182,12 @@ function BadgeCollection() {
       <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 rounded-lg sm:rounded-xl">
         <div className="text-center">
           <p className="text-lg sm:text-2xl font-bold text-white">{collection?.owned || 0}</p>
-          <p className="text-[10px] sm:text-xs text-text-secondary">Owned</p>
+          <p className="text-[10px] sm:text-xs text-theme-foreground-muted">Owned</p>
         </div>
         <div className="w-px h-6 sm:h-8 bg-white/10" />
         <div className="text-center">
-          <p className="text-lg sm:text-2xl font-bold text-text-secondary">{collection?.total || 0}</p>
-          <p className="text-[10px] sm:text-xs text-text-secondary">Total</p>
+          <p className="text-lg sm:text-2xl font-bold text-theme-foreground-muted">{collection?.total || 0}</p>
+          <p className="text-[10px] sm:text-xs text-theme-foreground-muted">Total</p>
         </div>
       </div>
 
@@ -229,7 +229,7 @@ function BadgeCollection() {
 
         return (
           <div key={rarity}>
-            <h4 className="text-sm font-medium text-text-secondary mb-3">
+            <h4 className="text-sm font-medium text-theme-foreground-muted mb-3">
               {rarity.charAt(0) + rarity.slice(1).toLowerCase()} ({rarityBadges.length})
             </h4>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
@@ -258,9 +258,9 @@ function BadgeCollection() {
 
       {badges.length === 0 && (
         <div className="text-center py-8">
-          <Crown className="w-12 h-12 text-text-secondary mx-auto mb-3 opacity-50" />
-          <p className="text-text-secondary">No badges available yet</p>
-          <p className="text-sm text-text-secondary mt-1">Complete achievements to unlock badges!</p>
+          <Crown className="w-12 h-12 text-theme-foreground-muted mx-auto mb-3 opacity-50" />
+          <p className="text-theme-foreground-muted">No badges available yet</p>
+          <p className="text-sm text-theme-foreground-muted mt-1">Complete achievements to unlock badges!</p>
         </div>
       )}
     </div>
@@ -351,12 +351,12 @@ function BorderCollection() {
       <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-white/5 rounded-lg sm:rounded-xl">
         <div className="text-center">
           <p className="text-lg sm:text-2xl font-bold text-white">{collection?.owned || 0}</p>
-          <p className="text-[10px] sm:text-xs text-text-secondary">Owned</p>
+          <p className="text-[10px] sm:text-xs text-theme-foreground-muted">Owned</p>
         </div>
         <div className="w-px h-6 sm:h-8 bg-white/10" />
         <div className="text-center">
-          <p className="text-lg sm:text-2xl font-bold text-text-secondary">{collection?.total || 0}</p>
-          <p className="text-[10px] sm:text-xs text-text-secondary">Total</p>
+          <p className="text-lg sm:text-2xl font-bold text-theme-foreground-muted">{collection?.total || 0}</p>
+          <p className="text-[10px] sm:text-xs text-theme-foreground-muted">Total</p>
         </div>
       </div>
 
@@ -397,7 +397,7 @@ function BorderCollection() {
 
         return (
           <div key={tier}>
-            <h4 className="text-sm font-medium text-text-secondary mb-3">
+            <h4 className="text-sm font-medium text-theme-foreground-muted mb-3">
               {tierLabels[tier] || tier} ({tierBorders.length})
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
@@ -426,7 +426,7 @@ function BorderCollection() {
                       </div>
                     )}
                   </AnimatedBorder>
-                  <p className="text-xs text-center text-text-secondary truncate w-full">
+                  <p className="text-xs text-center text-theme-foreground-muted truncate w-full">
                     {border.name}
                   </p>
                   {border.isEquipped && (
@@ -443,9 +443,9 @@ function BorderCollection() {
 
       {borders.length === 0 && (
         <div className="text-center py-8">
-          <User className="w-12 h-12 text-text-secondary mx-auto mb-3 opacity-50" />
-          <p className="text-text-secondary">No borders available yet</p>
-          <p className="text-sm text-text-secondary mt-1">Complete achievements to unlock borders!</p>
+          <User className="w-12 h-12 text-theme-foreground-muted mx-auto mb-3 opacity-50" />
+          <p className="text-theme-foreground-muted">No borders available yet</p>
+          <p className="text-sm text-theme-foreground-muted mt-1">Complete achievements to unlock borders!</p>
         </div>
       )}
     </div>

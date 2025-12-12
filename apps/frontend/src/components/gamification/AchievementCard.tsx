@@ -57,7 +57,7 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
       {/* Locked Overlay */}
       {!achievement.unlocked && (
         <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
-          <Lock className="w-4 h-4 sm:w-6 sm:h-6 text-text-secondary" />
+          <Lock className="w-4 h-4 sm:w-6 sm:h-6 text-theme-foreground-muted" />
         </div>
       )}
 
@@ -84,12 +84,12 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
       </div>
 
       {/* Achievement Name */}
-      <h3 className={`text-xs sm:text-lg font-bold text-center mb-1 sm:mb-2 line-clamp-2 ${achievement.unlocked ? 'text-white' : 'text-text-secondary'}`}>
+      <h3 className={`text-xs sm:text-lg font-bold text-center mb-1 sm:mb-2 line-clamp-2 ${achievement.unlocked ? 'text-theme-foreground' : 'text-theme-foreground-muted'}`}>
         {achievement.name}
       </h3>
 
       {/* Achievement Description - hidden on mobile for space */}
-      <p className={`text-xs sm:text-sm text-center mb-2 sm:mb-4 line-clamp-2 hidden sm:block ${achievement.unlocked ? 'text-text-secondary' : 'text-text-secondary/60'}`}>
+      <p className={`text-xs sm:text-sm text-center mb-2 sm:mb-4 line-clamp-2 hidden sm:block ${achievement.unlocked ? 'text-theme-foreground-muted' : 'text-theme-foreground-muted/60'}`}>
         {achievement.description}
       </p>
 
@@ -97,9 +97,9 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
       <div className="flex justify-between items-center pt-2 sm:pt-4 border-t border-white/10">
         <div className="flex items-center gap-0.5 sm:gap-1">
           <span className="text-sm sm:text-xl">{categoryIcon}</span>
-          <span className="text-[9px] sm:text-xs text-text-secondary capitalize hidden sm:inline">{achievement.category.toLowerCase()}</span>
+          <span className="text-[9px] sm:text-xs text-theme-foreground-muted capitalize hidden sm:inline">{achievement.category.toLowerCase()}</span>
         </div>
-        <div className={`flex items-center gap-0.5 ${achievement.unlocked ? 'text-amber-400' : 'text-text-secondary'}`}>
+        <div className={`flex items-center gap-0.5 ${achievement.unlocked ? 'text-amber-400' : 'text-theme-foreground-muted'}`}>
           <span className="text-xs sm:text-sm font-bold">+{achievement.points}</span>
           <span className="text-[9px] sm:text-xs">TM</span>
         </div>
@@ -108,7 +108,7 @@ export default function AchievementCard({ achievement }: AchievementCardProps) {
       {/* Unlocked Date - hidden on mobile */}
       {achievement.unlocked && achievement.unlockedAt && (
         <div className="mt-2 sm:mt-3 text-center hidden sm:block">
-          <p className="text-xs text-text-secondary">
+          <p className="text-xs text-theme-foreground-muted">
             Unlocked {new Date(achievement.unlockedAt).toLocaleDateString()}
           </p>
         </div>

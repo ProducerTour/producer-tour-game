@@ -53,7 +53,7 @@ export default function AchievementGallery() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-text-secondary">Loading achievements...</div>
+        <div className="text-theme-foreground-muted">Loading achievements...</div>
       </div>
     );
   }
@@ -63,7 +63,7 @@ export default function AchievementGallery() {
       {/* Stats Header - Mobile: 2x2 grid, Desktop: 3 columns */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 w-full max-w-full">
         <div className="bg-white/5 border border-blue-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 min-w-0 overflow-hidden">
-          <div className="text-[11px] sm:text-sm text-text-secondary mb-0.5 sm:mb-1">Unlocked</div>
+          <div className="text-[11px] sm:text-sm text-theme-foreground-muted mb-0.5 sm:mb-1">Unlocked</div>
           <div className="text-lg sm:text-2xl font-bold text-white">
             {stats.unlocked} / {stats.total}
           </div>
@@ -73,13 +73,13 @@ export default function AchievementGallery() {
         </div>
 
         <div className="bg-white/5 border border-amber-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 min-w-0 overflow-hidden">
-          <div className="text-[11px] sm:text-sm text-text-secondary mb-0.5 sm:mb-1">Points Earned</div>
+          <div className="text-[11px] sm:text-sm text-theme-foreground-muted mb-0.5 sm:mb-1">Points Earned</div>
           <div className="text-lg sm:text-2xl font-bold text-white">{stats.totalPoints} TM</div>
           <div className="text-[10px] sm:text-xs text-amber-400 mt-0.5 sm:mt-1">From achievements</div>
         </div>
 
         <div className="col-span-2 md:col-span-1 bg-white/5 border border-purple-500/30 rounded-lg sm:rounded-xl p-3 sm:p-4 min-w-0 overflow-hidden">
-          <div className="text-[11px] sm:text-sm text-text-secondary mb-0.5 sm:mb-1">Remaining</div>
+          <div className="text-[11px] sm:text-sm text-theme-foreground-muted mb-0.5 sm:mb-1">Remaining</div>
           <div className="text-lg sm:text-2xl font-bold text-white">{stats.total - stats.unlocked}</div>
           <div className="text-[10px] sm:text-xs text-purple-400 mt-0.5 sm:mt-1">To unlock</div>
         </div>
@@ -97,7 +97,7 @@ export default function AchievementGallery() {
                 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-medium transition-all whitespace-nowrap flex-shrink-0
                 ${selectedCategory === category
                   ? 'bg-blue-500 text-white shadow-sm'
-                  : 'bg-white/10 text-text-secondary hover:bg-white/20 border border-white/10'
+                  : 'bg-white/10 text-theme-foreground-muted hover:bg-white/20 border border-white/10'
                 }
               `}
             >
@@ -113,7 +113,7 @@ export default function AchievementGallery() {
             px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[11px] sm:text-sm font-medium transition-all self-start
             ${showUnlockedOnly
               ? 'bg-emerald-500 text-white shadow-sm'
-              : 'bg-white/10 text-text-secondary hover:bg-white/20 border border-white/10'
+              : 'bg-white/10 text-theme-foreground-muted hover:bg-white/20 border border-white/10'
             }
           `}
         >
@@ -129,7 +129,7 @@ export default function AchievementGallery() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center h-64 text-text-secondary">
+        <div className="flex flex-col items-center justify-center h-64 text-theme-foreground-muted">
           <div className="text-6xl mb-4">🏆</div>
           <div className="text-lg text-white">No achievements found</div>
           <div className="text-sm mt-2">Try adjusting your filters</div>

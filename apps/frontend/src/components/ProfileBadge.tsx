@@ -126,7 +126,7 @@ export function ProfileBadge({
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-surface-light border border-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
           <p className="text-sm font-semibold text-white">{badge.name}</p>
           {badge.description && (
-            <p className="text-xs text-text-secondary mt-0.5 max-w-[200px] whitespace-normal">
+            <p className="text-xs text-theme-foreground-muted mt-0.5 max-w-[200px] whitespace-normal">
               {badge.description}
             </p>
           )}
@@ -155,7 +155,7 @@ export function BadgeGrid({ badges, onBadgeClick, emptyMessage = 'No badges yet'
   if (badges.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-text-secondary">{emptyMessage}</p>
+        <p className="text-theme-foreground-muted">{emptyMessage}</p>
       </div>
     );
   }

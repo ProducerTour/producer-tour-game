@@ -225,7 +225,7 @@ function _DashboardOverview() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-text-secondary">Loading dashboard...</div>
+        <div className="text-theme-foreground-muted">Loading dashboard...</div>
       </div>
     );
   }
@@ -274,7 +274,7 @@ function _DashboardOverview() {
         <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-theme-foreground">Revenue Overview</h3>
-            <select className="bg-white/5 text-text-secondary text-sm rounded-xl px-3 py-2 border border-theme-border-strong focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50">
+            <select className="bg-white/5 text-theme-foreground-muted text-sm rounded-xl px-3 py-2 border border-theme-border-strong focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50">
               <option>Last 12 months</option>
               <option>Last 6 months</option>
               <option>Last 3 months</option>
@@ -323,7 +323,7 @@ function _DashboardOverview() {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-64 text-text-muted">
+            <div className="flex items-center justify-center h-64 text-theme-foreground-muted">
               No revenue data available
             </div>
           )}
@@ -344,11 +344,11 @@ function _DashboardOverview() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-3 h-3 rounded-full ${colors[index % 3]}`}></div>
-                        <span className="text-text-secondary font-medium">{item.proType}</span>
+                        <span className="text-theme-foreground-muted font-medium">{item.proType}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-white font-semibold">{item.count}</span>
-                        <span className="text-text-muted text-sm ml-2">{percentage}%</span>
+                        <span className="text-theme-foreground-muted text-sm ml-2">{percentage}%</span>
                       </div>
                     </div>
                     <div className="w-full bg-white/10 rounded-full h-2">
@@ -362,7 +362,7 @@ function _DashboardOverview() {
               })}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-64 text-text-muted">
+            <div className="flex items-center justify-center h-64 text-theme-foreground-muted">
               No statement data available
             </div>
           )}
@@ -396,7 +396,7 @@ function _DashboardOverview() {
                     </div>
                     <div>
                       <p className="text-white font-medium">{statement.filename}</p>
-                      <p className="text-text-muted text-sm">
+                      <p className="text-theme-foreground-muted text-sm">
                         {statement.proType} • {statement.itemCount || 0} items
                       </p>
                     </div>
@@ -416,7 +416,7 @@ function _DashboardOverview() {
                 </div>
               ))
             ) : (
-              <div className="text-center text-text-muted py-8">No recent statements</div>
+              <div className="text-center text-theme-foreground-muted py-8">No recent statements</div>
             )}
           </div>
         </div>
@@ -1104,7 +1104,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
         <div className="p-6 border-b border-white/[0.08] flex items-start justify-between">
           <div>
             <h3 className="text-xl font-bold text-theme-foreground">Review & Assign Writers</h3>
-            <p className="text-sm text-text-secondary mt-1">
+            <p className="text-sm text-theme-foreground-muted mt-1">
               {statement.filename} • {displayRows.length} {isMLC ? 'publisher rows' : 'songs'}
             </p>
           </div>
@@ -1121,7 +1121,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
         <div className="px-6 pt-4 pb-2 bg-white/[0.02] border-b border-white/[0.06]">
           <div className="grid grid-cols-3 gap-3 text-sm">
             <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-3">
-              <div className="text-text-muted text-xs mb-1">Total Revenue</div>
+              <div className="text-theme-foreground-muted text-xs mb-1">Total Revenue</div>
               <div className="text-white font-semibold">${formatCurrency(summaryStats.totalRevenue)}</div>
             </div>
             {smartAssignResults && (
@@ -1149,12 +1149,12 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                 placeholder="Search songs or publishers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
+                className="w-full px-3 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-white transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-theme-foreground-muted hover:text-white transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1188,7 +1188,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
           </div>
 
           {/* Showing X of Y */}
-          <div className="text-xs text-text-muted">
+          <div className="text-xs text-theme-foreground-muted">
             Showing {summaryStats.filteredRows} of {summaryStats.totalRows} rows
             {summaryStats.filteredRows < summaryStats.totalRows && (
               <span className="text-brand-blue ml-1">(filtered)</span>
@@ -1202,13 +1202,13 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
             {/* Smart Assign */}
             <div>
               <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2"><Brain className="w-4 h-4" /> Smart Assign (Manage Placements)</h4>
-              <p className="text-xs text-text-muted mb-3">
+              <p className="text-xs text-theme-foreground-muted mb-3">
                 Matches songs to Manage Placements and applies registered split percentages. Falls back to IPI matching for untracked songs.
               </p>
               <button
                 onClick={handleSmartAssign}
                 disabled={smartAssigning}
-                className="w-full px-4 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:bg-white/10 disabled:text-text-muted disabled:cursor-not-allowed transition-colors"
+                className="w-full px-4 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:bg-white/10 disabled:text-theme-foreground-muted disabled:cursor-not-allowed transition-colors"
               >
                 {smartAssigning ? <><Loader2 className="w-4 h-4 mr-2 animate-spin inline" />Analyzing...</> : <><Sparkles className="w-4 h-4 mr-2 inline" />Smart Assign</>}
               </button>
@@ -1238,7 +1238,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                 <button
                   onClick={handleAssignAll}
                   disabled={!assignAllWriter}
-                  className="px-4 py-2 bg-brand-blue text-white rounded-xl font-medium hover:bg-brand-blue/90 disabled:bg-white/10 disabled:text-text-muted disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 bg-brand-blue text-white rounded-xl font-medium hover:bg-brand-blue/90 disabled:bg-white/10 disabled:text-theme-foreground-muted disabled:cursor-not-allowed transition-colors"
                 >
                   Assign All
                 </button>
@@ -1306,7 +1306,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                       </div>
 
                       {/* Revenue + Performances */}
-                      <p className="text-sm text-text-muted mb-3">
+                      <p className="text-sm text-theme-foreground-muted mb-3">
                         ${formatCurrency(row.revenue)} • {row.performances} performances
                       </p>
 
@@ -1315,34 +1315,34 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                         <div className="bg-white/[0.03] rounded-xl p-3 space-y-2 border border-white/[0.06] mb-3">
                           {row.publisherInfo.originalPublisherName && (
                             <div className="flex items-start gap-2 text-sm">
-                              <span className="text-text-muted font-medium min-w-[75px]">Publisher:</span>
+                              <span className="text-theme-foreground-muted font-medium min-w-[75px]">Publisher:</span>
                               <div>
                                 <span className="text-brand-blue font-medium">{row.publisherInfo.originalPublisherName}</span>
                                 {row.publisherInfo.originalPublisherIpi && (
-                                  <span className="text-text-muted text-xs ml-2">IPI: {row.publisherInfo.originalPublisherIpi}</span>
+                                  <span className="text-theme-foreground-muted text-xs ml-2">IPI: {row.publisherInfo.originalPublisherIpi}</span>
                                 )}
                               </div>
                             </div>
                           )}
 
                           {(row.publisherInfo.dspName || row.publisherInfo.territory) && (
-                            <div className="flex items-center gap-4 text-sm text-text-secondary">
+                            <div className="flex items-center gap-4 text-sm text-theme-foreground-muted">
                               {row.publisherInfo.dspName && (
                                 <div>
-                                  <span className="text-text-muted">Platform:</span> {row.publisherInfo.dspName}
-                                  {row.publisherInfo.consumerOffering && <span className="text-text-muted"> ({row.publisherInfo.consumerOffering})</span>}
+                                  <span className="text-theme-foreground-muted">Platform:</span> {row.publisherInfo.dspName}
+                                  {row.publisherInfo.consumerOffering && <span className="text-theme-foreground-muted"> ({row.publisherInfo.consumerOffering})</span>}
                                 </div>
                               )}
                               {row.publisherInfo.territory && (
-                                <div><span className="text-text-muted">Territory:</span> {row.publisherInfo.territory}</div>
+                                <div><span className="text-theme-foreground-muted">Territory:</span> {row.publisherInfo.territory}</div>
                               )}
                             </div>
                           )}
 
                           {row.publisherInfo.workWriterList && row.publisherInfo.workWriterList.length > 0 && (
                             <div className="text-sm">
-                              <span className="text-text-muted">Work Writers:</span>{' '}
-                              <span className="text-text-secondary">{row.publisherInfo.workWriterList.map((w: any) => w.name).join(', ')}</span>
+                              <span className="text-theme-foreground-muted">Work Writers:</span>{' '}
+                              <span className="text-theme-foreground-muted">{row.publisherInfo.workWriterList.map((w: any) => w.name).join(', ')}</span>
                             </div>
                           )}
                         </div>
@@ -1365,7 +1365,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                           value={assignment.userId}
                           onChange={(e) => updateWriter(rowKey, writerIndex, 'userId', e.target.value)}
                           className={`col-span-4 px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue/50 ${
-                            assignment.userId ? 'bg-white/5 border-green-500/50 text-white' : 'bg-white/5 border-theme-border-strong text-text-muted'
+                            assignment.userId ? 'bg-white/5 border-green-500/50 text-white' : 'bg-white/5 border-theme-border-strong text-theme-foreground-muted'
                           }`}
                         >
                           <option value="">Select writer...</option>
@@ -1383,7 +1383,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                           placeholder="Writer IPI"
                           value={assignment.writerIpiNumber}
                           onChange={(e) => updateWriter(rowKey, writerIndex, 'writerIpiNumber', e.target.value)}
-                          className="col-span-2 px-2 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                          className="col-span-2 px-2 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                         />
 
                         <input
@@ -1391,7 +1391,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                           placeholder="Publisher IPI"
                           value={assignment.publisherIpiNumber}
                           onChange={(e) => updateWriter(rowKey, writerIndex, 'publisherIpiNumber', e.target.value)}
-                          className="col-span-2 px-2 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                          className="col-span-2 px-2 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                         />
 
                         <div className="col-span-2 relative">
@@ -1404,7 +1404,7 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
                             onChange={(e) => updateWriter(rowKey, writerIndex, 'splitPercentage', e.target.value)}
                             className="w-full px-2 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
                           />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted text-xs pointer-events-none">%</span>
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-theme-foreground-muted text-xs pointer-events-none">%</span>
                         </div>
 
                         <button
@@ -1438,13 +1438,13 @@ function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 px-4 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:bg-white/10 disabled:text-text-muted transition-colors"
+            className="flex-1 px-4 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:bg-white/10 disabled:text-theme-foreground-muted transition-colors"
           >
             {saving ? 'Saving...' : 'Save Assignments'}
           </button>
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 bg-white/5 text-text-secondary border border-theme-border-strong rounded-xl font-medium hover:bg-white/10 transition-colors"
+            className="flex-1 px-4 py-2.5 bg-white/5 text-theme-foreground-muted border border-theme-border-strong rounded-xl font-medium hover:bg-white/10 transition-colors"
           >
             Cancel
           </button>
@@ -1471,22 +1471,22 @@ function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
           </div>
 
           <div className="space-y-2">
-            <p className="text-text-secondary">
+            <p className="text-theme-foreground-muted">
               You are about to delete the following statement:
             </p>
             <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-3">
               <p className="text-white font-medium">{statement.filename}</p>
-              <p className="text-sm text-text-muted mt-1">
+              <p className="text-sm text-theme-foreground-muted mt-1">
                 {statement.proType} • {statement.itemCount || 0} items
               </p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <p className="text-text-secondary text-sm">
+            <p className="text-theme-foreground-muted text-sm">
               This will permanently remove this statement and all associated data from the system.
             </p>
-            <p className="text-text-secondary text-sm font-medium">
+            <p className="text-theme-foreground-muted text-sm font-medium">
               To confirm deletion, type <span className="text-red-400 font-mono">delete</span> below:
             </p>
             <input
@@ -1494,7 +1494,7 @@ function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder="Type 'delete' to confirm"
-              className="w-full px-4 py-2.5 bg-white/5 border border-theme-border-strong rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-red-500/50"
+              className="w-full px-4 py-2.5 bg-white/5 border border-theme-border-strong rounded-xl text-white placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-red-500/50"
               autoFocus
             />
           </div>
@@ -1503,14 +1503,14 @@ function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 bg-white/5 text-text-secondary border border-theme-border-strong rounded-xl font-medium hover:bg-white/10 transition-colors"
+            className="flex-1 px-4 py-2.5 bg-white/5 text-theme-foreground-muted border border-theme-border-strong rounded-xl font-medium hover:bg-white/10 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={!isConfirmEnabled}
-            className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 disabled:bg-white/10 disabled:text-text-muted disabled:cursor-not-allowed transition-colors"
+            className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 disabled:bg-white/10 disabled:text-theme-foreground-muted disabled:cursor-not-allowed transition-colors"
           >
             Delete Statement
           </button>
@@ -2767,7 +2767,7 @@ function _AnalyticsTab() {
       <h3 className="text-lg font-medium text-white">Platform Analytics</h3>
 
       {isLoading ? (
-        <div className="text-center text-text-secondary py-8">Loading...</div>
+        <div className="text-center text-theme-foreground-muted py-8">Loading...</div>
       ) : (
         <>
           {/* Stats Cards - 5 across */}
@@ -3018,7 +3018,7 @@ function _AnalyticsTab() {
               <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h5 className="text-md font-medium text-white">Platform Details</h5>
-                  <span className="text-xs text-text-muted">
+                  <span className="text-xs text-theme-foreground-muted">
                     {platformData.platforms.length} platform{platformData.platforms.length !== 1 ? 's' : ''}
                   </span>
                 </div>
@@ -3026,11 +3026,11 @@ function _AnalyticsTab() {
                   <table className="w-full">
                     <thead className="border-b-2 border-white/[0.12]">
                       <tr>
-                        <th className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wider py-3 px-2">Platform</th>
-                        <th className="text-left text-xs font-semibold text-text-secondary uppercase tracking-wider py-3 px-2">Service Type</th>
-                        <th className="text-right text-xs font-semibold text-text-secondary uppercase tracking-wider py-3 px-2">Items</th>
-                        <th className="text-right text-xs font-semibold text-text-secondary uppercase tracking-wider py-3 px-2">Gross Revenue</th>
-                        <th className="text-right text-xs font-semibold text-text-secondary uppercase tracking-wider py-3 px-2">Net Revenue</th>
+                        <th className="text-left text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Platform</th>
+                        <th className="text-left text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Service Type</th>
+                        <th className="text-right text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Items</th>
+                        <th className="text-right text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Gross Revenue</th>
+                        <th className="text-right text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Net Revenue</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -3040,7 +3040,7 @@ function _AnalyticsTab() {
                           className="border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors"
                         >
                           <td className="py-3.5 px-2 text-white font-semibold">{platform.platform}</td>
-                          <td className="py-3.5 px-2 text-sm text-text-muted">
+                          <td className="py-3.5 px-2 text-sm text-theme-foreground-muted">
                             <span className="inline-flex flex-wrap gap-1">
                               {platform.offerings.length > 0 ? (
                                 platform.offerings.map((offering: string, i: number) => (
@@ -3049,11 +3049,11 @@ function _AnalyticsTab() {
                                   </span>
                                 ))
                               ) : (
-                                <span className="text-text-muted">-</span>
+                                <span className="text-theme-foreground-muted">-</span>
                               )}
                             </span>
                           </td>
-                          <td className="py-3.5 px-2 text-right text-text-secondary font-medium">{platform.count.toLocaleString()}</td>
+                          <td className="py-3.5 px-2 text-right text-theme-foreground-muted font-medium">{platform.count.toLocaleString()}</td>
                           <td className="py-3.5 px-2 text-right text-green-400 font-semibold">
                             ${Number(platform.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
@@ -3168,23 +3168,23 @@ function _AnalyticsTab() {
 
               {/* Organization Details Table */}
               <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
-                <h5 className="text-sm font-medium text-text-muted mb-4">Organization Details</h5>
+                <h5 className="text-sm font-medium text-theme-foreground-muted mb-4">Organization Details</h5>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="border-b border-white/[0.12]">
                       <tr>
-                        <th className="text-left text-xs font-medium text-text-muted uppercase py-2">Organization</th>
-                        <th className="text-right text-xs font-medium text-text-muted uppercase py-2">Statements</th>
-                        <th className="text-right text-xs font-medium text-text-muted uppercase py-2">Revenue</th>
-                        <th className="text-right text-xs font-medium text-text-muted uppercase py-2">Net</th>
-                        <th className="text-right text-xs font-medium text-text-muted uppercase py-2">Commission</th>
+                        <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase py-2">Organization</th>
+                        <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase py-2">Statements</th>
+                        <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase py-2">Revenue</th>
+                        <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase py-2">Net</th>
+                        <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase py-2">Commission</th>
                       </tr>
                     </thead>
                     <tbody>
                       {organizationData.organizations.map((org: any) => (
                         <tr key={org.organization} className="border-b border-white/[0.06]">
                           <td className="py-3 text-white font-medium">{org.organization}</td>
-                          <td className="py-3 text-right text-text-secondary">{org.count}</td>
+                          <td className="py-3 text-right text-theme-foreground-muted">{org.count}</td>
                           <td className="py-3 text-right text-green-400 font-medium">
                             ${Number(org.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
@@ -3224,13 +3224,13 @@ function _AnalyticsTab() {
               onToggleExpand={toggleChartExpansion}
             >
               {territoryLoading ? (
-                <div className="h-full flex items-center justify-center text-text-secondary">
+                <div className="h-full flex items-center justify-center text-theme-foreground-muted">
                   Loading territory data...
                 </div>
               ) : territoryData?.territories && territoryData.territories.length > 0 ? (
                 <TerritoryHeatmap territories={territoryData.territories} />
               ) : (
-                <div className="h-full flex items-center justify-center text-text-muted">
+                <div className="h-full flex items-center justify-center text-theme-foreground-muted">
                   No territory data available yet. Territory information will appear once statements with location data are processed.
                 </div>
               )}
@@ -3304,7 +3304,7 @@ function StatCard({ title, value, icon, color, percentage, trend, gradient }: an
             </span>
           )}
         </div>
-        <h3 className="text-sm font-medium text-text-muted mb-2">{title}</h3>
+        <h3 className="text-sm font-medium text-theme-foreground-muted mb-2">{title}</h3>
         <p className="text-3xl font-bold text-white">{value}</p>
       </div>
     );
@@ -3314,7 +3314,7 @@ function StatCard({ title, value, icon, color, percentage, trend, gradient }: an
   return (
     <div className={`rounded-2xl bg-gradient-to-br ${colorClasses[color]} border p-6 hover:bg-white/[0.02] transition-colors`}>
       <div className="text-3xl mb-2">{icon}</div>
-      <h3 className="text-sm font-medium text-text-muted mb-1">{title}</h3>
+      <h3 className="text-sm font-medium text-theme-foreground-muted mb-1">{title}</h3>
       <p className="text-3xl font-bold text-white">{value}</p>
     </div>
   );

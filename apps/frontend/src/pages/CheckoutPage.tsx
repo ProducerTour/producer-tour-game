@@ -110,7 +110,7 @@ export default function CheckoutPage() {
             >
               <Link
                 to="/cart"
-                className="inline-flex items-center gap-2 text-text-secondary hover:text-white transition-colors"
+                className="inline-flex items-center gap-2 text-theme-foreground-muted hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to cart
@@ -125,7 +125,7 @@ export default function CheckoutPage() {
               className="mb-12"
             >
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Checkout</h1>
-              <p className="text-text-secondary text-lg">
+              <p className="text-theme-foreground-muted text-lg">
                 Complete your purchase securely with Stripe
               </p>
             </motion.div>
@@ -153,7 +153,7 @@ export default function CheckoutPage() {
                         <p className="text-white font-medium">
                           {user.firstName} {user.lastName}
                         </p>
-                        <p className="text-text-secondary text-sm">{user.email}</p>
+                        <p className="text-theme-foreground-muted text-sm">{user.email}</p>
                       </div>
                     </div>
                   ) : (
@@ -188,13 +188,13 @@ export default function CheckoutPage() {
                   <h2 className="text-lg font-semibold text-white mb-4">Payment</h2>
 
                   <div className="flex items-center gap-3 p-4 rounded-lg bg-white/5 border border-white/10 mb-4">
-                    <CreditCard className="w-5 h-5 text-text-secondary" />
-                    <span className="text-text-secondary">
+                    <CreditCard className="w-5 h-5 text-theme-foreground-muted" />
+                    <span className="text-theme-foreground-muted">
                       You'll enter your payment details on the next secure page
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-4 items-center text-text-muted text-sm">
+                  <div className="flex flex-wrap gap-4 items-center text-theme-foreground-muted text-sm">
                     <div className="flex items-center gap-2">
                       <Lock className="w-4 h-4" />
                       <span>Secure checkout</span>
@@ -251,15 +251,15 @@ export default function CheckoutPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <Package className="w-5 h-5 text-text-muted" />
+                            <Package className="w-5 h-5 text-theme-foreground-muted" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white text-sm font-medium truncate">{item.name}</p>
                           {item.variationName && (
-                            <p className="text-text-muted text-xs">{item.variationName}</p>
+                            <p className="text-theme-foreground-muted text-xs">{item.variationName}</p>
                           )}
-                          <p className="text-text-secondary text-xs">Qty: {item.quantity}</p>
+                          <p className="text-theme-foreground-muted text-xs">Qty: {item.quantity}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-white text-sm font-medium">
@@ -311,7 +311,7 @@ export default function CheckoutPage() {
                     </Button>
                   </div>
 
-                  <p className="text-center text-text-muted text-xs mt-4">
+                  <p className="text-center text-theme-foreground-muted text-xs mt-4">
                     By completing this purchase, you agree to our{' '}
                     <a href="#terms" className="text-slate-400 hover:text-white hover:underline">
                       Terms of Service

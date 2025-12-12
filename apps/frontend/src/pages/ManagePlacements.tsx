@@ -905,7 +905,7 @@ export default function ManagePlacements() {
                       />
                     ) : (
                       <div className="w-24 h-24 rounded-lg bg-gradient-to-br from-white/[0.08] to-white/[0.02] flex items-center justify-center shadow-xl">
-                        <Music className="w-12 h-12 text-text-muted" />
+                        <Music className="w-12 h-12 text-theme-foreground-muted" />
                       </div>
                     )}
                   </div>
@@ -922,13 +922,13 @@ export default function ManagePlacements() {
                             </span>
                           )}
                           {expandedId !== placement.id && (
-                            <span className="text-text-muted text-xs flex items-center gap-1">
+                            <span className="text-theme-foreground-muted text-xs flex items-center gap-1">
                               <ChevronDown className="w-3 h-3" />
                               Click to expand
                             </span>
                           )}
                         </div>
-                        <p className="text-text-secondary text-lg">{placement.artist}</p>
+                        <p className="text-theme-foreground-muted text-lg">{placement.artist}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <SubmissionStatusBadge status={placement.status} />
@@ -958,13 +958,13 @@ export default function ManagePlacements() {
                     {/* Writer Info & Metadata */}
                     <div className="flex flex-wrap gap-3">
                       {placement.user && (
-                        <div className="flex items-center gap-2 text-sm text-text-muted">
+                        <div className="flex items-center gap-2 text-sm text-theme-foreground-muted">
                           <Users className="w-4 h-4" />
                           <span>{placement.user.firstName} {placement.user.lastName}</span>
                         </div>
                       )}
                       {placement.reviewedAt && (
-                        <div className="flex items-center gap-2 text-sm text-text-muted">
+                        <div className="flex items-center gap-2 text-sm text-theme-foreground-muted">
                           <Calendar className="w-4 h-4" />
                           <span>Approved {formatDate(placement.reviewedAt)}</span>
                         </div>
@@ -992,40 +992,40 @@ export default function ManagePlacements() {
                     <div className="space-y-4">
                       <h4 className="text-theme-foreground font-semibold mb-3">Song Information</h4>
                       <div>
-                        <p className="text-text-muted text-sm mb-1">Title</p>
+                        <p className="text-theme-foreground-muted text-sm mb-1">Title</p>
                         <p className="text-theme-foreground font-medium">{placement.title}</p>
                       </div>
                       <div>
-                        <p className="text-text-muted text-sm mb-1">Artist</p>
+                        <p className="text-theme-foreground-muted text-sm mb-1">Artist</p>
                         <p className="text-theme-foreground">{placement.artist}</p>
                       </div>
                       {placement.albumName && (
                         <div>
-                          <p className="text-text-muted text-sm mb-1">Album</p>
+                          <p className="text-theme-foreground-muted text-sm mb-1">Album</p>
                           <p className="text-theme-foreground">{placement.albumName}</p>
                         </div>
                       )}
                       {placement.isrc && (
                         <div>
-                          <p className="text-text-muted text-sm mb-1">ISRC</p>
+                          <p className="text-theme-foreground-muted text-sm mb-1">ISRC</p>
                           <p className="text-theme-foreground font-mono">{placement.isrc}</p>
                         </div>
                       )}
                       {placement.releaseDate && (
                         <div>
-                          <p className="text-text-muted text-sm mb-1">Release Date</p>
+                          <p className="text-theme-foreground-muted text-sm mb-1">Release Date</p>
                           <p className="text-theme-foreground">{formatDate(placement.releaseDate)}</p>
                         </div>
                       )}
                       {placement.genre && (
                         <div>
-                          <p className="text-text-muted text-sm mb-1">Genre</p>
+                          <p className="text-theme-foreground-muted text-sm mb-1">Genre</p>
                           <p className="text-theme-foreground">{placement.genre}</p>
                         </div>
                       )}
                       {placement.label && (
                         <div>
-                          <p className="text-text-muted text-sm mb-1">Label</p>
+                          <p className="text-theme-foreground-muted text-sm mb-1">Label</p>
                           <p className="text-theme-foreground">{placement.label}</p>
                         </div>
                       )}
@@ -1036,28 +1036,28 @@ export default function ManagePlacements() {
                       <h4 className="text-theme-foreground font-semibold mb-3">Writer & Deal Information</h4>
                       {placement.user && (
                         <div>
-                          <p className="text-text-muted text-sm mb-1">Submitted By</p>
+                          <p className="text-theme-foreground-muted text-sm mb-1">Submitted By</p>
                           <p className="text-theme-foreground">
                             {placement.user.firstName} {placement.user.lastName}
                           </p>
-                          <p className="text-text-muted text-sm">{placement.user.email}</p>
+                          <p className="text-theme-foreground-muted text-sm">{placement.user.email}</p>
                         </div>
                       )}
                       {placement.caseNumber && (
                         <div>
-                          <p className="text-text-muted text-sm mb-1">Case Number</p>
+                          <p className="text-theme-foreground-muted text-sm mb-1">Case Number</p>
                           <p className="text-green-400 font-mono font-semibold">{placement.caseNumber}</p>
                         </div>
                       )}
                       {placement.reviewedAt && (
                         <div>
-                          <p className="text-text-muted text-sm mb-1">Approved Date</p>
+                          <p className="text-theme-foreground-muted text-sm mb-1">Approved Date</p>
                           <p className="text-theme-foreground">{formatDate(placement.reviewedAt)}</p>
                         </div>
                       )}
                       {placement.dealTerms && (
                         <div>
-                          <p className="text-text-muted text-sm mb-1">Deal Terms</p>
+                          <p className="text-theme-foreground-muted text-sm mb-1">Deal Terms</p>
                           <p className="text-theme-foreground">{placement.dealTerms}</p>
                         </div>
                       )}
@@ -1065,7 +1065,7 @@ export default function ManagePlacements() {
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-green-400" />
                           <div>
-                            <p className="text-text-muted text-sm mb-1">Advance Amount</p>
+                            <p className="text-theme-foreground-muted text-sm mb-1">Advance Amount</p>
                             <p className="text-theme-foreground font-medium">${placement.advanceAmount.toLocaleString()}</p>
                           </div>
                         </div>
@@ -1074,7 +1074,7 @@ export default function ManagePlacements() {
                         <div className="flex items-center gap-2">
                           <Percent className="w-4 h-4 text-blue-400" />
                           <div>
-                            <p className="text-text-muted text-sm mb-1">Royalty Percentage</p>
+                            <p className="text-theme-foreground-muted text-sm mb-1">Royalty Percentage</p>
                             <p className="text-theme-foreground font-medium">{placement.royaltyPercentage}%</p>
                           </div>
                         </div>
@@ -1108,23 +1108,23 @@ export default function ManagePlacements() {
                                 )}
                               </div>
                               <div className="flex flex-wrap gap-3 text-sm">
-                                <span className="text-text-muted">{credit.role}</span>
+                                <span className="text-theme-foreground-muted">{credit.role}</span>
                                 {credit.pro && (
-                                  <span className="text-text-muted">PRO: {credit.pro}</span>
+                                  <span className="text-theme-foreground-muted">PRO: {credit.pro}</span>
                                 )}
                                 {credit.ipiNumber && (
-                                  <span className="text-text-muted font-mono">IPI: {credit.ipiNumber}</span>
+                                  <span className="text-theme-foreground-muted font-mono">IPI: {credit.ipiNumber}</span>
                                 )}
                               </div>
                             </div>
                             <div className="text-right">
                               <p className="text-2xl font-bold text-green-400">{credit.splitPercentage}%</p>
-                              <p className="text-xs text-text-muted">Split</p>
+                              <p className="text-xs text-theme-foreground-muted">Split</p>
                             </div>
                           </div>
                         ))}
                       </div>
-                      <div className="mt-3 text-sm text-text-muted">
+                      <div className="mt-3 text-sm text-theme-foreground-muted">
                         Total Split: <span className={`font-semibold ${placement.credits.reduce((sum, c) => sum + Number(c.splitPercentage), 0) === 100 ? 'text-green-400' : 'text-yellow-400'}`}>
                           {Number(placement.credits.reduce((sum, c) => sum + Number(c.splitPercentage), 0)).toFixed(2)}%
                         </span>
@@ -1140,7 +1140,7 @@ export default function ManagePlacements() {
                         Notes
                       </h4>
                       <div className="p-4 bg-white/[0.04] rounded-lg border border-white/[0.08]">
-                        <p className="text-text-secondary whitespace-pre-wrap">{placement.notes}</p>
+                        <p className="text-theme-foreground-muted whitespace-pre-wrap">{placement.notes}</p>
                       </div>
                     </div>
                   )}
@@ -1240,7 +1240,7 @@ export default function ManagePlacements() {
                         type="text"
                         value={manualEntry.title}
                         onChange={(e) => setManualEntry({ ...manualEntry, title: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="Song title"
                       />
                     </div>
@@ -1250,7 +1250,7 @@ export default function ManagePlacements() {
                         type="text"
                         value={manualEntry.artist}
                         onChange={(e) => setManualEntry({ ...manualEntry, artist: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="Artist name"
                       />
                     </div>
@@ -1265,7 +1265,7 @@ export default function ManagePlacements() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-text-muted mb-2">ISRC</label>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">ISRC</label>
                       <input
                         type="text"
                         value={manualEntry.isrc}
@@ -1438,7 +1438,7 @@ export default function ManagePlacements() {
                     <FileSpreadsheet className="w-6 h-6 text-green-400" />
                     Bulk Import Placements
                   </h2>
-                  <p className="text-text-muted mt-1">Import multiple placements from a CSV file</p>
+                  <p className="text-theme-foreground-muted mt-1">Import multiple placements from a CSV file</p>
                 </div>
                 <button
                   onClick={() => {
@@ -1456,10 +1456,10 @@ export default function ManagePlacements() {
                 {/* Instructions */}
                 <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
                   <h3 className="text-blue-400 font-semibold mb-2">CSV Format Instructions</h3>
-                  <p className="text-text-muted text-sm mb-3">
+                  <p className="text-theme-foreground-muted text-sm mb-3">
                     Your CSV file should include the following columns. Supports up to 6 writers per song:
                   </p>
-                  <div className="text-xs text-text-muted font-mono bg-black/20 p-3 rounded-lg overflow-x-auto">
+                  <div className="text-xs text-theme-foreground-muted font-mono bg-black/20 p-3 rounded-lg overflow-x-auto">
                     title, artist, albumName, isrc, genre, releaseYear, label,<br />
                     writer1_firstName, writer1_lastName, writer1_role, writer1_split, writer1_pro, writer1_ipi,<br />
                     writer2_firstName, ... writer2_ipi,<br />
@@ -1469,7 +1469,7 @@ export default function ManagePlacements() {
                     writer6_firstName, ... writer6_ipi,<br />
                     notes
                   </div>
-                  <p className="text-text-muted text-sm mt-3">
+                  <p className="text-theme-foreground-muted text-sm mt-3">
                     <strong>Note:</strong> Split percentages must equal exactly 100% for each song (across all writers).
                     Roles can be: WRITER, PRODUCER, COMPOSER, LYRICIST.
                   </p>
@@ -1485,13 +1485,13 @@ export default function ManagePlacements() {
                   <Download className="w-6 h-6 text-green-400" />
                   <div>
                     <p className="text-theme-foreground font-semibold">Download CSV Template</p>
-                    <p className="text-text-muted text-sm">Get a pre-formatted template with example data</p>
+                    <p className="text-theme-foreground-muted text-sm">Get a pre-formatted template with example data</p>
                   </div>
                 </motion.button>
 
                 {/* File Upload */}
                 <div>
-                  <label className="block text-sm text-text-muted mb-2">Upload CSV File</label>
+                  <label className="block text-sm text-theme-foreground-muted mb-2">Upload CSV File</label>
                   <div className="relative">
                     <input
                       type="file"
@@ -1500,9 +1500,9 @@ export default function ManagePlacements() {
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
                     <div className="p-8 border-2 border-dashed border-white/20 rounded-xl text-center hover:border-white/40 transition-colors">
-                      <Upload className="w-12 h-12 text-text-muted mx-auto mb-3" />
+                      <Upload className="w-12 h-12 text-theme-foreground-muted mx-auto mb-3" />
                       <p className="text-theme-foreground font-medium">Click or drag to upload CSV file</p>
-                      <p className="text-text-muted text-sm mt-1">Supports .csv files</p>
+                      <p className="text-theme-foreground-muted text-sm mt-1">Supports .csv files</p>
                     </div>
                   </div>
                 </div>
@@ -1534,11 +1534,11 @@ export default function ManagePlacements() {
                         <div key={idx} className="p-3 bg-white/5 rounded-lg border border-theme-border-strong flex items-center justify-between">
                           <div>
                             <p className="text-theme-foreground font-medium">{row.title}</p>
-                            <p className="text-text-muted text-sm">{row.artist}</p>
+                            <p className="text-theme-foreground-muted text-sm">{row.artist}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-sm text-purple-400">{row.writers.length} writer{row.writers.length !== 1 ? 's' : ''}</p>
-                            <p className="text-xs text-text-muted">
+                            <p className="text-xs text-theme-foreground-muted">
                               {row.writers.map((w: any) => `${w.firstName} (${w.splitPercentage}%)`).join(', ')}
                             </p>
                           </div>
@@ -1656,7 +1656,7 @@ export default function ManagePlacements() {
                         type="text"
                         value={editEntry.title}
                         onChange={(e) => setEditEntry({ ...editEntry, title: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="Song title"
                       />
                     </div>
@@ -1666,7 +1666,7 @@ export default function ManagePlacements() {
                         type="text"
                         value={editEntry.artist}
                         onChange={(e) => setEditEntry({ ...editEntry, artist: e.target.value })}
-                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-4 py-3 bg-white/5 border border-theme-border-strong rounded-xl text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="Artist name"
                       />
                     </div>
@@ -1681,7 +1681,7 @@ export default function ManagePlacements() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-text-muted mb-2">ISRC</label>
+                      <label className="block text-sm text-theme-foreground-muted mb-2">ISRC</label>
                       <input
                         type="text"
                         value={editEntry.isrc}

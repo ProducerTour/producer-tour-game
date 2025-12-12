@@ -183,7 +183,7 @@ export default function CustomerTourMilesPage() {
             {/* Mobile Header - Compact */}
             <div className="mb-3 sm:mb-8">
               <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-white break-words">Tour Miles</h1>
-              <p className="text-text-secondary text-xs sm:text-base hidden sm:block">Earn points, unlock rewards, and level up your profile.</p>
+              <p className="text-theme-foreground-muted text-xs sm:text-base hidden sm:block">Earn points, unlock rewards, and level up your profile.</p>
             </div>
 
             {/* Mobile: 2x2 Grid Stats | Desktop: 4-column Grid */}
@@ -195,7 +195,7 @@ export default function CustomerTourMilesPage() {
                   <span className={`text-[8px] font-bold uppercase ${tierStyle.text}`}>{currentTier}</span>
                 </div>
                 <p className="text-base font-bold text-white leading-tight">{stats?.points?.toLocaleString() || 0}</p>
-                <p className="text-[9px] text-text-secondary">Tour Miles</p>
+                <p className="text-[9px] text-theme-foreground-muted">Tour Miles</p>
                 {nextTier && (
                   <div className="mt-0.5">
                     <div className="h-0.5 bg-white/10 rounded-full overflow-hidden">
@@ -209,13 +209,13 @@ export default function CustomerTourMilesPage() {
               <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-lg p-2 min-w-0 max-w-full overflow-hidden">
                 <Zap className="w-3 h-3 text-orange-400 mb-0.5" />
                 <p className="text-base font-bold text-white leading-tight">{stats?.currentStreak || 0}</p>
-                <p className="text-[9px] text-text-secondary mb-1">Day Streak</p>
+                <p className="text-[9px] text-theme-foreground-muted mb-1">Day Streak</p>
                 <button
                   onClick={() => checkInMutation.mutate()}
                   disabled={checkInMutation.isPending || stats?.checkedInToday}
                   className={`w-full py-0.5 rounded text-[9px] font-semibold ${
                     stats?.checkedInToday
-                      ? 'bg-white/10 text-text-secondary'
+                      ? 'bg-white/10 text-theme-foreground-muted'
                       : 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
                   }`}
                 >
@@ -227,14 +227,14 @@ export default function CustomerTourMilesPage() {
               <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-lg p-2 min-w-0 max-w-full overflow-hidden">
                 <Trophy className="w-3 h-3 text-purple-400 mb-0.5" />
                 <p className="text-base font-bold text-white leading-tight">{stats?.achievementsUnlocked || 0}</p>
-                <p className="text-[9px] text-text-secondary">Badges</p>
+                <p className="text-[9px] text-theme-foreground-muted">Badges</p>
               </div>
 
               {/* Rewards */}
               <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg p-2 min-w-0 max-w-full overflow-hidden">
                 <Gift className="w-3 h-3 text-green-400 mb-0.5" />
                 <p className="text-base font-bold text-white leading-tight">{rewards?.length || 0}</p>
-                <p className="text-[9px] text-text-secondary">Rewards</p>
+                <p className="text-[9px] text-theme-foreground-muted">Rewards</p>
               </div>
             </div>
 
@@ -253,10 +253,10 @@ export default function CustomerTourMilesPage() {
                 <p className="text-3xl font-bold text-white mb-1">
                   {stats?.points?.toLocaleString() || 0}
                 </p>
-                <p className="text-sm text-text-secondary">Tour Miles</p>
+                <p className="text-sm text-theme-foreground-muted">Tour Miles</p>
                 {nextTier && (
                   <div className="mt-4">
-                    <div className="flex justify-between text-xs text-text-secondary mb-1">
+                    <div className="flex justify-between text-xs text-theme-foreground-muted mb-1">
                       <span>Progress to {nextTier}</span>
                       <span>{Math.round(tierProgress)}%</span>
                     </div>
@@ -278,13 +278,13 @@ export default function CustomerTourMilesPage() {
                   </div>
                 </div>
                 <p className="text-3xl font-bold text-white mb-1">{stats?.currentStreak || 0}</p>
-                <p className="text-sm text-text-secondary">Day Streak</p>
+                <p className="text-sm text-theme-foreground-muted">Day Streak</p>
                 <button
                   onClick={() => checkInMutation.mutate()}
                   disabled={checkInMutation.isPending || stats?.checkedInToday}
                   className={`mt-4 w-full py-2 px-4 rounded-lg text-sm font-semibold transition-all ${
                     stats?.checkedInToday
-                      ? 'bg-white/10 text-text-secondary cursor-not-allowed'
+                      ? 'bg-white/10 text-theme-foreground-muted cursor-not-allowed'
                       : 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:opacity-90'
                   }`}
                 >
@@ -300,7 +300,7 @@ export default function CustomerTourMilesPage() {
                   </div>
                 </div>
                 <p className="text-3xl font-bold text-white mb-1">{stats?.achievementsUnlocked || 0}</p>
-                <p className="text-sm text-text-secondary">Achievements</p>
+                <p className="text-sm text-theme-foreground-muted">Achievements</p>
                 <button
                   onClick={() => setActiveTab('achievements')}
                   className="mt-4 w-full py-2 px-4 rounded-lg text-sm font-semibold bg-white/10 text-white hover:bg-white/20 transition-all"
@@ -317,7 +317,7 @@ export default function CustomerTourMilesPage() {
                   </div>
                 </div>
                 <p className="text-3xl font-bold text-white mb-1">{rewards?.length || 0}</p>
-                <p className="text-sm text-text-secondary">Rewards Available</p>
+                <p className="text-sm text-theme-foreground-muted">Rewards Available</p>
                 <button
                   onClick={() => setActiveTab('rewards')}
                   className="mt-4 w-full py-2 px-4 rounded-lg text-sm font-semibold bg-white/10 text-white hover:bg-white/20 transition-all"
@@ -336,7 +336,7 @@ export default function CustomerTourMilesPage() {
                   className={`px-2 py-1 sm:px-4 sm:py-2 rounded-md sm:rounded-lg text-[10px] sm:text-sm font-medium whitespace-nowrap transition-all flex items-center gap-1 sm:gap-2 flex-shrink-0 ${
                     activeTab === tab
                       ? 'bg-white/15 text-white'
-                      : 'text-text-secondary hover:text-white/70'
+                      : 'text-theme-foreground-muted hover:text-white/70'
                   }`}
                 >
                   <span className="text-sm sm:text-base">
@@ -361,22 +361,22 @@ export default function CustomerTourMilesPage() {
                     <div className="bg-white/5 rounded-lg p-2 sm:p-4">
                       <Calendar className="w-4 h-4 sm:w-8 sm:h-8 text-orange-400 mb-1 sm:mb-3" />
                       <h3 className="font-semibold text-white text-[11px] sm:text-base mb-0.5">Check-In</h3>
-                      <p className="text-[9px] sm:text-sm text-text-secondary">+10 TP daily</p>
+                      <p className="text-[9px] sm:text-sm text-theme-foreground-muted">+10 TP daily</p>
                     </div>
                     <div className="bg-white/5 rounded-lg p-2 sm:p-4">
                       <Users className="w-4 h-4 sm:w-8 sm:h-8 text-blue-400 mb-1 sm:mb-3" />
                       <h3 className="font-semibold text-white text-[11px] sm:text-base mb-0.5">Referrals</h3>
-                      <p className="text-[9px] sm:text-sm text-text-secondary">+100 TP</p>
+                      <p className="text-[9px] sm:text-sm text-theme-foreground-muted">+100 TP</p>
                     </div>
                     <div className="bg-white/5 rounded-lg p-2 sm:p-4">
                       <Target className="w-4 h-4 sm:w-8 sm:h-8 text-green-400 mb-1 sm:mb-3" />
                       <h3 className="font-semibold text-white text-[11px] sm:text-base mb-0.5">Tools</h3>
-                      <p className="text-[9px] sm:text-sm text-text-secondary">Earn TP</p>
+                      <p className="text-[9px] sm:text-sm text-theme-foreground-muted">Earn TP</p>
                     </div>
                     <div className="bg-white/5 rounded-lg p-2 sm:p-4">
                       <Trophy className="w-4 h-4 sm:w-8 sm:h-8 text-purple-400 mb-1 sm:mb-3" />
                       <h3 className="font-semibold text-white text-[11px] sm:text-base mb-0.5">Achieve</h3>
-                      <p className="text-[9px] sm:text-sm text-text-secondary">50-500 TP</p>
+                      <p className="text-[9px] sm:text-sm text-theme-foreground-muted">50-500 TP</p>
                     </div>
                   </div>
                 </div>
@@ -400,7 +400,7 @@ export default function CustomerTourMilesPage() {
                 {rewardsLoading ? (
                   <div className="col-span-full text-center py-6 sm:py-12">
                     <div className="animate-spin rounded-full h-5 w-5 sm:h-8 sm:w-8 border-b-2 border-brand-blue mx-auto mb-2 sm:mb-4" />
-                    <p className="text-text-secondary text-xs sm:text-base">Loading...</p>
+                    <p className="text-theme-foreground-muted text-xs sm:text-base">Loading...</p>
                   </div>
                 ) : rewards && rewards.length > 0 ? (
                   rewards.map((reward: any) => {
@@ -429,7 +429,7 @@ export default function CustomerTourMilesPage() {
                           )}
                         </div>
                         <h3 className="font-semibold text-white text-[11px] sm:text-base mb-0.5 sm:mb-2 line-clamp-1">{reward.name}</h3>
-                        <p className="text-[9px] sm:text-sm text-text-secondary mb-2 sm:mb-4 line-clamp-2 hidden sm:block">{reward.description}</p>
+                        <p className="text-[9px] sm:text-sm text-theme-foreground-muted mb-2 sm:mb-4 line-clamp-2 hidden sm:block">{reward.description}</p>
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
                           <span className="text-amber-400 font-bold text-[10px] sm:text-base">{reward.cost.toLocaleString()} TP</span>
                           <button
@@ -437,11 +437,11 @@ export default function CustomerTourMilesPage() {
                             disabled={!canAfford || tierLocked || reward.stock === 0}
                             className={`px-2 sm:px-4 py-1 sm:py-2 rounded text-[9px] sm:text-sm font-semibold transition-all ${
                               !canAfford
-                                ? 'bg-white/10 text-text-secondary cursor-not-allowed'
+                                ? 'bg-white/10 text-theme-foreground-muted cursor-not-allowed'
                                 : tierLocked
                                 ? 'bg-purple-500/20 text-purple-300 cursor-not-allowed'
                                 : reward.stock === 0
-                                ? 'bg-white/10 text-text-secondary cursor-not-allowed'
+                                ? 'bg-white/10 text-theme-foreground-muted cursor-not-allowed'
                                 : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90'
                             }`}
                           >
@@ -453,8 +453,8 @@ export default function CustomerTourMilesPage() {
                   })
                 ) : (
                   <div className="col-span-full text-center py-6 sm:py-12">
-                    <Gift className="w-10 h-10 sm:w-16 sm:h-16 text-text-secondary mx-auto mb-2 sm:mb-4 opacity-50" />
-                    <p className="text-text-secondary text-xs sm:text-base">No rewards available.</p>
+                    <Gift className="w-10 h-10 sm:w-16 sm:h-16 text-theme-foreground-muted mx-auto mb-2 sm:mb-4 opacity-50" />
+                    <p className="text-theme-foreground-muted text-xs sm:text-base">No rewards available.</p>
                   </div>
                 )}
               </div>
@@ -476,7 +476,7 @@ export default function CustomerTourMilesPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-surface border border-white/10 rounded-2xl p-6 max-w-md w-full">
             <h3 className="text-xl font-bold text-white mb-4">Confirm Redemption</h3>
-            <p className="text-text-secondary mb-6">
+            <p className="text-theme-foreground-muted mb-6">
               Are you sure you want to redeem <span className="text-white font-semibold">{selectedReward.name}</span> for{' '}
               <span className="text-amber-400 font-bold">{selectedReward.cost.toLocaleString()} Tour Miles</span>?
             </p>

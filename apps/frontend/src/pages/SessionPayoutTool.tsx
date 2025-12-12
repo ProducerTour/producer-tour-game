@@ -241,7 +241,7 @@ export default function SessionPayoutTool() {
         <div className="mb-8">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors mb-4"
+            className="flex items-center gap-2 text-theme-foreground-muted hover:text-text-primary transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -249,7 +249,7 @@ export default function SessionPayoutTool() {
           <h1 className="text-display-lg text-text-primary mb-3 font-display">
             Session Payout & Delivery
           </h1>
-          <p className="text-body-lg text-text-secondary">
+          <p className="text-body-lg text-theme-foreground-muted">
             Submit session metadata, asset links, and request engineer payment.
           </p>
         </div>
@@ -264,14 +264,14 @@ export default function SessionPayoutTool() {
                 </div>
                 <div>
                   <CardTitle className="text-text-primary">Session Details</CardTitle>
-                  <CardDescription className="text-text-muted">Basic session information</CardDescription>
+                  <CardDescription className="text-theme-foreground-muted">Basic session information</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="date" className="text-text-secondary">Session Date</Label>
+                  <Label htmlFor="date" className="text-theme-foreground-muted">Session Date</Label>
                   <Input
                     id="date"
                     type="date"
@@ -281,7 +281,7 @@ export default function SessionPayoutTool() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="artistName" className="text-text-secondary">Artist Name</Label>
+                  <Label htmlFor="artistName" className="text-theme-foreground-muted">Artist Name</Label>
                   <Input
                     id="artistName"
                     placeholder="Artist Name"
@@ -294,7 +294,7 @@ export default function SessionPayoutTool() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="producerName" className="text-text-secondary">Your Name (Engineer / Producer)</Label>
+                  <Label htmlFor="producerName" className="text-theme-foreground-muted">Your Name (Engineer / Producer)</Label>
                   <Input
                     id="producerName"
                     placeholder="Full Name"
@@ -304,7 +304,7 @@ export default function SessionPayoutTool() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="songTitles" className="text-text-secondary">Song Title(s)</Label>
+                  <Label htmlFor="songTitles" className="text-theme-foreground-muted">Song Title(s)</Label>
                   <Input
                     id="songTitles"
                     placeholder="Song Title or Working Title"
@@ -320,7 +320,7 @@ export default function SessionPayoutTool() {
                 <CardContent className="pt-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="startTime" className="text-text-secondary flex items-center gap-2">
+                      <Label htmlFor="startTime" className="text-theme-foreground-muted flex items-center gap-2">
                         <Clock className="w-4 h-4" />
                         Start Time
                       </Label>
@@ -333,7 +333,7 @@ export default function SessionPayoutTool() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="finishTime" className="text-text-secondary flex items-center gap-2">
+                      <Label htmlFor="finishTime" className="text-theme-foreground-muted flex items-center gap-2">
                         <Clock className="w-4 h-4" />
                         Finish Time
                       </Label>
@@ -346,7 +346,7 @@ export default function SessionPayoutTool() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-text-secondary">Total Hours</Label>
+                      <Label className="text-theme-foreground-muted">Total Hours</Label>
                       <Input
                         value={formData.totalHours.toFixed(1)}
                         readOnly
@@ -368,14 +368,14 @@ export default function SessionPayoutTool() {
                 </div>
                 <div>
                   <CardTitle className="text-text-primary">Studio & Personnel</CardTitle>
-                  <CardDescription className="text-text-muted">Studio and engineering credits</CardDescription>
+                  <CardDescription className="text-theme-foreground-muted">Studio and engineering credits</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="studioName" className="text-text-secondary">Studio Name</Label>
+                  <Label htmlFor="studioName" className="text-theme-foreground-muted">Studio Name</Label>
                   <Input
                     id="studioName"
                     placeholder="e.g., audiOVISION STUDIOS"
@@ -385,7 +385,7 @@ export default function SessionPayoutTool() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="trackingEngineer" className="text-text-secondary">Tracking Engineer</Label>
+                  <Label htmlFor="trackingEngineer" className="text-theme-foreground-muted">Tracking Engineer</Label>
                   <Input
                     id="trackingEngineer"
                     placeholder="Primary tracking engineer"
@@ -398,7 +398,7 @@ export default function SessionPayoutTool() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="assistantEngineer" className="text-text-secondary text-sm">Assistant Engineer</Label>
+                  <Label htmlFor="assistantEngineer" className="text-theme-foreground-muted text-sm">Assistant Engineer</Label>
                   <Input
                     id="assistantEngineer"
                     placeholder="Optional"
@@ -408,7 +408,7 @@ export default function SessionPayoutTool() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="mixEngineer" className="text-text-secondary text-sm">Mix Engineer</Label>
+                  <Label htmlFor="mixEngineer" className="text-theme-foreground-muted text-sm">Mix Engineer</Label>
                   <Input
                     id="mixEngineer"
                     placeholder="Optional"
@@ -418,7 +418,7 @@ export default function SessionPayoutTool() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="masteringEngineer" className="text-text-secondary text-sm">Mastering Engineer</Label>
+                  <Label htmlFor="masteringEngineer" className="text-theme-foreground-muted text-sm">Mastering Engineer</Label>
                   <Input
                     id="masteringEngineer"
                     placeholder="Optional"
@@ -430,7 +430,7 @@ export default function SessionPayoutTool() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="sessionNotes" className="text-text-secondary text-sm">Session Notes / Equipment</Label>
+                <Label htmlFor="sessionNotes" className="text-theme-foreground-muted text-sm">Session Notes / Equipment</Label>
                 <Textarea
                   id="sessionNotes"
                   placeholder="e.g., Mic Used (U87), Preamp (Neve 1073)... (Optional)"
@@ -451,7 +451,7 @@ export default function SessionPayoutTool() {
                 </div>
                 <div>
                   <CardTitle className="text-text-primary">Asset Delivery</CardTitle>
-                  <CardDescription className="text-text-muted">
+                  <CardDescription className="text-theme-foreground-muted">
                     Links to session files and deliverables
                   </CardDescription>
                 </div>
@@ -460,7 +460,7 @@ export default function SessionPayoutTool() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="masterLink" className="text-text-secondary">Master Recording</Label>
+                  <Label htmlFor="masterLink" className="text-theme-foreground-muted">Master Recording</Label>
                   <Input
                     id="masterLink"
                     type="url"
@@ -471,7 +471,7 @@ export default function SessionPayoutTool() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="sessionFilesLink" className="text-text-secondary">Session Files</Label>
+                  <Label htmlFor="sessionFilesLink" className="text-theme-foreground-muted">Session Files</Label>
                   <Input
                     id="sessionFilesLink"
                     type="url"
@@ -485,7 +485,7 @@ export default function SessionPayoutTool() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="beatStemsLink" className="text-text-secondary">Beat Stems</Label>
+                  <Label htmlFor="beatStemsLink" className="text-theme-foreground-muted">Beat Stems</Label>
                   <Input
                     id="beatStemsLink"
                     type="url"
@@ -496,7 +496,7 @@ export default function SessionPayoutTool() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="beatLink" className="text-text-secondary">Beat / Instrumental</Label>
+                  <Label htmlFor="beatLink" className="text-theme-foreground-muted">Beat / Instrumental</Label>
                   <Input
                     id="beatLink"
                     type="url"
@@ -512,7 +512,7 @@ export default function SessionPayoutTool() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="sampleInfo" className="text-text-secondary text-sm">Sample / Interpolation Info</Label>
+                  <Label htmlFor="sampleInfo" className="text-theme-foreground-muted text-sm">Sample / Interpolation Info</Label>
                   <Input
                     id="sampleInfo"
                     placeholder="Song, Artist, Timing (or N/A)"
@@ -522,7 +522,7 @@ export default function SessionPayoutTool() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="midiPresetsLink" className="text-text-secondary text-sm">MIDI / Presets Link</Label>
+                  <Label htmlFor="midiPresetsLink" className="text-theme-foreground-muted text-sm">MIDI / Presets Link</Label>
                   <Input
                     id="midiPresetsLink"
                     type="url"
@@ -545,7 +545,7 @@ export default function SessionPayoutTool() {
                 </div>
                 <div>
                   <CardTitle className="text-text-primary">Payment Structure</CardTitle>
-                  <CardDescription className="text-text-muted">How Producer Tour handles payment</CardDescription>
+                  <CardDescription className="text-theme-foreground-muted">How Producer Tour handles payment</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -562,7 +562,7 @@ export default function SessionPayoutTool() {
                       Split Payment (PT pays Studio directly)
                     </Label>
                   </div>
-                  <p className="text-xs text-text-muted ml-6 mt-1">
+                  <p className="text-xs text-theme-foreground-muted ml-6 mt-1">
                     PT pays Studio + Engineer separately
                   </p>
                 </div>
@@ -574,7 +574,7 @@ export default function SessionPayoutTool() {
                       Combined (Engineer handles Studio)
                     </Label>
                   </div>
-                  <p className="text-xs text-text-muted ml-6 mt-1">
+                  <p className="text-xs text-theme-foreground-muted ml-6 mt-1">
                     PT pays Engineer total, Engineer pays Studio
                   </p>
                 </div>
@@ -593,7 +593,7 @@ export default function SessionPayoutTool() {
                   <CardTitle className="text-text-primary">
                     {formData.paymentSplit === 'combined' ? 'Session Amount' : 'Rates'}
                   </CardTitle>
-                  <CardDescription className="text-text-muted">
+                  <CardDescription className="text-theme-foreground-muted">
                     {formData.paymentSplit === 'combined'
                       ? 'Total amount for the session'
                       : 'Studio and engineer rates (calculated separately)'}
@@ -605,7 +605,7 @@ export default function SessionPayoutTool() {
               {formData.paymentSplit === 'combined' ? (
                 // Combined: Single total amount input
                 <div className="space-y-2">
-                  <Label htmlFor="totalSessionAmount" className="text-text-secondary">Total Session Amount ($)</Label>
+                  <Label htmlFor="totalSessionAmount" className="text-theme-foreground-muted">Total Session Amount ($)</Label>
                   <Input
                     id="totalSessionAmount"
                     type="number"
@@ -614,7 +614,7 @@ export default function SessionPayoutTool() {
                     onChange={(e) => setFormData({ ...formData, totalSessionAmount: parseFloat(e.target.value) || 0 })}
                     className="bg-surface-200 border-panel-border text-text-primary text-lg"
                   />
-                  <p className="text-xs text-text-muted">
+                  <p className="text-xs text-theme-foreground-muted">
                     This is the total amount you'll receive. You're responsible for paying the studio.
                   </p>
                 </div>
@@ -686,7 +686,7 @@ export default function SessionPayoutTool() {
               <Separator className="bg-panel-border" />
 
               <div className="space-y-2">
-                <Label htmlFor="depositPaid" className="text-text-secondary">Client Deposit Already Paid ($)</Label>
+                <Label htmlFor="depositPaid" className="text-theme-foreground-muted">Client Deposit Already Paid ($)</Label>
                 <Input
                   id="depositPaid"
                   type="number"
@@ -709,14 +709,14 @@ export default function SessionPayoutTool() {
                   </div>
                   <div>
                     <CardTitle className="text-text-primary">Payment Summary</CardTitle>
-                    <CardDescription className="text-text-secondary">Real-time calculation</CardDescription>
+                    <CardDescription className="text-theme-foreground-muted">Real-time calculation</CardDescription>
                   </div>
                 </div>
                 {/* Work Order Number - Bottom Right aligned */}
                 <div className="flex items-center gap-2 px-4 py-2 bg-surface-100/80 rounded-lg border border-primary-500/30">
                   <Hash className="w-4 h-4 text-primary-400" />
                   <div className="text-right">
-                    <p className="text-xs text-text-muted">Work Order</p>
+                    <p className="text-xs text-theme-foreground-muted">Work Order</p>
                     <p className="text-lg font-bold text-primary-400 font-mono">
                       {workOrderLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin inline" />
@@ -733,12 +733,12 @@ export default function SessionPayoutTool() {
                 // Split mode: Show studio + engineer breakdown
                 <>
                   <div className="flex justify-between py-2 border-b border-panel-border">
-                    <span className="text-text-secondary">Studio Cost:</span>
+                    <span className="text-theme-foreground-muted">Studio Cost:</span>
                     <span className="text-text-primary font-semibold">${calculations.studioCost.toFixed(2)}</span>
                   </div>
 
                   <div className="flex justify-between py-2 border-b border-panel-border">
-                    <span className="text-text-secondary">Engineer Fee:</span>
+                    <span className="text-theme-foreground-muted">Engineer Fee:</span>
                     <span className="text-text-primary font-semibold">${calculations.engineerFee.toFixed(2)}</span>
                   </div>
 
@@ -757,7 +757,7 @@ export default function SessionPayoutTool() {
 
               {formData.depositPaid > 0 && (
                 <div className="flex justify-between py-2 border-b border-panel-border">
-                  <span className="text-text-secondary">Deposit Applied:</span>
+                  <span className="text-theme-foreground-muted">Deposit Applied:</span>
                   <span className="text-text-primary font-semibold">-${formData.depositPaid.toFixed(2)}</span>
                 </div>
               )}

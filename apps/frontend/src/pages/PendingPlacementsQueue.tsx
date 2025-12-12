@@ -70,7 +70,7 @@ export default function PendingPlacementsQueue() {
       toast.success(
         <div>
           <div className="font-semibold">Submission Approved!</div>
-          <div className="text-sm text-text-muted">Added to writer's Placements & Producer Clearances</div>
+          <div className="text-sm text-theme-foreground-muted">Added to writer's Placements & Producer Clearances</div>
         </div>,
         { icon: <Check className="w-5 h-5 text-green-500" />, duration: 4000 }
       );

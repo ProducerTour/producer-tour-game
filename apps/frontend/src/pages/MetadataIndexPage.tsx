@@ -91,7 +91,7 @@ const StatusBadge = ({ status }: { status: MatchStatus }) => {
     matched: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/30', icon: Check, label: 'Matched' },
     partial: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', border: 'border-yellow-500/30', icon: AlertTriangle, label: 'Partial' },
     unmatched: { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30', icon: X, label: 'Unmatched' },
-    pending: { bg: 'bg-white/10', text: 'text-text-muted', border: 'border-white/20', icon: Clock, label: 'Pending' },
+    pending: { bg: 'bg-white/10', text: 'text-theme-foreground-muted', border: 'border-white/20', icon: Clock, label: 'Pending' },
   };
   const config = configs[status];
   const Icon = config.icon;
@@ -848,7 +848,7 @@ export default function MetadataIndexPage() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate(-1)}
-                className="p-2 text-text-muted hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors"
+                className="p-2 text-theme-foreground-muted hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -858,12 +858,12 @@ export default function MetadataIndexPage() {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-white">Metadata Index</h1>
-                  <p className="text-sm text-text-muted">Search ISRC/UPC codes, keywords, or URLs</p>
+                  <p className="text-sm text-theme-foreground-muted">Search ISRC/UPC codes, keywords, or URLs</p>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-text-muted">{savedLists.length} list{savedLists.length !== 1 ? 's' : ''}</span>
+              <span className="text-sm text-theme-foreground-muted">{savedLists.length} list{savedLists.length !== 1 ? 's' : ''}</span>
             </div>
           </div>
         </div>
@@ -885,13 +885,13 @@ export default function MetadataIndexPage() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setViewingList(null)}
-                    className="p-2 text-text-muted hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors"
+                    className="p-2 text-theme-foreground-muted hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <div>
                     <h2 className="text-xl font-semibold text-white">{viewingList.name}</h2>
-                    <p className="text-sm text-text-muted">{viewingList.items.length} items</p>
+                    <p className="text-sm text-theme-foreground-muted">{viewingList.items.length} items</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -901,7 +901,7 @@ export default function MetadataIndexPage() {
                       const newName = prompt('Enter new name:', viewingList.name);
                       if (newName && newName.trim()) renameList(viewingList.id, newName.trim());
                     }}
-                    className="px-3 py-1.5 bg-white/[0.08] text-text-secondary rounded-lg text-sm font-medium hover:bg-white/[0.12] transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 bg-white/[0.08] text-theme-foreground-muted rounded-lg text-sm font-medium hover:bg-white/[0.12] transition-colors flex items-center gap-1"
                   >
                     <Edit3 className="w-4 h-4" />
                     Rename
@@ -922,7 +922,7 @@ export default function MetadataIndexPage() {
               {/* Sort & Export Options */}
               {viewingList.items.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2 p-4 bg-white/[0.04] border border-white/[0.08] rounded-xl">
-                  <span className="text-xs font-semibold text-text-muted uppercase flex items-center gap-1">
+                  <span className="text-xs font-semibold text-theme-foreground-muted uppercase flex items-center gap-1">
                     <ArrowUpDown className="w-3 h-3" />
                     Sort:
                   </span>
@@ -933,7 +933,7 @@ export default function MetadataIndexPage() {
                       className={`px-2 py-1 text-xs rounded transition-colors ${
                         sortOption === option
                           ? 'bg-blue-500/20 text-blue-400'
-                          : 'bg-white/[0.08] text-text-muted hover:bg-white/[0.12]'
+                          : 'bg-white/[0.08] text-theme-foreground-muted hover:bg-white/[0.12]'
                       }`}
                     >
                       {option === 'release_date' ? 'Date' : option.charAt(0).toUpperCase() + option.slice(1)}
@@ -942,7 +942,7 @@ export default function MetadataIndexPage() {
 
                   <span className="text-white/20 mx-2">|</span>
 
-                  <span className="text-xs font-semibold text-text-muted uppercase flex items-center gap-1">
+                  <span className="text-xs font-semibold text-theme-foreground-muted uppercase flex items-center gap-1">
                     <FileDown className="w-3 h-3" />
                     Export:
                   </span>
@@ -981,9 +981,9 @@ export default function MetadataIndexPage() {
 
               {viewingList.items.length === 0 ? (
                 <div className="text-center py-16">
-                  <List className="w-12 h-12 text-text-muted mx-auto mb-4" />
-                  <p className="text-text-secondary">This list is empty</p>
-                  <p className="text-sm text-text-muted mt-1">Search for tracks and add them here</p>
+                  <List className="w-12 h-12 text-theme-foreground-muted mx-auto mb-4" />
+                  <p className="text-theme-foreground-muted">This list is empty</p>
+                  <p className="text-sm text-theme-foreground-muted mt-1">Search for tracks and add them here</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1000,7 +1000,7 @@ export default function MetadataIndexPage() {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-white truncate">{item.title}</p>
-                        <p className="text-sm text-text-secondary truncate">{item.artist}</p>
+                        <p className="text-sm text-theme-foreground-muted truncate">{item.artist}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`text-xs px-2 py-0.5 rounded-full ${
                             item.source === 'spotify' ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'
@@ -1010,7 +1010,7 @@ export default function MetadataIndexPage() {
                           {item.isrc && (
                             <button
                               onClick={() => copyIsrc(item.isrc!)}
-                              className="text-xs text-text-muted hover:text-white font-mono flex items-center gap-1"
+                              className="text-xs text-theme-foreground-muted hover:text-white font-mono flex items-center gap-1"
                             >
                               {item.isrc}
                               <Copy className="w-3 h-3" />
@@ -1026,7 +1026,7 @@ export default function MetadataIndexPage() {
                           className={`p-1.5 rounded transition-colors ${
                             index === 0
                               ? 'text-white/20 cursor-not-allowed'
-                              : 'text-text-muted hover:text-blue-400 hover:bg-blue-500/10'
+                              : 'text-theme-foreground-muted hover:text-blue-400 hover:bg-blue-500/10'
                           }`}
                           title="Move up"
                         >
@@ -1038,7 +1038,7 @@ export default function MetadataIndexPage() {
                           className={`p-1.5 rounded transition-colors ${
                             index === viewingList.items.length - 1
                               ? 'text-white/20 cursor-not-allowed'
-                              : 'text-text-muted hover:text-blue-400 hover:bg-blue-500/10'
+                              : 'text-theme-foreground-muted hover:text-blue-400 hover:bg-blue-500/10'
                           }`}
                           title="Move down"
                         >
@@ -1046,7 +1046,7 @@ export default function MetadataIndexPage() {
                         </button>
                         <button
                           onClick={() => removeFromList(viewingList.id, item.id, item.source)}
-                          className="p-1.5 text-text-muted hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                          className="p-1.5 text-theme-foreground-muted hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
                           title="Remove"
                         >
                           <X className="w-4 h-4" />
@@ -1080,7 +1080,7 @@ export default function MetadataIndexPage() {
                       className={`flex-1 px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
                         searchMode === tab.id
                           ? 'text-white bg-white/[0.05] border-b-2 border-blue-500'
-                          : 'text-text-muted hover:text-white hover:bg-white/[0.05]'
+                          : 'text-theme-foreground-muted hover:text-white hover:bg-white/[0.05]'
                       }`}
                     >
                       <tab.icon className="w-4 h-4" />
@@ -1094,7 +1094,7 @@ export default function MetadataIndexPage() {
                   {searchMode === 'code' && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-1">ISRC Code</label>
+                        <label className="block text-sm font-medium text-theme-foreground-muted mb-1">ISRC Code</label>
                         <input
                           type="text"
                           value={isrcInput}
@@ -1103,10 +1103,10 @@ export default function MetadataIndexPage() {
                           maxLength={12}
                           className="w-full px-4 py-2.5 bg-surface border border-white/[0.08] rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 font-mono"
                         />
-                        <p className="text-xs text-text-muted mt-1">International Standard Recording Code</p>
+                        <p className="text-xs text-theme-foreground-muted mt-1">International Standard Recording Code</p>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-text-secondary mb-1">UPC/EAN Code</label>
+                        <label className="block text-sm font-medium text-theme-foreground-muted mb-1">UPC/EAN Code</label>
                         <input
                           type="text"
                           value={upcInput}
@@ -1115,7 +1115,7 @@ export default function MetadataIndexPage() {
                           maxLength={14}
                           className="w-full px-4 py-2.5 bg-surface border border-white/[0.08] rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 font-mono"
                         />
-                        <p className="text-xs text-text-muted mt-1">Universal Product Code for releases</p>
+                        <p className="text-xs text-theme-foreground-muted mt-1">Universal Product Code for releases</p>
                       </div>
                     </div>
                   )}
@@ -1123,11 +1123,11 @@ export default function MetadataIndexPage() {
                   {searchMode === 'keyword' && (
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-semibold text-text-muted uppercase">Mode:</span>
+                        <span className="text-xs font-semibold text-theme-foreground-muted uppercase">Mode:</span>
                         <button
                           onClick={() => setAdvancedMode(false)}
                           className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                            !advancedMode ? 'bg-blue-500/20 text-blue-400' : 'bg-white/[0.08] text-text-muted hover:bg-white/[0.12]'
+                            !advancedMode ? 'bg-blue-500/20 text-blue-400' : 'bg-white/[0.08] text-theme-foreground-muted hover:bg-white/[0.12]'
                           }`}
                         >
                           Basic
@@ -1135,17 +1135,17 @@ export default function MetadataIndexPage() {
                         <button
                           onClick={() => setAdvancedMode(true)}
                           className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                            advancedMode ? 'bg-blue-500/20 text-blue-400' : 'bg-white/[0.08] text-text-muted hover:bg-white/[0.12]'
+                            advancedMode ? 'bg-blue-500/20 text-blue-400' : 'bg-white/[0.08] text-theme-foreground-muted hover:bg-white/[0.12]'
                           }`}
                         >
                           Advanced
                         </button>
-                        <span className="text-xs text-text-muted ml-2">(Advanced unlocks extra filters)</span>
+                        <span className="text-xs text-theme-foreground-muted ml-2">(Advanced unlocks extra filters)</span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-text-secondary mb-1">
+                          <label className="block text-sm font-medium text-theme-foreground-muted mb-1">
                             Artist Name <span className="text-red-400">*</span>
                           </label>
                           <input
@@ -1155,10 +1155,10 @@ export default function MetadataIndexPage() {
                             placeholder="e.g., Taylor Swift"
                             className="w-full px-4 py-2.5 bg-surface border border-white/[0.08] rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                           />
-                          <p className="text-xs text-text-muted mt-1">Required</p>
+                          <p className="text-xs text-theme-foreground-muted mt-1">Required</p>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-text-secondary mb-1">Track Title</label>
+                          <label className="block text-sm font-medium text-theme-foreground-muted mb-1">Track Title</label>
                           <input
                             type="text"
                             value={trackInput}
@@ -1166,13 +1166,13 @@ export default function MetadataIndexPage() {
                             placeholder="e.g., Anti-Hero"
                             className="w-full px-4 py-2.5 bg-surface border border-white/[0.08] rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                           />
-                          <p className="text-xs text-text-muted mt-1">Track title or album name required</p>
+                          <p className="text-xs text-theme-foreground-muted mt-1">Track title or album name required</p>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-text-secondary mb-1">Album/Release Name</label>
+                          <label className="block text-sm font-medium text-theme-foreground-muted mb-1">Album/Release Name</label>
                           <input
                             type="text"
                             value={albumInput}
@@ -1180,11 +1180,11 @@ export default function MetadataIndexPage() {
                             placeholder="e.g., Midnights"
                             className="w-full px-4 py-2.5 bg-surface border border-white/[0.08] rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                           />
-                          <p className="text-xs text-text-muted mt-1">Track title or album name required</p>
+                          <p className="text-xs text-theme-foreground-muted mt-1">Track title or album name required</p>
                         </div>
                         {advancedMode && (
                           <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-1">Year of Release</label>
+                            <label className="block text-sm font-medium text-theme-foreground-muted mb-1">Year of Release</label>
                             <input
                               type="text"
                               value={yearInput}
@@ -1201,7 +1201,7 @@ export default function MetadataIndexPage() {
                       {advancedMode && (
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-white/[0.08]">
                           <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-1">Version (mix/edit)</label>
+                            <label className="block text-sm font-medium text-theme-foreground-muted mb-1">Version (mix/edit)</label>
                             <input
                               type="text"
                               value={versionInput}
@@ -1211,7 +1211,7 @@ export default function MetadataIndexPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-1">Year of Recording</label>
+                            <label className="block text-sm font-medium text-theme-foreground-muted mb-1">Year of Recording</label>
                             <input
                               type="text"
                               value={recordingYearInput}
@@ -1222,7 +1222,7 @@ export default function MetadataIndexPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-1">File Type</label>
+                            <label className="block text-sm font-medium text-theme-foreground-muted mb-1">File Type</label>
                             <select
                               value={fileTypeFilter}
                               onChange={(e) => setFileTypeFilter(e.target.value as 'all' | 'audio' | 'video')}
@@ -1232,7 +1232,7 @@ export default function MetadataIndexPage() {
                               <option value="audio">Audio Files Only</option>
                               <option value="video">Video Files Only</option>
                             </select>
-                            <p className="text-xs text-text-muted mt-1">Filter simulated</p>
+                            <p className="text-xs text-theme-foreground-muted mt-1">Filter simulated</p>
                           </div>
                         </div>
                       )}
@@ -1241,7 +1241,7 @@ export default function MetadataIndexPage() {
 
                   {searchMode === 'url' && (
                     <div>
-                      <label className="block text-sm font-medium text-text-secondary mb-1">Spotify URL</label>
+                      <label className="block text-sm font-medium text-theme-foreground-muted mb-1">Spotify URL</label>
                       <input
                         type="url"
                         value={urlInput}
@@ -1249,7 +1249,7 @@ export default function MetadataIndexPage() {
                         placeholder="https://open.spotify.com/track/..."
                         className="w-full px-4 py-2.5 bg-surface border border-white/[0.08] rounded-xl text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                       />
-                      <p className="text-xs text-text-muted mt-1">Paste a Spotify track or album URL</p>
+                      <p className="text-xs text-theme-foreground-muted mt-1">Paste a Spotify track or album URL</p>
                     </div>
                   )}
 
@@ -1265,18 +1265,18 @@ export default function MetadataIndexPage() {
 
                   {/* Demo Examples */}
                   <div className="pt-4 border-t border-white/[0.08]">
-                    <p className="text-xs text-text-muted mb-2">Quick examples:</p>
+                    <p className="text-xs text-theme-foreground-muted mb-2">Quick examples:</p>
                     <div className="flex flex-wrap gap-2">
                       {searchMode === 'code' && (
                         <>
-                          <button onClick={() => setDemoCode('isrc', 'USUM72409273')} className="px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.12] text-text-secondary rounded-lg text-xs font-mono transition-colors">USUM72409273</button>
-                          <button onClick={() => setDemoCode('isrc', 'USRC17607839')} className="px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.12] text-text-secondary rounded-lg text-xs font-mono transition-colors">USRC17607839</button>
+                          <button onClick={() => setDemoCode('isrc', 'USUM72409273')} className="px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.12] text-theme-foreground-muted rounded-lg text-xs font-mono transition-colors">USUM72409273</button>
+                          <button onClick={() => setDemoCode('isrc', 'USRC17607839')} className="px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.12] text-theme-foreground-muted rounded-lg text-xs font-mono transition-colors">USRC17607839</button>
                         </>
                       )}
                       {searchMode === 'keyword' && (
                         <>
-                          <button onClick={() => setDemoKeyword('Lady Gaga', 'Die With A Smile')} className="px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.12] text-text-secondary rounded-lg text-xs transition-colors">Lady Gaga - Die With A Smile</button>
-                          <button onClick={() => setDemoKeyword('Taylor Swift', 'Anti-Hero')} className="px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.12] text-text-secondary rounded-lg text-xs transition-colors">Taylor Swift - Anti-Hero</button>
+                          <button onClick={() => setDemoKeyword('Lady Gaga', 'Die With A Smile')} className="px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.12] text-theme-foreground-muted rounded-lg text-xs transition-colors">Lady Gaga - Die With A Smile</button>
+                          <button onClick={() => setDemoKeyword('Taylor Swift', 'Anti-Hero')} className="px-3 py-1.5 bg-white/[0.08] hover:bg-white/[0.12] text-theme-foreground-muted rounded-lg text-xs transition-colors">Taylor Swift - Anti-Hero</button>
                         </>
                       )}
                       {searchMode === 'url' && (
@@ -1290,7 +1290,7 @@ export default function MetadataIndexPage() {
                   {/* Real-time Search Preview - Click to view details */}
                   {(isPreviewLoading || previewResult) && (
                     <div className="mt-4 pt-4 border-t border-white/[0.08]">
-                      <p className="text-xs text-text-muted mb-2 flex items-center gap-2">
+                      <p className="text-xs text-theme-foreground-muted mb-2 flex items-center gap-2">
                         <Search className="w-3 h-3" />
                         Search Result
                         {isPreviewLoading && <span className="text-blue-400 animate-pulse">(searching...)</span>}
@@ -1314,9 +1314,9 @@ export default function MetadataIndexPage() {
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-white truncate">{previewResult.title}</p>
-                            <p className="text-xs text-text-secondary truncate">{previewResult.artist}</p>
+                            <p className="text-xs text-theme-foreground-muted truncate">{previewResult.artist}</p>
                             {previewResult.isrc && (
-                              <p className="text-xs text-text-muted font-mono mt-0.5">ISRC: {previewResult.isrc}</p>
+                              <p className="text-xs text-theme-foreground-muted font-mono mt-0.5">ISRC: {previewResult.isrc}</p>
                             )}
                           </div>
                           <div className="flex flex-col items-end gap-1">
@@ -1339,9 +1339,9 @@ export default function MetadataIndexPage() {
               <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <FolderPlus className="w-5 h-5 text-text-muted" />
+                    <FolderPlus className="w-5 h-5 text-theme-foreground-muted" />
                     <h3 className="font-medium text-white">My Lists</h3>
-                    <span className="text-xs text-text-muted">{savedLists.length} list{savedLists.length !== 1 ? 's' : ''}</span>
+                    <span className="text-xs text-theme-foreground-muted">{savedLists.length} list{savedLists.length !== 1 ? 's' : ''}</span>
                   </div>
                   {/* Pearl Button - New List */}
                   <button
@@ -1387,7 +1387,7 @@ export default function MetadataIndexPage() {
                 </div>
 
                 {savedLists.length === 0 ? (
-                  <p className="text-sm text-text-muted">Create lists to organize tracks from your searches.</p>
+                  <p className="text-sm text-theme-foreground-muted">Create lists to organize tracks from your searches.</p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {savedLists.map(list => (
@@ -1398,9 +1398,9 @@ export default function MetadataIndexPage() {
                       >
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-white">{list.name}</span>
-                          <span className="text-xs text-text-muted">{list.items.length} items</span>
+                          <span className="text-xs text-theme-foreground-muted">{list.items.length} items</span>
                         </div>
-                        <p className="text-xs text-text-muted mt-1">
+                        <p className="text-xs text-theme-foreground-muted mt-1">
                           Updated {new Date(list.updatedAt).toLocaleDateString()}
                         </p>
                       </button>
@@ -1447,14 +1447,14 @@ export default function MetadataIndexPage() {
                             )}
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-white truncate">{spotifyResult.title}</p>
-                              <p className="text-sm text-text-secondary truncate">{spotifyResult.artist}</p>
-                              <p className="text-xs text-text-muted truncate">{spotifyResult.album}</p>
+                              <p className="text-sm text-theme-foreground-muted truncate">{spotifyResult.artist}</p>
+                              <p className="text-xs text-theme-foreground-muted truncate">{spotifyResult.album}</p>
                             </div>
                           </div>
                           <div className="mt-4 space-y-2 text-sm">
                             {spotifyResult.isrc && (
                               <div className="flex items-center justify-between">
-                                <span className="text-text-muted">ISRC</span>
+                                <span className="text-theme-foreground-muted">ISRC</span>
                                 <button onClick={() => copyIsrc(spotifyResult.isrc!)} className="font-mono text-white flex items-center gap-1 hover:text-blue-400 transition-colors">
                                   {spotifyResult.isrc}
                                   <Copy className="w-3 h-3" />
@@ -1463,13 +1463,13 @@ export default function MetadataIndexPage() {
                             )}
                             {spotifyResult.duration && (
                               <div className="flex items-center justify-between">
-                                <span className="text-text-muted">Duration</span>
+                                <span className="text-theme-foreground-muted">Duration</span>
                                 <span className="text-white">{formatDuration(spotifyResult.duration)}</span>
                               </div>
                             )}
                             {spotifyResult.releaseDate && (
                               <div className="flex items-center justify-between">
-                                <span className="text-text-muted">Released</span>
+                                <span className="text-theme-foreground-muted">Released</span>
                                 <span className="text-white">{spotifyResult.releaseDate}</span>
                               </div>
                             )}
@@ -1481,7 +1481,7 @@ export default function MetadataIndexPage() {
                                 className={`flex-1 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
                                   playingPreview === spotifyResult.previewUrl
                                     ? 'bg-green-500 text-white'
-                                    : 'bg-white/[0.08] text-text-secondary hover:bg-white/[0.12]'
+                                    : 'bg-white/[0.08] text-theme-foreground-muted hover:bg-white/[0.12]'
                                 }`}
                               >
                                 {playingPreview === spotifyResult.previewUrl ? (
@@ -1496,7 +1496,7 @@ export default function MetadataIndexPage() {
                                 href={spotifyResult.externalUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex-1 py-2 bg-white/[0.08] text-text-secondary rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-white/[0.12] transition-colors"
+                                className="flex-1 py-2 bg-white/[0.08] text-theme-foreground-muted rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-white/[0.12] transition-colors"
                               >
                                 <ExternalLink className="w-4 h-4" /> Open
                               </a>
@@ -1505,8 +1505,8 @@ export default function MetadataIndexPage() {
                         </div>
                       ) : (
                         <div className="p-8 text-center">
-                          <X className="w-8 h-8 text-text-muted mx-auto mb-2" />
-                          <p className="text-text-muted">No Spotify result</p>
+                          <X className="w-8 h-8 text-theme-foreground-muted mx-auto mb-2" />
+                          <p className="text-theme-foreground-muted">No Spotify result</p>
                         </div>
                       )}
                     </div>
@@ -1523,13 +1523,13 @@ export default function MetadataIndexPage() {
                         <div className="p-4">
                           <div>
                             <p className="font-medium text-white">{musicbrainzResult.title}</p>
-                            <p className="text-sm text-text-secondary">{musicbrainzResult.artist}</p>
-                            {musicbrainzResult.album && <p className="text-xs text-text-muted">{musicbrainzResult.album}</p>}
+                            <p className="text-sm text-theme-foreground-muted">{musicbrainzResult.artist}</p>
+                            {musicbrainzResult.album && <p className="text-xs text-theme-foreground-muted">{musicbrainzResult.album}</p>}
                           </div>
                           <div className="mt-4 space-y-2 text-sm">
                             {musicbrainzResult.isrc && (
                               <div className="flex items-center justify-between">
-                                <span className="text-text-muted">ISRC</span>
+                                <span className="text-theme-foreground-muted">ISRC</span>
                                 <button onClick={() => copyIsrc(musicbrainzResult.isrc!)} className="font-mono text-white flex items-center gap-1 hover:text-blue-400 transition-colors">
                                   {musicbrainzResult.isrc}
                                   <Copy className="w-3 h-3" />
@@ -1538,13 +1538,13 @@ export default function MetadataIndexPage() {
                             )}
                             {musicbrainzResult.duration && (
                               <div className="flex items-center justify-between">
-                                <span className="text-text-muted">Duration</span>
+                                <span className="text-theme-foreground-muted">Duration</span>
                                 <span className="text-white">{formatDuration(musicbrainzResult.duration)}</span>
                               </div>
                             )}
                             {musicbrainzResult.releaseDate && (
                               <div className="flex items-center justify-between">
-                                <span className="text-text-muted">Released</span>
+                                <span className="text-theme-foreground-muted">Released</span>
                                 <span className="text-white">{musicbrainzResult.releaseDate}</span>
                               </div>
                             )}
@@ -1555,7 +1555,7 @@ export default function MetadataIndexPage() {
                                 href={musicbrainzResult.externalUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="w-full py-2 bg-white/[0.08] text-text-secondary rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-white/[0.12] transition-colors"
+                                className="w-full py-2 bg-white/[0.08] text-theme-foreground-muted rounded-lg text-sm font-medium flex items-center justify-center gap-1 hover:bg-white/[0.12] transition-colors"
                               >
                                 <ExternalLink className="w-4 h-4" /> Open in MusicBrainz
                               </a>
@@ -1564,8 +1564,8 @@ export default function MetadataIndexPage() {
                         </div>
                       ) : (
                         <div className="p-8 text-center">
-                          <X className="w-8 h-8 text-text-muted mx-auto mb-2" />
-                          <p className="text-text-muted">No MusicBrainz result</p>
+                          <X className="w-8 h-8 text-theme-foreground-muted mx-auto mb-2" />
+                          <p className="text-theme-foreground-muted">No MusicBrainz result</p>
                         </div>
                       )}
                     </div>
@@ -1576,7 +1576,7 @@ export default function MetadataIndexPage() {
                     <div className="mt-4 bg-white/[0.04] border border-white/[0.08] rounded-2xl overflow-hidden">
                       <div className="px-4 py-3 bg-white/[0.05] border-b border-white/[0.08] flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Database className="w-4 h-4 text-text-muted" />
+                          <Database className="w-4 h-4 text-theme-foreground-muted" />
                           <span className="font-medium text-white">Field-by-Field Comparison</span>
                         </div>
                         <StatusBadge status={getMatchStatus(spotifyResult, musicbrainzResult)} />
@@ -1585,16 +1585,16 @@ export default function MetadataIndexPage() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b border-white/[0.08]">
-                              <th className="px-4 py-3 text-left text-text-muted font-medium w-28">Field</th>
+                              <th className="px-4 py-3 text-left text-theme-foreground-muted font-medium w-28">Field</th>
                               <th className="px-4 py-3 text-left bg-green-500/10 text-green-400 font-medium">Spotify</th>
                               <th className="px-4 py-3 text-left bg-purple-500/10 text-purple-400 font-medium">MusicBrainz</th>
-                              <th className="px-4 py-3 text-center text-text-muted font-medium w-24">Match</th>
+                              <th className="px-4 py-3 text-center text-theme-foreground-muted font-medium w-24">Match</th>
                             </tr>
                           </thead>
                           <tbody>
                             {/* Title */}
                             <tr className={`border-b border-white/[0.05] ${spotifyResult.title === musicbrainzResult.title ? 'bg-green-500/5' : 'bg-yellow-500/5'}`}>
-                              <td className="px-4 py-2.5 text-text-muted font-medium">Title</td>
+                              <td className="px-4 py-2.5 text-theme-foreground-muted font-medium">Title</td>
                               <td className="px-4 py-2.5 text-white">{spotifyResult.title || '—'}</td>
                               <td className="px-4 py-2.5 text-white">{musicbrainzResult.title || '—'}</td>
                               <td className="px-4 py-2.5 text-center">
@@ -1607,7 +1607,7 @@ export default function MetadataIndexPage() {
                             </tr>
                             {/* Artist */}
                             <tr className={`border-b border-white/[0.05] ${spotifyResult.artist === musicbrainzResult.artist ? 'bg-green-500/5' : 'bg-yellow-500/5'}`}>
-                              <td className="px-4 py-2.5 text-text-muted font-medium">Artist</td>
+                              <td className="px-4 py-2.5 text-theme-foreground-muted font-medium">Artist</td>
                               <td className="px-4 py-2.5 text-white">{spotifyResult.artist || '—'}</td>
                               <td className="px-4 py-2.5 text-white">{musicbrainzResult.artist || '—'}</td>
                               <td className="px-4 py-2.5 text-center">
@@ -1622,7 +1622,7 @@ export default function MetadataIndexPage() {
                             </tr>
                             {/* Album */}
                             <tr className={`border-b border-white/[0.05] ${spotifyResult.album === musicbrainzResult.album ? 'bg-green-500/5' : 'bg-yellow-500/5'}`}>
-                              <td className="px-4 py-2.5 text-text-muted font-medium">Album</td>
+                              <td className="px-4 py-2.5 text-theme-foreground-muted font-medium">Album</td>
                               <td className="px-4 py-2.5 text-white">{spotifyResult.album || '—'}</td>
                               <td className="px-4 py-2.5 text-white">{musicbrainzResult.album || '—'}</td>
                               <td className="px-4 py-2.5 text-center">
@@ -1635,7 +1635,7 @@ export default function MetadataIndexPage() {
                             </tr>
                             {/* ISRC */}
                             <tr className={`border-b border-white/[0.05] ${spotifyResult.isrc === musicbrainzResult.isrc ? 'bg-green-500/5' : spotifyResult.isrc && musicbrainzResult.isrc ? 'bg-red-500/5' : 'bg-yellow-500/5'}`}>
-                              <td className="px-4 py-2.5 text-text-muted font-medium">ISRC</td>
+                              <td className="px-4 py-2.5 text-theme-foreground-muted font-medium">ISRC</td>
                               <td className="px-4 py-2.5 font-mono text-white">{spotifyResult.isrc || '—'}</td>
                               <td className="px-4 py-2.5 font-mono text-white">{musicbrainzResult.isrc || '—'}</td>
                               <td className="px-4 py-2.5 text-center">
@@ -1650,7 +1650,7 @@ export default function MetadataIndexPage() {
                             </tr>
                             {/* Duration */}
                             <tr className={`border-b border-white/[0.05] ${Math.abs((spotifyResult.duration || 0) - (musicbrainzResult.duration || 0)) < 2000 ? 'bg-green-500/5' : 'bg-yellow-500/5'}`}>
-                              <td className="px-4 py-2.5 text-text-muted font-medium">Duration</td>
+                              <td className="px-4 py-2.5 text-theme-foreground-muted font-medium">Duration</td>
                               <td className="px-4 py-2.5 text-white">{spotifyResult.duration ? formatDuration(spotifyResult.duration) : '—'}</td>
                               <td className="px-4 py-2.5 text-white">{musicbrainzResult.duration ? formatDuration(musicbrainzResult.duration) : '—'}</td>
                               <td className="px-4 py-2.5 text-center">
@@ -1665,7 +1665,7 @@ export default function MetadataIndexPage() {
                             </tr>
                             {/* Release Date */}
                             <tr className="border-b border-white/[0.05]">
-                              <td className="px-4 py-2.5 text-text-muted font-medium">Release Date</td>
+                              <td className="px-4 py-2.5 text-theme-foreground-muted font-medium">Release Date</td>
                               <td className="px-4 py-2.5 text-white">{spotifyResult.releaseDate || '—'}</td>
                               <td className="px-4 py-2.5 text-white">{musicbrainzResult.releaseDate || '—'}</td>
                               <td className="px-4 py-2.5 text-center">
@@ -1682,7 +1682,7 @@ export default function MetadataIndexPage() {
                         </table>
                       </div>
                       {/* Legend */}
-                      <div className="px-4 py-2 bg-white/[0.02] border-t border-white/[0.08] flex items-center gap-4 text-xs text-text-muted">
+                      <div className="px-4 py-2 bg-white/[0.02] border-t border-white/[0.08] flex items-center gap-4 text-xs text-theme-foreground-muted">
                         <span className="flex items-center gap-1"><Check className="w-3 h-3 text-green-400" /> Exact match</span>
                         <span className="flex items-center gap-1"><span className="text-yellow-400">~</span> Close match</span>
                         <span className="flex items-center gap-1"><AlertTriangle className="w-3 h-3 text-yellow-400" /> Different</span>
@@ -1720,7 +1720,7 @@ export default function MetadataIndexPage() {
               <div className="p-4 max-h-[50vh] overflow-y-auto space-y-2">
                 {/* Source selection */}
                 <div className="mb-4">
-                  <p className="text-sm text-text-secondary mb-2">Select source:</p>
+                  <p className="text-sm text-theme-foreground-muted mb-2">Select source:</p>
                   <div className="flex gap-2">
                     {spotifyResult && (
                       <button
@@ -1759,12 +1759,12 @@ export default function MetadataIndexPage() {
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-white">{list.name}</span>
-                        <span className="text-xs text-text-muted">{list.items.length} items</span>
+                        <span className="text-xs text-theme-foreground-muted">{list.items.length} items</span>
                       </div>
                     </button>
                   ))
                 ) : (
-                  <p className="text-sm text-text-muted text-center py-4">No lists yet</p>
+                  <p className="text-sm text-theme-foreground-muted text-center py-4">No lists yet</p>
                 )}
 
                 <button
@@ -1777,7 +1777,7 @@ export default function MetadataIndexPage() {
                     }
                   }}
                   disabled={!selectedListId}
-                  className="w-full p-3 border-2 border-dashed border-white/[0.15] rounded-xl text-text-muted hover:border-blue-500 hover:text-blue-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full p-3 border-2 border-dashed border-white/[0.15] rounded-xl text-theme-foreground-muted hover:border-blue-500 hover:text-blue-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="w-4 h-4" />
                   Create New List
@@ -1786,7 +1786,7 @@ export default function MetadataIndexPage() {
               <div className="px-6 py-4 border-t border-white/[0.08] bg-surface/80">
                 <button
                   onClick={() => setShowListModal(false)}
-                  className="w-full py-2 text-text-muted hover:text-white transition-colors"
+                  className="w-full py-2 text-theme-foreground-muted hover:text-white transition-colors"
                 >
                   Cancel
                 </button>

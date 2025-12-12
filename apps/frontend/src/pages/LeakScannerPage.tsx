@@ -1097,7 +1097,7 @@ export default function LeakScannerPage() {
                   </div>
                   Leak Scanner
                 </h1>
-                <p className="text-text-secondary text-sm sm:text-base mt-1">
+                <p className="text-theme-foreground-muted text-sm sm:text-base mt-1">
                   Find missing royalties by analyzing your catalog metadata
                 </p>
               </div>
