@@ -15,7 +15,6 @@ import {
   useKeyboardControls,
   Text,
   useFBX,
-  useGLTF,
   useTexture,
 } from '@react-three/drei';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
