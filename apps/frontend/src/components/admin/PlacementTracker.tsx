@@ -1181,7 +1181,7 @@ const PlacementTracker: React.FC = () => {
                   </div>
                   <div className="space-y-3">
                     {selectedPlacements.size === 0 ? (
-                      <p className="text-sm text-theme-foreground-secondary">No deals selected yet.</p>
+                      <p className="text-sm text-theme-foreground">No deals selected yet.</p>
                     ) : (
                       Array.from(selectedPlacements).map(id => {
                         const placement = placements.find(p => p.id === id);
@@ -1801,7 +1801,7 @@ const PlacementTracker: React.FC = () => {
                 <div>
                   <p className="text-xs text-theme-primary tracking-wider uppercase mb-1">Legal AI Tool</p>
                   <h2 className="text-2xl font-light text-theme-foreground">AI Legal Workspace</h2>
-                  <p className="text-sm text-theme-foreground-secondary mt-1">Legal AI assists with contract review, redline tracking, agreement drafting, and legal term analysis for your placements.</p>
+                  <p className="text-sm text-theme-foreground mt-1">Legal AI assists with contract review, redline tracking, agreement drafting, and legal term analysis for your placements.</p>
                 </div>
                 <button
                   onClick={() => setShowLegalModal(false)}
@@ -1816,7 +1816,7 @@ const PlacementTracker: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-theme-primary rounded-full animate-pulse" />
                   <p className="text-sm font-medium text-theme-primary">Ask Legal AI</p>
-                  <span className="text-xs text-theme-foreground-secondary">— Ask about contracts, royalties, splits, or any music business legal question</span>
+                  <span className="text-xs text-theme-foreground">— Ask about contracts, royalties, splits, or any music business legal question</span>
                 </div>
                 <div className="bg-black/30 rounded p-3 max-h-[250px] overflow-y-auto space-y-2">
                   {aiChatMessages.length === 0 ? (
@@ -1924,11 +1924,11 @@ const PlacementTracker: React.FC = () => {
                     <p className="text-sm text-theme-primary">
                       {selectedPlacements.size > 0 ? `${selectedPlacements.size} placements selected` : 'Select placements for legal review.'}
                     </p>
-                    <p className="text-xs text-theme-foreground-secondary mt-1">Click rows in the tracker to mark which deals need legal attention.</p>
+                    <p className="text-xs text-theme-foreground mt-1">Click rows in the tracker to mark which deals need legal attention.</p>
                   </div>
                   <div className="space-y-3">
                     {selectedPlacements.size === 0 ? (
-                      <p className="text-sm text-theme-foreground-secondary">No deals selected yet.</p>
+                      <p className="text-sm text-theme-foreground">No deals selected yet.</p>
                     ) : (
                       Array.from(selectedPlacements).map(id => {
                         const placement = placements.find(p => p.id === id);
@@ -1954,7 +1954,7 @@ const PlacementTracker: React.FC = () => {
                       })
                     )}
                   </div>
-                  <div className="text-xs text-theme-foreground-secondary space-y-1">
+                  <div className="text-xs text-theme-foreground space-y-1">
                     <p>Legal AI tracks agreement status, redlines, and contract versions for each placement.</p>
                     <p>Upload contracts or paste links to enable AI-powered analysis.</p>
                   </div>
@@ -1966,7 +1966,7 @@ const PlacementTracker: React.FC = () => {
                   <div className="bg-black/30 border border-theme-border p-4 space-y-4">
                     <div>
                       <p className="text-xs text-theme-foreground-secondary uppercase tracking-wider mb-2">Contract Review</p>
-                      <p className="text-sm text-theme-foreground">Upload or link to contracts for AI-powered analysis and redline tracking.</p>
+                      <p className="text-sm text-theme-foreground font-normal">Upload or link to contracts for AI-powered analysis and redline tracking.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
