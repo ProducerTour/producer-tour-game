@@ -14,7 +14,7 @@ import {
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
-import { useControls, folder } from 'leva';
+import { useControls } from 'leva';
 
 // Assets URL (Cloudflare R2 CDN)
 const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
@@ -1244,62 +1244,149 @@ function CyberpunkGround() {
   );
 }
 
-// Basketball Court component with Leva controls for positioning
-function BasketballCourt() {
-  // Leva controls for positioning - adjust these in real-time!
-  // Note: folder() flattens values to top level, so we destructure x/y/z/rotY directly
-  const { x, y, z, rotY, scale, visible } = useControls('Basketball Court', {
-    visible: true,
-    position: folder({
-      x: { value: 30, min: -100, max: 100, step: 1 },
-      y: { value: 0, min: -10, max: 10, step: 0.1 },
-      z: { value: -20, min: -100, max: 100, step: 1 },
-    }),
-    rotation: folder({
-      rotY: { value: 0, min: -Math.PI, max: Math.PI, step: 0.1 },
-    }),
-    scale: { value: 0.02, min: 0.001, max: 0.1, step: 0.001 },
-  });
-
+// Inner Basketball Court component that loads assets
+function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
+  posX: number;
+  posY: number;
+  posZ: number;
+  rotY: number;
+  scale: number;
+}) {
   // Load the court FBX from R2
   const court = useFBX(`${ASSETS_URL}/models/basketball-court/Court.fbx`);
 
-  // Load court texture
+  // Load only the court texture we know exists
   const courtTexture = useTexture(`${ASSETS_URL}/models/basketball-court/textures/court.jpg`);
 
-  // Clone and setup model
+  // Clone and setup model - use fallback materials since textures aren't on R2
   const model = useMemo(() => {
     const clone = court.clone();
 
-    // Apply textures to meshes
+    // Log mesh names for debugging
+    console.log('Basketball court meshes:');
+    clone.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        console.log('  -', child.name, '| material:', (child as THREE.Mesh).material);
+      }
+    });
+
+    // Apply materials based on mesh/material names with fallback colors
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
 
-        // Apply court texture to appropriate meshes
-        if (mesh.material) {
-          const material = new THREE.MeshStandardMaterial({
-            map: courtTexture,
-            metalness: 0.1,
-            roughness: 0.8,
-          });
-          mesh.material = material;
-        }
+        const name = mesh.name.toLowerCase();
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+
+        materials.forEach((mat, idx) => {
+          const matName = (mat && 'name' in mat ? mat.name : '').toLowerCase();
+          const searchName = matName || name;
+
+          let newMaterial: THREE.MeshStandardMaterial;
+
+          // Match by material or mesh name and apply appropriate material
+          if (searchName.includes('court')) {
+            newMaterial = new THREE.MeshStandardMaterial({
+              map: courtTexture,
+              metalness: 0.1,
+              roughness: 0.8,
+            });
+          } else if (searchName.includes('floor')) {
+            newMaterial = new THREE.MeshStandardMaterial({
+              color: '#3a3a4a',
+              metalness: 0.1,
+              roughness: 0.9,
+            });
+          } else if (searchName.includes('hoop') || searchName.includes('rim')) {
+            newMaterial = new THREE.MeshStandardMaterial({
+              color: '#ff6600',
+              metalness: 0.8,
+              roughness: 0.3,
+            });
+          } else if (searchName.includes('backboard')) {
+            newMaterial = new THREE.MeshStandardMaterial({
+              color: '#ffffff',
+              metalness: 0.1,
+              roughness: 0.1,
+              transparent: true,
+              opacity: 0.7,
+            });
+          } else if (searchName.includes('fence') || searchName.includes('metal')) {
+            newMaterial = new THREE.MeshStandardMaterial({
+              color: '#666677',
+              metalness: 0.9,
+              roughness: 0.2,
+            });
+          } else if (searchName.includes('building')) {
+            newMaterial = new THREE.MeshStandardMaterial({
+              color: '#2a2a3a',
+              metalness: 0.1,
+              roughness: 0.8,
+            });
+          } else if (searchName.includes('window')) {
+            newMaterial = new THREE.MeshStandardMaterial({
+              color: '#4488aa',
+              metalness: 0.3,
+              roughness: 0.1,
+              transparent: true,
+              opacity: 0.8,
+            });
+          } else {
+            // Default gray material
+            newMaterial = new THREE.MeshStandardMaterial({
+              color: '#555566',
+              metalness: 0.2,
+              roughness: 0.7,
+            });
+          }
+
+          if (Array.isArray(mesh.material)) {
+            mesh.material[idx] = newMaterial;
+          } else {
+            mesh.material = newMaterial;
+          }
+        });
       }
     });
 
     return clone;
   }, [court, courtTexture]);
 
-  if (!visible) return null;
-
   return (
     <primitive
       object={model}
-      position={[x, y, z]}
+      position={[posX, posY, posZ]}
       rotation={[0, rotY, 0]}
+      scale={scale}
+    />
+  );
+}
+
+// Basketball Court wrapper with Leva controls for positioning
+function BasketballCourt() {
+  // Leva controls for positioning - adjust these in real-time!
+  const { posX, posY, posZ, rotY, scale, visible } = useControls('Basketball Court', {
+    visible: true,
+    posX: { value: 30, min: -100, max: 100, step: 1 },
+    posY: { value: 0, min: -10, max: 10, step: 0.1 },
+    posZ: { value: -20, min: -100, max: 100, step: 1 },
+    rotY: { value: 0, min: -Math.PI, max: Math.PI, step: 0.1 },
+    scale: { value: 0.02, min: 0.001, max: 0.1, step: 0.001 },
+  });
+
+  // Skip if not visible or no ASSETS_URL configured
+  if (!visible || !ASSETS_URL) {
+    return null;
+  }
+
+  return (
+    <BasketballCourtModel
+      posX={posX}
+      posY={posY}
+      posZ={posZ}
+      rotY={rotY}
       scale={scale}
     />
   );

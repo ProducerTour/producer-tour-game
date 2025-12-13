@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { PlayWorld } from '../components/play/PlayWorld';
 import { AvatarCreator } from '../components/play/AvatarCreator';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { userApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 
@@ -551,23 +552,25 @@ export default function PlayPage() {
       </motion.div>
 
       {/* 3D Canvas */}
-      <Suspense fallback={<LoadingScreen />}>
-        <Canvas
-          camera={{ position: [0, 8, 20], fov: 50 }}
-          shadows
-          gl={{
-            antialias: true,
-            alpha: false,
-            powerPreference: 'high-performance'
-          }}
-          dpr={[1, 2]}
-        >
-          <PlayWorld
-            avatarUrl={avatarUrl || undefined}
-            onPlayerPositionChange={(pos) => setPlayerCoords({ x: pos.x, y: pos.y, z: pos.z })}
-          />
-        </Canvas>
-      </Suspense>
+      <ErrorBoundary fallback="fullPage">
+        <Suspense fallback={<LoadingScreen />}>
+          <Canvas
+            camera={{ position: [0, 8, 20], fov: 50 }}
+            shadows
+            gl={{
+              antialias: true,
+              alpha: false,
+              powerPreference: 'high-performance'
+            }}
+            dpr={[1, 2]}
+          >
+            <PlayWorld
+              avatarUrl={avatarUrl || undefined}
+              onPlayerPositionChange={(pos) => setPlayerCoords({ x: pos.x, y: pos.y, z: pos.z })}
+            />
+          </Canvas>
+        </Suspense>
+      </ErrorBoundary>
     </div>
   );
 }

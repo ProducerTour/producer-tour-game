@@ -1585,6 +1585,156 @@ function MonkeyShip() {
   );
 }
 
+// Other player's UNAF ship - simplified version without local controls
+function OtherPlayerUNAFShip({ color }: { color: string }) {
+  // Load all the FBX parts from R2 CDN
+  const front = useFBX(`${ASSETS_URL}/models/Front_01.FBX`);
+  const cockpit = useFBX(`${ASSETS_URL}/models/Cockpit_01.FBX`);
+  const back = useFBX(`${ASSETS_URL}/models/Back_01.FBX`);
+  const wing = useFBX(`${ASSETS_URL}/models/Wing_01.FBX`);
+
+  // Clone and apply colored materials based on player's color
+  const parts = useMemo(() => {
+    const hullMaterial = new THREE.MeshStandardMaterial({
+      color: color,
+      emissive: color,
+      emissiveIntensity: 0.2,
+      metalness: 0.85,
+      roughness: 0.25,
+    });
+    const accentMaterial = new THREE.MeshStandardMaterial({
+      color: '#334155',
+      emissive: color,
+      emissiveIntensity: 0.3,
+      metalness: 0.9,
+      roughness: 0.2,
+    });
+
+    const setupModel = (fbx: THREE.Group, material: THREE.Material) => {
+      const clone = fbx.clone();
+      clone.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          mesh.material = material;
+        }
+      });
+      return clone;
+    };
+    return {
+      front: setupModel(front, hullMaterial),
+      cockpit: setupModel(cockpit, accentMaterial),
+      back: setupModel(back, hullMaterial),
+      wing: setupModel(wing, accentMaterial),
+    };
+  }, [front, cockpit, back, wing, color]);
+
+  const scale = 0.001;
+
+  return (
+    <group scale={[scale, scale, scale]} rotation={[0, 0, 0]}>
+      <primitive object={parts.front} position={[0, 0, 0]} />
+      <primitive object={parts.cockpit} position={[0, 0, 0]} />
+      <primitive object={parts.back} position={[0, 0, 0]} />
+      <primitive object={parts.wing} position={[0, 0, 0]} />
+      <pointLight color={color} intensity={0.5} distance={300} position={[0, 50, -100]} />
+    </group>
+  );
+}
+
+// Other player's Monkey ship - simplified version without keyboard controls
+function OtherPlayerMonkeyShip({ color }: { color: string }) {
+  const meshGroupRef = useRef<THREE.Group>(null);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+
+  // Load the monkey GLB model from R2 CDN
+  const gltf = useGLTF(`${ASSETS_URL}/models/Monkey/Monkey.glb`);
+  const diffuseTexture = useTexture(`${ASSETS_URL}/models/Monkey/Textures_B3/Monkey_B3_diffuse_1k.jpg`);
+
+  // Clone model properly
+  const { model, scale, centerOffset, animations } = useMemo(() => {
+    const clone = SkeletonUtils.clone(gltf.scene);
+
+    const box = new THREE.Box3().setFromObject(clone);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const autoScale = maxDim > 0 ? 0.02 / maxDim : 0.01;
+
+    return {
+      model: clone,
+      scale: autoScale,
+      centerOffset: new THREE.Vector3(-center.x, -box.min.y, -center.z),
+      animations: gltf.animations
+    };
+  }, [gltf]);
+
+  // Apply material and set up idle animation
+  useEffect(() => {
+    if (!model) return;
+
+    const material = new THREE.MeshStandardMaterial({
+      map: diffuseTexture,
+      metalness: 0.3,
+      roughness: 0.7,
+    });
+
+    model.traverse((child: THREE.Object3D) => {
+      if ((child as THREE.Mesh).isMesh) {
+        (child as THREE.Mesh).material = material;
+        (child as THREE.Mesh).castShadow = true;
+      }
+    });
+
+    // Set up animation mixer for idle animation (loops continuously)
+    if (animations.length > 0) {
+      const mixer = new THREE.AnimationMixer(model);
+      mixerRef.current = mixer;
+
+      // Use first animation as idle
+      const idleAnim = animations[0];
+      if (idleAnim) {
+        const action = mixer.clipAction(idleAnim);
+        action.setLoop(THREE.LoopRepeat, Infinity);
+        action.timeScale = 0.5; // Slower for idle feel
+        action.play();
+      }
+    }
+
+    return () => {
+      if (mixerRef.current) {
+        mixerRef.current.stopAllAction();
+      }
+    };
+  }, [model, diffuseTexture, animations]);
+
+  // Update animation
+  useFrame((_, delta) => {
+    if (mixerRef.current) {
+      mixerRef.current.update(delta);
+    }
+  });
+
+  return (
+    <group>
+      <group
+        ref={meshGroupRef}
+        scale={[scale, scale, scale]}
+        position={[centerOffset.x * scale, centerOffset.y * scale, centerOffset.z * scale]}
+        rotation={[0, Math.PI, 0]}
+      >
+        <primitive object={model} />
+      </group>
+      <Sparkles count={15} scale={0.8} size={3} speed={4} color={color} position={[0, -0.3, -0.2]} />
+      <pointLight color={color} intensity={0.3} distance={3} />
+    </group>
+  );
+}
+
 // Spaceship component for fly mode - Multiple ship designs
 function Spaceship({ position, rotation, viewMode, model = 'rocket' }: {
   position: THREE.Vector3;
@@ -1906,52 +2056,32 @@ function OtherPlayerShip({ player }: { player: Player3D }) {
         </>
       )}
 
-      {/* UNAF - Modular spaceship */}
+      {/* UNAF - Load actual FBX model */}
       {shipModel === 'unaf' && (
-        <>
-          {/* Cockpit sphere */}
-          <mesh position={[0, 0, -0.8]}>
-            <sphereGeometry args={[0.4, 16, 16]} />
-            <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.3} metalness={0.8} roughness={0.2} />
-          </mesh>
-          {/* Main body */}
-          <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.3, 0.35, 1.2, 8]} />
-            <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.2} metalness={0.7} roughness={0.3} />
-          </mesh>
-          {/* Engine pods */}
-          {[-0.5, 0.5].map((x) => (
-            <mesh key={x} position={[x, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.12, 0.15, 0.6, 8]} />
-              <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.4} metalness={0.9} roughness={0.1} />
+        <ModelErrorBoundary modelName={`${player.username}'s UNAF`} fallbackColor={player.color}>
+          <Suspense fallback={
+            <mesh>
+              <sphereGeometry args={[0.4, 16, 16]} />
+              <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.3} wireframe />
             </mesh>
-          ))}
-        </>
+          }>
+            <OtherPlayerUNAFShip color={player.color} />
+          </Suspense>
+        </ModelErrorBoundary>
       )}
 
-      {/* MONKEY - Simple representation for other players (full model too heavy) */}
+      {/* MONKEY - Load actual GLB model */}
       {shipModel === 'monkey' && (
-        <>
-          {/* Monkey silhouette - glowing orb */}
-          <mesh position={[0, 0, 0]}>
-            <sphereGeometry args={[0.5, 16, 16]} />
-            <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.5} metalness={0.3} roughness={0.7} />
-          </mesh>
-          {/* Ears */}
-          <mesh position={[-0.4, 0.3, 0]}>
-            <sphereGeometry args={[0.15, 8, 8]} />
-            <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.3} />
-          </mesh>
-          <mesh position={[0.4, 0.3, 0]}>
-            <sphereGeometry args={[0.15, 8, 8]} />
-            <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.3} />
-          </mesh>
-          {/* Face marker */}
-          <mesh position={[0, 0, -0.4]}>
-            <sphereGeometry args={[0.25, 8, 8]} />
-            <meshStandardMaterial color="#fcd34d" emissive="#fcd34d" emissiveIntensity={0.3} />
-          </mesh>
-        </>
+        <ModelErrorBoundary modelName={`${player.username}'s Monkey`} fallbackColor={player.color}>
+          <Suspense fallback={
+            <mesh>
+              <sphereGeometry args={[0.5, 16, 16]} />
+              <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.5} wireframe />
+            </mesh>
+          }>
+            <OtherPlayerMonkeyShip color={player.color} />
+          </Suspense>
+        </ModelErrorBoundary>
       )}
 
       {/* Engine effects - shared across all models */}
