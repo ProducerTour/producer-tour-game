@@ -18,6 +18,8 @@ const DEFAULT_TOOL_PERMISSIONS = [
   { toolId: 'session-payout', toolName: 'Session Payout & Delivery', roles: ['ADMIN'] },
   { toolId: 'type-beat-video-maker', toolName: 'Type Beat Video Maker', roles: ['ADMIN', 'WRITER', 'CUSTOMER'] },
   { toolId: 'leak-scanner', toolName: 'Leak Scanner', roles: ['ADMIN', 'WRITER', 'MANAGER'] },
+  { toolId: 'trifecta-planner', toolName: 'Trifecta Planner', roles: ['ADMIN', 'WRITER'] },
+  { toolId: 'corporate-structure', toolName: 'Corporate Structure Bible', roles: ['ADMIN'] },
 ];
 
 /**
@@ -69,10 +71,13 @@ router.get('/user', authenticate, async (req: AuthRequest, res: Response) => {
       where: { isActive: true },
     });
 
-    // If no permissions exist, seed with defaults
-    if (permissions.length === 0) {
+    // Seed any missing tools from DEFAULT_TOOL_PERMISSIONS
+    const existingToolIds = new Set(permissions.map(p => p.toolId));
+    const missingTools = DEFAULT_TOOL_PERMISSIONS.filter(p => !existingToolIds.has(p.toolId));
+
+    if (missingTools.length > 0) {
       await prisma.toolPermission.createMany({
-        data: DEFAULT_TOOL_PERMISSIONS.map(p => ({
+        data: missingTools.map(p => ({
           toolId: p.toolId,
           toolName: p.toolName,
           roles: p.roles,
@@ -81,6 +86,7 @@ router.get('/user', authenticate, async (req: AuthRequest, res: Response) => {
         skipDuplicates: true,
       });
 
+      // Re-fetch after seeding
       permissions = await prisma.toolPermission.findMany({
         where: { isActive: true },
       });
