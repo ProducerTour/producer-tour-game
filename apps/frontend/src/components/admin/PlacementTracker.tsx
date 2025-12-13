@@ -548,7 +548,7 @@ const PlacementTracker: React.FC = () => {
     : placements.filter(p => p.clientFullName === clientFilter);
 
   const inputClass = "block w-full py-2.5 px-3 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors";
-  const labelClass = "block mb-1 text-xs font-medium text-theme-foreground-muted uppercase tracking-wider";
+  const labelClass = "block mb-1 text-xs font-medium text-theme-primary uppercase tracking-wider";
 
   return (
     <div className="min-h-screen bg-theme-background text-theme-foreground">
