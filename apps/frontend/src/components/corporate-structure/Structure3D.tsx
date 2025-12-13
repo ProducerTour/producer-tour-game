@@ -15,6 +15,7 @@ import {
   useKeyboardControls,
   Text,
   useFBX,
+  useGLTF,
   useTexture,
 } from '@react-three/drei';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -1283,17 +1284,17 @@ function MonkeyShip() {
   // Get keyboard controls for jump
   const [, getKeys] = useKeyboardControls();
 
-  // Load the monkey FBX model
-  const fbx = useFBX('/models/Monkey/FbxUE5/Monkey_B3.Fbx');
+  // Load the monkey GLB model (compressed, 3.8MB vs 93MB FBX)
+  const gltf = useGLTF('/models/Monkey/Monkey_B3_slim.glb');
 
   // Load optimized web textures
   const diffuseTexture = useTexture('/models/Monkey/Textures_B3/web/Monkey_B3_diffuse_1k.jpg');
 
   // Clone model properly and set up animations
   const { model, scale, centerOffset, animations } = useMemo(() => {
-    const clone = SkeletonUtils.clone(fbx);
+    const clone = SkeletonUtils.clone(gltf.scene);
 
-    console.log('[MonkeyShip] Available animations:', fbx.animations.map(a => a.name));
+    console.log('[MonkeyShip] Available animations:', gltf.animations.map(a => a.name));
 
     const box = new THREE.Box3().setFromObject(clone);
     const size = new THREE.Vector3();
@@ -1308,9 +1309,9 @@ function MonkeyShip() {
       model: clone,
       scale: autoScale,
       centerOffset: new THREE.Vector3(-center.x, -center.y, -center.z),
-      animations: fbx.animations
+      animations: gltf.animations
     };
-  }, [fbx]);
+  }, [gltf]);
 
   // Apply material and set up animation mixer with idle/fly states
   useEffect(() => {
