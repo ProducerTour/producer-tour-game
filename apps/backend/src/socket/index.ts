@@ -23,6 +23,19 @@ let io: Server | null = null;
 // Track online users: Map<userId, Set<socketId>>
 const onlineUsers = new Map<string, Set<string>>();
 
+// 3D Multiplayer state - track players in the corporate structure view
+interface Player3D {
+  id: string;
+  username: string;
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number };
+  color: string;
+  lastUpdate: number;
+}
+
+const players3D = new Map<string, Player3D>();
+const PLAYER_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
+
 export function initializeSocket(httpServer: HttpServer): Server {
   const allowedOrigins = [
     'http://localhost:5173',
@@ -367,9 +380,102 @@ export function initializeSocket(httpServer: HttpServer): Server {
       }
     });
 
+    // === 3D MULTIPLAYER EVENTS ===
+
+    // Join 3D corporate structure room
+    socket.on('3d:join', async (data: { username: string }) => {
+      try {
+        const username = data.username || `User_${socket.id.slice(0, 4)}`;
+
+        // Assign a random color to this player
+        const colorIndex = players3D.size % PLAYER_COLORS.length;
+        const color = PLAYER_COLORS[colorIndex];
+
+        // Create player entry
+        const player: Player3D = {
+          id: socket.id,
+          username,
+          position: { x: 20, y: 10, z: 20 }, // Starting position
+          rotation: { x: 0, y: -Math.PI / 4, z: 0 },
+          color,
+          lastUpdate: Date.now(),
+        };
+
+        players3D.set(socket.id, player);
+        socket.join('3d-room');
+
+        console.log(`🚀 Player ${username} (${socket.id}) joined 3D room`);
+
+        // Send current players to new joiner
+        const currentPlayers = Array.from(players3D.values()).filter(p => p.id !== socket.id);
+        socket.emit('3d:players', currentPlayers);
+
+        // Broadcast new player to others in room
+        socket.to('3d-room').emit('3d:player-joined', player);
+
+        // Send player count update
+        io?.to('3d-room').emit('3d:player-count', players3D.size);
+      } catch (error) {
+        console.error('Error joining 3D room:', error);
+      }
+    });
+
+    // Leave 3D room
+    socket.on('3d:leave', () => {
+      const player = players3D.get(socket.id);
+      if (player) {
+        console.log(`🚀 Player ${player.username} (${socket.id}) left 3D room`);
+        players3D.delete(socket.id);
+        socket.leave('3d-room');
+        socket.to('3d-room').emit('3d:player-left', { id: socket.id });
+        io?.to('3d-room').emit('3d:player-count', players3D.size);
+      }
+    });
+
+    // Update player position/rotation
+    socket.on('3d:update', (data: {
+      position: { x: number; y: number; z: number };
+      rotation: { x: number; y: number; z: number };
+    }) => {
+      const player = players3D.get(socket.id);
+      if (player) {
+        player.position = data.position;
+        player.rotation = data.rotation;
+        player.lastUpdate = Date.now();
+
+        // Broadcast position to others (throttled by client)
+        socket.to('3d-room').emit('3d:player-moved', {
+          id: socket.id,
+          position: data.position,
+          rotation: data.rotation,
+        });
+      }
+    });
+
+    // Update username
+    socket.on('3d:set-username', (data: { username: string }) => {
+      const player = players3D.get(socket.id);
+      if (player && data.username) {
+        player.username = data.username.slice(0, 20); // Max 20 chars
+        socket.to('3d-room').emit('3d:player-updated', {
+          id: socket.id,
+          username: player.username,
+        });
+      }
+    });
+
     // Handle disconnect
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${userId} (socket: ${socket.id})`);
+
+      // Clean up 3D player if they were in the room
+      const player = players3D.get(socket.id);
+      if (player) {
+        console.log(`🚀 Player ${player.username} disconnected from 3D room`);
+        players3D.delete(socket.id);
+        io?.to('3d-room').emit('3d:player-left', { id: socket.id });
+        io?.to('3d-room').emit('3d:player-count', players3D.size);
+      }
 
       // Remove socket from online users
       const userSockets = onlineUsers.get(userId);

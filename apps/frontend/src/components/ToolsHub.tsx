@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, FileCheck, Coins, Shield, Scale } from 'lucide-react';
+import { LucideIcon, CircleDollarSign, ClipboardList, BookOpen, Target, Music, Sparkles, Wrench, Info, Lock, Rocket, Check, ChevronLeft, ChevronRight, Search, Video, FileCheck, Coins, Shield, Scale, Building2 } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { gamificationApi, toolPermissionsApi } from '../lib/api';
 
@@ -142,6 +142,16 @@ const TOOLS: Tool[] = [
     url: '/tools/trifecta-planner',
     category: 'Financial',
     roles: ['ADMIN', 'WRITER'] // Available to admins and writers
+  },
+  {
+    id: 'corporate-structure',
+    name: 'Corporate Structure Bible',
+    description: 'Interactive 3D visualization of the Producer Tour Holdings corporate structure. Explore entity relationships, money flows, tax benefits, and compliance requirements.',
+    icon: Building2,
+    color: 'from-blue-600 to-purple-600',
+    url: '/tools/corporate-structure',
+    category: 'Financial',
+    roles: ['ADMIN'] // Admin only
   }
 ];
 
@@ -561,7 +571,27 @@ export default function ToolsHub() {
                       </div>
                     </>
                   )}
-                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration', 'metadata-index', 'type-beat-video-maker', 'session-payout', 'leak-scanner', 'trifecta-planner'].includes(currentTool.id) && (
+                  {currentTool.id === 'corporate-structure' && (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-theme-foreground-secondary">Interactive 3D entity visualization</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-theme-foreground-secondary">Money flow diagrams & tax breakdowns</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-theme-foreground-secondary">Intercompany agreement templates</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-400 text-xl">✓</span>
+                        <span className="text-theme-foreground-secondary">Compliance checklist & maintenance</span>
+                      </div>
+                    </>
+                  )}
+                  {!['pub-deal-simulator', 'consultation-form', 'case-study', 'advance-estimator', 'work-registration', 'metadata-index', 'type-beat-video-maker', 'session-payout', 'leak-scanner', 'trifecta-planner', 'corporate-structure'].includes(currentTool.id) && (
                     <>
                       <div className="flex items-start gap-3">
                         <Check className="w-5 h-5 text-green-400 flex-shrink-0" />

@@ -55,6 +55,7 @@ import ContactPage from './pages/ContactPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ToolsPage from './pages/ToolsPage';
 import TrifectaPlannerPage from './pages/TrifectaPlannerPage';
+import CorporateStructurePage from './pages/CorporateStructurePage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -332,6 +333,16 @@ function App() {
 
         {/* Landing Page Templates Preview */}
         <Route path="/landing-preview" element={<LandingPreview />} />
+
+        {/* Corporate Structure (Admin Only) */}
+        <Route
+          path="/tools/corporate-structure"
+          element={
+            <PrivateRoute roles={['ADMIN']}>
+              <CorporateStructurePage />
+            </PrivateRoute>
+          }
+        />
 
         {/* Dev/Test Routes */}
         <Route path="/test/borders" element={<BorderPreview />} />
