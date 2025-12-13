@@ -44,7 +44,6 @@ import {
   TrendingUp,
   Calculator,
   Scale,
-  ChevronRight,
   Volume2,
   VolumeX,
   Rocket,
@@ -266,142 +265,6 @@ const revenueSources: RevenueSourceData[] = [
 // 3D COMPONENTS
 // ============================================================================
 
-// IMPROVED: Much larger, more visible animated dollar sign with strong glow
-function DollarParticle({
-  startPos,
-  endPos,
-  color,
-  delay = 0,
-  speed = 1,
-  size = 'medium'
-}: {
-  startPos: THREE.Vector3;
-  endPos: THREE.Vector3;
-  color: string;
-  delay?: number;
-  speed?: number;
-  size?: 'small' | 'medium' | 'large';
-}) {
-  const ref = useRef<THREE.Group>(null);
-  const progress = useRef(delay);
-  const [visible, setVisible] = useState(delay === 0);
-
-  // Create curved path with more arc for visibility
-  const mid = useMemo(() => {
-    const m = new THREE.Vector3().lerpVectors(startPos, endPos, 0.5);
-    const perpendicular = new THREE.Vector3()
-      .subVectors(endPos, startPos)
-      .cross(new THREE.Vector3(0, 1, 0))
-      .normalize()
-      .multiplyScalar(2.5); // Increased arc
-    m.add(perpendicular);
-    m.y += 1.5; // Higher arc
-    return m;
-  }, [startPos, endPos]);
-
-  const curve = useMemo(() =>
-    new THREE.QuadraticBezierCurve3(startPos, mid, endPos),
-    [startPos, mid, endPos]
-  );
-
-  useFrame((_, delta) => {
-    if (!ref.current) return;
-
-    progress.current += delta * 0.25 * speed; // Slightly slower for visibility
-
-    if (progress.current < 0) return;
-
-    if (!visible && progress.current >= 0) {
-      setVisible(true);
-    }
-
-    if (progress.current > 1) {
-      progress.current = 0;
-    }
-
-    const point = curve.getPoint(progress.current);
-    ref.current.position.copy(point);
-
-    // Pulse scale with larger range
-    const baseScale = size === 'large' ? 1.4 : size === 'medium' ? 1.0 : 0.7;
-    const scale = baseScale + Math.sin(progress.current * Math.PI) * 0.5;
-    ref.current.scale.setScalar(scale);
-  });
-
-  if (!visible) return null;
-
-  const fontSize = size === 'large' ? 'text-3xl' : size === 'medium' ? 'text-2xl' : 'text-lg';
-
-  return (
-    <group ref={ref}>
-      {/* 3D glow sphere */}
-      <mesh>
-        <sphereGeometry args={[0.15, 8, 8]} />
-        <meshBasicMaterial color={color} transparent opacity={0.6} />
-      </mesh>
-
-      <Billboard follow={true} lockX={false} lockY={false} lockZ={false}>
-        <Html center transform={false} style={{ pointerEvents: 'none' }}>
-          <div
-            className={`${fontSize} font-black drop-shadow-2xl`}
-            style={{
-              color: '#ffffff',
-              textShadow: `
-                0 0 8px ${color},
-                0 0 16px ${color},
-                0 0 32px ${color},
-                0 0 48px ${color}80,
-                2px 2px 4px rgba(0,0,0,0.8)
-              `,
-              WebkitTextStroke: `1px ${color}`,
-            }}
-          >
-            $
-          </div>
-        </Html>
-      </Billboard>
-    </group>
-  );
-}
-
-// IMPROVED: More particles, larger sizes based on flow importance
-function MoneyFlow({ connection }: { connection: FlowConnection }) {
-  const fromEntity = entities.find(e => e.id === connection.from);
-  const toEntity = entities.find(e => e.id === connection.to);
-
-  if (!fromEntity || !toEntity || connection.type === 'ownership') return null;
-
-  const startPos = new THREE.Vector3(...fromEntity.position);
-  const endPos = new THREE.Vector3(...toEntity.position);
-
-  // Reduced particles for cleaner look
-  const particleCount = connection.amount?.length || 2;
-  const totalParticles = Math.min(particleCount + 1, 3); // Max 3 particles per flow
-
-  // Determine particle size based on flow type
-  const getParticleSize = (index: number): 'small' | 'medium' | 'large' => {
-    if (connection.amount && connection.amount.length >= 4) return index % 3 === 0 ? 'large' : 'medium';
-    if (connection.amount && connection.amount.length >= 3) return index % 2 === 0 ? 'medium' : 'small';
-    return 'small';
-  };
-
-  return (
-    <group>
-      {Array.from({ length: totalParticles }).map((_, i) => (
-        <DollarParticle
-          key={i}
-          startPos={startPos}
-          endPos={endPos}
-          color={connection.color}
-          delay={-i * 0.12} // Tighter spacing
-          speed={0.7 + Math.random() * 0.3} // Slightly slower
-          size={getParticleSize(i)}
-        />
-      ))}
-    </group>
-  );
-}
-
 // IMPROVED: Revenue source with larger animated dollars and clearer labeling
 function RevenueSourceNode({
   source,
@@ -554,7 +417,8 @@ function EntityNode({
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const glowRef = useRef<any>(null);
   const baseY = entity.position[1];
 
   // Size hierarchy: Holdings largest, PT LLC (hub) medium-large, others smaller
@@ -897,8 +761,6 @@ function FlowLine({
   const points = curve.getPoints(50);
   const shouldShowLabel = connection.type !== 'ownership' && (isHovered || isSelected || showLabels);
   const isOwnership = connection.type === 'ownership';
-  const tubeRadius = isOwnership ? 0.03 : (isSelected || isHovered ? 0.12 : 0.08);
-  const color = new THREE.Color(connection.color);
 
   return (
     <group>
@@ -1046,332 +908,6 @@ function FlowLine({
           </Html>
         </Billboard>
       )}
-    </group>
-  );
-}
-
-// Revenue funnel visualization - dramatic convergence of revenue streams into PT LLC
-function RevenueFunnel() {
-  const funnelRef = useRef<THREE.Mesh>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
-  const ringRefs = useRef<THREE.Mesh[]>([]);
-
-  // PT LLC is at [0, 2, 0], revenue sources are at y=-3, z~10-12
-  // Funnel goes from wide mouth at z=8, y=-1 to narrow output at z=2, y=1
-
-  // Animate funnel glow and rings
-  useFrame((state) => {
-    if (funnelRef.current) {
-      const material = funnelRef.current.material as THREE.MeshStandardMaterial;
-      const pulse = Math.sin(state.clock.elapsedTime * 1.5) * 0.2 + 0.6;
-      material.emissiveIntensity = pulse;
-    }
-    if (glowRef.current) {
-      const material = glowRef.current.material as THREE.MeshBasicMaterial;
-      const pulse = Math.sin(state.clock.elapsedTime * 2) * 0.1 + 0.25;
-      material.opacity = pulse;
-    }
-    // Animate rings
-    ringRefs.current.forEach((ring, i) => {
-      if (ring) {
-        ring.rotation.z = state.clock.elapsedTime * (0.5 + i * 0.2);
-        const scale = 1 + Math.sin(state.clock.elapsedTime * 2 + i) * 0.05;
-        ring.scale.setScalar(scale);
-      }
-    });
-  });
-
-  // Create custom funnel geometry
-  const funnelGeometry = useMemo(() => {
-    const points = [];
-    const segments = 32;
-
-    // Wide mouth (intake) - positioned between revenue sources and PT LLC
-    for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
-      // Funnel narrows from wide intake to PT LLC
-      const radius = 6 - t * 5; // From 6 units wide to 1 unit
-      const y = -1 + t * 3; // From y=-1 to y=2 (PT LLC level)
-      const z = 8 - t * 6; // From z=8 to z=2 (approaching PT LLC at z=0)
-      points.push(new THREE.Vector2(radius, y));
-    }
-
-    return new THREE.LatheGeometry(points, 48);
-  }, []);
-
-  // Stream particles flowing through funnel
-  const StreamParticle = ({ color, delay, speed }: { color: string; delay: number; speed: number }) => {
-    const ref = useRef<THREE.Mesh>(null);
-    const progress = useRef(delay);
-
-    useFrame((_, delta) => {
-      if (!ref.current) return;
-      progress.current = (progress.current + delta * speed) % 1;
-      const t = progress.current;
-
-      // Spiral path through funnel
-      const radius = (6 - t * 5.5) * 0.7;
-      const angle = t * Math.PI * 4 + delay * Math.PI * 2;
-      const x = Math.cos(angle) * radius;
-      const y = -1 + t * 3.5;
-      const z = 8 - t * 8 + Math.sin(angle) * radius;
-
-      ref.current.position.set(x, y, z);
-    });
-
-    return (
-      <mesh ref={ref}>
-        <sphereGeometry args={[0.15, 8, 8]} />
-        <meshBasicMaterial color={color} transparent opacity={0.9} />
-      </mesh>
-    );
-  };
-
-  return (
-    <group position={[0, 0, 0]}>
-      {/* Main funnel mesh */}
-      <mesh ref={funnelRef} geometry={funnelGeometry} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 4]}>
-        <meshStandardMaterial
-          color="#fbbf24"
-          emissive="#fbbf24"
-          emissiveIntensity={0.5}
-          transparent
-          opacity={0.15}
-          side={THREE.DoubleSide}
-          wireframe={false}
-        />
-      </mesh>
-
-      {/* Outer glow */}
-      <mesh ref={glowRef} geometry={funnelGeometry} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 4]} scale={1.1}>
-        <meshBasicMaterial
-          color="#fbbf24"
-          transparent
-          opacity={0.2}
-          side={THREE.BackSide}
-        />
-      </mesh>
-
-      {/* Energy rings at intake */}
-      {[0, 1, 2].map((i) => (
-        <mesh
-          key={i}
-          ref={(el) => { if (el) ringRefs.current[i] = el; }}
-          position={[0, -1 + i * 0.3, 8 - i * 0.5]}
-          rotation={[Math.PI / 2, 0, 0]}
-        >
-          <torusGeometry args={[5.5 - i * 0.5, 0.05, 8, 48]} />
-          <meshStandardMaterial
-            color="#fbbf24"
-            emissive="#fbbf24"
-            emissiveIntensity={1.5}
-            transparent
-            opacity={0.8 - i * 0.2}
-          />
-        </mesh>
-      ))}
-
-      {/* Convergence point glow at PT LLC */}
-      <mesh position={[0, 2, 0]}>
-        <sphereGeometry args={[0.8, 32, 32]} />
-        <meshStandardMaterial
-          color="#fbbf24"
-          emissive="#fbbf24"
-          emissiveIntensity={2}
-          transparent
-          opacity={0.4}
-        />
-      </mesh>
-
-      {/* Stream particles in funnel - one per revenue source color */}
-      {[
-        { color: '#ef4444', delays: [0, 0.33, 0.66] },
-        { color: '#f97316', delays: [0.11, 0.44, 0.77] },
-        { color: '#ec4899', delays: [0.22, 0.55, 0.88] },
-      ].map(({ color, delays }) =>
-        delays.map((delay, i) => (
-          <StreamParticle key={`${color}-${i}`} color={color} delay={delay} speed={0.4} />
-        ))
-      )}
-
-      {/* "TRUST LIABILITY" label at funnel intake */}
-      <Billboard follow={true} position={[0, -2.5, 10]}>
-        <Html center distanceFactor={12}>
-          <div className="px-4 py-2 bg-amber-500/20 backdrop-blur-sm rounded-xl border-2 border-amber-500/50 whitespace-nowrap"
-            style={{ boxShadow: '0 0 30px rgba(251, 191, 36, 0.4)' }}>
-            <div className="text-amber-400 font-bold text-sm flex items-center gap-2">
-              <Zap className="w-4 h-4" />
-              TRUST LIABILITY
-              <Zap className="w-4 h-4" />
-            </div>
-            <div className="text-amber-300/70 text-xs text-center mt-1">Client funds - not taxable income</div>
-          </div>
-        </Html>
-      </Billboard>
-
-      {/* Funnel output label */}
-      <Billboard follow={true} position={[0, 3.5, 0]}>
-        <Html center distanceFactor={10}>
-          <div className="px-3 py-1.5 bg-green-500/20 backdrop-blur-sm rounded-lg border border-green-500/50 whitespace-nowrap"
-            style={{ boxShadow: '0 0 20px rgba(34, 197, 94, 0.3)' }}>
-            <div className="text-green-400 font-medium text-xs flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              Commission = Taxable Income
-            </div>
-          </div>
-        </Html>
-      </Billboard>
-    </group>
-  );
-}
-
-// Ownership beam pillar - vertical energy beam from Holdings to LLCs
-function OwnershipBeam({ targetPosition, color }: { targetPosition: [number, number, number]; color: string }) {
-  const beamRef = useRef<THREE.Mesh>(null);
-  const coreRef = useRef<THREE.Mesh>(null);
-  const particlesRef = useRef<THREE.Points>(null);
-
-  // Holdings position (updated for new layout)
-  const holdingsY = 10;
-  const targetY = targetPosition[1];
-  const beamHeight = holdingsY - targetY;
-  const midY = (holdingsY + targetY) / 2;
-
-  useFrame((state) => {
-    if (beamRef.current) {
-      const material = beamRef.current.material as THREE.MeshBasicMaterial;
-      const pulse = Math.sin(state.clock.elapsedTime * 2) * 0.1 + 0.2;
-      material.opacity = pulse;
-    }
-    if (coreRef.current) {
-      const material = coreRef.current.material as THREE.MeshStandardMaterial;
-      const pulse = Math.sin(state.clock.elapsedTime * 3) * 0.3 + 0.8;
-      material.emissiveIntensity = pulse;
-    }
-    if (particlesRef.current) {
-      // Animate particles moving down the beam
-      const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
-      for (let i = 0; i < positions.length; i += 3) {
-        positions[i + 1] -= 0.05; // Move down
-        if (positions[i + 1] < targetY - 0.5) {
-          positions[i + 1] = holdingsY + 0.5; // Reset to top
-        }
-      }
-      particlesRef.current.geometry.attributes.position.needsUpdate = true;
-    }
-  });
-
-  // Create particle positions along the beam
-  const particlePositions = useMemo(() => {
-    const positions = [];
-    const count = 8;
-    for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2;
-      const radius = 0.15;
-      positions.push(
-        targetPosition[0] + Math.cos(angle) * radius,
-        holdingsY - (i / count) * beamHeight,
-        targetPosition[2] + Math.sin(angle) * radius
-      );
-    }
-    return new Float32Array(positions);
-  }, [targetPosition, beamHeight, holdingsY]);
-
-  return (
-    <group>
-      {/* Outer glow beam */}
-      <mesh
-        ref={beamRef}
-        position={[targetPosition[0], midY, targetPosition[2]]}
-      >
-        <cylinderGeometry args={[0.3, 0.3, beamHeight, 16, 1, true]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={0.15}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      {/* Core energy beam */}
-      <mesh
-        ref={coreRef}
-        position={[targetPosition[0], midY, targetPosition[2]]}
-      >
-        <cylinderGeometry args={[0.08, 0.08, beamHeight, 8]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={1}
-          transparent
-          opacity={0.9}
-        />
-      </mesh>
-
-      {/* Energy particles flowing down */}
-      <points ref={particlesRef}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={8}
-            array={particlePositions}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <pointsMaterial
-          color={color}
-          size={0.2}
-          transparent
-          opacity={0.8}
-          sizeAttenuation
-        />
-      </points>
-
-      {/* Connection nodes at top and bottom */}
-      <mesh position={[targetPosition[0], holdingsY - 0.3, targetPosition[2]]}>
-        <sphereGeometry args={[0.2, 16, 16]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={1.5}
-        />
-      </mesh>
-      <mesh position={[targetPosition[0], targetY + 0.3, targetPosition[2]]}>
-        <sphereGeometry args={[0.2, 16, 16]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={1.5}
-        />
-      </mesh>
-
-      {/* 100% OWNERSHIP label */}
-      <Billboard follow={true} position={[targetPosition[0] + 0.8, midY, targetPosition[2]]}>
-        <Html center distanceFactor={8}>
-          <div className="px-2 py-1 bg-purple-500/20 backdrop-blur-sm rounded-lg border border-purple-500/50 whitespace-nowrap"
-            style={{ boxShadow: '0 0 15px rgba(168, 85, 247, 0.3)' }}>
-            <div className="text-purple-400 font-bold text-[10px]">100%</div>
-          </div>
-        </Html>
-      </Billboard>
-    </group>
-  );
-}
-
-// All ownership beams from Holdings to each LLC
-function OwnershipBeams() {
-  // Holdings owns all 4 LLCs - connect to each one
-  const llcEntities = entities.filter(e => e.id !== 'holdings');
-
-  return (
-    <group>
-      {llcEntities.map((entity) => (
-        <OwnershipBeam
-          key={entity.id}
-          targetPosition={entity.position}
-          color="#a855f7" // Purple for ownership
-        />
-      ))}
     </group>
   );
 }
@@ -2684,7 +2220,7 @@ function Scene({
   setSelectedFlow,
   selectedRevenue,
   setSelectedRevenue,
-  showFlows,
+  showFlows: _showFlows,
   flyMode,
   shipPosition,
   shipRotation,
@@ -2884,10 +2420,10 @@ function Scene({
             shipPosition={shipPosition}
             shipRotation={shipRotation}
             viewMode={flyMode}
-            isActive={flyMode !== 'off'}
+            isActive={true}
           />
           <SpaceshipFlyController
-            isActive={flyMode !== 'off'}
+            isActive={true}
             shipPosition={shipPosition}
             shipRotation={shipRotation}
             setShipPosition={setShipPosition}
