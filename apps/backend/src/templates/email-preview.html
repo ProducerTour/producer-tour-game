@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Producer Tour Email Templates Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #09090B;
+      color: #FAFAFA;
+      min-height: 100vh;
+    }
+    .header {
+      background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%);
+      padding: 48px 24px;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .header p {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+    .nav {
+      background: #18181B;
+      padding: 16px 24px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid #27272A;
+    }
+    .nav button {
+      background: #27272A;
+      border: 1px solid #3F3F46;
+      color: #FAFAFA;
+      padding: 10px 20px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .nav button:hover {
+      background: #3F3F46;
+    }
+    .nav button.active {
+      background: #3B82F6;
+      border-color: #3B82F6;
+    }
+    .preview-container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+    .template-info {
+      background: #18181B;
+      border: 1px solid #27272A;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .template-info h2 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: #FFF200;
+    }
+    .template-info p {
+      color: #A1A1AA;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    .email-frame {
+      background: #F4F4F5;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    .email-frame iframe {
+      width: 100%;
+      height: 800px;
+      border: none;
+    }
+    .device-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      justify-content: center;
+    }
+    .device-toggle button {
+      background: #27272A;
+      border: 1px solid #3F3F46;
+      color: #A1A1AA;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .device-toggle button.active {
+      background: #3B82F6;
+      border-color: #3B82F6;
+      color: #FFFFFF;
+    }
+    .mobile-frame {
+      max-width: 375px;
+      margin: 0 auto;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .feature {
+      background: #27272A;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .feature h4 {
+      font-size: 14px;
+      color: #3B82F6;
+      margin-bottom: 4px;
+    }
+    .feature p {
+      font-size: 13px;
+      color: #71717A;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Email Templates</h1>
+    <p>Producer Tour - Mobile-First Dark Theme Designs</p>
+  </div>
+
+  <nav class="nav">
+    <button class="active" onclick="showTemplate('announcement')">Announcement</button>
+    <button onclick="showTemplate('payment')">Payment</button>
+    <button onclick="showTemplate('welcome')">Welcome</button>
+    <button onclick="showTemplate('password-reset')">Password Reset</button>
+    <button onclick="showTemplate('message')">Message</button>
+  </nav>
+
+  <div class="preview-container">
+    <div class="template-info" id="template-info">
+      <h2>Feature Announcement</h2>
+      <p>Use this template for new feature launches, product updates, and major announcements. Inspired by Hard Rock Bet's bold mobile-first design.</p>
+      <div class="features">
+        <div class="feature">
+          <h4>Dark Theme</h4>
+          <p>Black background with gradient accents</p>
+        </div>
+        <div class="feature">
+          <h4>Bold Typography</h4>
+          <p>Large uppercase headlines</p>
+        </div>
+        <div class="feature">
+          <h4>Outlined CTAs</h4>
+          <p>Rounded buttons with arrows</p>
+        </div>
+        <div class="feature">
+          <h4>Mobile-First</h4>
+          <p>Optimized for small screens</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="device-toggle">
+      <button class="active" onclick="setDevice('mobile')">Mobile (375px)</button>
+      <button onclick="setDevice('desktop')">Desktop (600px)</button>
+    </div>
+
+    <div class="email-frame mobile-frame" id="email-frame">
+      <iframe id="preview-iframe" srcdoc=""></iframe>
+    </div>
+  </div>
+
+  <script>
+    const templates = {
+      announcement: {
+        title: 'Feature Announcement',
+        description: 'Use this template for new feature launches, product updates, and major announcements. Inspired by Hard Rock Bet\'s bold mobile-first design.',
+        html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Feature</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  </style>
+</head>
+<body>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #000000;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
+          <tr>
+            <td style="padding: 32px 40px 24px; text-align: center;">
+              <img src="https://via.placeholder.com/180x60/000000/FFFFFF?text=PRODUCER+TOUR" alt="Producer Tour" width="180" style="display: block; margin: 0 auto;" />
+            </td>
+          </tr>
+          <tr>
+            <td style="background: linear-gradient(180deg, #3B82F6 0%, #6366F1 50%, #8B5CF6 100%); border-radius: 24px 24px 0 0; padding: 48px 40px 32px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 16px;">
+                    <h1 style="margin: 0; color: #FFFFFF; font-size: 42px; font-weight: 800; line-height: 1.1; text-transform: uppercase; letter-spacing: -1px;">
+                      NEW FEATURE<br/>JUST DROPPED
+                    </h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-bottom: 24px;">
+                    <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 18px; line-height: 1.4;">
+                      Check out our brand new dashboard experience
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-bottom: 32px;">
+                    <a href="#" style="display: inline-block; padding: 14px 28px; border: 2px solid #FFFFFF; border-radius: 50px; color: #FFFFFF; text-decoration: none; font-weight: 600; font-size: 16px;">
+                      Check It Out &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center">
+                    <div style="background: #FFFFFF; width: 260px; height: 400px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;">
+                      <p style="color: #18181B; font-size: 14px; text-align: center; padding: 20px;">Phone mockup<br/>placeholder</p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="background: #18181B; padding: 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #27272A; border-radius: 16px;">
+                <tr>
+                  <td style="padding: 32px; text-align: center;">
+                    <span style="font-size: 32px;">&#127911;</span>
+                    <h2 style="margin: 16px 0 12px; color: #FFFFFF; font-size: 24px; font-weight: 700;">Track Everything</h2>
+                    <p style="margin: 0; color: #A1A1AA; font-size: 16px; line-height: 1.6;">See all your royalties, sessions, and earnings in one beautiful dashboard.</p>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-top: 32px;">
+                    <a href="#" style="display: inline-block; padding: 14px 28px; background: #FFF200; border-radius: 50px; color: #000000; text-decoration: none; font-weight: 600; font-size: 16px;">
+                      Get Started &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="background: #000000; padding: 32px 40px; border-radius: 0 0 24px 24px; text-align: center;">
+              <img src="logo-white.png" alt="Producer Tour" width="100" style="display: block; margin: 0 auto 16px; max-width: 100px; height: auto; opacity: 0.6;" />
+              <p style="margin: 0 0 8px; color: #71717A; font-size: 13px;">&copy; 2025 Producer Tour. All rights reserved.</p>
+              <p style="margin: 0; color: #71717A; font-size: 12px;"><a href="#" style="color: #71717A; text-decoration: underline;">Manage notification settings</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+        `
+      },
+      payment: {
+        title: 'Payment Notification',
+        description: 'Send payment confirmations with detailed breakdowns. Features stat cards, transaction details, and clear CTAs.',
+        html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Processed</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  </style>
+</head>
+<body>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #000000;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
+          <tr>
+            <td style="padding: 32px 40px 24px; text-align: center;">
+              <img src="https://via.placeholder.com/180x60/000000/FFFFFF?text=PRODUCER+TOUR" alt="Producer Tour" width="180" style="display: block; margin: 0 auto;" />
+            </td>
+          </tr>
+          <tr>
+            <td style="background: linear-gradient(180deg, #22C55E 0%, #16A34A 100%); border-radius: 24px 24px 0 0; padding: 48px 40px 40px; text-align: center;">
+              <img src="logo-white.png" alt="Producer Tour" width="140" style="display: block; margin: 0 auto 16px; max-width: 140px; height: auto;" />
+              <h1 style="margin: 12px 0; color: #FFFFFF; font-size: 36px; font-weight: 800; text-transform: uppercase;">PAYMENT<br/>PROCESSED</h1>
+              <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 18px;">Your ASCAP royalties are ready</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background: #18181B; padding: 32px 40px;">
+              <p style="margin: 0 0 24px; color: #FFFFFF; font-size: 18px; line-height: 1.5;">Hi Sarah,<br/><br/>Great news! Your royalty payment has been processed and is ready.</p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="width: 50%; padding-right: 8px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%); border-radius: 16px;">
+                      <tr>
+                        <td style="padding: 20px; text-align: center;">
+                          <p style="margin: 0 0 4px; color: rgba(255,255,255,0.8); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Net Payment</p>
+                          <p style="margin: 0; color: #FFFFFF; font-size: 28px; font-weight: 800;">$2,847.50</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td style="width: 50%; padding-left: 8px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #27272A; border-radius: 16px;">
+                      <tr>
+                        <td style="padding: 20px; text-align: center;">
+                          <p style="margin: 0 0 4px; color: #A1A1AA; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Songs</p>
+                          <p style="margin: 0; color: #FFFFFF; font-size: 28px; font-weight: 800;">24</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #27272A; border-radius: 16px; margin-top: 16px;">
+                <tr>
+                  <td style="padding: 24px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #3F3F46;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="color: #A1A1AA; font-size: 14px;">Statement</td>
+                              <td align="right" style="color: #FFFFFF; font-size: 14px; font-weight: 600;">ASCAP_Q4_2024.pdf</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #3F3F46;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="color: #A1A1AA; font-size: 14px;">Payment Date</td>
+                              <td align="right" style="color: #FFFFFF; font-size: 14px; font-weight: 600;">Dec 11, 2024</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0; border-bottom: 1px solid #3F3F46;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="color: #A1A1AA; font-size: 14px;">Gross Revenue</td>
+                              <td align="right" style="color: #FFFFFF; font-size: 14px; font-weight: 600;">$3,163.89</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 0;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="color: #A1A1AA; font-size: 14px;">Commission (10%)</td>
+                              <td align="right" style="color: #EF4444; font-size: 14px; font-weight: 600;">-$316.39</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-top: 32px;">
+                    <a href="#" style="display: inline-block; padding: 16px 32px; background: #3B82F6; border-radius: 50px; color: #FFFFFF; text-decoration: none; font-weight: 600; font-size: 16px;">View Full Statement &rarr;</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="background: #000000; padding: 32px 40px; border-radius: 0 0 24px 24px; text-align: center;">
+              <img src="logo-white.png" alt="Producer Tour" width="100" style="display: block; margin: 0 auto 16px; max-width: 100px; height: auto; opacity: 0.6;" />
+              <p style="margin: 0 0 12px; color: #71717A; font-size: 13px;">Questions? <a href="#" style="color: #3B82F6;">support@producertour.com</a></p>
+              <p style="margin: 0; color: #71717A; font-size: 12px;">&copy; 2025 Producer Tour. All rights reserved.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+        `
+      },
+      welcome: {
+        title: 'Welcome Email',
+        description: 'Onboard new users with a warm welcome, account info card, and feature highlights. Uses the yellow accent for CTAs.',
+        html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  </style>
+</head>
+<body>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #000000;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
+          <tr>
+            <td style="padding: 32px 40px 24px; text-align: center;">
+              <img src="https://via.placeholder.com/180x60/000000/FFFFFF?text=PRODUCER+TOUR" alt="Producer Tour" width="180" style="display: block; margin: 0 auto;" />
+            </td>
+          </tr>
+          <tr>
+            <td style="background: #18181B; border-radius: 24px; padding: 48px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 24px;">
+                    <div style="width: 60px; height: 4px; background: #FFF200; border-radius: 2px;"></div>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 16px;">
+                    <img src="logo-white.png" alt="Producer Tour" width="160" style="display: block; margin: 0 auto; max-width: 160px; height: auto;" />
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-bottom: 16px;">
+                    <h1 style="margin: 0; color: #FFFFFF; font-size: 36px; font-weight: 800; line-height: 1.1; text-transform: uppercase;">WELCOME</h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-bottom: 32px;">
+                    <p style="margin: 0; color: #A1A1AA; font-size: 18px; line-height: 1.5;">Your account has been created. Let's get you set up.</p>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #27272A; border-radius: 16px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 24px;">
+                    <p style="margin: 0 0 8px; color: #A1A1AA; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Your Login Email</p>
+                    <p style="margin: 0; color: #FFFFFF; font-size: 18px; font-weight: 600;">sarah@example.com</p>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0 0 24px; color: #FFFFFF; font-size: 16px; line-height: 1.6;">Hi Sarah,<br/><br/>Welcome aboard! Click the button below to set your password and access your dashboard. This link expires in 1 hour for security.</p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 24px;">
+                    <a href="#" style="display: inline-block; padding: 16px 32px; background: #FFF200; border-radius: 50px; color: #000000; text-decoration: none; font-weight: 700; font-size: 16px;">Set Your Password &rarr;</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 32px 40px 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 24px;">
+                    <h2 style="margin: 0; color: #FFFFFF; font-size: 20px; font-weight: 700;">What You Can Do</h2>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #27272A; border-radius: 12px; margin-bottom: 12px;">
+                <tr>
+                  <td style="padding: 16px 20px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td width="40" style="vertical-align: top;"><span style="font-size: 20px;">&#128200;</span></td>
+                        <td>
+                          <p style="margin: 0 0 4px; color: #FFFFFF; font-size: 15px; font-weight: 600;">Track Your Royalties</p>
+                          <p style="margin: 0; color: #A1A1AA; font-size: 13px;">See all your earnings in one place</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #27272A; border-radius: 12px; margin-bottom: 12px;">
+                <tr>
+                  <td style="padding: 16px 20px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td width="40" style="vertical-align: top;"><span style="font-size: 20px;">&#127925;</span></td>
+                        <td>
+                          <p style="margin: 0 0 4px; color: #FFFFFF; font-size: 15px; font-weight: 600;">Manage Your Catalog</p>
+                          <p style="margin: 0; color: #A1A1AA; font-size: 13px;">View and track all your registered works</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #27272A; border-radius: 12px;">
+                <tr>
+                  <td style="padding: 16px 20px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td width="40" style="vertical-align: top;"><span style="font-size: 20px;">&#128172;</span></td>
+                        <td>
+                          <p style="margin: 0 0 4px; color: #FFFFFF; font-size: 15px; font-weight: 600;">Connect With Your Team</p>
+                          <p style="margin: 0; color: #A1A1AA; font-size: 13px;">Message and collaborate directly</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px; text-align: center;">
+              <img src="logo-white.png" alt="Producer Tour" width="100" style="display: block; margin: 0 auto 16px; max-width: 100px; height: auto; opacity: 0.6;" />
+              <p style="margin: 0 0 12px; color: #71717A; font-size: 13px;">Need help? <a href="#" style="color: #3B82F6;">support@producertour.com</a></p>
+              <p style="margin: 0; color: #71717A; font-size: 12px;">&copy; 2025 Producer Tour. All rights reserved.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+        `
+      },
+      'password-reset': {
+        title: 'Password Reset',
+        description: 'Secure password reset with clear instructions, warning about expiration, and fallback link. Clean and focused design.',
+        html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Password</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  </style>
+</head>
+<body>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #000000;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
+          <tr>
+            <td style="padding: 32px 40px 24px; text-align: center;">
+              <img src="https://via.placeholder.com/180x60/000000/FFFFFF?text=PRODUCER+TOUR" alt="Producer Tour" width="180" style="display: block; margin: 0 auto;" />
+            </td>
+          </tr>
+          <tr>
+            <td style="background: #18181B; border-radius: 24px; padding: 48px 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 8px;">
+                    <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%); border-radius: 50%; line-height: 64px; font-size: 28px;">&#128274;</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding: 24px 0 16px;">
+                    <h1 style="margin: 0; color: #FFFFFF; font-size: 28px; font-weight: 800; text-transform: uppercase;">RESET YOUR<br/>PASSWORD</h1>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0 0 24px; color: #A1A1AA; font-size: 16px; line-height: 1.6; text-align: center;">Hi Sarah, we received a request to reset your Producer Tour password. Click below to create a new one.</p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 24px;">
+                    <a href="#" style="display: inline-block; padding: 16px 32px; background: #3B82F6; border-radius: 50px; color: #FFFFFF; text-decoration: none; font-weight: 600; font-size: 16px;">Reset Password &rarr;</a>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid #F59E0B; border-radius: 8px;">
+                <tr>
+                  <td style="padding: 16px 20px;">
+                    <p style="margin: 0; color: #F59E0B; font-size: 14px; font-weight: 600;">&#9888; This link expires in 1 hour</p>
+                    <p style="margin: 8px 0 0; color: #A1A1AA; font-size: 13px;">For security, this password reset link will expire in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 24px 0 0; color: #71717A; font-size: 12px; text-align: center; line-height: 1.5;">Button not working? Copy this link:<br/><a href="#" style="color: #3B82F6; word-break: break-all;">https://producertour.com/reset-password?token=abc123</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 32px 40px; text-align: center;">
+              <img src="logo-white.png" alt="Producer Tour" width="100" style="display: block; margin: 0 auto 16px; max-width: 100px; height: auto; opacity: 0.6;" />
+              <p style="margin: 0; color: #71717A; font-size: 12px;">&copy; 2025 Producer Tour. All rights reserved.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+        `
+      },
+      message: {
+        title: 'New Message Notification',
+        description: 'Alert users about new messages with a preview card and quick reply button. Clean, focused design to drive engagement.',
+        html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Message</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  </style>
+</head>
+<body>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #000000;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
+          <tr>
+            <td style="padding: 32px 40px 24px; text-align: center;">
+              <img src="https://via.placeholder.com/180x60/000000/FFFFFF?text=PRODUCER+TOUR" alt="Producer Tour" width="180" style="display: block; margin: 0 auto;" />
+            </td>
+          </tr>
+          <tr>
+            <td style="background: #18181B; border-radius: 24px; padding: 40px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 24px;">
+                    <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%); border-radius: 50%; line-height: 56px; font-size: 24px;">&#128172;</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-bottom: 8px;">
+                    <h1 style="margin: 0; color: #FFFFFF; font-size: 28px; font-weight: 700;">New Message</h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-bottom: 24px;">
+                    <p style="margin: 0; color: #A1A1AA; font-size: 16px;">You have an unread message from <strong style="color: #FFFFFF;">Mike Johnson</strong></p>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #27272A; border-radius: 16px; border-left: 4px solid #3B82F6;">
+                <tr>
+                  <td style="padding: 20px 24px; border-bottom: 1px solid #3F3F46;">
+                    <span style="color: #FFFFFF; font-size: 15px; font-weight: 600;">Mike Johnson</span>
+                    <span style="color: #71717A; font-size: 13px; margin-left: 12px;">Dec 11, 2:30 PM</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 20px 24px;">
+                    <p style="margin: 0; color: #A1A1AA; font-size: 15px; line-height: 1.6; font-style: italic;">"Hey! Just wanted to follow up on the session we recorded last week. The mix is sounding great..."</p>
+                  </td>
+                </tr>
+              </table>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-top: 32px;">
+                    <a href="#" style="display: inline-block; padding: 14px 28px; background: #3B82F6; border-radius: 50px; color: #FFFFFF; text-decoration: none; font-weight: 600; font-size: 16px;">View Conversation &rarr;</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 32px 40px; text-align: center;">
+              <img src="logo-white.png" alt="Producer Tour" width="100" style="display: block; margin: 0 auto 16px; max-width: 100px; height: auto; opacity: 0.6;" />
+              <p style="margin: 0 0 8px; color: #71717A; font-size: 12px;"><a href="#" style="color: #71717A; text-decoration: underline;">Manage notification settings</a></p>
+              <p style="margin: 0; color: #71717A; font-size: 12px;">&copy; 2025 Producer Tour. All rights reserved.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+        `
+      }
+    };
+
+    let currentTemplate = 'announcement';
+    let currentDevice = 'mobile';
+
+    function showTemplate(name) {
+      currentTemplate = name;
+      const template = templates[name];
+
+      // Update nav buttons
+      document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // Update info
+      document.getElementById('template-info').innerHTML = `
+        <h2>${template.title}</h2>
+        <p>${template.description}</p>
+        <div class="features">
+          <div class="feature">
+            <h4>Dark Theme</h4>
+            <p>Black background with gradient accents</p>
+          </div>
+          <div class="feature">
+            <h4>Bold Typography</h4>
+            <p>Large uppercase headlines</p>
+          </div>
+          <div class="feature">
+            <h4>Rounded CTAs</h4>
+            <p>Pill-shaped buttons with arrows</p>
+          </div>
+          <div class="feature">
+            <h4>Mobile-First</h4>
+            <p>Optimized for small screens</p>
+          </div>
+        </div>
+      `;
+
+      // Update iframe
+      document.getElementById('preview-iframe').srcdoc = template.html;
+    }
+
+    function setDevice(device) {
+      currentDevice = device;
+      const frame = document.getElementById('email-frame');
+
+      document.querySelectorAll('.device-toggle button').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      if (device === 'mobile') {
+        frame.classList.add('mobile-frame');
+      } else {
+        frame.classList.remove('mobile-frame');
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      showTemplate('announcement');
+    });
+
+    // Load initial template
+    showTemplate('announcement');
+  </script>
+</body>
+</html>

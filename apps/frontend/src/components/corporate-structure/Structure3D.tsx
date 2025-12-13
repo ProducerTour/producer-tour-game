@@ -2619,17 +2619,6 @@ function Scene({
               setSelectedEntity(null); // Also hide info panel when exiting orbit via keyboard
             }}
           />
-          {/* Portal Controller - detects proximity to Holdings */}
-          <PortalController
-            isActive={true}
-            shipPosition={shipPosition}
-            portalState={portalState}
-            setPortalState={setPortalState}
-            warpProgress={warpProgress}
-            setWarpProgress={setWarpProgress}
-            setNearPortal={setNearPortal}
-            setOrbitTarget={setOrbitTarget}
-          />
           {/* Speed effects (wind streaks) when moving fast - disabled in orbit */}
           <SpeedEffects
             shipPosition={shipPosition}
@@ -2649,6 +2638,20 @@ function Scene({
             isActive={true}
           />
         </>
+      )}
+
+      {/* Portal Controller - runs always when flying, handles warp progress */}
+      {flyMode !== 'off' && (
+        <PortalController
+          isActive={true}
+          shipPosition={shipPosition}
+          portalState={portalState}
+          setPortalState={setPortalState}
+          warpProgress={warpProgress}
+          setWarpProgress={setWarpProgress}
+          setNearPortal={setNearPortal}
+          setOrbitTarget={setOrbitTarget}
+        />
       )}
 
       {/* Warp Tunnel Effect - shown during warp transitions */}

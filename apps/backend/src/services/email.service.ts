@@ -7,6 +7,13 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import { prisma } from '../lib/prisma';
+import {
+  generatePaymentNotificationEmailHTML,
+  generateWelcomeEmailHTML,
+  generatePasswordResetEmailHTML,
+  generateMessageNotificationEmailHTML,
+  generateAnnouncementEmailHTML,
+} from '../templates/email-templates';
 
 interface EmailConfig {
   host: string;
@@ -287,149 +294,21 @@ class EmailService {
   }
 
   /**
-   * Generate HTML email for payment notification
+   * Generate HTML email for payment notification (uses new dark theme template)
    */
   private generatePaymentEmailHTML(data: PaymentNotificationData): string {
-    const formatCurrency = (amount: number) => {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(amount);
-    };
-
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Payment Processed</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 30px;
-      border-radius: 10px 10px 0 0;
-      text-align: center;
-    }
-    .header h1 {
-      margin: 0;
-      font-size: 28px;
-    }
-    .content {
-      background: #f9fafb;
-      padding: 30px;
-      border-radius: 0 0 10px 10px;
-    }
-    .summary-box {
-      background: white;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 20px;
-      margin: 20px 0;
-    }
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    .summary-row:last-child {
-      border-bottom: none;
-      font-weight: bold;
-      font-size: 18px;
-      color: #10b981;
-    }
-    .label {
-      color: #6b7280;
-    }
-    .value {
-      font-weight: 600;
-      color: #111827;
-    }
-    .footer {
-      text-align: center;
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
-      color: #6b7280;
-      font-size: 14px;
-    }
-    .button {
-      display: inline-block;
-      background: #667eea;
-      color: white;
-      padding: 12px 30px;
-      border-radius: 6px;
-      text-decoration: none;
-      margin: 20px 0;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>💰 Payment Processed!</h1>
-    <p>Your ${data.proType} royalties have been paid</p>
-  </div>
-
-  <div class="content">
-    <p>Hi ${data.writerName},</p>
-
-    <p>Great news! Your royalty payment from <strong>${data.proType}</strong> has been processed and is now available in your account.</p>
-
-    <div class="summary-box">
-      <div class="summary-row">
-        <span class="label">Statement</span>
-        <span class="value">${data.statementFilename}</span>
-      </div>
-      <div class="summary-row">
-        <span class="label">Payment Date</span>
-        <span class="value">${data.paymentDate}</span>
-      </div>
-      <div class="summary-row">
-        <span class="label">Songs</span>
-        <span class="value">${data.songCount}</span>
-      </div>
-      <div class="summary-row">
-        <span class="label">Gross Revenue</span>
-        <span class="value">${formatCurrency(data.grossRevenue)}</span>
-      </div>
-      <div class="summary-row">
-        <span class="label">Commission (${data.commissionRate}%)</span>
-        <span class="value">-${formatCurrency(data.commissionAmount)}</span>
-      </div>
-      <div class="summary-row">
-        <span class="label">Net Payment</span>
-        <span class="value">${formatCurrency(data.netPayment)}</span>
-      </div>
-    </div>
-
-    <p style="text-align: center;">
-      <a href="${process.env.FRONTEND_URL || 'https://producertour.com'}/dashboard" class="button">
-        View Full Statement
-      </a>
-    </p>
-
-    <p style="color: #6b7280; font-size: 14px;">
-      You can view the complete breakdown of this payment and your earnings history by logging into your Producer Tour account.
-    </p>
-  </div>
-
-  <div class="footer">
-    <p>© ${new Date().getFullYear()} Producer Tour. All rights reserved.</p>
-    <p>If you have any questions about this payment, please contact us at support@producertour.com</p>
-  </div>
-</body>
-</html>
-    `;
+    return generatePaymentNotificationEmailHTML({
+      recipientName: data.writerName,
+      proType: data.proType,
+      statementFilename: data.statementFilename,
+      grossRevenue: data.grossRevenue,
+      commissionRate: data.commissionRate,
+      commissionAmount: data.commissionAmount,
+      netPayment: data.netPayment,
+      songCount: data.songCount,
+      paymentDate: data.paymentDate,
+      dashboardUrl: `${process.env.FRONTEND_URL || 'https://producertour.com'}/dashboard`,
+    });
   }
 
   /**
@@ -564,106 +443,13 @@ If you have any questions about this payment, please contact us at support@produ
   }
 
   /**
-   * Generate HTML for password reset email
+   * Generate HTML for password reset email (uses new dark theme template)
    */
   private generatePasswordResetHTML(name: string, resetLink: string): string {
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reset Your Password</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 30px;
-      border-radius: 10px 10px 0 0;
-      text-align: center;
-    }
-    .header h1 {
-      margin: 0;
-      font-size: 28px;
-    }
-    .content {
-      background: #f9fafb;
-      padding: 30px;
-      border-radius: 0 0 10px 10px;
-    }
-    .button {
-      display: inline-block;
-      background: #667eea;
-      color: white !important;
-      padding: 14px 32px;
-      border-radius: 6px;
-      text-decoration: none;
-      margin: 20px 0;
-      font-weight: 600;
-    }
-    .footer {
-      text-align: center;
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
-      color: #6b7280;
-      font-size: 14px;
-    }
-    .warning {
-      background: #fef3c7;
-      border-left: 4px solid #f59e0b;
-      padding: 12px 16px;
-      margin: 20px 0;
-      border-radius: 4px;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>🔐 Password Reset Request</h1>
-  </div>
-
-  <div class="content">
-    <p>Hi ${name},</p>
-
-    <p>We received a request to reset your Producer Tour password. Click the button below to create a new password:</p>
-
-    <p style="text-align: center;">
-      <a href="${resetLink}" class="button">
-        Reset Password
-      </a>
-    </p>
-
-    <div class="warning">
-      <strong>⏰ This link expires in 1 hour</strong><br>
-      For security reasons, this password reset link will expire in 1 hour.
-    </div>
-
-    <p style="color: #6b7280; font-size: 14px;">
-      If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
-    </p>
-
-    <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-      If the button doesn't work, copy and paste this link into your browser:<br>
-      <a href="${resetLink}" style="color: #667eea; word-break: break-all;">${resetLink}</a>
-    </p>
-  </div>
-
-  <div class="footer">
-    <p>© ${new Date().getFullYear()} Producer Tour. All rights reserved.</p>
-    <p>If you have any questions, contact us at support@producertour.com</p>
-  </div>
-</body>
-</html>
-    `;
+    return generatePasswordResetEmailHTML({
+      recipientName: name,
+      resetUrl: resetLink,
+    });
   }
 
   /**
@@ -798,109 +584,14 @@ If you didn't make this change or if you believe an unauthorized person has acce
   }
 
   /**
-   * Generate HTML for welcome email
+   * Generate HTML for welcome email (uses new dark theme template)
    */
   private generateWelcomeEmailHTML(name: string, setupLink: string, email: string): string {
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Producer Tour</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 30px;
-      border-radius: 10px 10px 0 0;
-      text-align: center;
-    }
-    .header h1 {
-      margin: 0;
-      font-size: 28px;
-    }
-    .content {
-      background: #f9fafb;
-      padding: 30px;
-      border-radius: 0 0 10px 10px;
-    }
-    .button {
-      display: inline-block;
-      background: #667eea;
-      color: white !important;
-      padding: 14px 32px;
-      border-radius: 6px;
-      text-decoration: none;
-      margin: 20px 0;
-      font-weight: 600;
-    }
-    .info-box {
-      background: white;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 20px;
-      margin: 20px 0;
-    }
-    .footer {
-      text-align: center;
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
-      color: #6b7280;
-      font-size: 14px;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>🎵 Welcome to Producer Tour!</h1>
-    <p>Let's get your account set up</p>
-  </div>
-
-  <div class="content">
-    <p>Hi ${name},</p>
-
-    <p>Welcome to Producer Tour! Your account has been created and you're ready to start tracking your royalties.</p>
-
-    <div class="info-box">
-      <strong>Your Login Email:</strong><br>
-      ${email}
-    </div>
-
-    <p>To get started, click the button below to set your password:</p>
-
-    <p style="text-align: center;">
-      <a href="${setupLink}" class="button">
-        Set Your Password
-      </a>
-    </p>
-
-    <p style="color: #6b7280; font-size: 14px;">
-      This link will expire in 1 hour for security reasons. If you need a new link, use the "Forgot Password" option on the login page.
-    </p>
-
-    <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-      If the button doesn't work, copy and paste this link into your browser:<br>
-      <a href="${setupLink}" style="color: #667eea; word-break: break-all;">${setupLink}</a>
-    </p>
-  </div>
-
-  <div class="footer">
-    <p>© ${new Date().getFullYear()} Producer Tour. All rights reserved.</p>
-    <p>Need help? Contact us at support@producertour.com</p>
-  </div>
-</body>
-</html>
-    `;
+    return generateWelcomeEmailHTML({
+      recipientName: name,
+      recipientEmail: email,
+      setupPasswordUrl: setupLink,
+    });
   }
 
   /**
@@ -1866,7 +1557,7 @@ Questions about this payment? Contact us at support@producertour.com
   }
 
   /**
-   * Generate HTML email for new message notification
+   * Generate HTML email for new message notification (uses new dark theme template)
    */
   private generateNewMessageEmailHTML(data: {
     recipientName: string;
@@ -1875,130 +1566,13 @@ Questions about this payment? Contact us at support@producertour.com
     conversationUrl: string;
     formattedTimestamp: string;
   }): string {
-    return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>New Message</title>
-  <!--[if mso]>
-  <style type="text/css">
-    table { border-collapse: collapse; }
-    .button-link { padding: 14px 32px !important; }
-  </style>
-  <![endif]-->
-</head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased;">
-
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f4f5;">
-    <tr>
-      <td align="center" style="padding: 40px 20px;">
-
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
-
-          <!-- Logo -->
-          <tr>
-            <td align="center" style="padding-bottom: 32px;">
-              <a href="https://producertour.com" target="_blank" style="text-decoration: none;">
-                <img src="https://producertour.com/images/logo-black.png" alt="Producer Tour" width="180" height="auto" style="display: block; max-width: 180px; height: auto;" />
-              </a>
-            </td>
-          </tr>
-
-          <!-- Main Card -->
-          <tr>
-            <td>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);">
-
-                <!-- Banner -->
-                <tr>
-                  <td style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 32px 40px; text-align: center;">
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                      <tr>
-                        <td align="center">
-                          <div style="width: 56px; height: 56px; background-color: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 16px; line-height: 56px; font-size: 28px;">&#9993;</div>
-                          <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600; letter-spacing: -0.5px;">New Message</h1>
-                          <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 400;">You have an unread message</p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-
-                <!-- Content -->
-                <tr>
-                  <td style="padding: 40px;">
-
-                    <p style="margin: 0 0 24px; color: #3f3f46; font-size: 16px; line-height: 1.6;">
-                      Hi <strong style="color: #18181b;">${data.recipientName}</strong>,
-                    </p>
-
-                    <p style="margin: 0 0 32px; color: #52525b; font-size: 15px; line-height: 1.7;">
-                      You have a new message from <strong style="color: #18181b;">${data.senderName}</strong>.
-                    </p>
-
-                    <!-- Message Preview -->
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #fafafa; border-radius: 12px; overflow: hidden; margin-bottom: 32px; border-left: 4px solid #6366f1;">
-                      <tr>
-                        <td style="padding: 20px 24px; border-bottom: 1px solid #e4e4e7;">
-                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                            <tr>
-                              <td>
-                                <span style="font-size: 14px; font-weight: 600; color: #18181b;">${data.senderName}</span>
-                                <span style="font-size: 13px; color: #a1a1aa; margin-left: 8px;">${data.formattedTimestamp}</span>
-                              </td>
-                            </tr>
-                          </table>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 20px 24px;">
-                          <p style="margin: 0; font-size: 15px; color: #3f3f46; line-height: 1.6;">${data.messagePreview}</p>
-                        </td>
-                      </tr>
-                    </table>
-
-                    <!-- Button -->
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                      <tr>
-                        <td align="center" style="padding-bottom: 32px;">
-                          <a href="${data.conversationUrl}" class="button-link" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px;">View Conversation</a>
-                        </td>
-                      </tr>
-                    </table>
-
-                    <p style="margin: 0; color: #a1a1aa; font-size: 13px; line-height: 1.6; text-align: center;">
-                      You can manage your notification preferences in your account settings.
-                    </p>
-
-                  </td>
-                </tr>
-
-              </table>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding: 32px 40px; text-align: center;">
-              <p style="margin: 0 0 8px; color: #71717a; font-size: 13px;">© 2024 Producer Tour. All rights reserved.</p>
-              <p style="margin: 0; color: #a1a1aa; font-size: 12px;">
-                <a href="https://producertour.com/settings/notifications" style="color: #71717a; text-decoration: underline;">Manage notification settings</a>
-              </p>
-            </td>
-          </tr>
-
-        </table>
-
-      </td>
-    </tr>
-  </table>
-
-</body>
-</html>
-    `;
+    return generateMessageNotificationEmailHTML({
+      recipientName: data.recipientName,
+      senderName: data.senderName,
+      messagePreview: data.messagePreview,
+      conversationUrl: data.conversationUrl,
+      timestamp: data.formattedTimestamp,
+    });
   }
 
   /**
