@@ -13,34 +13,41 @@ import {
   Trail,
   KeyboardControls,
   useKeyboardControls,
-  Text
+  Text,
+  useFBX
 } from '@react-three/drei';
-// Postprocessing disabled due to three.js 0.182 incompatibility - using enhanced emissive materials instead
+// Post-processing disabled - incompatible with three.js 0.182+
+// import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
+import { NebulaSkybox } from './NebulaSkybox';
+import { SpeedEffects } from './SpeedEffects';
+import { Waypoints } from './Waypoints';
+import { MiniMap } from './MiniMap';
+import { WarpTunnel } from './WarpTunnel';
+import { HoldingsInterior } from './HoldingsInterior';
 import { useRef, useState, useMemo, Suspense, useEffect, useCallback } from 'react';
 import { useSocket } from '../../hooks/useSocket';
 import * as THREE from 'three';
+
+// Modular imports - data, constants, and types from separate files
+import { SCALE } from './constants';
+import { entities, flowConnections, revenueSources } from './data';
+import type { EntityData, FlowConnection, RevenueSourceData } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2,
-  Shield,
   FileText,
   Users,
-  Wallet,
   X,
   MapPin,
   ArrowDown,
   ArrowUp,
   DollarSign,
-  Music2,
   Zap,
   Maximize2,
   Minimize2,
   RotateCcw,
   CheckCircle2,
   AlertCircle,
-  Landmark,
-  Radio,
-  Headphones,
   TrendingUp,
   Calculator,
   Scale,
@@ -48,218 +55,9 @@ import {
   VolumeX,
   Rocket,
   Eye,
-  Camera
+  Camera,
+  Settings
 } from 'lucide-react';
-
-// ============================================================================
-// DATA DEFINITIONS
-// ============================================================================
-
-interface EntityData {
-  id: string;
-  name: string;
-  shortName: string;
-  type: string;
-  jurisdiction: string;
-  color: string;
-  position: [number, number, number];
-  purpose: string;
-  taxNote: string;
-  icon: typeof Building2;
-  // Extended info from other tabs
-  owns: string[];
-  doesNot: string[];
-  criticalDocs: string[];
-  taxRate: string;
-  stateTax: string;
-  complianceItems: { task: string; frequency: string; critical: boolean }[];
-}
-
-interface FlowConnection {
-  from: string;
-  to: string;
-  label: string;
-  type: 'ownership' | 'license' | 'services' | 'distribution' | 'revenue';
-  color: string;
-  amount?: string;
-  description?: string;
-}
-
-interface RevenueSourceData {
-  id: string;
-  label: string;
-  fullName: string;
-  position: [number, number, number];
-  color: string;
-  icon: typeof Music2;
-  description: string;
-  examples: string[];
-}
-
-// IMPROVED LAYOUT: Entities spread much further apart for cleaner view
-const entities: EntityData[] = [
-  {
-    id: 'holdings',
-    name: 'Producer Tour Holdings, Inc.',
-    shortName: 'Holdings',
-    type: 'Delaware C-Corp',
-    jurisdiction: 'DE',
-    color: '#3b82f6',
-    position: [0, 6, 0], // TOP CENTER - Parent company (lowered to reduce gap with label)
-    purpose: 'Parent company - owns all LLCs, holds equity, QSBS eligible for 100% capital gains exclusion on exit',
-    taxNote: '21% federal rate, retained earnings for reinvestment. QSBS eligible after 5 years.',
-    icon: Building2,
-    owns: ['100% of all 4 LLCs', 'Consolidated reporting', 'QSBS eligibility', 'Investor-ready structure'],
-    doesNot: ['Operate directly', 'Sign client contracts', 'Hold operational IP'],
-    criticalDocs: ['Bylaws', 'Shareholder Agreement', 'Board Resolutions', 'Stock Certificates'],
-    taxRate: '21%',
-    stateTax: '$0 (no DE operations)',
-    complianceItems: [
-      { task: 'Annual meeting & minutes', frequency: 'Annual', critical: true },
-      { task: 'Franchise tax filing', frequency: 'Annual', critical: true },
-      { task: 'Board resolutions for distributions', frequency: 'As needed', critical: true }
-    ]
-  },
-  {
-    id: 'ip',
-    name: 'Producer Tour IP LLC',
-    shortName: 'IP LLC',
-    type: 'Delaware LLC',
-    jurisdiction: 'DE',
-    color: '#a855f7',
-    position: [-14, 2, 6], // FRONT LEFT - IP vault (moved further out)
-    purpose: 'The vault - holds trademarks, software, brand assets. Protected from operational liability.',
-    taxNote: 'Disregarded entity → income flows to C-Corp at 21%. Strongest charging order protection in the US.',
-    icon: Shield,
-    owns: ['Producer Tour trademark', 'Software & code', 'Brand assets', 'Proprietary processes'],
-    doesNot: ['Sign client contracts', 'Run operations', 'Handle payments'],
-    criticalDocs: ['IP Assignment Agreements', 'Trademark filings', 'IP License to PT LLC', 'Asset inventory'],
-    taxRate: '21% (→ C-Corp)',
-    stateTax: '$0 DE state tax',
-    complianceItems: [
-      { task: 'Trademark maintenance', frequency: 'Annual', critical: true },
-      { task: 'IP registry update', frequency: 'Quarterly', critical: false },
-      { task: 'License fee collection', frequency: 'Quarterly', critical: true }
-    ]
-  },
-  {
-    id: 'admin',
-    name: 'Producer Tour LLC',
-    shortName: 'PT LLC',
-    type: 'Florida LLC',
-    jurisdiction: 'FL',
-    color: '#f59e0b',
-    position: [0, 2, 0], // TRUE CENTER - Client-facing hub
-    purpose: 'Admin entity - client agreements, PRO relationships, trust accounting. Client royalties are NOT revenue.',
-    taxNote: 'Client royalties = trust liability. Only 10-15% commission is taxable revenue. FL = $0 state tax.',
-    icon: FileText,
-    owns: ['Client relationships', 'PRO registrations', 'Admin agreements', 'Trust accounting'],
-    doesNot: ['Own IP', 'Run payroll', 'Handle operations'],
-    criticalDocs: ['Client MSA + SOW', 'PRO agreements', 'IP License from IP LLC', 'Services Agreement with Ops'],
-    taxRate: '21% (→ C-Corp)',
-    stateTax: '$0 FL state tax',
-    complianceItems: [
-      { task: 'Client trust reconciliation', frequency: 'Monthly', critical: true },
-      { task: 'PRO registration audits', frequency: 'Quarterly', critical: true },
-      { task: 'Pay IP license fees', frequency: 'Quarterly', critical: true },
-      { task: 'Pay services fees to Ops', frequency: 'Monthly', critical: true }
-    ]
-  },
-  {
-    id: 'ops',
-    name: 'Producer Tour Ops LLC',
-    shortName: 'Ops LLC',
-    type: 'Florida LLC',
-    jurisdiction: 'FL',
-    color: '#22c55e',
-    position: [14, 2, 6], // FRONT RIGHT - Operations (moved further out)
-    purpose: 'Operations - payroll, contractors, day-to-day vendors. All employees work here.',
-    taxNote: 'No FICA on LLC profits (corp-owned). Officers get W-2 wages with normal payroll tax.',
-    icon: Users,
-    owns: ['Employee relationships', 'Contractor agreements', 'Vendor relationships', 'Day-to-day operations'],
-    doesNot: ['Sign client contracts', 'Own IP', 'Hold client funds'],
-    criticalDocs: ['Employment agreements', 'Contractor IP assignments', 'Intercompany Services Agreement', 'Insurance policies'],
-    taxRate: '21% (→ C-Corp)',
-    stateTax: '$0 FL state tax',
-    complianceItems: [
-      { task: 'Payroll processing', frequency: 'Bi-weekly', critical: true },
-      { task: 'Contractor IP assignment audit', frequency: 'Quarterly', critical: true },
-      { task: 'Insurance review', frequency: 'Annual', critical: false }
-    ]
-  },
-  {
-    id: 'finance',
-    name: 'Producer Tour Finance LLC',
-    shortName: 'Finance',
-    type: 'Florida LLC',
-    jurisdiction: 'FL',
-    color: '#10b981',
-    position: [0, 2, -14], // BACK CENTER - Treasury (moved further back)
-    purpose: 'Treasury - distributions, reserves, owner payouts. Separates treasury risk from operations.',
-    taxNote: 'Manages cash flow to Holdings. Maintains operating reserves and handles distributions.',
-    icon: Wallet,
-    owns: ['Treasury management', 'Distribution policy', 'Reserve accounts', 'Intercompany lending'],
-    doesNot: ['Sign client contracts', 'Own IP', 'Run operations'],
-    criticalDocs: ['Distribution policy', 'Cash management policy', 'Reserve requirements', 'Treasury controls'],
-    taxRate: '21% (→ C-Corp)',
-    stateTax: '$0 FL state tax',
-    complianceItems: [
-      { task: 'Intercompany reconciliation', frequency: 'Monthly', critical: true },
-      { task: 'Distribution documentation', frequency: 'Quarterly', critical: true },
-      { task: 'Reserve level review', frequency: 'Quarterly', critical: false }
-    ]
-  }
-];
-
-const flowConnections: FlowConnection[] = [
-  // Ownership lines
-  { from: 'holdings', to: 'ip', label: '100% Ownership', type: 'ownership', color: '#3b82f6', description: 'Holdings owns IP LLC as a single-member LLC (disregarded entity)' },
-  { from: 'holdings', to: 'admin', label: '100% Ownership', type: 'ownership', color: '#3b82f6', description: 'Holdings owns PT LLC as a single-member LLC (disregarded entity)' },
-  { from: 'holdings', to: 'ops', label: '100% Ownership', type: 'ownership', color: '#3b82f6', description: 'Holdings owns Ops LLC as a single-member LLC (disregarded entity)' },
-  { from: 'holdings', to: 'finance', label: '100% Ownership', type: 'ownership', color: '#3b82f6', description: 'Holdings owns Finance LLC as a single-member LLC (disregarded entity)' },
-
-  // Intercompany flows
-  { from: 'ip', to: 'admin', label: 'IP License', type: 'license', color: '#a855f7', amount: '$$$', description: 'Quarterly license fees for trademark, software, and brand assets at arm\'s length pricing' },
-  { from: 'ops', to: 'admin', label: 'Services', type: 'services', color: '#22c55e', amount: '$$', description: 'Monthly services agreement for staffing, support, and operations at cost-plus 10-15%' },
-  { from: 'admin', to: 'finance', label: 'Net Profits', type: 'distribution', color: '#f59e0b', amount: '$$$', description: 'After intercompany payments, net profits flow to Finance for treasury management' },
-  { from: 'finance', to: 'holdings', label: 'Distributions', type: 'distribution', color: '#10b981', amount: '$$$$', description: 'Quarterly distributions to Holdings for retained earnings or shareholder dividends' },
-];
-
-// Revenue sources positioned in front of PT LLC (now centered), with DISTINCT colors from entities
-// Entity colors: blue (#3b82f6), purple (#a855f7), amber (#f59e0b), green (#22c55e), emerald (#10b981)
-// Revenue colors: red, orange, pink - all distinct from entity colors
-const revenueSources: RevenueSourceData[] = [
-  {
-    id: 'pro',
-    label: 'PROs',
-    fullName: 'Performance Rights Organizations',
-    position: [-12, -4, 16], // LEFT - Performance royalties (spread further)
-    color: '#ef4444', // Red - distinct from entity colors
-    icon: Radio,
-    description: 'Performance royalties from BMI, ASCAP, SESAC, GMR',
-    examples: ['Radio airplay', 'TV sync', 'Live venues', 'Streaming performance']
-  },
-  {
-    id: 'mlc',
-    label: 'MLC',
-    fullName: 'Mechanical Licensing Collective',
-    position: [0, -4, 20], // CENTER - Mechanicals (spread further)
-    color: '#f97316', // Orange - distinct from entity colors
-    icon: Landmark,
-    description: 'Mechanical royalties for US streaming reproductions',
-    examples: ['Spotify mechanicals', 'Apple Music', 'Amazon Music', 'YouTube Music']
-  },
-  {
-    id: 'dsp',
-    label: 'DSPs',
-    fullName: 'Digital Service Providers',
-    position: [12, -4, 16], // RIGHT - Direct streaming (spread further)
-    color: '#ec4899', // Pink - distinct from entity colors
-    icon: Headphones,
-    description: 'Direct distribution royalties from streaming platforms',
-    examples: ['Spotify', 'Apple Music', 'Tidal', 'Deezer']
-  },
-];
 
 // ============================================================================
 // 3D COMPONENTS
@@ -278,6 +76,8 @@ function RevenueSourceNode({
   isSelected: boolean;
 }) {
   const groupRef = useRef<THREE.Group>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
+  const { camera } = useThree();
   const start = new THREE.Vector3(...source.position);
   const end = new THREE.Vector3(...targetPosition);
   const mid = new THREE.Vector3().lerpVectors(start, end, 0.5);
@@ -289,6 +89,17 @@ function RevenueSourceNode({
   useFrame((state) => {
     if (groupRef.current) {
       groupRef.current.position.y = source.position[1] + Math.sin(state.clock.elapsedTime * 1.2 + source.position[0]) * 0.3;
+    }
+
+    // Inverse distance scaling for labels - bigger when far, smaller when close
+    if (labelRef.current) {
+      const sourcePos = new THREE.Vector3(...source.position);
+      const distance = camera.position.distanceTo(sourcePos);
+      // Scale inversely with clamped range - about half the size of entity labels
+      // Close (30 units) = 0.3x, Far (150+ units) = 0.6x max
+      const clampedDist = Math.max(30, Math.min(150, distance));
+      const inverseScale = 0.3 + ((clampedDist - 30) / 120) * 0.3;
+      labelRef.current.style.transform = `scale(${inverseScale})`;
     }
   });
 
@@ -325,73 +136,75 @@ function RevenueSourceNode({
           delay={i * 0.125}
         />
       ))}
-      {/* Sparkles along the path for plasma effect */}
+      {/* Sparkles along the path for plasma effect - 4x bigger */}
       <Sparkles
-        count={40}
-        scale={[4, 6, 4]}
+        count={60}
+        scale={[16, 24, 16]}
         position={[
           (source.position[0] + targetPosition[0]) / 2,
           (source.position[1] + targetPosition[1]) / 2 + 1,
           (source.position[2] + targetPosition[2]) / 2
         ]}
-        size={3}
+        size={12}
         speed={0.8}
         color={source.color}
         opacity={0.6}
       />
 
-      {/* Revenue source node - ethereal particle cloud */}
+      {/* Revenue source node - ethereal particle cloud - 4x bigger */}
       <group ref={groupRef} position={source.position}>
-        {/* Small core point */}
+        {/* Core point - 4x larger */}
         <mesh>
-          <sphereGeometry args={[0.15, 16, 16]} />
+          <sphereGeometry args={[1.2, 16, 16]} />
           <meshBasicMaterial color={source.color} />
         </mesh>
-        {/* Particle cloud instead of solid spheres */}
+        {/* Particle cloud - 4x bigger */}
         <Sparkles
-          count={60}
-          scale={2.5}
-          size={4}
+          count={120}
+          scale={16.0}
+          size={24}
           speed={0.6}
           color={source.color}
           opacity={0.8}
         />
 
         <Billboard follow={true}>
-          <Html center distanceFactor={10}>
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className={`cursor-pointer transition-all duration-300 ${isSelected ? 'scale-105' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(isSelected ? null : source.id);
-              }}
-            >
-              <div
-                className={`px-3 py-2 rounded-lg border backdrop-blur-sm transition-all ${
-                  isSelected ? 'ring-1 ring-white/40' : ''
-                }`}
-                style={{
-                  backgroundColor: `${source.color}30`,
-                  borderColor: `${source.color}80`,
-                  boxShadow: `0 0 20px ${source.color}40`
+          <Html center style={{ pointerEvents: 'auto' }}>
+            <div ref={labelRef} style={{ transition: 'transform 0.1s ease-out' }}>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className={`cursor-pointer transition-all duration-300 ${isSelected ? 'scale-105' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect(isSelected ? null : source.id);
                 }}
               >
-                <div className="flex items-center gap-2">
-                  <Icon className="w-4 h-4" style={{ color: source.color }} />
-                  <span className="text-white font-bold text-sm">{source.label}</span>
+                <div
+                  className={`px-4 py-2.5 rounded-xl border-2 backdrop-blur-sm transition-all ${
+                    isSelected ? 'ring-2 ring-white/40' : ''
+                  }`}
+                  style={{
+                    backgroundColor: `${source.color}35`,
+                    borderColor: `${source.color}90`,
+                    boxShadow: `0 0 25px ${source.color}50`
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-5 h-5" style={{ color: source.color }} />
+                    <span className="text-white font-bold text-base">{source.label}</span>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </Html>
         </Billboard>
 
         {isSelected && (
           <Sparkles
-            count={30}
-            scale={3}
-            size={6}
+            count={80}
+            scale={20}
+            size={32}
             speed={0.5}
             color={source.color}
           />
@@ -419,6 +232,7 @@ function EntityNode({
   const ringRef = useRef<THREE.Mesh>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const glowRef = useRef<any>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
   const baseY = entity.position[1];
 
   // Size hierarchy: Holdings largest, PT LLC (hub) medium-large, others smaller
@@ -427,8 +241,8 @@ function EntityNode({
   const isDE = entity.jurisdiction === 'DE';
   const Icon = entity.icon;
 
-  // Size multiplier based on entity importance
-  const sizeMultiplier = isHoldings ? 1.4 : isPTLLC ? 1.2 : 1.0;
+  // Size multiplier based on entity importance (scaled 2x for expanded universe)
+  const sizeMultiplier = (isHoldings ? 1.4 : isPTLLC ? 1.2 : 1.0) * SCALE.ENTITY_SIZE;
   const baseSize = isHoldings ? 1.1 : isDE ? 0.85 : 0.75;
   const actualSize = baseSize * sizeMultiplier;
 
@@ -468,6 +282,17 @@ function EntityNode({
       material.opacity = isSelected ? 0.4 : isHovered ? 0.25 : glowPulse;
       const glowScale = sizeMultiplier * (1.8 + Math.sin(time * 1.5) * 0.1);
       glowRef.current.scale.setScalar(glowScale);
+    }
+
+    // Inverse distance scaling for labels - bigger when far, smaller when close
+    if (labelRef.current) {
+      const entityPos = new THREE.Vector3(...entity.position);
+      const distance = state.camera.position.distanceTo(entityPos);
+      // Scale inversely with clamped range to prevent infinite sizing
+      // Close (30 units) = 0.7x, Far (150+ units) = 1.5x max
+      const clampedDist = Math.max(30, Math.min(150, distance));
+      const inverseScale = 0.7 + ((clampedDist - 30) / 120) * 0.8;
+      labelRef.current.style.transform = `scale(${inverseScale})`;
     }
   });
 
@@ -544,15 +369,14 @@ function EntityNode({
 
       {/* Billboarded HTML Label - shows minimal when not hovered, full on hover/select */}
       {/* Holdings label goes ABOVE the entity, others go below */}
-      {/* distanceFactor makes labels scale with distance for better depth perception */}
-      {/* Holdings label is closer to entity (1.2) due to larger planet size */}
+      {/* Inverse distance scaling: bigger when far away, smaller when close */}
       <Billboard follow={true} lockX={false} lockY={false} lockZ={false}>
         <Html
           position={[0, isHoldings ? 4.5 : -1.6, 0]}
           center
-          distanceFactor={12}
           style={{ pointerEvents: 'none' }}
         >
+          <div ref={labelRef} style={{ transition: 'transform 0.1s ease-out' }}>
           {/* Full label - only on hover or select */}
           {(isHovered || isSelected) ? (
             <motion.div
@@ -574,23 +398,23 @@ function EntityNode({
                 }}
               >
                 <div className="flex items-center justify-center gap-2 mb-1">
-                  <Icon className="w-4 h-4" style={{ color: entity.color }} />
-                  <span className="text-white font-bold text-sm whitespace-nowrap">{entity.shortName}</span>
+                  <Icon className="w-5 h-5" style={{ color: entity.color }} />
+                  <span className="text-white font-bold text-base whitespace-nowrap">{entity.shortName}</span>
                 </div>
-                <div className="text-xs font-medium" style={{ color: entity.color }}>
+                <div className="text-sm font-medium" style={{ color: entity.color }}>
                   {entity.type}
                 </div>
               </div>
               <div
-                className={`mt-2 text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1 ${
+                className={`mt-2 text-sm font-bold px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 ${
                   isDE ? 'bg-blue-500/40 text-blue-200 border border-blue-400/50' : 'bg-emerald-500/40 text-emerald-200 border border-emerald-400/50'
                 }`}
               >
-                <MapPin className="w-3 h-3" />
+                <MapPin className="w-3.5 h-3.5" />
                 {entity.jurisdiction}
               </div>
               {/* Tax rate indicator */}
-              <div className="mt-1 text-xs text-gray-400">
+              <div className="mt-1.5 text-sm text-gray-400">
                 {entity.taxRate} federal
               </div>
             </motion.div>
@@ -598,16 +422,17 @@ function EntityNode({
             /* Minimal label - just name when not hovered */
             <div className="text-center select-none">
               <div
-                className="px-3 py-1.5 rounded-lg backdrop-blur-sm border transition-all duration-200"
+                className="px-4 py-2 rounded-lg backdrop-blur-sm border transition-all duration-200"
                 style={{
                   backgroundColor: `${entity.color}15`,
                   borderColor: `${entity.color}40`,
                 }}
               >
-                <span className="text-white/80 font-medium text-xs whitespace-nowrap">{entity.shortName}</span>
+                <span className="text-white/80 font-medium text-sm whitespace-nowrap">{entity.shortName}</span>
               </div>
             </div>
           )}
+          </div>
         </Html>
       </Billboard>
 
@@ -915,8 +740,8 @@ function FlowLine({
 // Camera Controller with view centered on PT LLC - now also updates look-at target
 function CameraController({ selectedEntity, orbitControlsRef }: { selectedEntity: string | null; orbitControlsRef: React.RefObject<any> }) {
   const { camera } = useThree();
-  const targetPosition = useRef(new THREE.Vector3(28, 18, 35)); // Camera position (pulled back for wider spread)
-  const lookAtTarget = useRef(new THREE.Vector3(0, 3, 0)); // What camera looks at (slightly higher)
+  const targetPosition = useRef(new THREE.Vector3(100, 60, 120)); // Camera position (expanded for 3.5x universe)
+  const lookAtTarget = useRef(new THREE.Vector3(0, 10, 0)); // What camera looks at
   const isAnimating = useRef(false);
   const lastSelectedEntity = useRef<string | null>(null);
   const animationProgress = useRef(0);
@@ -931,19 +756,19 @@ function CameraController({ selectedEntity, orbitControlsRef }: { selectedEntity
         const entity = entities.find(e => e.id === selectedEntity);
         if (entity) {
           const entityPos = new THREE.Vector3(...entity.position);
-          // Position camera to view selected entity from a good angle - closer for inspection
+          // Position camera to view selected entity from a good angle - scaled for larger entities
           targetPosition.current.set(
-            entityPos.x + 8,
-            entityPos.y + 5,
-            entityPos.z + 10
+            entityPos.x + 25,
+            entityPos.y + 15,
+            entityPos.z + 30
           );
           // Look directly at the entity
           lookAtTarget.current.copy(entityPos);
         }
       } else {
-        // Default view - looking at structure from elevated front-right (wider spread)
-        targetPosition.current.set(28, 18, 35);
-        lookAtTarget.current.set(0, 3, 0);
+        // Default view - looking at structure from elevated front-right (expanded universe)
+        targetPosition.current.set(100, 60, 120);
+        lookAtTarget.current.set(0, 10, 0);
       }
     }
   }, [selectedEntity]);
@@ -978,8 +803,8 @@ function ShieldBubble({ position, isActive }: { position: [number, number, numbe
     const time = state.clock.elapsedTime;
 
     if (shieldRef.current) {
-      // Pulsing scale - large enough to surround entity mesh
-      const scale = 3.5 + Math.sin(time * 2) * 0.15;
+      // Pulsing scale - scaled up for 3.5x larger planets
+      const scale = 5.5 + Math.sin(time * 2) * 0.2;
       shieldRef.current.scale.setScalar(scale);
       // Slow rotation
       shieldRef.current.rotation.y += 0.003;
@@ -1016,8 +841,8 @@ function CrownEffect({ position, isActive }: { position: [number, number, number
     const time = state.clock.elapsedTime;
 
     if (shieldRef.current) {
-      // Pulsing scale - larger for Holdings (biggest entity)
-      const scale = 4.0 + Math.sin(time * 2) * 0.2;
+      // Pulsing scale - larger for Holdings (biggest entity) - scaled up for 3.5x planets
+      const scale = 7.0 + Math.sin(time * 2) * 0.3;
       shieldRef.current.scale.setScalar(scale);
       // Slow rotation
       shieldRef.current.rotation.y += 0.003;
@@ -1054,8 +879,8 @@ function GearEffect({ position, isActive }: { position: [number, number, number]
     const time = state.clock.elapsedTime;
 
     if (shieldRef.current) {
-      // Pulsing scale - large enough to surround entity mesh
-      const scale = 3.5 + Math.sin(time * 2) * 0.15;
+      // Pulsing scale - scaled up for 3.5x larger planets
+      const scale = 5.5 + Math.sin(time * 2) * 0.2;
       shieldRef.current.scale.setScalar(scale);
       // Slow rotation
       shieldRef.current.rotation.y += 0.003;
@@ -1092,8 +917,8 @@ function VaultEffect({ position, isActive }: { position: [number, number, number
     const time = state.clock.elapsedTime;
 
     if (shieldRef.current) {
-      // Pulsing scale - large enough to surround entity mesh
-      const scale = 3.5 + Math.sin(time * 2) * 0.15;
+      // Pulsing scale - scaled up for 3.5x larger planets
+      const scale = 5.5 + Math.sin(time * 2) * 0.2;
       shieldRef.current.scale.setScalar(scale);
       // Slow rotation
       shieldRef.current.rotation.y += 0.003;
@@ -1130,8 +955,8 @@ function AdminPulseEffect({ position, isActive }: { position: [number, number, n
     const time = state.clock.elapsedTime;
 
     if (shieldRef.current) {
-      // Pulsing scale - large enough to surround entity mesh
-      const scale = 3.5 + Math.sin(time * 2) * 0.15;
+      // Pulsing scale - scaled up for 3.5x larger planets
+      const scale = 5.5 + Math.sin(time * 2) * 0.2;
       shieldRef.current.scale.setScalar(scale);
       // Slow rotation
       shieldRef.current.rotation.y += 0.003;
@@ -1372,11 +1197,71 @@ const complianceOrbiterYOffsets: Record<string, number> = {
   'finance': 2.0,   // Finance orbiter offset
 };
 
-// Spaceship component for fly mode - Proper rocket ship design
-function Spaceship({ position, rotation, viewMode }: {
+// UNAF FBX Ship component - loads modular FBX parts
+function UNAFShip() {
+  // Load all the FBX parts
+  const front = useFBX('/models/Front_01.FBX');
+  const cockpit = useFBX('/models/Cockpit_01.FBX');
+  const back = useFBX('/models/Back_01.FBX');
+  const wing = useFBX('/models/Wing_01.FBX');
+
+  // Clone and apply custom colored materials
+  const parts = useMemo(() => {
+    const hullMaterial = new THREE.MeshStandardMaterial({
+      color: '#1e293b',
+      emissive: '#3b82f6',
+      emissiveIntensity: 0.1,
+      metalness: 0.85,
+      roughness: 0.25,
+    });
+    const accentMaterial = new THREE.MeshStandardMaterial({
+      color: '#334155',
+      emissive: '#60a5fa',
+      emissiveIntensity: 0.15,
+      metalness: 0.9,
+      roughness: 0.2,
+    });
+
+    const setupModel = (fbx: THREE.Group, material: THREE.Material) => {
+      const clone = fbx.clone();
+      clone.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          mesh.material = material;
+        }
+      });
+      return clone;
+    };
+    return {
+      front: setupModel(front, hullMaterial),
+      cockpit: setupModel(cockpit, accentMaterial),
+      back: setupModel(back, hullMaterial),
+      wing: setupModel(wing, accentMaterial),
+    };
+  }, [front, cockpit, back, wing]);
+
+  const scale = 0.001; // Scaled down ~7x
+
+  return (
+    <group scale={[scale, scale, scale]} rotation={[0, 0, 0]}>
+      <primitive object={parts.front} position={[0, 0, 0]} />
+      <primitive object={parts.cockpit} position={[0, 0, 0]} />
+      <primitive object={parts.back} position={[0, 0, 0]} />
+      <primitive object={parts.wing} position={[0, 0, 0]} />
+      {/* Cockpit glow */}
+      <pointLight color="#60a5fa" intensity={0.5} distance={300} position={[0, 50, -100]} />
+    </group>
+  );
+}
+
+// Spaceship component for fly mode - Multiple ship designs
+function Spaceship({ position, rotation, viewMode, model = 'rocket' }: {
   position: THREE.Vector3;
   rotation: THREE.Euler;
   viewMode: 'first' | 'third';
+  model?: 'rocket' | 'fighter' | 'unaf';
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const flameRef = useRef<THREE.Mesh>(null);
@@ -1415,111 +1300,123 @@ function Spaceship({ position, rotation, viewMode }: {
   // Don't render in first person mode (we ARE the ship)
   if (viewMode === 'first') return null;
 
-  return (
-    <group ref={groupRef}>
-      {/* Rocket body - main fuselage (cylinder) */}
-      <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.25, 0.3, 1.8, 16]} />
-        <meshStandardMaterial
-          color="#e5e7eb"
-          emissive="#3b82f6"
-          emissiveIntensity={0.1}
-          metalness={0.7}
-          roughness={0.3}
-        />
-      </mesh>
-
-      {/* Nose cone (pointed tip) */}
-      <mesh position={[0, 0, -1.2]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.25, 0.7, 16]} />
-        <meshStandardMaterial
-          color="#ef4444"
-          emissive="#ef4444"
-          emissiveIntensity={0.3}
-          metalness={0.8}
-          roughness={0.2}
-        />
-      </mesh>
-
-      {/* Red stripe band around body */}
-      <mesh position={[0, 0, -0.3]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.27, 0.27, 0.15, 16]} />
-        <meshStandardMaterial
-          color="#ef4444"
-          emissive="#ef4444"
-          emissiveIntensity={0.2}
-          metalness={0.6}
-          roughness={0.3}
-        />
-      </mesh>
-
-      {/* Porthole window */}
-      <mesh position={[0, 0.22, -0.5]} rotation={[0, 0, 0]}>
-        <sphereGeometry args={[0.08, 16, 16]} />
-        <meshStandardMaterial
-          color="#60a5fa"
-          emissive="#60a5fa"
-          emissiveIntensity={1}
-          transparent
-          opacity={0.9}
-        />
-      </mesh>
-
-      {/* Fins - 4 stabilizer fins */}
-      {[0, 90, 180, 270].map((angle) => (
-        <mesh
-          key={angle}
-          position={[
-            Math.sin((angle * Math.PI) / 180) * 0.3,
-            Math.cos((angle * Math.PI) / 180) * 0.3,
-            0.7
-          ]}
-          rotation={[0, 0, (-angle * Math.PI) / 180]}
-        >
-          <boxGeometry args={[0.02, 0.5, 0.4]} />
-          <meshStandardMaterial
-            color="#ef4444"
-            emissive="#ef4444"
-            emissiveIntensity={0.2}
-            metalness={0.7}
-            roughness={0.3}
-          />
-        </mesh>
-      ))}
-
-      {/* Engine nozzle */}
-      <mesh position={[0, 0, 0.95]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.2, 0.28, 0.15, 16]} />
-        <meshStandardMaterial
-          color="#374151"
-          emissive="#f59e0b"
-          emissiveIntensity={0.3}
-          metalness={0.9}
-          roughness={0.1}
-        />
-      </mesh>
-
-      {/* Outer flame (orange) */}
+  // Shared engine effects
+  const EngineEffects = () => (
+    <>
       <mesh ref={flameRef} position={[0, 0, 1.3]} rotation={[Math.PI / 2, 0, 0]}>
         <coneGeometry args={[0.2, 0.8, 8]} />
         <meshBasicMaterial color="#f97316" transparent opacity={0.8} />
       </mesh>
-
-      {/* Inner flame (yellow/white - hotter) */}
       <mesh ref={innerFlameRef} position={[0, 0, 1.2]} rotation={[Math.PI / 2, 0, 0]}>
         <coneGeometry args={[0.12, 0.5, 8]} />
         <meshBasicMaterial color="#fef08a" transparent opacity={0.9} />
       </mesh>
-
-      {/* Core flame (white - hottest) */}
       <mesh position={[0, 0, 1.1]} rotation={[Math.PI / 2, 0, 0]}>
         <coneGeometry args={[0.06, 0.3, 8]} />
         <meshBasicMaterial color="#ffffff" />
       </mesh>
+      <Sparkles count={30} scale={1.5} size={3} speed={3} color="#f97316" position={[0, 0, 1.5]} />
+    </>
+  );
 
+  return (
+    <group ref={groupRef}>
+      {/* ROCKET - Classic retro rocket */}
+      {model === 'rocket' && (
+        <>
+          <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.25, 0.3, 1.8, 16]} />
+            <meshStandardMaterial color="#e5e7eb" emissive="#3b82f6" emissiveIntensity={0.1} metalness={0.7} roughness={0.3} />
+          </mesh>
+          <mesh position={[0, 0, -1.2]} rotation={[-Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.25, 0.7, 16]} />
+            <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.3} metalness={0.8} roughness={0.2} />
+          </mesh>
+          <mesh position={[0, 0, -0.3]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.27, 0.27, 0.15, 16]} />
+            <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.2} metalness={0.6} roughness={0.3} />
+          </mesh>
+          <mesh position={[0, 0.22, -0.5]}>
+            <sphereGeometry args={[0.08, 16, 16]} />
+            <meshStandardMaterial color="#60a5fa" emissive="#60a5fa" emissiveIntensity={1} transparent opacity={0.9} />
+          </mesh>
+          {[0, 90, 180, 270].map((angle) => (
+            <mesh key={angle} position={[Math.sin((angle * Math.PI) / 180) * 0.3, Math.cos((angle * Math.PI) / 180) * 0.3, 0.7]} rotation={[0, 0, (-angle * Math.PI) / 180]}>
+              <boxGeometry args={[0.02, 0.5, 0.4]} />
+              <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.2} metalness={0.7} roughness={0.3} />
+            </mesh>
+          ))}
+          <mesh position={[0, 0, 0.95]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.2, 0.28, 0.15, 16]} />
+            <meshStandardMaterial color="#374151" emissive="#f59e0b" emissiveIntensity={0.3} metalness={0.9} roughness={0.1} />
+          </mesh>
+        </>
+      )}
+
+      {/* FIGHTER - Sleek X-wing style */}
+      {model === 'fighter' && (
+        <>
+          {/* Main body - elongated hexagon shape */}
+          <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.15, 0.2, 2.2, 6]} />
+            <meshStandardMaterial color="#1e293b" emissive="#6366f1" emissiveIntensity={0.15} metalness={0.9} roughness={0.2} />
+          </mesh>
+          {/* Cockpit bubble */}
+          <mesh position={[0, 0.15, -0.4]}>
+            <sphereGeometry args={[0.18, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            <meshStandardMaterial color="#60a5fa" emissive="#60a5fa" emissiveIntensity={0.8} transparent opacity={0.7} />
+          </mesh>
+          {/* Nose cone - sharp */}
+          <mesh position={[0, 0, -1.4]} rotation={[Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.15, 0.6, 6]} />
+            <meshStandardMaterial color="#475569" emissive="#6366f1" emissiveIntensity={0.2} metalness={0.9} roughness={0.1} />
+          </mesh>
+          {/* Wings - X configuration */}
+          {[-1, 1].map((side) => (
+            <group key={side}>
+              {/* Upper wing */}
+              <mesh position={[side * 0.6, 0.3, 0.2]} rotation={[0, 0, side * 0.3]}>
+                <boxGeometry args={[1.0, 0.03, 0.6]} />
+                <meshStandardMaterial color="#334155" emissive="#6366f1" emissiveIntensity={0.1} metalness={0.8} roughness={0.3} />
+              </mesh>
+              {/* Lower wing */}
+              <mesh position={[side * 0.6, -0.3, 0.2]} rotation={[0, 0, side * -0.3]}>
+                <boxGeometry args={[1.0, 0.03, 0.6]} />
+                <meshStandardMaterial color="#334155" emissive="#6366f1" emissiveIntensity={0.1} metalness={0.8} roughness={0.3} />
+              </mesh>
+              {/* Wing tip lasers */}
+              <mesh position={[side * 1.1, 0.35, -0.1]} rotation={[Math.PI / 2, 0, 0]}>
+                <cylinderGeometry args={[0.03, 0.03, 0.8, 8]} />
+                <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.5} />
+              </mesh>
+              <mesh position={[side * 1.1, -0.35, -0.1]} rotation={[Math.PI / 2, 0, 0]}>
+                <cylinderGeometry args={[0.03, 0.03, 0.8, 8]} />
+                <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.5} />
+              </mesh>
+            </group>
+          ))}
+          {/* Engine pods */}
+          {[-0.4, 0.4].map((x) => (
+            <mesh key={x} position={[x, 0, 0.9]} rotation={[Math.PI / 2, 0, 0]}>
+              <cylinderGeometry args={[0.1, 0.12, 0.4, 8]} />
+              <meshStandardMaterial color="#1e293b" emissive="#f59e0b" emissiveIntensity={0.4} metalness={0.9} roughness={0.1} />
+            </mesh>
+          ))}
+        </>
+      )}
+
+      {/* UNAF - FBX modular spaceship */}
+      {model === 'unaf' && (
+        <Suspense fallback={null}>
+          <UNAFShip />
+        </Suspense>
+      )}
+
+      <EngineEffects />
     </group>
   );
 }
+
 
 // ============================================================================
 // MULTIPLAYER COMPONENTS
@@ -1769,19 +1666,23 @@ function SpaceshipFlyController({
   shipPosition,
   shipRotation,
   setShipPosition,
-  setShipRotation
+  setShipRotation,
+  setVelocityMagnitude
 }: {
   isActive: boolean;
   shipPosition: THREE.Vector3;
   shipRotation: THREE.Euler;
   setShipPosition: (pos: THREE.Vector3) => void;
   setShipRotation: (rot: THREE.Euler) => void;
+  setVelocityMagnitude?: (vel: number) => void;
 }) {
   const [, getKeys] = useKeyboardControls();
 
-  // Physics parameters (tuned for 60fps, will scale with delta)
-  const maxSpeed = 0.35; // Reduced for smoother feel
-  const baseAcceleration = 1.2; // Per-second acceleration
+  // Physics parameters - scaled for expanded 3.5x universe
+  const baseMaxSpeed = 1.2; // Normal max speed
+  const boostMaxSpeed = 3.6; // 3x speed when boosting
+  const baseAcceleration = 4.0; // Per-second acceleration
+  const boostAcceleration = 12.0; // 3x acceleration when boosting
   const baseDrag = 3.0; // Per-second drag factor
   const baseTurnSpeed = 2.5; // Per-second turn speed
   const baseTurnDrag = 5.0; // Per-second angular drag
@@ -1801,24 +1702,29 @@ function SpaceshipFlyController({
     const newPosition = shipPosition.clone();
     const newRotation = shipRotation.clone();
 
+    // Check if boosting
+    const isBoosting = keys.boost;
+    const currentAcceleration = isBoosting ? boostAcceleration : baseAcceleration;
+    const currentMaxSpeed = isBoosting ? boostMaxSpeed : baseMaxSpeed;
+
     // Get forward direction based on ship rotation
     const forward = new THREE.Vector3(0, 0, -1);
     forward.applyEuler(newRotation);
 
     // Apply thrust with frame-rate independent acceleration
     if (keys.forward) {
-      velocity.current.add(forward.clone().multiplyScalar(baseAcceleration * dt));
+      velocity.current.add(forward.clone().multiplyScalar(currentAcceleration * dt));
     }
     if (keys.backward) {
-      velocity.current.add(forward.clone().multiplyScalar(-baseAcceleration * 0.5 * dt));
+      velocity.current.add(forward.clone().multiplyScalar(-currentAcceleration * 0.5 * dt));
     }
 
     // Apply vertical thrust
     if (keys.up) {
-      velocity.current.y += baseAcceleration * 0.7 * dt;
+      velocity.current.y += currentAcceleration * 0.7 * dt;
     }
     if (keys.down) {
-      velocity.current.y -= baseAcceleration * 0.7 * dt;
+      velocity.current.y -= currentAcceleration * 0.7 * dt;
     }
 
     // Apply turn with angular momentum (frame-rate independent)
@@ -1829,16 +1735,16 @@ function SpaceshipFlyController({
       angularVelocity.current -= baseTurnSpeed * dt;
     }
 
-    // Apply frame-rate independent drag (exponential decay)
-    const dragMultiplier = Math.exp(-baseDrag * dt);
+    // Apply frame-rate independent drag (exponential decay) - less drag when boosting
+    const dragMultiplier = Math.exp(-(isBoosting ? baseDrag * 0.5 : baseDrag) * dt);
     velocity.current.multiplyScalar(dragMultiplier);
 
     const angularDragMultiplier = Math.exp(-baseTurnDrag * dt);
     angularVelocity.current *= angularDragMultiplier;
 
     // Clamp velocity to max speed
-    if (velocity.current.length() > maxSpeed) {
-      velocity.current.normalize().multiplyScalar(maxSpeed);
+    if (velocity.current.length() > currentMaxSpeed) {
+      velocity.current.normalize().multiplyScalar(currentMaxSpeed);
     }
 
     // Clamp angular velocity
@@ -1850,18 +1756,18 @@ function SpaceshipFlyController({
     // Apply angular velocity to rotation
     newRotation.y += angularVelocity.current;
 
-    // Clamp Y position with soft bounce
-    if (newPosition.y < 0.5) {
-      newPosition.y = 0.5;
+    // Clamp Y position with soft bounce - scaled for expanded universe
+    if (newPosition.y < 1) {
+      newPosition.y = 1;
       velocity.current.y = Math.abs(velocity.current.y) * 0.2;
     }
-    if (newPosition.y > 20) {
-      newPosition.y = 20;
+    if (newPosition.y > 80) {
+      newPosition.y = 80;
       velocity.current.y = -Math.abs(velocity.current.y) * 0.2;
     }
 
-    // Boundary check for X and Z (keep within reasonable space)
-    const boundary = 40;
+    // Boundary check for X and Z - scaled 3.5x for expanded universe
+    const boundary = 150;
     if (Math.abs(newPosition.x) > boundary) {
       newPosition.x = Math.sign(newPosition.x) * boundary;
       velocity.current.x *= -0.2;
@@ -1873,6 +1779,227 @@ function SpaceshipFlyController({
 
     setShipPosition(newPosition);
     setShipRotation(newRotation);
+
+    // Report velocity magnitude for speed effects
+    if (setVelocityMagnitude) {
+      setVelocityMagnitude(velocity.current.length());
+    }
+  });
+
+  return null;
+}
+
+// Orbit Mode Controller - automatically orbits the ship around a target entity
+function OrbitModeController({
+  isActive,
+  targetEntity,
+  shipPosition,
+  shipRotation,
+  setShipPosition,
+  setShipRotation,
+  onExitOrbit
+}: {
+  isActive: boolean;
+  targetEntity: EntityData | null;
+  shipPosition: THREE.Vector3;
+  shipRotation: THREE.Euler;
+  setShipPosition: (pos: THREE.Vector3) => void;
+  setShipRotation: (rot: THREE.Euler) => void;
+  onExitOrbit: () => void;
+}) {
+  const [, getKeys] = useKeyboardControls();
+  const orbitAngle = useRef(0);
+  const transitionProgress = useRef(0);
+  const initialPosition = useRef(new THREE.Vector3());
+  const isTransitioning = useRef(true);
+
+  // Orbit parameters
+  const orbitRadius = 20; // Distance from entity center
+  const orbitHeight = 8; // Height above entity
+  const orbitSpeed = 0.3; // Radians per second
+  const transitionDuration = 1.5; // Seconds to transition into orbit
+
+  useFrame((_, delta) => {
+    if (!isActive || !targetEntity) return;
+
+    const dt = Math.min(delta, 0.05);
+    const keys = getKeys();
+
+    // Check for exit orbit key
+    if (keys.exitOrbit) {
+      onExitOrbit();
+      return;
+    }
+
+    const targetPos = new THREE.Vector3(...targetEntity.position);
+
+    // Handle transition into orbit
+    if (isTransitioning.current) {
+      if (transitionProgress.current === 0) {
+        // Store initial position when starting transition
+        initialPosition.current.copy(shipPosition);
+        // Calculate initial angle based on ship position relative to target
+        const toShip = shipPosition.clone().sub(targetPos);
+        orbitAngle.current = Math.atan2(toShip.x, toShip.z);
+
+        // IMMEDIATELY face the planet at the start of orbit transition
+        const lookDir = targetPos.clone().sub(shipPosition);
+        const immediateRotationY = Math.atan2(lookDir.x, lookDir.z);
+        const immediateRotation = shipRotation.clone();
+        immediateRotation.y = immediateRotationY;
+        setShipRotation(immediateRotation);
+      }
+
+      transitionProgress.current += dt / transitionDuration;
+
+      if (transitionProgress.current >= 1) {
+        transitionProgress.current = 1;
+        isTransitioning.current = false;
+      }
+
+      // Smoothly interpolate to orbit position
+      const t = smoothstep(0, 1, transitionProgress.current);
+
+      // Calculate target orbit position
+      const orbitX = targetPos.x + Math.sin(orbitAngle.current) * orbitRadius;
+      const orbitZ = targetPos.z + Math.cos(orbitAngle.current) * orbitRadius;
+      const orbitY = targetPos.y + orbitHeight;
+
+      const newPosition = new THREE.Vector3(
+        lerp(initialPosition.current.x, orbitX, t),
+        lerp(initialPosition.current.y, orbitY, t),
+        lerp(initialPosition.current.z, orbitZ, t)
+      );
+
+      setShipPosition(newPosition);
+
+      // Keep facing target during transition (already set to face target initially)
+      const lookDir = targetPos.clone().sub(newPosition);
+      const targetRotationY = Math.atan2(lookDir.x, lookDir.z);
+      const currentRotation = shipRotation.clone();
+      currentRotation.y = targetRotationY; // Direct assignment, no lerp - always face planet
+      setShipRotation(currentRotation);
+
+    } else {
+      // Normal orbiting
+      orbitAngle.current += orbitSpeed * dt;
+
+      // Calculate new orbit position
+      const orbitX = targetPos.x + Math.sin(orbitAngle.current) * orbitRadius;
+      const orbitZ = targetPos.z + Math.cos(orbitAngle.current) * orbitRadius;
+      const orbitY = targetPos.y + orbitHeight;
+
+      const newPosition = new THREE.Vector3(orbitX, orbitY, orbitZ);
+      setShipPosition(newPosition);
+
+      // Keep facing the target
+      const lookDir = targetPos.clone().sub(newPosition);
+      const targetRotationY = Math.atan2(lookDir.x, lookDir.z);
+      const currentRotation = shipRotation.clone();
+      currentRotation.y = targetRotationY;
+      setShipRotation(currentRotation);
+    }
+  });
+
+  // Reset transition state when target changes
+  useEffect(() => {
+    if (isActive && targetEntity) {
+      transitionProgress.current = 0;
+      isTransitioning.current = true;
+    }
+  }, [isActive, targetEntity?.id]);
+
+  return null;
+}
+
+// Helper functions for orbit mode
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+// Portal Controller - detects proximity and handles portal entry
+function PortalController({
+  isActive,
+  shipPosition,
+  portalState,
+  setPortalState,
+  warpProgress,
+  setWarpProgress,
+  setNearPortal,
+  setOrbitTarget
+}: {
+  isActive: boolean;
+  shipPosition: THREE.Vector3;
+  portalState: 'outside' | 'warping-in' | 'inside' | 'warping-out';
+  setPortalState: (state: 'outside' | 'warping-in' | 'inside' | 'warping-out') => void;
+  warpProgress: number;
+  setWarpProgress: (progress: number) => void;
+  setNearPortal: (id: string | null) => void;
+  setOrbitTarget: (id: string | null) => void;
+}) {
+  const [, getKeys] = useKeyboardControls();
+  const hasEnteredPortal = useRef(false);
+  const warpDuration = 2.5; // seconds
+
+  useFrame((_, delta) => {
+    if (!isActive) return;
+
+    const dt = Math.min(delta, 0.05);
+    const keys = getKeys();
+
+    // Get Holdings position
+    const holdingsEntity = entities.find(e => e.id === 'holdings');
+    if (!holdingsEntity) return;
+
+    const holdingsPos = new THREE.Vector3(...holdingsEntity.position);
+    const distanceToHoldings = shipPosition.distanceTo(holdingsPos);
+    const portalRadius = 25; // Distance to activate portal prompt
+
+    // Check if near Holdings portal
+    if (distanceToHoldings < portalRadius && portalState === 'outside') {
+      setNearPortal('holdings');
+
+      // Check for portal entry key
+      if (keys.enterPortal && !hasEnteredPortal.current) {
+        hasEnteredPortal.current = true;
+        setPortalState('warping-in');
+        setWarpProgress(0);
+        setOrbitTarget(null); // Exit orbit if in one
+      }
+    } else if (portalState === 'outside') {
+      setNearPortal(null);
+    }
+
+    // Reset key tracking when released
+    if (!keys.enterPortal) {
+      hasEnteredPortal.current = false;
+    }
+
+    // Handle warp animation
+    if (portalState === 'warping-in') {
+      const newProgress = warpProgress + dt / warpDuration;
+      if (newProgress >= 1) {
+        setWarpProgress(1);
+        setPortalState('inside');
+      } else {
+        setWarpProgress(newProgress);
+      }
+    }
+
+    if (portalState === 'warping-out') {
+      const newProgress = warpProgress + dt / warpDuration;
+      if (newProgress >= 1) {
+        setWarpProgress(0);
+        setPortalState('outside');
+      } else {
+        setWarpProgress(newProgress);
+      }
+    }
   });
 
   return null;
@@ -2044,19 +2171,19 @@ function useAmbientSounds() {
   return { initAudio, playSelectSound, playHoverSound };
 }
 
-// Hexagonal grid floor
+// Hexagonal grid floor - scaled for expanded universe
 function GridFloor() {
-  // Generate hexagonal grid positions - optimized for wider layout
+  // Generate hexagonal grid positions - scaled 3.5x for expanded layout
   const hexPositions = useMemo(() => {
     const hexes: [number, number][] = [];
-    const hexSize = 4; // Larger hex for wider spread
-    const gridSize = 10; // Reduced for performance
+    const hexSize = 14; // Larger hex for expanded universe (was 4)
+    const gridSize = 12; // More hexes for larger area
 
     for (let q = -gridSize; q <= gridSize; q++) {
       for (let r = -gridSize; r <= gridSize; r++) {
         const x = hexSize * (3 / 2 * q);
         const z = hexSize * (Math.sqrt(3) / 2 * q + Math.sqrt(3) * r);
-        if (Math.sqrt(x * x + z * z) > 45) continue; // Adjusted radius
+        if (Math.sqrt(x * x + z * z) > 160) continue; // Expanded radius (was 45)
         hexes.push([x, z]);
       }
     }
@@ -2064,10 +2191,10 @@ function GridFloor() {
   }, []);
 
   return (
-    <group position={[0, -8, 0]}>
+    <group position={[0, -28, 0]}> {/* Lowered for expanded universe (was -8) */}
       {/* Dark base plane */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
-        <planeGeometry args={[100, 100]} />
+        <planeGeometry args={[400, 400]} /> {/* Expanded from 100 */}
         <meshStandardMaterial
           color="#020617"
           transparent
@@ -2077,21 +2204,21 @@ function GridFloor() {
         />
       </mesh>
 
-      {/* Hexagonal grid lines - scaled for wider layout */}
+      {/* Hexagonal grid lines - scaled for expanded layout */}
       {hexPositions.map(([x, z], i) => (
         <mesh key={i} position={[x, 0, z]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[3.3, 3.45, 6]} />
+          <ringGeometry args={[11.5, 12, 6]} /> {/* Scaled from 3.3, 3.45 */}
           <meshBasicMaterial
             color="#1e3a5f"
             transparent
-            opacity={0.2}
+            opacity={0.15}
           />
         </mesh>
       ))}
 
       {/* Center hex highlight with bloom simulation */}
       <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[3.5, 3.8, 6]} />
+        <ringGeometry args={[12, 13, 6]} /> {/* Scaled from 3.5, 3.8 */}
         <meshStandardMaterial
           color="#3b82f6"
           emissive="#3b82f6"
@@ -2102,7 +2229,7 @@ function GridFloor() {
       </mesh>
       {/* Bloom glow layer */}
       <mesh position={[0, 0.008, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[3.2, 4.2, 6]} />
+        <ringGeometry args={[11, 15, 6]} /> {/* Scaled from 3.2, 4.2 */}
         <meshBasicMaterial
           color="#3b82f6"
           transparent
@@ -2110,25 +2237,25 @@ function GridFloor() {
         />
       </mesh>
 
-      {/* Radial glow rings */}
-      {[15, 30].map((radius, i) => (
+      {/* Radial glow rings - scaled 3.5x */}
+      {[52, 105].map((radius, i) => ( /* Was 15, 30 */
         <mesh key={i} position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[radius - 0.1, radius + 0.1, 64]} />
+          <ringGeometry args={[radius - 0.3, radius + 0.3, 64]} />
           <meshBasicMaterial
             color="#1e40af"
             transparent
-            opacity={0.15 - i * 0.05}
+            opacity={0.12 - i * 0.04}
           />
         </mesh>
       ))}
 
-      {/* Contact shadows */}
+      {/* Contact shadows - scaled */}
       <ContactShadows
         position={[0, 0.02, 0]}
         opacity={0.4}
-        scale={70}
-        blur={2.5}
-        far={25}
+        scale={250}
+        blur={3}
+        far={80}
       />
     </group>
   );
@@ -2151,27 +2278,27 @@ function OrbitalRing({ radius, speed, color, thickness = 0.02 }: {
   });
 
   return (
-    <mesh ref={ringRef} position={[0, 1, 0]}>
+    <mesh ref={ringRef} position={[0, 5, 0]}> {/* Raised for expanded universe */}
       <torusGeometry args={[radius, thickness, 16, 100]} />
       <meshBasicMaterial color={color} transparent opacity={0.25} />
     </mesh>
   );
 }
 
-// Simplified ambient particles - cleaner, better performance
+// Simplified ambient particles - scaled for expanded universe
 function AmbientParticles() {
   const particlesRef1 = useRef<THREE.Points>(null);
 
-  // Single sparse galaxy cloud (reduced from two systems)
+  // Single sparse galaxy cloud - scaled 3.5x for expanded universe
   const positions = useMemo(() => {
-    const count = 400; // Reduced from 800+500
+    const count = 600; // More particles for larger space
     const pos = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(Math.random() * 2 - 1);
-      const r = 25 + Math.random() * 50;
+      const r = 80 + Math.random() * 180; // Expanded from 25 + 50
       pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-      pos[i * 3 + 1] = (r * Math.cos(phi) * 0.3) + (Math.random() - 0.5) * 8;
+      pos[i * 3 + 1] = (r * Math.cos(phi) * 0.3) + (Math.random() - 0.5) * 28; // Scaled vertical
       pos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
     }
     return pos;
@@ -2180,7 +2307,7 @@ function AmbientParticles() {
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     if (particlesRef1.current) {
-      particlesRef1.current.rotation.y = t * 0.01;
+      particlesRef1.current.rotation.y = t * 0.008;
     }
   });
 
@@ -2197,21 +2324,21 @@ function AmbientParticles() {
           />
         </bufferGeometry>
         <pointsMaterial
-          size={0.15}
+          size={0.4}
           color="#a5b4fc"
           transparent
           opacity={0.4}
           sizeAttenuation
         />
       </points>
-      {/* Reduced sparkles */}
+      {/* Expanded sparkles */}
       <Sparkles
-        count={100}
-        scale={100}
-        size={1.5}
-        speed={0.15}
+        count={150}
+        scale={350}
+        size={2}
+        speed={0.1}
         color="#e0e7ff"
-        opacity={0.3}
+        opacity={0.25}
       />
     </>
   );
@@ -2233,7 +2360,17 @@ function Scene({
   shipRotation,
   setShipPosition,
   setShipRotation,
-  otherPlayers
+  shipVelocity,
+  setShipVelocity,
+  orbitTarget,
+  setOrbitTarget,
+  portalState,
+  setPortalState,
+  warpProgress,
+  setWarpProgress,
+  setNearPortal,
+  otherPlayers,
+  shipModel
 }: {
   selectedEntity: string | null;
   setSelectedEntity: (id: string | null) => void;
@@ -2249,7 +2386,17 @@ function Scene({
   shipRotation: THREE.Euler;
   setShipPosition: (pos: THREE.Vector3) => void;
   setShipRotation: (rot: THREE.Euler) => void;
+  shipVelocity: number;
+  setShipVelocity: (vel: number) => void;
+  orbitTarget: string | null;
+  setOrbitTarget: (id: string | null) => void;
+  portalState: 'outside' | 'warping-in' | 'inside' | 'warping-out';
+  setPortalState: (state: 'outside' | 'warping-in' | 'inside' | 'warping-out') => void;
+  warpProgress: number;
+  setWarpProgress: (progress: number) => void;
+  setNearPortal: (id: string | null) => void;
   otherPlayers: Player3D[];
+  shipModel: 'rocket' | 'fighter' | 'unaf';
 }) {
   const [isUserInteracting, setIsUserInteracting] = useState(false);
   const interactionTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -2274,30 +2421,36 @@ function Scene({
 
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.25} />
-      <pointLight position={[10, 15, 10]} intensity={1.5} color="#ffffff" castShadow />
-      <pointLight position={[-10, 10, -10]} intensity={0.8} color="#3b82f6" />
-      <pointLight position={[0, -5, 0]} intensity={0.5} color="#10b981" />
+      {/* Depth fog for immersive atmosphere */}
+      <fog attach="fog" args={['#020617', SCALE.FOG_NEAR, SCALE.FOG_FAR]} />
+
+      {/* Lighting - scaled for expanded universe */}
+      <ambientLight intensity={0.3} />
+      <pointLight position={[35, 50, 35]} intensity={2} color="#ffffff" castShadow />
+      <pointLight position={[-35, 35, -35]} intensity={1} color="#3b82f6" />
+      <pointLight position={[0, -15, 0]} intensity={0.6} color="#10b981" />
       <spotLight
-        position={[0, 30, 0]}
-        intensity={1.2}
-        angle={0.5}
+        position={[0, 100, 0]}
+        intensity={1.5}
+        angle={0.4}
         penumbra={1}
         color="#ffffff"
         castShadow
         shadow-mapSize={[2048, 2048]}
       />
 
-      {/* Stars background - optimized for performance */}
+      {/* Nebula galaxy background */}
+      <NebulaSkybox />
+
+      {/* Stars background - expanded for 3.5x universe */}
       <Stars
-        radius={150}
-        depth={60}
-        count={2500}
-        factor={4}
-        saturation={0.4}
+        radius={500}
+        depth={200}
+        count={4000}
+        factor={5}
+        saturation={0.5}
         fade
-        speed={0.3}
+        speed={0.2}
       />
 
       {/* Environment */}
@@ -2306,9 +2459,9 @@ function Scene({
       {/* Ambient particles */}
       <AmbientParticles />
 
-      {/* Orbital rings - scaled for wider layout */}
-      <OrbitalRing radius={20} speed={0.03} color="#3b82f6" thickness={0.025} />
-      <OrbitalRing radius={32} speed={-0.015} color="#a855f7" thickness={0.02} />
+      {/* Orbital rings - scaled 3.5x for expanded universe */}
+      <OrbitalRing radius={70} speed={0.02} color="#3b82f6" thickness={0.08} />
+      <OrbitalRing radius={112} speed={-0.01} color="#a855f7" thickness={0.06} />
 
       {/* Grid floor */}
       <GridFloor />
@@ -2344,8 +2497,21 @@ function Scene({
         <EntityNode
           key={entity.id}
           entity={entity}
-          isSelected={selectedEntity === entity.id}
-          onSelect={setSelectedEntity}
+          isSelected={selectedEntity === entity.id || orbitTarget === entity.id}
+          onSelect={(id) => {
+            // If in fly mode and not already orbiting, start orbit mode
+            if (flyMode !== 'off' && id && !orbitTarget) {
+              setOrbitTarget(id);
+              setSelectedEntity(id); // Also show the info panel when orbiting
+            } else if (flyMode !== 'off' && orbitTarget === id) {
+              // Clicking same entity while orbiting - exit orbit
+              setOrbitTarget(null);
+              setSelectedEntity(null); // Hide info panel when exiting orbit
+            } else if (flyMode === 'off') {
+              // Normal selection in non-fly mode
+              setSelectedEntity(id);
+            }
+          }}
           isHovered={hoveredEntity === entity.id}
           onHover={setHoveredEntity}
         />
@@ -2358,7 +2524,7 @@ function Scene({
       <ShieldBubble
         position={(() => {
           const pos = entities.find(e => e.id === 'ip')?.position || [-8, 2, 4];
-          return [pos[0], pos[1] + 1.5, pos[2]] as [number, number, number];
+          return [pos[0], pos[1] + 5.5, pos[2]] as [number, number, number];
         })()}
         isActive={hoveredEntity === 'ip'}
       />
@@ -2367,7 +2533,7 @@ function Scene({
       <CrownEffect
         position={(() => {
           const pos = entities.find(e => e.id === 'holdings')?.position || [0, 6, 0];
-          return [pos[0], pos[1] + 5.5, pos[2]] as [number, number, number];
+          return [pos[0], pos[1] + 9.5, pos[2]] as [number, number, number];
         })()}
         isActive={hoveredEntity === 'holdings'}
       />
@@ -2376,7 +2542,7 @@ function Scene({
       <GearEffect
         position={(() => {
           const pos = entities.find(e => e.id === 'ops')?.position || [8, 2, -4];
-          return [pos[0], pos[1] + 1.5, pos[2]] as [number, number, number];
+          return [pos[0], pos[1] + 5.5, pos[2]] as [number, number, number];
         })()}
         isActive={hoveredEntity === 'ops'}
       />
@@ -2385,7 +2551,7 @@ function Scene({
       <VaultEffect
         position={(() => {
           const pos = entities.find(e => e.id === 'finance')?.position || [8, 2, 4];
-          return [pos[0], pos[1] + 1.5, pos[2]] as [number, number, number];
+          return [pos[0], pos[1] + 5.5, pos[2]] as [number, number, number];
         })()}
         isActive={hoveredEntity === 'finance'}
       />
@@ -2394,7 +2560,7 @@ function Scene({
       <AdminPulseEffect
         position={(() => {
           const pos = entities.find(e => e.id === 'admin')?.position || [0, 2, 0];
-          return [pos[0], pos[1] + 1.5, pos[2]] as [number, number, number];
+          return [pos[0], pos[1] + 5.5, pos[2]] as [number, number, number];
         })()}
         isActive={hoveredEntity === 'admin'}
       />
@@ -2417,12 +2583,13 @@ function Scene({
       })}
 
       {/* Spaceship fly mode components */}
-      {flyMode !== 'off' && (
+      {flyMode !== 'off' && portalState === 'outside' && (
         <>
           <Spaceship
             position={shipPosition}
             rotation={shipRotation}
             viewMode={flyMode}
+            model={shipModel}
           />
           <SpaceshipCameraController
             shipPosition={shipPosition}
@@ -2430,43 +2597,105 @@ function Scene({
             viewMode={flyMode}
             isActive={true}
           />
+          {/* Regular fly controller - disabled when in orbit mode */}
           <SpaceshipFlyController
-            isActive={true}
+            isActive={!orbitTarget}
             shipPosition={shipPosition}
             shipRotation={shipRotation}
             setShipPosition={setShipPosition}
             setShipRotation={setShipRotation}
+            setVelocityMagnitude={setShipVelocity}
+          />
+          {/* Orbit mode controller - takes over when orbiting an entity */}
+          <OrbitModeController
+            isActive={!!orbitTarget}
+            targetEntity={orbitTarget ? entities.find(e => e.id === orbitTarget) || null : null}
+            shipPosition={shipPosition}
+            shipRotation={shipRotation}
+            setShipPosition={setShipPosition}
+            setShipRotation={setShipRotation}
+            onExitOrbit={() => {
+              setOrbitTarget(null);
+              setSelectedEntity(null); // Also hide info panel when exiting orbit via keyboard
+            }}
+          />
+          {/* Portal Controller - detects proximity to Holdings */}
+          <PortalController
+            isActive={true}
+            shipPosition={shipPosition}
+            portalState={portalState}
+            setPortalState={setPortalState}
+            warpProgress={warpProgress}
+            setWarpProgress={setWarpProgress}
+            setNearPortal={setNearPortal}
+            setOrbitTarget={setOrbitTarget}
+          />
+          {/* Speed effects (wind streaks) when moving fast - disabled in orbit */}
+          <SpeedEffects
+            shipPosition={shipPosition}
+            shipRotation={shipRotation}
+            velocity={orbitTarget ? 0 : shipVelocity}
+            isActive={!orbitTarget}
+          />
+          {/* Waypoint markers above entities */}
+          <Waypoints
+            entities={entities.map(e => ({
+              id: e.id,
+              name: e.shortName,
+              position: e.position,
+              color: e.color,
+            }))}
+            shipPosition={shipPosition}
+            isActive={true}
           />
         </>
       )}
+
+      {/* Warp Tunnel Effect - shown during warp transitions */}
+      <WarpTunnel
+        isActive={portalState === 'warping-in' || portalState === 'warping-out'}
+        progress={warpProgress}
+        direction={portalState === 'warping-in' ? 'in' : 'out'}
+      />
+
+      {/* Holdings Interior - shown when inside the portal */}
+      <HoldingsInterior
+        isActive={portalState === 'inside'}
+        onExit={() => {
+          setPortalState('warping-out');
+          setWarpProgress(0);
+        }}
+      />
 
       {/* Other multiplayer players */}
       {otherPlayers.map((player) => (
         <OtherPlayerShip key={player.id} player={player} />
       ))}
 
-      {/* Controls - adjusted for wider entity spread */}
+      {/* Controls - adjusted for expanded 3.5x universe */}
       <OrbitControls
         ref={orbitControlsRef}
         enabled={flyMode === 'off'}
         enablePan={true}
         enableZoom={true}
         enableRotate={true}
-        minDistance={15}
-        maxDistance={80}
-        target={[0, 3, 0]} // Center slightly higher for new layout
+        minDistance={SCALE.ZOOM_MIN}
+        maxDistance={SCALE.ZOOM_MAX}
+        target={[0, 10, 0]} // Center for expanded layout
         maxPolarAngle={Math.PI / 2 + 0.3}
         minPolarAngle={0.3}
         autoRotate={!selectedEntity && !isUserInteracting && flyMode === 'off'}
-        autoRotateSpeed={0.15}
+        autoRotateSpeed={0.1}
         enableDamping={true}
         dampingFactor={0.06}
-        rotateSpeed={0.6}
-        zoomSpeed={1.0}
-        panSpeed={0.6}
+        rotateSpeed={0.5}
+        zoomSpeed={1.2}
+        panSpeed={0.8}
         onStart={handleInteractionStart}
         onEnd={handleInteractionEnd}
       />
+
+      {/* Post-processing disabled - incompatible with three.js 0.182+ */}
     </>
   );
 }
@@ -2483,6 +2712,9 @@ enum Controls {
   right = 'right',
   up = 'up',
   down = 'down',
+  boost = 'boost',
+  exitOrbit = 'exitOrbit',
+  enterPortal = 'enterPortal',
 }
 
 const keyboardMap = [
@@ -2492,6 +2724,9 @@ const keyboardMap = [
   { name: Controls.right, keys: ['KeyD', 'ArrowRight'] },
   { name: Controls.up, keys: ['KeyQ', 'Space'] },
   { name: Controls.down, keys: ['KeyE', 'ShiftLeft'] },
+  { name: Controls.boost, keys: ['KeyZ'] },
+  { name: Controls.exitOrbit, keys: ['Escape', 'KeyX'] },
+  { name: Controls.enterPortal, keys: ['KeyF', 'Enter'] },
 ];
 
 // Keyboard movement handler - enables WASD free movement
@@ -2988,8 +3223,23 @@ export function Structure3D() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [flyMode, setFlyMode] = useState<'off' | 'first' | 'third'>('off');
-  const [shipPosition, setShipPosition] = useState(() => new THREE.Vector3(15, 5, 15));
+
+  // UI Panel visibility state
+  const [showSettings, setShowSettings] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
+  const [showControls, setShowControls] = useState(true);
+  const [showMultiplayer, setShowMultiplayer] = useState(true);
+  const [shipModel, setShipModel] = useState<'rocket' | 'fighter' | 'unaf'>('rocket');
+  const [shipPosition, setShipPosition] = useState(() => new THREE.Vector3(50, 15, 50)); // Scaled for expanded universe
   const [shipRotation, setShipRotation] = useState(() => new THREE.Euler(0, -Math.PI / 4, 0));
+  const [shipVelocity, setShipVelocity] = useState(0); // Speed magnitude for effects
+  const [orbitTarget, setOrbitTarget] = useState<string | null>(null); // Entity we're orbiting
+
+  // Portal system state
+  const [portalState, setPortalState] = useState<'outside' | 'warping-in' | 'inside' | 'warping-out'>('outside');
+  const [warpProgress, setWarpProgress] = useState(0);
+  const [nearPortal, setNearPortal] = useState<string | null>(null); // Which entity portal we're near
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Multiplayer state
@@ -3208,39 +3458,68 @@ export function Structure3D() {
         isFullscreen ? 'h-screen' : 'h-[750px]'
       }`}
     >
-      {/* Header / Instructions */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="absolute top-4 left-4 z-10 p-4 bg-surface/90 backdrop-blur-xl rounded-xl border border-white/10 max-w-xs shadow-2xl"
-      >
-        <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-          <Building2 className="w-4 h-4 text-blue-400" />
-          Corporate Structure Flow
-        </h3>
-        <p className="text-xs text-text-muted mb-3">
-          Interactive 3D view showing entities, ownership, and money flows.
-        </p>
-        <div className="space-y-1 text-xs text-text-muted">
-          <p><span className="text-white font-medium">Rotate:</span> Click + drag</p>
-          <p><span className="text-white font-medium">Zoom:</span> Scroll wheel</p>
-          <p><span className="text-white font-medium">Select:</span> Click any element</p>
-        </div>
-        <div className="mt-3 pt-3 border-t border-white/10">
-          <label className="flex items-center gap-2 text-xs cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showFlows}
-              onChange={(e) => setShowFlows(e.target.checked)}
-              className="rounded border-white/20 bg-white/10 text-blue-500"
-            />
-            <span className="text-text-muted">Show $ flow animation</span>
-          </label>
-        </div>
-      </motion.div>
+      {/* Header / Instructions - Collapsible */}
+      <AnimatePresence>
+        {showInstructions && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="absolute top-4 left-4 z-10 bg-surface/90 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl overflow-hidden"
+          >
+            <div className="p-3 flex items-center justify-between gap-4 border-b border-white/10">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-blue-400" />
+                Corporate Structure
+              </h3>
+              <button
+                onClick={() => setShowInstructions(false)}
+                className="p-1 rounded hover:bg-white/10 text-text-muted hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-3 space-y-2 text-xs text-text-muted max-w-[200px]">
+              <p><span className="text-white font-medium">Rotate:</span> Drag</p>
+              <p><span className="text-white font-medium">Zoom:</span> Scroll</p>
+              <p><span className="text-white font-medium">Select:</span> Click</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Minimized instructions button */}
+      <AnimatePresence>
+        {!showInstructions && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            onClick={() => setShowInstructions(true)}
+            className="absolute top-4 left-4 z-10 p-2.5 bg-surface/90 backdrop-blur-xl rounded-xl border border-white/10 text-text-muted hover:text-white hover:border-white/20 transition-all shadow-lg"
+            title="Show instructions"
+          >
+            <Building2 className="w-4 h-4" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Control buttons */}
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        {/* Settings Button */}
+        <motion.button
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowSettings(!showSettings)}
+          className={`p-2.5 bg-surface/90 backdrop-blur-xl rounded-xl border text-text-muted hover:text-white transition-all shadow-lg ${
+            showSettings ? 'border-blue-500/50 text-blue-400' : 'border-white/10 hover:border-white/20'
+          }`}
+          title="Settings"
+        >
+          <Settings className="w-4 h-4" />
+        </motion.button>
         <motion.button
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -3295,8 +3574,8 @@ export function Structure3D() {
             const nextIndex = (currentIndex + 1) % modes.length;
             setFlyMode(modes[nextIndex]);
             if (modes[nextIndex] !== 'off') {
-              // Reset ship position when entering fly mode
-              setShipPosition(new THREE.Vector3(15, 5, 15));
+              // Reset ship position when entering fly mode - scaled for expanded universe
+              setShipPosition(new THREE.Vector3(50, 15, 50));
               setShipRotation(new THREE.Euler(0, -Math.PI / 4, 0));
             }
           }}
@@ -3323,36 +3602,164 @@ export function Structure3D() {
         </motion.button>
       </div>
 
+      {/* Settings Dropdown Panel */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            className="absolute top-16 right-4 z-20 w-64 bg-surface/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl overflow-hidden"
+          >
+            <div className="p-3 border-b border-white/10">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Settings className="w-4 h-4 text-blue-400" />
+                Settings
+              </h3>
+            </div>
+            <div className="p-3 space-y-3">
+              {/* Show Flows Toggle */}
+              <label className="flex items-center justify-between text-xs cursor-pointer group">
+                <span className="text-text-muted group-hover:text-white transition-colors">Money Flow Animation</span>
+                <input
+                  type="checkbox"
+                  checked={showFlows}
+                  onChange={(e) => setShowFlows(e.target.checked)}
+                  className="rounded border-white/20 bg-white/10 text-blue-500"
+                />
+              </label>
+              {/* Sound Toggle */}
+              <label className="flex items-center justify-between text-xs cursor-pointer group">
+                <span className="text-text-muted group-hover:text-white transition-colors">Sound Effects</span>
+                <input
+                  type="checkbox"
+                  checked={soundEnabled}
+                  onChange={(e) => {
+                    if (e.target.checked) initAudio();
+                    setSoundEnabled(e.target.checked);
+                  }}
+                  className="rounded border-white/20 bg-white/10 text-blue-500"
+                />
+              </label>
+              {/* Panel Visibility */}
+              <div className="pt-2 border-t border-white/10">
+                <p className="text-xs text-text-muted mb-2 font-medium">Show Panels</p>
+                <div className="space-y-2">
+                  <label className="flex items-center justify-between text-xs cursor-pointer group">
+                    <span className="text-text-muted group-hover:text-white transition-colors">Instructions</span>
+                    <input
+                      type="checkbox"
+                      checked={showInstructions}
+                      onChange={(e) => setShowInstructions(e.target.checked)}
+                      className="rounded border-white/20 bg-white/10 text-blue-500"
+                    />
+                  </label>
+                  {flyMode !== 'off' && (
+                    <>
+                      <label className="flex items-center justify-between text-xs cursor-pointer group">
+                        <span className="text-text-muted group-hover:text-white transition-colors">Controls Guide</span>
+                        <input
+                          type="checkbox"
+                          checked={showControls}
+                          onChange={(e) => setShowControls(e.target.checked)}
+                          className="rounded border-white/20 bg-white/10 text-blue-500"
+                        />
+                      </label>
+                      <label className="flex items-center justify-between text-xs cursor-pointer group">
+                        <span className="text-text-muted group-hover:text-white transition-colors">Multiplayer Panel</span>
+                        <input
+                          type="checkbox"
+                          checked={showMultiplayer}
+                          onChange={(e) => setShowMultiplayer(e.target.checked)}
+                          className="rounded border-white/20 bg-white/10 text-blue-500"
+                        />
+                      </label>
+                    </>
+                  )}
+                </div>
+              </div>
+              {/* Ship Model Selector */}
+              {flyMode !== 'off' && (
+                <div className="pt-2 border-t border-white/10">
+                  <p className="text-xs text-text-muted mb-2 font-medium">Ship Model</p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: 'rocket', name: 'Rocket', icon: '🚀' },
+                      { id: 'fighter', name: 'Fighter', icon: '✈️' },
+                      { id: 'unaf', name: 'UNAF', icon: '🛸' },
+                    ].map((ship) => (
+                      <button
+                        key={ship.id}
+                        onClick={() => setShipModel(ship.id as 'rocket' | 'fighter' | 'unaf')}
+                        className={`px-2 py-1.5 text-xs rounded-lg transition-all flex items-center gap-1.5 justify-center ${
+                          shipModel === ship.id
+                            ? 'bg-blue-500/30 border border-blue-500/50 text-blue-300'
+                            : 'bg-white/5 border border-white/10 text-text-muted hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        <span>{ship.icon}</span>
+                        <span>{ship.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Fly mode indicator */}
       <AnimatePresence>
-        {flyMode !== 'off' && (
+        {flyMode !== 'off' && showControls && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute top-20 right-4 z-10 p-3 bg-purple-500/20 backdrop-blur-xl rounded-xl border border-purple-500/50 shadow-lg"
+            className={`absolute top-16 right-4 z-10 p-3 backdrop-blur-xl rounded-xl border shadow-lg ${
+              orbitTarget
+                ? 'bg-cyan-500/20 border-cyan-500/50'
+                : 'bg-purple-500/20 border-purple-500/50'
+            }`}
           >
-            <div className="flex items-center gap-2 text-purple-300 text-sm font-medium mb-2">
-              <Rocket className="w-4 h-4" />
-              {flyMode === 'third' ? '3rd Person' : '1st Person'} Spaceship Mode
-            </div>
-            <div className="text-xs text-purple-300/70 space-y-1">
-              <p><kbd className="px-1 bg-white/10 rounded">W/S</kbd> Forward / Back</p>
-              <p><kbd className="px-1 bg-white/10 rounded">A/D</kbd> Turn Left / Right</p>
-              <p><kbd className="px-1 bg-white/10 rounded">Q/E</kbd> Up / Down</p>
-            </div>
+            {orbitTarget ? (
+              <>
+                <div className="flex items-center gap-2 text-cyan-300 text-sm font-medium mb-2">
+                  <RotateCcw className="w-4 h-4 animate-spin" style={{ animationDuration: '3s' }} />
+                  Orbiting: {entities.find(e => e.id === orbitTarget)?.shortName || 'Entity'}
+                </div>
+                <div className="text-xs text-cyan-300/70 space-y-1">
+                  <p><kbd className="px-1 bg-white/10 rounded">ESC</kbd> or <kbd className="px-1 bg-white/10 rounded">X</kbd> Exit orbit</p>
+                  <p className="text-cyan-300/50 italic">Click entity again to exit</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 text-purple-300 text-sm font-medium mb-2">
+                  <Rocket className="w-4 h-4" />
+                  {flyMode === 'third' ? '3rd Person' : '1st Person'} Spaceship Mode
+                </div>
+                <div className="text-xs text-purple-300/70 space-y-1">
+                  <p><kbd className="px-1 bg-white/10 rounded">W/S</kbd> Forward / Back</p>
+                  <p><kbd className="px-1 bg-white/10 rounded">A/D</kbd> Turn Left / Right</p>
+                  <p><kbd className="px-1 bg-white/10 rounded">Q/E</kbd> Up / Down</p>
+                  <p><kbd className="px-1 bg-yellow-500/30 rounded text-yellow-300">Z</kbd> <span className="text-yellow-300">Boost (3x speed)</span></p>
+                  <p className="text-cyan-300/70 mt-2"><span className="text-cyan-300">Click entity</span> to orbit around it</p>
+                </div>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Multiplayer panel - shows when in fly mode (shows connection status) */}
       <AnimatePresence>
-        {flyMode !== 'off' && (
+        {flyMode !== 'off' && showMultiplayer && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className={`absolute top-44 right-4 z-10 p-3 backdrop-blur-xl rounded-xl border shadow-lg ${
+            className={`absolute ${showControls ? 'top-40' : 'top-16'} right-4 z-10 p-3 backdrop-blur-xl rounded-xl border shadow-lg ${
               isConnected ? 'bg-emerald-500/20 border-emerald-500/50' : 'bg-amber-500/20 border-amber-500/50'
             }`}
           >
@@ -3432,18 +3839,91 @@ export function Structure3D() {
       {/* Flow Legend */}
       <FlowLegend />
 
-      {/* Key insight */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="absolute bottom-4 right-4 z-10 p-3 bg-blue-500/10 backdrop-blur-xl rounded-xl border border-blue-500/30 max-w-xs shadow-lg"
-      >
-        <p className="text-xs text-blue-300">
-          <Scale className="w-3 h-3 inline mr-1" />
-          <strong>Key:</strong> Revenue sources (PROs, MLC, DSPs) flow to PT LLC as <span className="text-amber-300">trust liability</span> — only your commission is taxable income.
-        </p>
-      </motion.div>
+      {/* Portal prompt - when near Holdings in fly mode */}
+      <AnimatePresence>
+        {flyMode !== 'off' && nearPortal && portalState === 'outside' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="absolute bottom-32 left-1/2 -translate-x-1/2 z-20"
+          >
+            <div className="px-6 py-4 bg-gradient-to-r from-blue-600/90 to-purple-600/90 backdrop-blur-xl rounded-xl border border-white/30 shadow-2xl">
+              <div className="flex items-center gap-3 text-white">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center animate-pulse">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="font-bold text-lg">Enter Holdings Portal</div>
+                  <div className="text-sm text-white/80">
+                    Press <kbd className="px-2 py-0.5 bg-white/20 rounded font-mono mx-1">F</kbd> or
+                    <kbd className="px-2 py-0.5 bg-white/20 rounded font-mono mx-1">Enter</kbd> to warp inside
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Portal status - when warping or inside */}
+      <AnimatePresence>
+        {portalState !== 'outside' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-30 pointer-events-none"
+          >
+            {/* Warp progress indicator */}
+            {(portalState === 'warping-in' || portalState === 'warping-out') && (
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                <div className="text-white text-2xl font-bold mb-4">
+                  {portalState === 'warping-in' ? 'Entering Holdings...' : 'Returning to Space...'}
+                </div>
+                <div className="w-48 h-2 bg-white/20 rounded-full overflow-hidden mx-auto">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
+                    style={{ width: `${warpProgress * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Key insight - hide when fly mode is active to make room for minimap */}
+      {flyMode === 'off' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="absolute bottom-4 right-4 z-10 p-3 bg-blue-500/10 backdrop-blur-xl rounded-xl border border-blue-500/30 max-w-xs shadow-lg"
+        >
+          <p className="text-xs text-blue-300">
+            <Scale className="w-3 h-3 inline mr-1" />
+            <strong>Key:</strong> Revenue sources (PROs, MLC, DSPs) flow to PT LLC as <span className="text-amber-300">trust liability</span> — only your commission is taxable income.
+          </p>
+        </motion.div>
+      )}
+
+      {/* Mini-map when in fly mode */}
+      <AnimatePresence>
+        {flyMode !== 'off' && (
+          <MiniMap
+            entities={entities.map(e => ({
+              id: e.id,
+              name: e.shortName,
+              position: e.position,
+              color: e.color,
+            }))}
+            shipPosition={shipPosition}
+            shipRotation={shipRotation}
+            isActive={true}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Controls hint panel */}
       <motion.div
@@ -3473,10 +3953,10 @@ export function Structure3D() {
         </div>
       </motion.div>
 
-      {/* 3D Canvas - camera positioned for centered PT LLC layout */}
+      {/* 3D Canvas - camera positioned for expanded 3.5x universe */}
       <KeyboardControls map={keyboardMap}>
         <Canvas
-          camera={{ position: [18, 12, 22], fov: 55 }}
+          camera={{ position: [100, 60, 120], fov: 55, near: 0.5, far: 1000 }}
           dpr={[1, 2]}
           shadows
           gl={{
@@ -3504,9 +3984,18 @@ export function Structure3D() {
               shipRotation={shipRotation}
               setShipPosition={setShipPosition}
               setShipRotation={setShipRotation}
+              shipVelocity={shipVelocity}
+              setShipVelocity={setShipVelocity}
+              orbitTarget={orbitTarget}
+              setOrbitTarget={setOrbitTarget}
+              portalState={portalState}
+              setPortalState={setPortalState}
+              warpProgress={warpProgress}
+              setWarpProgress={setWarpProgress}
+              setNearPortal={setNearPortal}
               otherPlayers={otherPlayers}
+              shipModel={shipModel}
             />
-            {/* Bloom-like effects achieved via enhanced emissive materials */}
           </Suspense>
         </Canvas>
       </KeyboardControls>
