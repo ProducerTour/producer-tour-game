@@ -27,7 +27,7 @@ import { Waypoints } from './Waypoints';
 import { MiniMap } from './MiniMap';
 import { WarpTunnel } from './WarpTunnel';
 import { HoldingsInterior } from './HoldingsInterior';
-import { useRef, useState, useMemo, Suspense, useEffect, useCallback } from 'react';
+import { useRef, useState, useMemo, Suspense, useEffect, useCallback, Component, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../../hooks/useSocket';
 import * as THREE from 'three';
@@ -67,6 +67,77 @@ import {
 // ASSETS URL (Cloudflare R2 CDN)
 // ============================================================================
 const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
+
+// Log ASSETS_URL at module load for debugging
+if (typeof window !== 'undefined') {
+  console.log('[Structure3D] ASSETS_URL:', ASSETS_URL || '(NOT SET - models will fail to load!)');
+}
+
+// ============================================================================
+// ERROR BOUNDARY FOR 3D MODEL LOADING
+// ============================================================================
+
+interface ModelErrorBoundaryProps {
+  children: ReactNode;
+  modelName: string;
+  fallbackColor?: string;
+}
+
+interface ModelErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+// ErrorBoundary to catch model loading failures and prevent white screen
+class ModelErrorBoundary extends Component<ModelErrorBoundaryProps, ModelErrorBoundaryState> {
+  constructor(props: ModelErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ModelErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error(`[ModelErrorBoundary] Failed to load ${this.props.modelName}:`, error);
+    console.error('Error info:', errorInfo);
+    console.error('ASSETS_URL:', ASSETS_URL);
+    console.error('Check: 1) VITE_ASSETS_URL env var set? 2) CORS enabled on R2? 3) Files exist?');
+  }
+
+  render() {
+    if (this.state.hasError) {
+      const color = this.props.fallbackColor || '#ef4444';
+      // Return a simple fallback mesh with error indicator
+      return (
+        <group>
+          {/* Error indicator - pulsing red sphere */}
+          <mesh>
+            <sphereGeometry args={[0.5, 16, 16]} />
+            <meshStandardMaterial
+              color={color}
+              emissive={color}
+              emissiveIntensity={0.5}
+              wireframe
+            />
+          </mesh>
+          {/* Error text using Html from drei */}
+          <Html center position={[0, 1, 0]} style={{ pointerEvents: 'none' }}>
+            <div className="bg-red-900/90 text-red-200 px-3 py-2 rounded text-xs max-w-48 text-center">
+              <div className="font-bold mb-1">{this.props.modelName} failed to load</div>
+              <div className="text-red-300/70 text-[10px]">
+                {this.state.error?.message?.slice(0, 100) || 'Unknown error'}
+              </div>
+            </div>
+          </Html>
+        </group>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // ============================================================================
 // 3D COMPONENTS
@@ -1661,16 +1732,20 @@ function Spaceship({ position, rotation, viewMode, model = 'rocket' }: {
 
       {/* UNAF - FBX modular spaceship */}
       {model === 'unaf' && (
-        <Suspense fallback={null}>
-          <UNAFShip />
-        </Suspense>
+        <ModelErrorBoundary modelName="UNAF Ship" fallbackColor="#3b82f6">
+          <Suspense fallback={null}>
+            <UNAFShip />
+          </Suspense>
+        </ModelErrorBoundary>
       )}
 
       {/* MONKEY - The funniest spaceship option */}
       {model === 'monkey' && (
-        <Suspense fallback={null}>
-          <MonkeyShip />
-        </Suspense>
+        <ModelErrorBoundary modelName="Monkey Ship" fallbackColor="#f59e0b">
+          <Suspense fallback={null}>
+            <MonkeyShip />
+          </Suspense>
+        </ModelErrorBoundary>
       )}
 
       {/* Only show engine effects for non-monkey ships */}

@@ -5,6 +5,8 @@ import {
   Float,
   Sparkles,
   useGLTF,
+  useFBX,
+  useTexture,
   Grid,
   ContactShadows,
   Stars,
@@ -12,6 +14,10 @@ import {
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
+import { useControls, folder } from 'leva';
+
+// Assets URL (Cloudflare R2 CDN)
+const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
 
 // Animation file paths - place converted Mixamo GLB files in public/animations/
 const ANIMATIONS = {
@@ -1238,6 +1244,67 @@ function CyberpunkGround() {
   );
 }
 
+// Basketball Court component with Leva controls for positioning
+function BasketballCourt() {
+  // Leva controls for positioning - adjust these in real-time!
+  // Note: folder() flattens values to top level, so we destructure x/y/z/rotY directly
+  const { x, y, z, rotY, scale, visible } = useControls('Basketball Court', {
+    visible: true,
+    position: folder({
+      x: { value: 30, min: -100, max: 100, step: 1 },
+      y: { value: 0, min: -10, max: 10, step: 0.1 },
+      z: { value: -20, min: -100, max: 100, step: 1 },
+    }),
+    rotation: folder({
+      rotY: { value: 0, min: -Math.PI, max: Math.PI, step: 0.1 },
+    }),
+    scale: { value: 0.02, min: 0.001, max: 0.1, step: 0.001 },
+  });
+
+  // Load the court FBX from R2
+  const court = useFBX(`${ASSETS_URL}/models/basketball-court/Court.fbx`);
+
+  // Load court texture
+  const courtTexture = useTexture(`${ASSETS_URL}/models/basketball-court/textures/court.jpg`);
+
+  // Clone and setup model
+  const model = useMemo(() => {
+    const clone = court.clone();
+
+    // Apply textures to meshes
+    clone.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+
+        // Apply court texture to appropriate meshes
+        if (mesh.material) {
+          const material = new THREE.MeshStandardMaterial({
+            map: courtTexture,
+            metalness: 0.1,
+            roughness: 0.8,
+          });
+          mesh.material = material;
+        }
+      }
+    });
+
+    return clone;
+  }, [court, courtTexture]);
+
+  if (!visible) return null;
+
+  return (
+    <primitive
+      object={model}
+      position={[x, y, z]}
+      rotation={[0, rotY, 0]}
+      scale={scale}
+    />
+  );
+}
+
 // Main world component
 export function PlayWorld({
   avatarUrl,
@@ -1283,6 +1350,11 @@ export function PlayWorld({
 
       {/* Ground */}
       <CyberpunkGround />
+
+      {/* Basketball Court - use Leva panel to adjust position */}
+      <Suspense fallback={null}>
+        <BasketballCourt />
+      </Suspense>
 
       {/* Contact shadow - sits just above ground */}
       <ContactShadows
