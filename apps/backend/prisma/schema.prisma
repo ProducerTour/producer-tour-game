@@ -192,6 +192,7 @@ model User {
   // Profile & Writer Tour Hub fields
   profilePhotoUrl    String?   @db.Text // Base64 encoded profile photo or URL
   coverBannerUrl     String?   @db.Text // Base64 encoded cover banner or URL
+  avatarUrl          String?   @db.Text // Ready Player Me 3D avatar GLB URL for Producer Tour Play
   bio                String?   @db.Text // Writer bio/about section
   location           String?   // City, State or Country
   website            String?   // Personal website URL
@@ -2636,4 +2637,269 @@ model ExternalApiCredential {
   @@unique([userId, provider])
   @@index([userId])
   @@map("external_api_credentials")
+}
+
+// ============================================================================
+// CORPORATE STRUCTURE QUEST SYSTEM
+// Gamified entity formation, compliance, and document management
+// ============================================================================
+
+enum CorporateEntityType {
+  C_CORP
+  LLC
+}
+
+enum CorporateEntityStatus {
+  NOT_FORMED
+  PENDING
+  ACTIVE
+  DISSOLVED
+}
+
+enum QuestCategory {
+  FORMATION      // Entity formation steps
+  GOVERNANCE     // Bylaws, agreements, resolutions
+  COMPLIANCE     // Annual filings, taxes
+  FINANCIAL      // Banking, accounting setup
+  PROTECTION     // IP, insurance, risk management
+}
+
+enum QuestStatus {
+  LOCKED         // Prerequisites not met
+  AVAILABLE      // Can start
+  IN_PROGRESS    // Started
+  COMPLETED      // Done
+}
+
+enum QuestStepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum QuestStepActionType {
+  INFO           // Read information/instructions
+  EXTERNAL_LINK  // Go to external website (Bizee, state, IRS)
+  TEMPLATE       // Fill out/review a template
+  UPLOAD         // Upload completed document
+  VERIFY         // Manual verification checkbox
+}
+
+enum CorporateDocumentCategory {
+  FORMATION      // Articles, certificates of formation
+  GOVERNANCE     // Bylaws, operating agreements
+  OWNERSHIP      // Stock certs, membership interests
+  TAX            // EIN letters, tax filings
+  COMPLIANCE     // Annual reports, franchise tax receipts
+  CONTRACT       // Intercompany agreements
+  INSURANCE      // Policies, certificates
+}
+
+enum CorporateDocumentStatus {
+  DRAFT
+  PENDING_REVIEW
+  CURRENT
+  NEEDS_UPDATE
+  EXPIRED
+  ARCHIVED
+}
+
+enum ComplianceFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+enum ComplianceItemStatus {
+  UPCOMING
+  DUE_SOON       // Within reminder window
+  OVERDUE
+  COMPLETED
+}
+
+// Corporate Entity - Holdings, IP LLC, PT LLC, Ops LLC, Finance LLC
+model CorporateEntity {
+  id              String                 @id @default(cuid())
+  name            String                 // "Producer Tour Holdings, Inc."
+  shortName       String                 // "Holdings"
+  type            CorporateEntityType
+  jurisdiction    String                 // "Delaware", "Florida"
+  status          CorporateEntityStatus  @default(NOT_FORMED)
+  formedDate      DateTime?
+  ein             String?                // Employer Identification Number
+  stateFileNumber String?                // State filing/registration number
+  registeredAgent String?                // Registered agent name
+
+  // Visual/UI properties
+  color           String?                // Hex color for UI
+  biomeType       String?                // "vault_fortress", "crystal_archives", etc.
+
+  // Relationships
+  quests          CorporateQuest[]
+  documents       CorporateDocument[]
+  complianceItems ComplianceItem[]
+
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([status])
+  @@map("corporate_entities")
+}
+
+// Quest - A collection of steps to complete a business objective
+model CorporateQuest {
+  id              String         @id @default(cuid())
+  entityId        String
+  entity          CorporateEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  title           String         // "Birth Certificate"
+  description     String         // "File Articles of Incorporation with Delaware"
+  category        QuestCategory
+  order           Int            // Display order within entity
+  status          QuestStatus    @default(LOCKED)
+
+  // Prerequisites - quest IDs that must be complete first
+  prerequisiteIds String[]       @default([])
+
+  // Rewards/Progress
+  xpReward        Int            @default(100)
+  completedAt     DateTime?
+  completedBy     String?        // User ID who completed
+
+  // Steps
+  steps           CorporateQuestStep[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([entityId])
+  @@index([status])
+  @@index([category])
+  @@map("corporate_quests")
+}
+
+// Quest Step - Individual action within a quest
+model CorporateQuestStep {
+  id              String              @id @default(cuid())
+  questId         String
+  quest           CorporateQuest      @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  title           String              // "File with Delaware Division of Corporations"
+  description     String?             // Detailed instructions
+  order           Int                 // Step order within quest
+  status          QuestStepStatus     @default(PENDING)
+
+  // Action configuration
+  actionType      QuestStepActionType
+  actionData      Json?               // { url: "...", templateId: "...", etc. }
+
+  // Verification/Completion
+  requiresUpload  Boolean             @default(false)
+  documentId      String?             // Linked document when complete
+
+  completedAt     DateTime?
+  completedBy     String?             // User ID
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([questId])
+  @@index([status])
+  @@map("corporate_quest_steps")
+}
+
+// Corporate Document - Stored files for entities
+model CorporateDocument {
+  id              String                    @id @default(cuid())
+  entityId        String
+  entity          CorporateEntity           @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  name            String                    // "Articles of Incorporation"
+  category        CorporateDocumentCategory
+  status          CorporateDocumentStatus   @default(DRAFT)
+
+  // File storage
+  fileUrl         String?                   // Path or URL to file
+  fileName        String?                   // Original filename
+  fileSize        Int?                      // Size in bytes
+  mimeType        String?                   // "application/pdf", etc.
+
+  // Versioning
+  version         Int                       @default(1)
+  previousVersionId String?                 // Previous document ID for history
+
+  // Metadata
+  effectiveDate   DateTime?                 // When document became effective
+  expirationDate  DateTime?                 // When document expires (if applicable)
+  notes           String?                   @db.Text
+
+  // Audit trail
+  uploadedBy      String?                   // User ID
+  uploadedAt      DateTime?
+
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([entityId])
+  @@index([category])
+  @@index([status])
+  @@map("corporate_documents")
+}
+
+// Compliance Item - Recurring or one-time compliance requirements
+model ComplianceItem {
+  id              String               @id @default(cuid())
+  entityId        String
+  entity          CorporateEntity      @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  title           String               // "Delaware Franchise Tax"
+  description     String?              // Details about the requirement
+  frequency       ComplianceFrequency
+
+  // Timing
+  dueDate         DateTime?            // Next due date
+  reminderDays    Int                  @default(30) // Days before due to remind
+
+  // Status tracking
+  status          ComplianceItemStatus @default(UPCOMING)
+  completedAt     DateTime?
+  completedBy     String?              // User ID
+  documentId      String?              // Proof of completion
+
+  // For recurring items
+  lastCompletedAt DateTime?            // Last time this was completed
+  nextDueDate     DateTime?            // Auto-calculated next due
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([entityId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("compliance_items")
+}
+
+// User XP and Progress tracking for gamification
+model CorporateUserProgress {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+
+  totalXp         Int      @default(0)
+  level           Int      @default(1)
+
+  // Stats
+  questsCompleted Int      @default(0)
+  documentsUploaded Int    @default(0)
+  complianceStreak Int     @default(0) // Consecutive on-time completions
+
+  // Achievements (stored as JSON array of achievement IDs)
+  achievements    Json     @default("[]")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@map("corporate_user_progress")
 }

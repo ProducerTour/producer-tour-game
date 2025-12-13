@@ -53,6 +53,7 @@ import leakScannerRoutes from './routes/leak-scanner.routes';
 import productivityRoutes from './routes/productivity.routes';
 import audioRoutes from './routes/audio.routes';
 import aiRoutes from './routes/ai.routes';
+import corporateStructureRoutes from './routes/corporate-structure.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -196,6 +197,7 @@ app.use('/api/leak-scanner', leakScannerRoutes); // Leak Scanner - metadata heal
 app.use('/api/productivity', productivityRoutes); // Productivity dashboard widgets
 app.use('/api/audio', audioRoutes); // Audio streaming proxy for ambient sounds/music
 app.use('/api/ai', aiRoutes); // AI-powered legal tools and contract analysis
+app.use('/api/corporate', corporateStructureRoutes); // Corporate structure quests and compliance
 
 // Error handling
 app.use(notFoundHandler);

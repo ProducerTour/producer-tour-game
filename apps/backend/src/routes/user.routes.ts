@@ -478,6 +478,68 @@ router.patch('/chat-settings', async (req: AuthRequest, res: Response) => {
 });
 
 /**
+ * GET /api/users/avatar
+ * Get current user's avatar URL (Ready Player Me)
+ */
+router.get('/avatar', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        avatarUrl: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ avatarUrl: user.avatarUrl });
+  } catch (error) {
+    console.error('Get avatar error:', error);
+    res.status(500).json({ error: 'Failed to get avatar' });
+  }
+});
+
+/**
+ * PATCH /api/users/avatar
+ * Update current user's avatar URL (Ready Player Me)
+ */
+router.patch('/avatar', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { avatarUrl } = req.body;
+
+    // Validate URL format (must be a Ready Player Me URL)
+    if (avatarUrl && typeof avatarUrl === 'string') {
+      if (!avatarUrl.includes('models.readyplayer.me') && !avatarUrl.includes('readyplayer.me')) {
+        return res.status(400).json({ error: 'Invalid avatar URL. Must be a Ready Player Me avatar URL.' });
+      }
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        avatarUrl: avatarUrl || null
+      },
+      select: {
+        avatarUrl: true
+      }
+    });
+
+    res.json({
+      message: 'Avatar updated successfully',
+      avatarUrl: user.avatarUrl
+    });
+  } catch (error) {
+    console.error('Update avatar error:', error);
+    res.status(500).json({ error: 'Failed to update avatar' });
+  }
+});
+
+/**
  * GET /api/users/search-writers
  * Search for writers to link as collaborators in work registration
  * Searches by name, IPI number, or email

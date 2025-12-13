@@ -14,8 +14,10 @@ import {
   KeyboardControls,
   useKeyboardControls,
   Text,
-  useFBX
+  useFBX,
+  useTexture,
 } from '@react-three/drei';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 // Post-processing disabled - incompatible with three.js 0.182+
 // import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { NebulaSkybox } from './NebulaSkybox';
@@ -1257,12 +1259,259 @@ function UNAFShip() {
   );
 }
 
+// Monkey FBX Ship component - the funniest spaceship option
+// Uses SkeletonUtils for proper skinned mesh cloning with animations
+function MonkeyShip() {
+  const innerRef = useRef<THREE.Group>(null);
+  const meshGroupRef = useRef<THREE.Group>(null);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const actionsRef = useRef<{ idle?: THREE.AnimationAction; fly?: THREE.AnimationAction; jump?: THREE.AnimationAction }>({});
+  const currentAnimRef = useRef<'idle' | 'fly'>('idle');
+
+  // Track movement for smooth procedural animation
+  const prevWorldPos = useRef(new THREE.Vector3());
+  const smoothedSpeed = useRef(0);
+  const smoothedTilt = useRef({ x: 0, z: 0 });
+  const smoothedBob = useRef(0);
+
+  // Jump state
+  const jumpVelocity = useRef(0);
+  const jumpHeight = useRef(0);
+  const isJumping = useRef(false);
+  const wasJumpPressed = useRef(false);
+
+  // Get keyboard controls for jump
+  const [, getKeys] = useKeyboardControls();
+
+  // Load the monkey FBX model
+  const fbx = useFBX('/models/Monkey/FbxUE5/Monkey_B3.Fbx');
+
+  // Load optimized web textures
+  const diffuseTexture = useTexture('/models/Monkey/Textures_B3/web/Monkey_B3_diffuse_1k.jpg');
+
+  // Clone model properly and set up animations
+  const { model, scale, centerOffset, animations } = useMemo(() => {
+    const clone = SkeletonUtils.clone(fbx);
+
+    console.log('[MonkeyShip] Available animations:', fbx.animations.map(a => a.name));
+
+    const box = new THREE.Box3().setFromObject(clone);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const autoScale = maxDim > 0 ? 1.5 / maxDim : 0.01;
+
+    return {
+      model: clone,
+      scale: autoScale,
+      centerOffset: new THREE.Vector3(-center.x, -center.y, -center.z),
+      animations: fbx.animations
+    };
+  }, [fbx]);
+
+  // Apply material and set up animation mixer with idle/fly states
+  useEffect(() => {
+    if (!model) return;
+
+    const material = new THREE.MeshStandardMaterial({
+      map: diffuseTexture,
+      metalness: 0.3,
+      roughness: 0.7,
+    });
+
+    model.traverse((child: THREE.Object3D) => {
+      if ((child as THREE.Mesh).isMesh) {
+        (child as THREE.Mesh).material = material;
+        (child as THREE.Mesh).castShadow = true;
+      }
+    });
+
+    // Helper: Remove root motion (position AND root rotation) from animation
+    const removeRootMotion = (clip: THREE.AnimationClip): THREE.AnimationClip => {
+      const filteredTracks = clip.tracks.filter(track => {
+        // Remove ALL position tracks (causes drift)
+        if (track.name.endsWith('.position')) return false;
+
+        // Remove rotation tracks for root/hip bones (causes spinning)
+        if (track.name.endsWith('.quaternion') || track.name.endsWith('.rotation')) {
+          const isRootBone = track.name.toLowerCase().includes('root') ||
+                            track.name.toLowerCase().includes('hip') ||
+                            track.name.toLowerCase().includes('pelvis') ||
+                            track.name.toLowerCase().startsWith('mixamorig:hips');
+          if (isRootBone) return false;
+        }
+
+        return true;
+      });
+      return new THREE.AnimationClip(clip.name, clip.duration, filteredTracks);
+    };
+
+    // Set up animation mixer with proper idle/fly animations
+    if (animations.length > 0) {
+      const mixer = new THREE.AnimationMixer(model);
+      mixerRef.current = mixer;
+
+      // Find flying/jumping animation
+      const flyAnim = animations.find(a =>
+        a.name.toLowerCase().includes('fly') ||
+        a.name.toLowerCase().includes('jump') ||
+        a.name.toLowerCase().includes('run') ||
+        a.name.toLowerCase().includes('walk')
+      );
+
+      // Use first animation as fallback
+      const defaultAnim = animations[0];
+
+      // No idle animation - monkey stands completely still when not moving
+      // This avoids the problematic forward rotation in the idle clip
+      actionsRef.current.idle = undefined;
+
+      // Only set up the fly/run animation for movement
+      if (flyAnim) {
+        const cleanedFlyClip = removeRootMotion(flyAnim);
+        const flyAction = mixer.clipAction(cleanedFlyClip);
+        flyAction.setLoop(THREE.LoopRepeat, Infinity);
+        flyAction.timeScale = 0.8;
+        actionsRef.current.fly = flyAction;
+        console.log('[MonkeyShip] Fly animation:', flyAnim.name);
+      } else if (defaultAnim) {
+        // Use default animation for flying if no fly-specific one
+        const cleanedClip = removeRootMotion(defaultAnim);
+        const flyAction = mixer.clipAction(cleanedClip);
+        flyAction.setLoop(THREE.LoopRepeat, Infinity);
+        flyAction.timeScale = 0.8;
+        actionsRef.current.fly = flyAction;
+        console.log('[MonkeyShip] Fly animation (fallback):', defaultAnim.name);
+      }
+
+      // Don't auto-play anything - start still
+    }
+
+    return () => {
+      if (mixerRef.current) {
+        mixerRef.current.stopAllAction();
+      }
+    };
+  }, [model, diffuseTexture, animations]);
+
+  // Smooth movement-based animation + animation state switching
+  useFrame((state, delta) => {
+    if (!innerRef.current || !meshGroupRef.current) return;
+
+    // Update animation mixer
+    if (mixerRef.current) {
+      mixerRef.current.update(delta);
+    }
+
+    // Handle jump input (F key)
+    const keys = getKeys() as { jump?: boolean };
+    const jumpPressed = keys.jump || false;
+
+    // Trigger jump on key press (not hold)
+    if (jumpPressed && !wasJumpPressed.current && !isJumping.current) {
+      isJumping.current = true;
+      jumpVelocity.current = 8; // Initial jump velocity
+    }
+    wasJumpPressed.current = jumpPressed;
+
+    // Apply jump physics
+    if (isJumping.current) {
+      jumpVelocity.current -= 25 * delta; // Gravity
+      jumpHeight.current += jumpVelocity.current * delta;
+
+      // Land when back to ground
+      if (jumpHeight.current <= 0) {
+        jumpHeight.current = 0;
+        jumpVelocity.current = 0;
+        isJumping.current = false;
+      }
+    }
+
+    // Get world position to track movement
+    const worldPos = new THREE.Vector3();
+    innerRef.current.getWorldPosition(worldPos);
+
+    // Calculate instantaneous speed
+    const displacement = worldPos.distanceTo(prevWorldPos.current);
+    const instantSpeed = displacement / Math.max(delta, 0.001);
+    prevWorldPos.current.copy(worldPos);
+
+    // Smooth the speed - faster deceleration so animation stops quickly when keys released
+    // Responsive smoothing - fast acceleration response, moderate deceleration
+    const isDecelerating = instantSpeed < smoothedSpeed.current;
+    const smoothFactor = isDecelerating ? 0.12 : 0.35; // Very responsive acceleration
+    smoothedSpeed.current += (instantSpeed - smoothedSpeed.current) * smoothFactor;
+
+    // Determine if flying (low threshold for quick response)
+    const isFlying = smoothedSpeed.current > 2;
+
+    // Switch animations: fly animation plays when moving, stops when idle
+    if (isFlying && currentAnimRef.current === 'idle') {
+      if (actionsRef.current.fly) {
+        actionsRef.current.fly.reset().fadeIn(0.15).play(); // Fast fade in
+        currentAnimRef.current = 'fly';
+      }
+    } else if (!isFlying && currentAnimRef.current === 'fly') {
+      if (actionsRef.current.fly) {
+        actionsRef.current.fly.fadeOut(0.25);
+        currentAnimRef.current = 'idle';
+      }
+    }
+
+    // Calculate smooth tilt based on movement state and jump
+    const tiltStrength = Math.min(smoothedSpeed.current / 100, 0.3);
+    // Tilt back when jumping up, forward when falling, flat when idle
+    let targetTiltX = isFlying ? -tiltStrength * 0.15 : 0;
+    if (isJumping.current) {
+      targetTiltX = jumpVelocity.current > 0 ? 0.2 : -0.15; // Lean back on rise, forward on fall
+    }
+    const targetTiltZ = 0; // No lateral tilt (causes jitter)
+
+    // Smooth tilt transitions
+    smoothedTilt.current.x += (targetTiltX - smoothedTilt.current.x) * 8 * delta;
+    smoothedTilt.current.z += (targetTiltZ - smoothedTilt.current.z) * 2 * delta;
+
+    // Procedural idle animation: subtle breathing bob + very gentle sway
+    const time = state.clock.elapsedTime;
+    const idleBreathing = Math.sin(time * 1.2) * 0.015; // Subtle breathing bob
+    const idleSway = Math.sin(time * 0.8) * 0.008; // Very gentle side sway
+
+    // Apply bobbing (more when idle, less when flying)
+    const bobAmount = isFlying ? 0.01 : idleBreathing;
+    smoothedBob.current += (bobAmount - smoothedBob.current) * 3 * delta;
+
+    // Combine bob, jump height
+    innerRef.current.position.y = smoothedBob.current + jumpHeight.current;
+    innerRef.current.rotation.x = smoothedTilt.current.x;
+    // Add subtle idle sway only when stationary and not jumping
+    innerRef.current.rotation.z = smoothedTilt.current.z + (isFlying || isJumping.current ? 0 : idleSway);
+  });
+
+  return (
+    <group ref={innerRef}>
+      <group
+        ref={meshGroupRef}
+        scale={[scale, scale, scale]}
+        position={[centerOffset.x * scale, (centerOffset.y * scale) - 0.3, centerOffset.z * scale]}
+        rotation={[-Math.PI / 2, 0, Math.PI]}
+      >
+        <primitive object={model} />
+      </group>
+      <Sparkles count={15} scale={0.8} size={3} speed={4} color="#f97316" position={[0, -0.6, -0.3]} />
+      <pointLight color="#ffaa00" intensity={0.3} distance={3} />
+    </group>
+  );
+}
+
 // Spaceship component for fly mode - Multiple ship designs
 function Spaceship({ position, rotation, viewMode, model = 'rocket' }: {
   position: THREE.Vector3;
   rotation: THREE.Euler;
   viewMode: 'first' | 'third';
-  model?: 'rocket' | 'fighter' | 'unaf';
+  model?: 'rocket' | 'fighter' | 'unaf' | 'monkey';
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const flameRef = useRef<THREE.Mesh>(null);
@@ -1413,7 +1662,15 @@ function Spaceship({ position, rotation, viewMode, model = 'rocket' }: {
         </Suspense>
       )}
 
-      <EngineEffects />
+      {/* MONKEY - The funniest spaceship option */}
+      {model === 'monkey' && (
+        <Suspense fallback={null}>
+          <MonkeyShip />
+        </Suspense>
+      )}
+
+      {/* Only show engine effects for non-monkey ships */}
+      {model !== 'monkey' && <EngineEffects />}
     </group>
   );
 }
@@ -2401,7 +2658,7 @@ function Scene({
   setWarpProgress: (progress: number) => void;
   setNearPortal: (id: string | null) => void;
   otherPlayers: Player3D[];
-  shipModel: 'rocket' | 'fighter' | 'unaf';
+  shipModel: 'rocket' | 'fighter' | 'unaf' | 'monkey';
   onEnterHoldings: () => void;
 }) {
   const [isUserInteracting, setIsUserInteracting] = useState(false);
@@ -2735,6 +2992,7 @@ enum Controls {
   boost = 'boost',
   exitOrbit = 'exitOrbit',
   enterPortal = 'enterPortal',
+  jump = 'jump',
 }
 
 const keyboardMap = [
@@ -2747,6 +3005,7 @@ const keyboardMap = [
   { name: Controls.boost, keys: ['KeyZ'] },
   { name: Controls.exitOrbit, keys: ['Escape', 'KeyX'] },
   { name: Controls.enterPortal, keys: ['KeyF', 'Enter'] },
+  { name: Controls.jump, keys: ['KeyF'] },
 ];
 
 // Keyboard movement handler - enables WASD free movement
@@ -3250,7 +3509,7 @@ export function Structure3D() {
   const [showInstructions, setShowInstructions] = useState(true);
   const [showControls, setShowControls] = useState(true);
   const [showMultiplayer, setShowMultiplayer] = useState(true);
-  const [shipModel, setShipModel] = useState<'rocket' | 'fighter' | 'unaf'>('rocket');
+  const [shipModel, setShipModel] = useState<'rocket' | 'fighter' | 'unaf' | 'monkey'>('rocket');
   const [shipPosition, setShipPosition] = useState(() => new THREE.Vector3(50, 15, 50)); // Scaled for expanded universe
   const [shipRotation, setShipRotation] = useState(() => new THREE.Euler(0, -Math.PI / 4, 0));
   const [shipVelocity, setShipVelocity] = useState(0); // Speed magnitude for effects
@@ -3708,15 +3967,16 @@ export function Structure3D() {
               {flyMode !== 'off' && (
                 <div className="pt-2 border-t border-white/10">
                   <p className="text-xs text-text-muted mb-2 font-medium">Ship Model</p>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-4 gap-1.5">
                     {[
                       { id: 'rocket', name: 'Rocket', icon: '🚀' },
                       { id: 'fighter', name: 'Fighter', icon: '✈️' },
                       { id: 'unaf', name: 'UNAF', icon: '🛸' },
+                      { id: 'monkey', name: 'Monkey', icon: '🐵' },
                     ].map((ship) => (
                       <button
                         key={ship.id}
-                        onClick={() => setShipModel(ship.id as 'rocket' | 'fighter' | 'unaf')}
+                        onClick={() => setShipModel(ship.id as 'rocket' | 'fighter' | 'unaf' | 'monkey')}
                         className={`px-2 py-1.5 text-xs rounded-lg transition-all flex items-center gap-1.5 justify-center ${
                           shipModel === ship.id
                             ? 'bg-blue-500/30 border border-blue-500/50 text-blue-300'

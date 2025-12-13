@@ -21,7 +21,7 @@ router.get('/status', (req: Request, res: Response) => {
     success: true,
     enabled: openaiService.isEnabled(),
     features: openaiService.isEnabled()
-      ? ['contract-analysis', 'contract-generation', 'legal-terms', 'contract-comparison', 'legal-chat']
+      ? ['contract-analysis', 'contract-generation', 'legal-terms', 'contract-comparison', 'legal-chat', 'quest-advisor']
       : [],
   });
 });
@@ -254,6 +254,64 @@ router.post('/chat', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to process chat',
+    });
+  }
+});
+
+/**
+ * POST /api/ai/explain-quest-step
+ * Get AI explanation for a quest step in context of music business formation
+ */
+router.post('/explain-quest-step', async (req: Request, res: Response) => {
+  try {
+    if (!openaiService.isEnabled()) {
+      return res.status(503).json({
+        success: false,
+        error: 'AI service is not configured. Set OPENAI_API_KEY to enable.',
+      });
+    }
+
+    const {
+      stepTitle,
+      stepDescription,
+      actionType,
+      questTitle,
+      questCategory,
+      entityName,
+      entityType,
+      jurisdiction,
+      actionData,
+    } = req.body;
+
+    // Validate required fields
+    if (!stepTitle || !stepDescription || !questTitle || !entityName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: stepTitle, stepDescription, questTitle, and entityName are required',
+      });
+    }
+
+    const explanation = await openaiService.explainQuestStep({
+      stepTitle,
+      stepDescription,
+      actionType: actionType || 'INFO',
+      questTitle,
+      questCategory: questCategory || 'FORMATION',
+      entityName,
+      entityType: entityType || 'LLC',
+      jurisdiction: jurisdiction || 'Delaware',
+      actionData,
+    });
+
+    res.json({
+      success: true,
+      explanation,
+    });
+  } catch (error) {
+    console.error('Quest step explanation error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to explain quest step',
     });
   }
 });

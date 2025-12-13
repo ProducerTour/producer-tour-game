@@ -57,6 +57,7 @@ import ToolsPage from './pages/ToolsPage';
 import TrifectaPlannerPage from './pages/TrifectaPlannerPage';
 import CorporateStructurePage from './pages/CorporateStructurePage';
 import HoldingsInteriorPage from './pages/HoldingsInteriorPage';
+import PlayPage from './pages/PlayPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -331,6 +332,9 @@ function App() {
         <Route path="/user/:slug/shop" element={<WriterMarketplacePage />} />
 
         <Route path="/" element={<LandingPage />} />
+
+        {/* Producer Tour Play - Music Industry Metaverse */}
+        <Route path="/play" element={<PlayPage />} />
 
         {/* Landing Page Templates Preview */}
         <Route path="/landing-preview" element={<LandingPreview />} />

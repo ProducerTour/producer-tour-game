@@ -39,6 +39,29 @@ interface LegalTermExplanation {
   watchOutFor: string;
 }
 
+interface QuestStepExplanation {
+  summary: string;
+  whyItMatters: string;
+  taxImplications: string;
+  legalConsiderations: string;
+  commonMistakes: string[];
+  proTips: string[];
+  estimatedTime: string;
+  estimatedCost?: string;
+}
+
+interface QuestStepContext {
+  stepTitle: string;
+  stepDescription: string;
+  actionType: string;
+  questTitle: string;
+  questCategory: string;
+  entityName: string;
+  entityType: string;
+  jurisdiction: string;
+  actionData?: Record<string, unknown>;
+}
+
 class OpenAIService {
   private client: OpenAI | null = null;
   private enabled: boolean;
@@ -296,6 +319,67 @@ You can help with:
     });
 
     return response.choices[0]?.message?.content || '';
+  }
+
+  /**
+   * Explain a quest step in context of music business formation
+   * Used for the "Explain This" button on quest steps
+   */
+  async explainQuestStep(context: QuestStepContext): Promise<QuestStepExplanation> {
+    this.assertEnabled();
+
+    const systemPrompt = `You are a music industry business advisor specializing in corporate formation, publishing, and music business operations. You're helping a music producer understand the steps needed to properly structure their music business.
+
+The user is setting up a music publishing and production company with a holding company structure:
+- Producer Tour Holdings, Inc. (Delaware C-Corp) - Parent holding company
+- Producer Tour IP, LLC (Delaware) - Intellectual property holding
+- Producer Tour Publishing, LLC (Florida) - Music publishing operations
+- Producer Tour Ops, LLC (Florida) - Day-to-day operations, employment
+- Producer Tour Finance, LLC (Florida) - Treasury and financial management
+
+You are explaining a specific quest step. Return a JSON response with:
+{
+  "summary": "A clear, 2-3 sentence explanation of what this step involves",
+  "whyItMatters": "Why this step is important for a music business specifically",
+  "taxImplications": "Any tax considerations (state franchise tax, federal, estimated taxes, etc.)",
+  "legalConsiderations": "Key legal points, liability protection, compliance requirements",
+  "commonMistakes": ["3-5 common mistakes people make on this step"],
+  "proTips": ["3-5 insider tips from experienced music business professionals"],
+  "estimatedTime": "Realistic time estimate (e.g., '30 minutes', '2-3 business days')",
+  "estimatedCost": "Estimated costs if applicable (filing fees, professional fees, etc.)"
+}
+
+Be specific to the music industry. Reference relevant organizations like BMI, ASCAP, SESAC, SoundExchange, The MLC, Harry Fox Agency when applicable. Mention music-specific considerations like mechanical royalties, performance royalties, sync licensing, and master recording rights where relevant.`;
+
+    const userPrompt = `Explain this quest step:
+
+Entity: ${context.entityName} (${context.entityType})
+Jurisdiction: ${context.jurisdiction}
+Quest: ${context.questTitle} (Category: ${context.questCategory})
+
+Step Title: ${context.stepTitle}
+Step Description: ${context.stepDescription}
+Action Type: ${context.actionType}
+${context.actionData ? `Additional Context: ${JSON.stringify(context.actionData)}` : ''}
+
+Provide a comprehensive explanation that helps a music producer understand exactly what they need to do and why.`;
+
+    const response = await this.client!.chat.completions.create({
+      model: this.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.4,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No response from OpenAI');
+    }
+
+    return JSON.parse(content) as QuestStepExplanation;
   }
 }
 

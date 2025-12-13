@@ -242,6 +242,14 @@ export const userApi = {
   // Send a support message to the support team
   sendSupportMessage: (data: { subject: string; message: string }) =>
     api.post('/users/support-message', data),
+
+  // Get current user's avatar URL (Ready Player Me)
+  getAvatar: () =>
+    api.get('/users/avatar'),
+
+  // Update current user's avatar URL (Ready Player Me)
+  updateAvatar: (avatarUrl: string | null) =>
+    api.patch('/users/avatar', { avatarUrl }),
 };
 
 export const opportunityApi = {
@@ -1354,4 +1362,169 @@ export const aiApi = {
   // Chat with AI about legal questions
   chat: (message: string, conversationHistory?: { role: 'user' | 'assistant'; content: string }[]) =>
     api.post('/ai/chat', { message, conversationHistory }),
+
+  // Explain a quest step in context of music business formation
+  explainQuestStep: (context: {
+    stepTitle: string;
+    stepDescription: string;
+    actionType?: string;
+    questTitle: string;
+    questCategory?: string;
+    entityName: string;
+    entityType?: string;
+    jurisdiction?: string;
+    actionData?: Record<string, unknown>;
+  }) => api.post('/ai/explain-quest-step', context),
+};
+
+// Corporate Structure API - Quest System & Compliance
+export const corporateApi = {
+  // ========== Entities ==========
+  getEntities: () => api.get('/corporate/entities'),
+  getEntity: (id: string) => api.get(`/corporate/entities/${id}`),
+  updateEntity: (id: string, data: { status?: string; ein?: string; stateFileNumber?: string; formedDate?: string; registeredAgent?: string }) =>
+    api.patch(`/corporate/entities/${id}`, data),
+
+  // ========== Quests ==========
+  getQuests: (entityId: string) => api.get(`/corporate/quests/${entityId}`),
+  getQuestDetails: (questId: string) => api.get(`/corporate/quests/${questId}/details`),
+  startQuest: (questId: string) => api.patch(`/corporate/quests/${questId}/start`),
+  completeQuest: (questId: string) => api.patch(`/corporate/quests/${questId}/complete`),
+
+  // ========== Quest Steps ==========
+  completeStep: (stepId: string, documentId?: string) =>
+    api.patch(`/corporate/steps/${stepId}/complete`, { documentId }),
+  skipStep: (stepId: string, reason?: string) =>
+    api.patch(`/corporate/steps/${stepId}/skip`, { reason }),
+
+  // ========== Documents ==========
+  getDocuments: (entityId: string, category?: string, status?: string) =>
+    api.get(`/corporate/documents/${entityId}`, { params: { category, status } }),
+  uploadDocument: (data: {
+    entityId: string;
+    name: string;
+    category: string;
+    fileUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+    effectiveDate?: string;
+  }) => api.post('/corporate/documents', data),
+  updateDocument: (id: string, data: { status?: string; effectiveDate?: string; expirationDate?: string }) =>
+    api.patch(`/corporate/documents/${id}`, data),
+  archiveDocument: (id: string) => api.delete(`/corporate/documents/${id}`),
+
+  // ========== Quest Step Upload ==========
+  uploadStepDocument: (stepId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/corporate/steps/${stepId}/upload`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  // ========== Compliance ==========
+  getComplianceItems: (entityId?: string, status?: string) =>
+    api.get('/corporate/compliance', { params: { entityId, status } }),
+  getUpcomingCompliance: () => api.get('/corporate/compliance/upcoming'),
+  updateComplianceItem: (id: string, data: { status?: string; documentId?: string; completedAt?: string }) =>
+    api.patch(`/corporate/compliance/${id}`, data),
+
+  // ========== User Progress ==========
+  getProgress: () => api.get('/corporate/progress'),
+
+  // ========== Dashboard Stats ==========
+  getStats: () => api.get('/corporate/stats'),
+
+  // ========== PDF Templates (Anvil) ==========
+  getPdfStatus: () => api.get('/corporate/pdf/status'),
+
+  fillPdf: async (templateType: string, entityId: string, formData?: Record<string, unknown>) => {
+    const response = await api.post('/corporate/pdf/fill', { templateType, entityId, formData }, {
+      responseType: 'blob',
+    });
+    // Download the PDF
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    // Extract filename from content-disposition header or use default
+    const contentDisposition = response.headers['content-disposition'];
+    const filename = contentDisposition
+      ? contentDisposition.split('filename=')[1]?.replace(/"/g, '')
+      : `${templateType}_${new Date().toISOString().split('T')[0]}.pdf`;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    return response;
+  },
+
+  fillSplitSheet: async (musicData: {
+    songTitle: string;
+    artistName: string;
+    writerNames: string[];
+    producerName?: string;
+    publisherName?: string;
+    iswc?: string;
+    isrc?: string;
+    splits?: { party: string; percentage: number; role: string }[];
+  }) => {
+    const response = await api.post('/corporate/pdf/split-sheet', musicData, {
+      responseType: 'blob',
+    });
+    // Download the PDF
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `split_sheet_${musicData.songTitle.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    return response;
+  },
+
+  // ========== Entity Verification (OpenCorporates) ==========
+  getVerificationStatus: () => api.get('/corporate/verify/status'),
+
+  verifyEntity: (entityName: string, jurisdiction: string) =>
+    api.post('/corporate/verify/entity', { entityName, jurisdiction }),
+
+  verifyProducerTourEntity: (shortName: string) =>
+    api.get(`/corporate/verify/pt/${shortName}`),
+
+  searchCompanies: (query: string, jurisdiction?: string, limit?: number) =>
+    api.get('/corporate/verify/search', { params: { query, jurisdiction, limit } }),
+
+  getCompanyDetails: (companyId: string) =>
+    api.get(`/corporate/verify/company/${companyId}`),
+
+  verifyEntityById: (entityId: string) =>
+    api.post(`/corporate/verify/entity/${entityId}`),
+
+  // ========== Push Notifications (OneSignal) ==========
+  getNotificationStatus: () => api.get('/corporate/notifications/status'),
+
+  sendTestNotification: (title?: string, message?: string) =>
+    api.post('/corporate/notifications/test', { title, message }),
+
+  triggerComplianceCheck: () =>
+    api.post('/corporate/notifications/compliance-check'),
+
+  sendQuestNotification: (data: {
+    userIds: string[];
+    questId: string;
+    questTitle: string;
+    entityName: string;
+    xpReward?: number;
+    type: 'unlocked' | 'completed' | 'reminder';
+  }) => api.post('/corporate/notifications/quest', data),
+
+  sendComplianceNotification: (userIds: string[], complianceItemId: string) =>
+    api.post('/corporate/notifications/compliance', { userIds, complianceItemId }),
 };
