@@ -64,6 +64,11 @@ import {
 } from 'lucide-react';
 
 // ============================================================================
+// ASSETS URL (Cloudflare R2 CDN)
+// ============================================================================
+const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
+
+// ============================================================================
 // 3D COMPONENTS
 // ============================================================================
 
@@ -1203,7 +1208,7 @@ const complianceOrbiterYOffsets: Record<string, number> = {
 
 // UNAF FBX Ship component - loads modular FBX parts
 function UNAFShip() {
-  // Load all the FBX parts
+  // Load all the FBX parts from local public folder
   const front = useFBX('/models/Front_01.FBX');
   const cockpit = useFBX('/models/Cockpit_01.FBX');
   const back = useFBX('/models/Back_01.FBX');
@@ -1284,7 +1289,7 @@ function MonkeyShip() {
   // Get keyboard controls for jump
   const [, getKeys] = useKeyboardControls();
 
-  // Load the monkey GLB model (compressed from 93MB FBX to 3.8MB GLB with Draco)
+  // Load the monkey GLB model (compressed from 93MB FBX to 3.8MB GLB)
   const gltf = useGLTF('/models/Monkey/Monkey.glb');
 
   // Load optimized web textures
