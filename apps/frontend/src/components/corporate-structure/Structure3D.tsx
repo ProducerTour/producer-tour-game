@@ -14,11 +14,7 @@ import {
   KeyboardControls,
   useKeyboardControls,
   Text,
-  useFBX,
-  useGLTF,
-  useTexture,
 } from '@react-three/drei';
-import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 // Post-processing disabled - incompatible with three.js 0.182+
 // import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { NebulaSkybox } from './NebulaSkybox';
@@ -62,11 +58,6 @@ import {
   Camera,
   Settings
 } from 'lucide-react';
-
-// ============================================================================
-// ASSETS URL (Cloudflare R2 CDN)
-// ============================================================================
-const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
 
 // ============================================================================
 // 3D COMPONENTS
@@ -1206,304 +1197,136 @@ const complianceOrbiterYOffsets: Record<string, number> = {
   'finance': 2.0,   // Finance orbiter offset
 };
 
-// UNAF FBX Ship component - loads modular FBX parts from R2 CDN
+// UNAF Ship component - procedural modular spaceship (no external files needed)
 function UNAFShip() {
-  // Load all the FBX parts from R2 CDN
-  const front = useFBX(`${ASSETS_URL}/models/Front_01.FBX`);
-  const cockpit = useFBX(`${ASSETS_URL}/models/Cockpit_01.FBX`);
-  const back = useFBX(`${ASSETS_URL}/models/Back_01.FBX`);
-  const wing = useFBX(`${ASSETS_URL}/models/Wing_01.FBX`);
-
-  // Clone and apply custom colored materials
-  const parts = useMemo(() => {
-    const hullMaterial = new THREE.MeshStandardMaterial({
-      color: '#1e293b',
-      emissive: '#3b82f6',
-      emissiveIntensity: 0.1,
-      metalness: 0.85,
-      roughness: 0.25,
-    });
-    const accentMaterial = new THREE.MeshStandardMaterial({
-      color: '#334155',
-      emissive: '#60a5fa',
-      emissiveIntensity: 0.15,
-      metalness: 0.9,
-      roughness: 0.2,
-    });
-
-    const setupModel = (fbx: THREE.Group, material: THREE.Material) => {
-      const clone = fbx.clone();
-      clone.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const mesh = child as THREE.Mesh;
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
-          mesh.material = material;
-        }
-      });
-      return clone;
-    };
-    return {
-      front: setupModel(front, hullMaterial),
-      cockpit: setupModel(cockpit, accentMaterial),
-      back: setupModel(back, hullMaterial),
-      wing: setupModel(wing, accentMaterial),
-    };
-  }, [front, cockpit, back, wing]);
-
-  const scale = 0.001; // Scaled down ~7x
-
   return (
-    <group scale={[scale, scale, scale]} rotation={[0, 0, 0]}>
-      <primitive object={parts.front} position={[0, 0, 0]} />
-      <primitive object={parts.cockpit} position={[0, 0, 0]} />
-      <primitive object={parts.back} position={[0, 0, 0]} />
-      <primitive object={parts.wing} position={[0, 0, 0]} />
+    <group>
+      {/* Cockpit sphere */}
+      <mesh position={[0, 0, -0.8]}>
+        <sphereGeometry args={[0.4, 16, 16]} />
+        <meshStandardMaterial color="#1e293b" emissive="#3b82f6" emissiveIntensity={0.3} metalness={0.8} roughness={0.2} />
+      </mesh>
+
+      {/* Main body */}
+      <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.3, 0.35, 1.2, 8]} />
+        <meshStandardMaterial color="#1e293b" emissive="#3b82f6" emissiveIntensity={0.2} metalness={0.7} roughness={0.3} />
+      </mesh>
+
+      {/* Cockpit window */}
+      <mesh position={[0, 0.25, -0.6]}>
+        <sphereGeometry args={[0.2, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#60a5fa" emissive="#60a5fa" emissiveIntensity={0.8} transparent opacity={0.7} />
+      </mesh>
+
+      {/* Engine pods */}
+      {[-0.5, 0.5].map((x) => (
+        <group key={x}>
+          <mesh position={[x, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.12, 0.15, 0.6, 8]} />
+            <meshStandardMaterial color="#334155" emissive="#60a5fa" emissiveIntensity={0.4} metalness={0.9} roughness={0.1} />
+          </mesh>
+          {/* Engine glow */}
+          <mesh position={[x, 0, 0.85]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.08, 0.1, 0.1, 8]} />
+            <meshBasicMaterial color="#60a5fa" transparent opacity={0.8} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Side wings */}
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * 0.6, 0, 0.2]} rotation={[0, 0, side * 0.2]}>
+          <boxGeometry args={[0.8, 0.04, 0.5]} />
+          <meshStandardMaterial color="#1e293b" emissive="#3b82f6" emissiveIntensity={0.1} metalness={0.8} roughness={0.3} />
+        </mesh>
+      ))}
+
       {/* Cockpit glow */}
-      <pointLight color="#60a5fa" intensity={0.5} distance={300} position={[0, 50, -100]} />
+      <pointLight color="#60a5fa" intensity={0.5} distance={3} position={[0, 0.2, -0.6]} />
     </group>
   );
 }
 
-// Monkey FBX Ship component - the funniest spaceship option
-// Uses SkeletonUtils for proper skinned mesh cloning with animations
+// Monkey Ship component - procedural cute monkey avatar (no external files needed)
 function MonkeyShip() {
-  const innerRef = useRef<THREE.Group>(null);
-  const meshGroupRef = useRef<THREE.Group>(null);
-  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
-  const actionsRef = useRef<{ idle?: THREE.AnimationAction; fly?: THREE.AnimationAction; jump?: THREE.AnimationAction }>({});
-  const currentAnimRef = useRef<'idle' | 'fly'>('idle');
+  const groupRef = useRef<THREE.Group>(null);
 
-  // Track movement for smooth procedural animation
-  const prevWorldPos = useRef(new THREE.Vector3());
-  const smoothedSpeed = useRef(0);
-  const smoothedTilt = useRef({ x: 0, z: 0 });
-  const smoothedBob = useRef(0);
-
-  // Jump state
-  const jumpVelocity = useRef(0);
-  const jumpHeight = useRef(0);
-  const isJumping = useRef(false);
-  const wasJumpPressed = useRef(false);
-
-  // Get keyboard controls for jump
-  const [, getKeys] = useKeyboardControls();
-
-  // Load the monkey GLB model from R2 CDN (compressed from 93MB FBX to 3.8MB GLB)
-  const gltf = useGLTF(`${ASSETS_URL}/models/Monkey/Monkey.glb`);
-
-  // Load optimized web textures from R2 CDN
-  const diffuseTexture = useTexture(`${ASSETS_URL}/models/Monkey/Textures_B3/Monkey_B3_diffuse_1k.jpg`);
-
-  // Clone model properly and set up animations
-  const { model, scale, centerOffset, animations } = useMemo(() => {
-    const clone = SkeletonUtils.clone(gltf.scene);
-
-    const box = new THREE.Box3().setFromObject(clone);
-    const size = new THREE.Vector3();
-    const center = new THREE.Vector3();
-    box.getSize(size);
-    box.getCenter(center);
-
-    const maxDim = Math.max(size.x, size.y, size.z);
-    // Target size of 0.02 units to match ship scale
-    const autoScale = maxDim > 0 ? 0.02 / maxDim : 0.01;
-
-    return {
-      model: clone,
-      scale: autoScale,
-      // Center the model at origin
-      centerOffset: new THREE.Vector3(-center.x, -box.min.y, -center.z),
-      animations: gltf.animations
-    };
-  }, [gltf]);
-
-  // Apply material and set up animation mixer with idle/fly states
-  useEffect(() => {
-    if (!model) return;
-
-    const material = new THREE.MeshStandardMaterial({
-      map: diffuseTexture,
-      metalness: 0.3,
-      roughness: 0.7,
-    });
-
-    model.traverse((child: THREE.Object3D) => {
-      if ((child as THREE.Mesh).isMesh) {
-        (child as THREE.Mesh).material = material;
-        (child as THREE.Mesh).castShadow = true;
-      }
-    });
-
-    // Helper: Remove root motion (position AND root rotation) from animation
-    const removeRootMotion = (clip: THREE.AnimationClip): THREE.AnimationClip => {
-      const filteredTracks = clip.tracks.filter(track => {
-        // Remove ALL position tracks (causes drift)
-        if (track.name.endsWith('.position')) return false;
-
-        // Remove rotation tracks for root/hip bones (causes spinning)
-        if (track.name.endsWith('.quaternion') || track.name.endsWith('.rotation')) {
-          const isRootBone = track.name.toLowerCase().includes('root') ||
-                            track.name.toLowerCase().includes('hip') ||
-                            track.name.toLowerCase().includes('pelvis') ||
-                            track.name.toLowerCase().startsWith('mixamorig:hips');
-          if (isRootBone) return false;
-        }
-
-        return true;
-      });
-      return new THREE.AnimationClip(clip.name, clip.duration, filteredTracks);
-    };
-
-    // Set up animation mixer with proper idle/fly animations
-    if (animations.length > 0) {
-      const mixer = new THREE.AnimationMixer(model);
-      mixerRef.current = mixer;
-
-      // Find flying/jumping animation
-      const flyAnim = animations.find(a =>
-        a.name.toLowerCase().includes('fly') ||
-        a.name.toLowerCase().includes('jump') ||
-        a.name.toLowerCase().includes('run') ||
-        a.name.toLowerCase().includes('walk')
-      );
-
-      // Use first animation as fallback
-      const defaultAnim = animations[0];
-
-      // No idle animation - monkey stands completely still when not moving
-      // This avoids the problematic forward rotation in the idle clip
-      actionsRef.current.idle = undefined;
-
-      // Only set up the fly/run animation for movement
-      if (flyAnim) {
-        const cleanedFlyClip = removeRootMotion(flyAnim);
-        const flyAction = mixer.clipAction(cleanedFlyClip);
-        flyAction.setLoop(THREE.LoopRepeat, Infinity);
-        flyAction.timeScale = 0.8;
-        actionsRef.current.fly = flyAction;
-      } else if (defaultAnim) {
-        // Use default animation for flying if no fly-specific one
-        const cleanedClip = removeRootMotion(defaultAnim);
-        const flyAction = mixer.clipAction(cleanedClip);
-        flyAction.setLoop(THREE.LoopRepeat, Infinity);
-        flyAction.timeScale = 0.8;
-        actionsRef.current.fly = flyAction;
-      }
-
-      // Don't auto-play anything - start still
+  useFrame((state) => {
+    if (groupRef.current) {
+      // Subtle bobbing animation
+      const time = state.clock.elapsedTime;
+      groupRef.current.position.y = Math.sin(time * 2) * 0.05;
     }
-
-    return () => {
-      if (mixerRef.current) {
-        mixerRef.current.stopAllAction();
-      }
-    };
-  }, [model, diffuseTexture, animations]);
-
-  // Smooth movement-based animation + animation state switching
-  useFrame((state, delta) => {
-    if (!innerRef.current || !meshGroupRef.current) return;
-
-    // Update animation mixer
-    if (mixerRef.current) {
-      mixerRef.current.update(delta);
-    }
-
-    // Handle jump input (F key)
-    const keys = getKeys() as { jump?: boolean };
-    const jumpPressed = keys.jump || false;
-
-    // Trigger jump on key press (not hold)
-    if (jumpPressed && !wasJumpPressed.current && !isJumping.current) {
-      isJumping.current = true;
-      jumpVelocity.current = 8; // Initial jump velocity
-    }
-    wasJumpPressed.current = jumpPressed;
-
-    // Apply jump physics
-    if (isJumping.current) {
-      jumpVelocity.current -= 25 * delta; // Gravity
-      jumpHeight.current += jumpVelocity.current * delta;
-
-      // Land when back to ground
-      if (jumpHeight.current <= 0) {
-        jumpHeight.current = 0;
-        jumpVelocity.current = 0;
-        isJumping.current = false;
-      }
-    }
-
-    // Get world position to track movement
-    const worldPos = new THREE.Vector3();
-    innerRef.current.getWorldPosition(worldPos);
-
-    // Calculate instantaneous speed
-    const displacement = worldPos.distanceTo(prevWorldPos.current);
-    const instantSpeed = displacement / Math.max(delta, 0.001);
-    prevWorldPos.current.copy(worldPos);
-
-    // Smooth the speed - faster deceleration so animation stops quickly when keys released
-    // Responsive smoothing - fast acceleration response, moderate deceleration
-    const isDecelerating = instantSpeed < smoothedSpeed.current;
-    const smoothFactor = isDecelerating ? 0.12 : 0.35; // Very responsive acceleration
-    smoothedSpeed.current += (instantSpeed - smoothedSpeed.current) * smoothFactor;
-
-    // Determine if flying (low threshold for quick response)
-    const isFlying = smoothedSpeed.current > 2;
-
-    // Switch animations: fly animation plays when moving, stops when idle
-    if (isFlying && currentAnimRef.current === 'idle') {
-      if (actionsRef.current.fly) {
-        actionsRef.current.fly.reset().fadeIn(0.15).play(); // Fast fade in
-        currentAnimRef.current = 'fly';
-      }
-    } else if (!isFlying && currentAnimRef.current === 'fly') {
-      if (actionsRef.current.fly) {
-        actionsRef.current.fly.fadeOut(0.25);
-        currentAnimRef.current = 'idle';
-      }
-    }
-
-    // Calculate smooth tilt based on movement state and jump
-    const tiltStrength = Math.min(smoothedSpeed.current / 100, 0.3);
-    // Tilt back when jumping up, forward when falling, flat when idle
-    let targetTiltX = isFlying ? -tiltStrength * 0.15 : 0;
-    if (isJumping.current) {
-      targetTiltX = jumpVelocity.current > 0 ? 0.2 : -0.15; // Lean back on rise, forward on fall
-    }
-    const targetTiltZ = 0; // No lateral tilt (causes jitter)
-
-    // Smooth tilt transitions
-    smoothedTilt.current.x += (targetTiltX - smoothedTilt.current.x) * 8 * delta;
-    smoothedTilt.current.z += (targetTiltZ - smoothedTilt.current.z) * 2 * delta;
-
-    // Procedural idle animation: subtle breathing bob + very gentle sway
-    const time = state.clock.elapsedTime;
-    const idleBreathing = Math.sin(time * 1.2) * 0.015; // Subtle breathing bob
-    const idleSway = Math.sin(time * 0.8) * 0.008; // Very gentle side sway
-
-    // Apply bobbing (more when idle, less when flying)
-    const bobAmount = isFlying ? 0.01 : idleBreathing;
-    smoothedBob.current += (bobAmount - smoothedBob.current) * 3 * delta;
-
-    // Combine bob, jump height
-    innerRef.current.position.y = smoothedBob.current + jumpHeight.current;
-    innerRef.current.rotation.x = smoothedTilt.current.x;
-    // Add subtle idle sway only when stationary and not jumping
-    innerRef.current.rotation.z = smoothedTilt.current.z + (isFlying || isJumping.current ? 0 : idleSway);
   });
 
   return (
-    <group ref={innerRef}>
-      <group
-        ref={meshGroupRef}
-        scale={[scale, scale, scale]}
-        position={[centerOffset.x * scale, centerOffset.y * scale, centerOffset.z * scale]}
-        rotation={[0, Math.PI, 0]}
-      >
-        <primitive object={model} />
-      </group>
+    <group ref={groupRef}>
+      {/* Body - main torso */}
+      <mesh position={[0, 0, 0]}>
+        <sphereGeometry args={[0.4, 16, 16]} />
+        <meshStandardMaterial color="#8B4513" emissive="#8B4513" emissiveIntensity={0.1} roughness={0.8} />
+      </mesh>
+
+      {/* Head */}
+      <mesh position={[0, 0.5, 0]}>
+        <sphereGeometry args={[0.35, 16, 16]} />
+        <meshStandardMaterial color="#8B4513" emissive="#8B4513" emissiveIntensity={0.1} roughness={0.8} />
+      </mesh>
+
+      {/* Face (lighter color) */}
+      <mesh position={[0, 0.5, 0.25]}>
+        <sphereGeometry args={[0.2, 16, 16]} />
+        <meshStandardMaterial color="#DEB887" emissive="#DEB887" emissiveIntensity={0.1} roughness={0.9} />
+      </mesh>
+
+      {/* Eyes */}
+      <mesh position={[-0.1, 0.55, 0.32]}>
+        <sphereGeometry args={[0.05, 8, 8]} />
+        <meshStandardMaterial color="#000000" />
+      </mesh>
+      <mesh position={[0.1, 0.55, 0.32]}>
+        <sphereGeometry args={[0.05, 8, 8]} />
+        <meshStandardMaterial color="#000000" />
+      </mesh>
+
+      {/* Ears */}
+      <mesh position={[-0.35, 0.5, 0]}>
+        <sphereGeometry args={[0.12, 8, 8]} />
+        <meshStandardMaterial color="#8B4513" emissive="#8B4513" emissiveIntensity={0.1} roughness={0.8} />
+      </mesh>
+      <mesh position={[0.35, 0.5, 0]}>
+        <sphereGeometry args={[0.12, 8, 8]} />
+        <meshStandardMaterial color="#8B4513" emissive="#8B4513" emissiveIntensity={0.1} roughness={0.8} />
+      </mesh>
+
+      {/* Arms */}
+      <mesh position={[-0.4, 0, 0]} rotation={[0, 0, 0.5]}>
+        <cylinderGeometry args={[0.08, 0.06, 0.4, 8]} />
+        <meshStandardMaterial color="#8B4513" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.4, 0, 0]} rotation={[0, 0, -0.5]}>
+        <cylinderGeometry args={[0.08, 0.06, 0.4, 8]} />
+        <meshStandardMaterial color="#8B4513" roughness={0.8} />
+      </mesh>
+
+      {/* Legs */}
+      <mesh position={[-0.15, -0.4, 0]} rotation={[0.2, 0, 0]}>
+        <cylinderGeometry args={[0.1, 0.08, 0.3, 8]} />
+        <meshStandardMaterial color="#8B4513" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.15, -0.4, 0]} rotation={[0.2, 0, 0]}>
+        <cylinderGeometry args={[0.1, 0.08, 0.3, 8]} />
+        <meshStandardMaterial color="#8B4513" roughness={0.8} />
+      </mesh>
+
+      {/* Tail */}
+      <mesh position={[0, -0.2, -0.3]} rotation={[0.8, 0, 0]}>
+        <cylinderGeometry args={[0.04, 0.02, 0.5, 8]} />
+        <meshStandardMaterial color="#8B4513" roughness={0.8} />
+      </mesh>
+
+      {/* Trail sparkles */}
       <Sparkles count={15} scale={0.8} size={3} speed={4} color="#f97316" position={[0, -0.3, -0.2]} />
       <pointLight color="#ffaa00" intensity={0.3} distance={3} />
     </group>
