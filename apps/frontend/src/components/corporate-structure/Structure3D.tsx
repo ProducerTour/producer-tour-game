@@ -64,6 +64,9 @@ import {
 } from 'lucide-react';
 
 // ============================================================================
+// ASSETS URL (Cloudflare R2 CDN)
+// ============================================================================
+const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
 
 // ============================================================================
 // 3D COMPONENTS
@@ -1203,13 +1206,13 @@ const complianceOrbiterYOffsets: Record<string, number> = {
   'finance': 2.0,   // Finance orbiter offset
 };
 
-// UNAF FBX Ship component - loads modular FBX parts
+// UNAF FBX Ship component - loads modular FBX parts from R2 CDN
 function UNAFShip() {
-  // Load all the FBX parts from local public folder
-  const front = useFBX('/models/Front_01.FBX');
-  const cockpit = useFBX('/models/Cockpit_01.FBX');
-  const back = useFBX('/models/Back_01.FBX');
-  const wing = useFBX('/models/Wing_01.FBX');
+  // Load all the FBX parts from R2 CDN
+  const front = useFBX(`${ASSETS_URL}/models/Front_01.FBX`);
+  const cockpit = useFBX(`${ASSETS_URL}/models/Cockpit_01.FBX`);
+  const back = useFBX(`${ASSETS_URL}/models/Back_01.FBX`);
+  const wing = useFBX(`${ASSETS_URL}/models/Wing_01.FBX`);
 
   // Clone and apply custom colored materials
   const parts = useMemo(() => {
@@ -1286,11 +1289,11 @@ function MonkeyShip() {
   // Get keyboard controls for jump
   const [, getKeys] = useKeyboardControls();
 
-  // Load the monkey GLB model (compressed from 93MB FBX to 3.8MB GLB)
-  const gltf = useGLTF('/models/Monkey/Monkey.glb');
+  // Load the monkey GLB model from R2 CDN (compressed from 93MB FBX to 3.8MB GLB)
+  const gltf = useGLTF(`${ASSETS_URL}/models/Monkey/Monkey.glb`);
 
-  // Load optimized web textures
-  const diffuseTexture = useTexture('/models/Monkey/Textures_B3/web/Monkey_B3_diffuse_1k.jpg');
+  // Load optimized web textures from R2 CDN
+  const diffuseTexture = useTexture(`${ASSETS_URL}/models/Monkey/Textures_B3/Monkey_B3_diffuse_1k.jpg`);
 
   // Clone model properly and set up animations
   const { model, scale, centerOffset, animations } = useMemo(() => {
