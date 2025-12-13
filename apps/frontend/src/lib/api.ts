@@ -1318,3 +1318,40 @@ export const productivityApi = {
   // Get online users with details
   getOnlineUsers: () => api.get('/productivity/online-users'),
 };
+
+// AI API - Legal AI Tool & Contract Analysis
+export const aiApi = {
+  // Check if AI service is enabled
+  getStatus: () => api.get('/ai/status'),
+
+  // Analyze a music contract
+  analyzeContract: (contractText: string) =>
+    api.post('/ai/analyze-contract', { contractText }),
+
+  // Generate a music contract
+  generateContract: (params: {
+    dealType: 'producer_agreement' | 'sync_license' | 'work_for_hire' | 'split_sheet' | 'beat_lease';
+    clientName: string;
+    clientPKA?: string;
+    artistName: string;
+    songTitle: string;
+    labelName?: string;
+    advance?: string;
+    masterRoyalty?: string;
+    publishingPercent?: string;
+    soundExchangeLOD?: string;
+    additionalTerms?: string;
+  }) => api.post('/ai/generate-contract', params),
+
+  // Explain legal terms in plain English
+  explainTerms: (terms: string[]) =>
+    api.post('/ai/explain-terms', { terms }),
+
+  // Compare two contract versions
+  compareContracts: (originalText: string, revisedText: string) =>
+    api.post('/ai/compare-contracts', { originalText, revisedText }),
+
+  // Chat with AI about legal questions
+  chat: (message: string, conversationHistory?: { role: 'user' | 'assistant'; content: string }[]) =>
+    api.post('/ai/chat', { message, conversationHistory }),
+};

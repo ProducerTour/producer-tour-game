@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { placementDealApi, getAuthToken } from '../../lib/api';
-import { BookUser, ChevronDown } from 'lucide-react';
+import { placementDealApi, getAuthToken, aiApi } from '../../lib/api';
+import { BookUser, ChevronDown, Loader2 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -98,6 +98,20 @@ const PlacementTracker: React.FC = () => {
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const [showContactPicker, setShowContactPicker] = useState(false);
   const [showBillingContactPicker, setShowBillingContactPicker] = useState(false);
+
+  // Legal AI state
+  const [contractText, setContractText] = useState('');
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<any>(null);
+  const [aiGeneratedContract, setAiGeneratedContract] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiChatMessages, setAiChatMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [aiChatInput, setAiChatInput] = useState('');
+  const [isChatting, setIsChatting] = useState(false);
+  const [selectedDealType, setSelectedDealType] = useState<'producer_agreement' | 'sync_license' | 'work_for_hire' | 'split_sheet' | 'beat_lease'>('producer_agreement');
+  const [legalTermsInput, setLegalTermsInput] = useState('');
+  const [termExplanations, setTermExplanations] = useState<any[]>([]);
+  const [isExplainingTerms, setIsExplainingTerms] = useState(false);
 
   // Fetch placements from API
   const { data: dealsData } = useQuery({
@@ -1797,6 +1811,112 @@ const PlacementTracker: React.FC = () => {
                 </button>
               </div>
 
+              {/* AI Chat - Prominent at top */}
+              <div className="bg-gradient-to-r from-theme-primary/10 to-transparent border border-theme-primary/30 rounded-lg p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-theme-primary rounded-full animate-pulse" />
+                  <p className="text-sm font-medium text-theme-primary">Ask Legal AI</p>
+                  <span className="text-xs text-theme-foreground-muted">— Ask about contracts, royalties, splits, or any music business legal question</span>
+                </div>
+                <div className="bg-black/30 rounded p-3 max-h-[250px] overflow-y-auto space-y-2">
+                  {aiChatMessages.length === 0 ? (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-theme-foreground-muted">No messages yet. Try asking:</p>
+                      <div className="mt-2 flex flex-wrap gap-2 justify-center">
+                        <button
+                          onClick={() => setAiChatInput("What should I look for in a producer agreement?")}
+                          className="text-xs px-3 py-1 bg-white/5 hover:bg-white/10 border border-theme-border rounded-full text-theme-foreground-secondary transition-colors"
+                        >
+                          What should I look for in a producer agreement?
+                        </button>
+                        <button
+                          onClick={() => setAiChatInput("Explain master royalties vs publishing royalties")}
+                          className="text-xs px-3 py-1 bg-white/5 hover:bg-white/10 border border-theme-border rounded-full text-theme-foreground-secondary transition-colors"
+                        >
+                          Explain master vs publishing royalties
+                        </button>
+                        <button
+                          onClick={() => setAiChatInput("What is a typical producer split for streaming?")}
+                          className="text-xs px-3 py-1 bg-white/5 hover:bg-white/10 border border-theme-border rounded-full text-theme-foreground-secondary transition-colors"
+                        >
+                          Typical producer split for streaming?
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    aiChatMessages.map((msg, i) => (
+                      <div key={i} className={`p-3 rounded-lg text-sm ${msg.role === 'user' ? 'bg-theme-primary/20 ml-8' : 'bg-white/10 mr-8'}`}>
+                        <span className="text-xs font-medium text-theme-foreground-muted">{msg.role === 'user' ? 'You' : 'Legal AI'}:</span>
+                        <p className="text-theme-foreground mt-1 whitespace-pre-wrap">{msg.content}</p>
+                      </div>
+                    ))
+                  )}
+                  {isChatting && (
+                    <div className="p-3 rounded-lg text-sm bg-white/10 mr-8">
+                      <span className="text-xs font-medium text-theme-foreground-muted">Legal AI:</span>
+                      <p className="text-theme-foreground mt-1 flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Thinking...
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={aiChatInput}
+                    onChange={(e) => setAiChatInput(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter' && aiChatInput.trim() && !isChatting) {
+                        const message = aiChatInput.trim();
+                        setAiChatInput('');
+                        setIsChatting(true);
+                        setAiChatMessages(prev => [...prev, { role: 'user', content: message }]);
+                        try {
+                          const response = await aiApi.chat(message, aiChatMessages);
+                          setAiChatMessages(prev => [...prev, { role: 'assistant', content: response.data.response }]);
+                        } catch (error: any) {
+                          toast.error(error.response?.data?.error || 'Chat failed');
+                        } finally {
+                          setIsChatting(false);
+                        }
+                      }
+                    }}
+                    className={`${inputClass} flex-1`}
+                    placeholder="Ask a legal question..."
+                    disabled={isChatting}
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!aiChatInput.trim() || isChatting) return;
+                      const message = aiChatInput.trim();
+                      setAiChatInput('');
+                      setIsChatting(true);
+                      setAiChatMessages(prev => [...prev, { role: 'user', content: message }]);
+                      try {
+                        const response = await aiApi.chat(message, aiChatMessages);
+                        setAiChatMessages(prev => [...prev, { role: 'assistant', content: response.data.response }]);
+                      } catch (error: any) {
+                        toast.error(error.response?.data?.error || 'Chat failed');
+                      } finally {
+                        setIsChatting(false);
+                      }
+                    }}
+                    disabled={isChatting || !aiChatInput.trim()}
+                    className="px-6 py-2 bg-theme-primary text-black text-sm font-medium hover:bg-theme-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded"
+                  >
+                    {isChatting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Ask'}
+                  </button>
+                  {aiChatMessages.length > 0 && (
+                    <button
+                      onClick={() => setAiChatMessages([])}
+                      className="px-3 py-2 text-xs text-theme-foreground-muted hover:text-white border border-theme-border hover:bg-white/5 transition-colors rounded"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Sidebar - Selected Deals */}
                 <section className="space-y-4">
@@ -1884,30 +2004,155 @@ const PlacementTracker: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Contract Text Input for Analysis */}
+                  <div className="bg-black/30 border border-theme-border p-4 space-y-4">
+                    <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Contract Text for AI Analysis</p>
+                    <textarea
+                      value={contractText}
+                      onChange={(e) => setContractText(e.target.value)}
+                      className={inputClass}
+                      rows={6}
+                      placeholder="Paste your contract text here for AI analysis..."
+                    />
+                  </div>
+
                   {/* AI Analysis Tools */}
                   <div className="bg-black/30 border border-theme-border p-4 space-y-4">
                     <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Legal AI Actions</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <button className="group px-4 py-3 bg-theme-primary text-black text-sm text-left hover:bg-theme-primary-hover transition-colors">
-                        <div className="font-medium mb-1">Analyze Contract</div>
+                      <button
+                        onClick={async () => {
+                          if (!contractText.trim()) {
+                            toast.error('Please paste contract text to analyze');
+                            return;
+                          }
+                          setIsAnalyzing(true);
+                          setAiAnalysisResult(null);
+                          try {
+                            const response = await aiApi.analyzeContract(contractText);
+                            setAiAnalysisResult(response.data.analysis);
+                            toast.success('Contract analyzed successfully!');
+                          } catch (error: any) {
+                            toast.error(error.response?.data?.error || 'Failed to analyze contract');
+                          } finally {
+                            setIsAnalyzing(false);
+                          }
+                        }}
+                        disabled={isAnalyzing || !contractText.trim()}
+                        className="group px-4 py-3 bg-theme-primary text-black text-sm text-left hover:bg-theme-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <div className="font-medium mb-1 flex items-center gap-2">
+                          {isAnalyzing && <Loader2 className="w-4 h-4 animate-spin" />}
+                          Analyze Contract
+                        </div>
                         <div className="text-xs opacity-70">Review terms, identify issues, suggest improvements</div>
                       </button>
 
-                      <button className="px-4 py-3 bg-white/10 border border-theme-border-strong text-white text-sm text-left hover:bg-white/20 transition-colors">
-                        <div className="font-medium mb-1">Generate Agreement</div>
+                      <button
+                        onClick={async () => {
+                          const selectedPlacement = selectedPlacements.size > 0
+                            ? placements.find(p => selectedPlacements.has(p.id))
+                            : null;
+
+                          if (!selectedPlacement) {
+                            toast.error('Please select a placement to generate an agreement');
+                            return;
+                          }
+                          setIsGenerating(true);
+                          setAiGeneratedContract('');
+                          try {
+                            const response = await aiApi.generateContract({
+                              dealType: selectedDealType,
+                              clientName: selectedPlacement.clientFullName,
+                              clientPKA: selectedPlacement.clientPKA,
+                              artistName: selectedPlacement.artistName,
+                              songTitle: selectedPlacement.songTitle,
+                              labelName: selectedPlacement.label,
+                              advance: selectedPlacement.advance,
+                              masterRoyalty: selectedPlacement.masterRoyalty,
+                              publishingPercent: selectedPlacement.pubPercent,
+                              soundExchangeLOD: selectedPlacement.sxLOD,
+                            });
+                            setAiGeneratedContract(response.data.contract);
+                            toast.success('Agreement generated successfully!');
+                          } catch (error: any) {
+                            toast.error(error.response?.data?.error || 'Failed to generate agreement');
+                          } finally {
+                            setIsGenerating(false);
+                          }
+                        }}
+                        disabled={isGenerating || selectedPlacements.size === 0}
+                        className="px-4 py-3 bg-white/10 border border-theme-border-strong text-white text-sm text-left hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <div className="font-medium mb-1 flex items-center gap-2">
+                          {isGenerating && <Loader2 className="w-4 h-4 animate-spin" />}
+                          Generate Agreement
+                        </div>
                         <div className="text-xs text-theme-foreground-secondary">Create producer agreement from placement data</div>
                       </button>
 
-                      <button className="px-4 py-3 bg-white/10 border border-theme-border-strong text-white text-sm text-left hover:bg-white/20 transition-colors">
+                      <button className="px-4 py-3 bg-white/10 border border-theme-border-strong text-white text-sm text-left hover:bg-white/20 transition-colors opacity-50 cursor-not-allowed">
                         <div className="font-medium mb-1">Track Redlines</div>
-                        <div className="text-xs text-theme-foreground-secondary">Compare versions and track changes</div>
+                        <div className="text-xs text-theme-foreground-secondary">Compare versions and track changes (Coming soon)</div>
                       </button>
 
-                      <button className="px-4 py-3 bg-white/10 border border-theme-border-strong text-white text-sm text-left hover:bg-white/20 transition-colors">
-                        <div className="font-medium mb-1">Explain Terms</div>
+                      <button
+                        onClick={async () => {
+                          if (!legalTermsInput.trim()) {
+                            toast.error('Please enter terms to explain');
+                            return;
+                          }
+                          setIsExplainingTerms(true);
+                          setTermExplanations([]);
+                          try {
+                            const terms = legalTermsInput.split(',').map(t => t.trim()).filter(Boolean);
+                            const response = await aiApi.explainTerms(terms);
+                            setTermExplanations(response.data.explanations);
+                            toast.success('Terms explained!');
+                          } catch (error: any) {
+                            toast.error(error.response?.data?.error || 'Failed to explain terms');
+                          } finally {
+                            setIsExplainingTerms(false);
+                          }
+                        }}
+                        disabled={isExplainingTerms || !legalTermsInput.trim()}
+                        className="px-4 py-3 bg-white/10 border border-theme-border-strong text-white text-sm text-left hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <div className="font-medium mb-1 flex items-center gap-2">
+                          {isExplainingTerms && <Loader2 className="w-4 h-4 animate-spin" />}
+                          Explain Terms
+                        </div>
                         <div className="text-xs text-theme-foreground-secondary">Plain English explanations of legal clauses</div>
                       </button>
+                    </div>
+
+                    {/* Deal Type Selector for Agreement Generation */}
+                    <div className="mt-4">
+                      <label className={labelClass}>Agreement Type (for Generate)</label>
+                      <select
+                        value={selectedDealType}
+                        onChange={(e) => setSelectedDealType(e.target.value as any)}
+                        className={inputClass}
+                      >
+                        <option value="producer_agreement">Producer Agreement</option>
+                        <option value="sync_license">Sync License</option>
+                        <option value="work_for_hire">Work for Hire</option>
+                        <option value="split_sheet">Split Sheet</option>
+                        <option value="beat_lease">Beat Lease</option>
+                      </select>
+                    </div>
+
+                    {/* Terms Input for Explain Terms */}
+                    <div className="mt-4">
+                      <label className={labelClass}>Legal Terms to Explain (comma-separated)</label>
+                      <input
+                        type="text"
+                        value={legalTermsInput}
+                        onChange={(e) => setLegalTermsInput(e.target.value)}
+                        className={inputClass}
+                        placeholder="e.g., recoupment, mechanical royalty, sync license, reversion"
+                      />
                     </div>
                   </div>
 
@@ -2022,26 +2267,126 @@ const PlacementTracker: React.FC = () => {
                   <div className="bg-black/30 border border-theme-border p-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">AI Analysis Results</p>
-                      <span className="text-xs text-white/30">No analysis run yet</span>
+                      <span className="text-xs text-white/30">{aiAnalysisResult || aiGeneratedContract || termExplanations.length > 0 ? 'Results ready' : 'No analysis run yet'}</span>
                     </div>
 
-                    <div className="bg-white rounded-lg p-6 text-gray-900 min-h-[200px] flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="text-4xl mb-3">⚖️</div>
-                        <p className="text-sm text-gray-500">Legal AI analysis will appear here</p>
-                        <p className="text-xs text-gray-400 mt-1">Upload a contract and click "Analyze Contract" to begin</p>
-                      </div>
+                    <div className="bg-white rounded-lg p-6 text-gray-900 min-h-[200px] max-h-[500px] overflow-y-auto">
+                      {isAnalyzing || isGenerating || isExplainingTerms ? (
+                        <div className="flex flex-col items-center justify-center h-full">
+                          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-3" />
+                          <p className="text-sm text-gray-500">
+                            {isAnalyzing ? 'Analyzing contract...' : isGenerating ? 'Generating agreement...' : 'Explaining terms...'}
+                          </p>
+                        </div>
+                      ) : aiAnalysisResult ? (
+                        <div className="space-y-4 text-sm">
+                          <div>
+                            <h4 className="font-semibold text-gray-900 mb-2">Summary</h4>
+                            <p className="text-gray-700">{aiAnalysisResult.summary}</p>
+                          </div>
+
+                          {aiAnalysisResult.plainEnglishSummary && (
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Plain English</h4>
+                              <p className="text-gray-700">{aiAnalysisResult.plainEnglishSummary}</p>
+                            </div>
+                          )}
+
+                          {aiAnalysisResult.keyTerms?.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Key Terms</h4>
+                              <div className="space-y-2">
+                                {aiAnalysisResult.keyTerms.map((term: any, i: number) => (
+                                  <div key={i} className={`p-2 rounded border-l-4 ${
+                                    term.concern === 'high' ? 'border-red-500 bg-red-50' :
+                                    term.concern === 'medium' ? 'border-yellow-500 bg-yellow-50' :
+                                    term.concern === 'low' ? 'border-blue-500 bg-blue-50' :
+                                    'border-gray-300 bg-gray-50'
+                                  }`}>
+                                    <span className="font-medium">{term.term}:</span> {term.explanation}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {aiAnalysisResult.redFlags?.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-red-600 mb-2">Red Flags</h4>
+                              <ul className="list-disc list-inside text-red-700 space-y-1">
+                                {aiAnalysisResult.redFlags.map((flag: string, i: number) => (
+                                  <li key={i}>{flag}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {aiAnalysisResult.recommendations?.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-green-600 mb-2">Recommendations</h4>
+                              <ul className="list-disc list-inside text-green-700 space-y-1">
+                                {aiAnalysisResult.recommendations.map((rec: string, i: number) => (
+                                  <li key={i}>{rec}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ) : aiGeneratedContract ? (
+                        <div className="space-y-4">
+                          <h4 className="font-semibold text-gray-900 mb-2">Generated Agreement</h4>
+                          <pre className="whitespace-pre-wrap text-xs text-gray-700 font-mono bg-gray-50 p-4 rounded max-h-[400px] overflow-y-auto">
+                            {aiGeneratedContract}
+                          </pre>
+                        </div>
+                      ) : termExplanations.length > 0 ? (
+                        <div className="space-y-4">
+                          <h4 className="font-semibold text-gray-900 mb-2">Term Explanations</h4>
+                          {termExplanations.map((exp: any, i: number) => (
+                            <div key={i} className="p-3 bg-gray-50 rounded">
+                              <h5 className="font-semibold text-gray-900">{exp.term}</h5>
+                              <p className="text-gray-700 text-sm mt-1"><strong>Definition:</strong> {exp.definition}</p>
+                              <p className="text-gray-700 text-sm mt-1"><strong>Music Industry Context:</strong> {exp.musicIndustryContext}</p>
+                              <p className="text-gray-700 text-sm mt-1"><strong>Example:</strong> {exp.example}</p>
+                              <p className="text-orange-600 text-sm mt-1"><strong>Watch out for:</strong> {exp.watchOutFor}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full">
+                          <div className="text-4xl mb-3">⚖️</div>
+                          <p className="text-sm text-gray-500">Legal AI analysis will appear here</p>
+                          <p className="text-xs text-gray-400 mt-1">Paste a contract and click "Analyze Contract" to begin</p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <button className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors">
-                        Export Analysis Report (PDF)
+                      <button
+                        onClick={() => {
+                          if (aiGeneratedContract) {
+                            navigator.clipboard.writeText(aiGeneratedContract);
+                            toast.success('Contract copied to clipboard!');
+                          } else if (aiAnalysisResult) {
+                            navigator.clipboard.writeText(JSON.stringify(aiAnalysisResult, null, 2));
+                            toast.success('Analysis copied to clipboard!');
+                          }
+                        }}
+                        disabled={!aiAnalysisResult && !aiGeneratedContract}
+                        className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Copy to Clipboard
                       </button>
-                      <button className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors">
-                        Save Legal Package (JSON)
-                      </button>
-                      <button className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors">
-                        Generate Agreement (DOCX)
+                      <button
+                        onClick={() => {
+                          setAiAnalysisResult(null);
+                          setAiGeneratedContract('');
+                          setTermExplanations([]);
+                          setContractText('');
+                        }}
+                        className="px-4 py-2 border border-theme-border-strong text-sm text-theme-foreground-secondary hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        Clear Results
                       </button>
                     </div>
                   </div>
