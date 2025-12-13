@@ -8,9 +8,20 @@ import {
   Grid,
   ContactShadows,
   Stars,
+  useAnimations,
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
+
+// Animation file paths - place converted Mixamo GLB files in public/animations/
+const ANIMATIONS = {
+  idle: '/animations/idle.glb',
+  walking: '/animations/walking.glb',
+  running: '/animations/running.glb',
+} as const;
+
+// Flag to use Mixamo animations vs procedural (set to true once you have the GLB files)
+const USE_MIXAMO_ANIMATIONS = false;
 import { Gamepad2, Music, Briefcase, Users, Mic2 } from 'lucide-react';
 import { useKeyboardControls } from './hooks/useKeyboardControls';
 
@@ -642,6 +653,114 @@ function AnimatedAvatar({
   );
 }
 
+// Mixamo-animated Ready Player Me Avatar
+// Uses pre-made animations from Mixamo for natural movement
+function MixamoAnimatedAvatar({
+  url,
+  isMoving = false,
+  isRunning = false,
+}: {
+  url: string;
+  isMoving?: boolean;
+  isRunning?: boolean;
+}) {
+  const group = useRef<THREE.Group>(null);
+  const { scene } = useGLTF(url);
+
+  // Load animation files
+  const idleGltf = useGLTF(ANIMATIONS.idle);
+  const walkingGltf = useGLTF(ANIMATIONS.walking);
+  const runningGltf = useGLTF(ANIMATIONS.running);
+
+  // Clone scene for this instance
+  const clonedScene = useMemo(() => {
+    const clone = SkeletonUtils.clone(scene);
+    clone.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    return clone;
+  }, [scene]);
+
+  // Collect all animations
+  const animations = useMemo(() => {
+    const anims: THREE.AnimationClip[] = [];
+
+    // Rename animations for easy access
+    if (idleGltf.animations[0]) {
+      const idle = idleGltf.animations[0].clone();
+      idle.name = 'idle';
+      anims.push(idle);
+    }
+    if (walkingGltf.animations[0]) {
+      const walking = walkingGltf.animations[0].clone();
+      walking.name = 'walking';
+      anims.push(walking);
+    }
+    if (runningGltf.animations[0]) {
+      const running = runningGltf.animations[0].clone();
+      running.name = 'running';
+      anims.push(running);
+    }
+
+    return anims;
+  }, [idleGltf.animations, walkingGltf.animations, runningGltf.animations]);
+
+  // Setup animations with the cloned scene
+  const { actions } = useAnimations(animations, group);
+
+  // Current animation state
+  const currentAction = useRef<string>('idle');
+
+  // Handle animation transitions
+  useEffect(() => {
+    if (!actions) return;
+
+    let targetAction = 'idle';
+    if (isMoving) {
+      targetAction = isRunning ? 'running' : 'walking';
+    }
+
+    if (targetAction !== currentAction.current) {
+      const prevAction = actions[currentAction.current];
+      const nextAction = actions[targetAction];
+
+      if (prevAction && nextAction) {
+        // Smooth crossfade between animations
+        prevAction.fadeOut(0.2);
+        nextAction.reset().fadeIn(0.2).play();
+      } else if (nextAction) {
+        nextAction.reset().play();
+      }
+
+      currentAction.current = targetAction;
+    }
+  }, [isMoving, isRunning, actions]);
+
+  // Start idle animation on mount
+  useEffect(() => {
+    if (actions?.idle) {
+      actions.idle.play();
+    }
+  }, [actions]);
+
+  return (
+    <group ref={group}>
+      {/* RPM avatar - positioned so feet are on ground */}
+      <primitive object={clonedScene} position={[0, 0, 0]} />
+    </group>
+  );
+}
+
+// Preload animation files
+if (USE_MIXAMO_ANIMATIONS) {
+  useGLTF.preload(ANIMATIONS.idle);
+  useGLTF.preload(ANIMATIONS.walking);
+  useGLTF.preload(ANIMATIONS.running);
+}
+
 // Simple placeholder avatar when no RPM avatar is loaded
 function PlaceholderAvatar({ isMoving = false }: { isMoving?: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
@@ -905,11 +1024,19 @@ function PlayerController({
       <group ref={playerRef} position={[0, GROUND_Y, 5]}>
         <Suspense fallback={<PlaceholderAvatar isMoving={isMoving} />}>
           {avatarUrl ? (
-            <AnimatedAvatar
-              url={avatarUrl}
-              isMoving={isMoving}
-              isRunning={isRunning}
-            />
+            USE_MIXAMO_ANIMATIONS ? (
+              <MixamoAnimatedAvatar
+                url={avatarUrl}
+                isMoving={isMoving}
+                isRunning={isRunning}
+              />
+            ) : (
+              <AnimatedAvatar
+                url={avatarUrl}
+                isMoving={isMoving}
+                isRunning={isRunning}
+              />
+            )
           ) : (
             <PlaceholderAvatar isMoving={isMoving} />
           )}

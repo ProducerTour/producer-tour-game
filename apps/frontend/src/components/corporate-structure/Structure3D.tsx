@@ -1283,8 +1283,8 @@ function MonkeyShip() {
   // Get keyboard controls for jump
   const [, getKeys] = useKeyboardControls();
 
-  // Load the monkey FBX model
-  const fbx = useFBX('/models/Monkey/FbxUE5/Monkey_B3.Fbx');
+  // Load the monkey FBX model from GitHub releases (too large for Vercel)
+  const fbx = useFBX('https://github.com/ProducerTour/Website/releases/download/v1.0.0-assets/Monkey_B3.Fbx');
 
   // Load optimized web textures
   const diffuseTexture = useTexture('/models/Monkey/Textures_B3/web/Monkey_B3_diffuse_1k.jpg');
