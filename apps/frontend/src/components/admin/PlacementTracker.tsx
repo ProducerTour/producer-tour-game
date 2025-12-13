@@ -1181,7 +1181,7 @@ const PlacementTracker: React.FC = () => {
                   </div>
                   <div className="space-y-3">
                     {selectedPlacements.size === 0 ? (
-                      <p className="text-sm text-theme-foreground-muted">No deals selected yet.</p>
+                      <p className="text-sm text-theme-foreground-secondary">No deals selected yet.</p>
                     ) : (
                       Array.from(selectedPlacements).map(id => {
                         const placement = placements.find(p => p.id === id);
@@ -1801,7 +1801,7 @@ const PlacementTracker: React.FC = () => {
                 <div>
                   <p className="text-xs text-theme-primary tracking-wider uppercase mb-1">Legal AI Tool</p>
                   <h2 className="text-2xl font-light text-theme-foreground">AI Legal Workspace</h2>
-                  <p className="text-sm text-theme-foreground-muted mt-1">Legal AI assists with contract review, redline tracking, agreement drafting, and legal term analysis for your placements.</p>
+                  <p className="text-sm text-theme-foreground-secondary mt-1">Legal AI assists with contract review, redline tracking, agreement drafting, and legal term analysis for your placements.</p>
                 </div>
                 <button
                   onClick={() => setShowLegalModal(false)}
@@ -1816,12 +1816,12 @@ const PlacementTracker: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-theme-primary rounded-full animate-pulse" />
                   <p className="text-sm font-medium text-theme-primary">Ask Legal AI</p>
-                  <span className="text-xs text-theme-foreground-muted">— Ask about contracts, royalties, splits, or any music business legal question</span>
+                  <span className="text-xs text-theme-foreground-secondary">— Ask about contracts, royalties, splits, or any music business legal question</span>
                 </div>
                 <div className="bg-black/30 rounded p-3 max-h-[250px] overflow-y-auto space-y-2">
                   {aiChatMessages.length === 0 ? (
                     <div className="text-center py-4">
-                      <p className="text-sm text-theme-foreground-muted">No messages yet. Try asking:</p>
+                      <p className="text-sm text-theme-foreground">No messages yet. Try asking:</p>
                       <div className="mt-2 flex flex-wrap gap-2 justify-center">
                         <button
                           onClick={() => setAiChatInput("What should I look for in a producer agreement?")}
@@ -1846,14 +1846,14 @@ const PlacementTracker: React.FC = () => {
                   ) : (
                     aiChatMessages.map((msg, i) => (
                       <div key={i} className={`p-3 rounded-lg text-sm ${msg.role === 'user' ? 'bg-theme-primary/20 ml-8' : 'bg-white/10 mr-8'}`}>
-                        <span className="text-xs font-medium text-theme-foreground-muted">{msg.role === 'user' ? 'You' : 'Legal AI'}:</span>
+                        <span className="text-xs font-medium text-theme-foreground-secondary">{msg.role === 'user' ? 'You' : 'Legal AI'}:</span>
                         <p className="text-theme-foreground mt-1 whitespace-pre-wrap">{msg.content}</p>
                       </div>
                     ))
                   )}
                   {isChatting && (
                     <div className="p-3 rounded-lg text-sm bg-white/10 mr-8">
-                      <span className="text-xs font-medium text-theme-foreground-muted">Legal AI:</span>
+                      <span className="text-xs font-medium text-theme-foreground-secondary">Legal AI:</span>
                       <p className="text-theme-foreground mt-1 flex items-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" /> Thinking...
                       </p>
@@ -1924,11 +1924,11 @@ const PlacementTracker: React.FC = () => {
                     <p className="text-sm text-theme-primary">
                       {selectedPlacements.size > 0 ? `${selectedPlacements.size} placements selected` : 'Select placements for legal review.'}
                     </p>
-                    <p className="text-xs text-theme-foreground-muted mt-1">Click rows in the tracker to mark which deals need legal attention.</p>
+                    <p className="text-xs text-theme-foreground-secondary mt-1">Click rows in the tracker to mark which deals need legal attention.</p>
                   </div>
                   <div className="space-y-3">
                     {selectedPlacements.size === 0 ? (
-                      <p className="text-sm text-theme-foreground-muted">No deals selected yet.</p>
+                      <p className="text-sm text-theme-foreground-secondary">No deals selected yet.</p>
                     ) : (
                       Array.from(selectedPlacements).map(id => {
                         const placement = placements.find(p => p.id === id);
@@ -1944,8 +1944,8 @@ const PlacementTracker: React.FC = () => {
                               <div className="text-sm text-theme-foreground">{placement.clientFullName}</div>
                               <div className={`w-2 h-2 rounded-full ${statusColor}`}></div>
                             </div>
-                            <div className="text-xs text-theme-foreground-muted mb-1">{placement.songTitle} - {placement.artistName}</div>
-                            <div className="text-xs text-theme-foreground-muted/50">Status: {placement.agreement}</div>
+                            <div className="text-xs text-theme-foreground-secondary mb-1">{placement.songTitle} - {placement.artistName}</div>
+                            <div className="text-xs text-theme-foreground-secondary">Status: {placement.agreement}</div>
                             {placement.status && (
                               <div className="text-xs text-theme-primary mt-1">Action: {placement.status}</div>
                             )}
@@ -1954,7 +1954,7 @@ const PlacementTracker: React.FC = () => {
                       })
                     )}
                   </div>
-                  <div className="text-xs text-theme-foreground-muted/50 space-y-1">
+                  <div className="text-xs text-theme-foreground-secondary space-y-1">
                     <p>Legal AI tracks agreement status, redlines, and contract versions for each placement.</p>
                     <p>Upload contracts or paste links to enable AI-powered analysis.</p>
                   </div>
@@ -1965,8 +1965,8 @@ const PlacementTracker: React.FC = () => {
                   {/* Contract Analysis Section */}
                   <div className="bg-black/30 border border-theme-border p-4 space-y-4">
                     <div>
-                      <p className="text-xs text-theme-foreground-muted uppercase tracking-wider mb-2">Contract Review</p>
-                      <p className="text-sm text-theme-foreground-secondary">Upload or link to contracts for AI-powered analysis and redline tracking.</p>
+                      <p className="text-xs text-theme-foreground-secondary uppercase tracking-wider mb-2">Contract Review</p>
+                      <p className="text-sm text-theme-foreground">Upload or link to contracts for AI-powered analysis and redline tracking.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1993,20 +1993,20 @@ const PlacementTracker: React.FC = () => {
                     <div>
                       <label className={labelClass}>Contract Upload</label>
                       <div className="border-2 border-dashed border-theme-border-strong p-6 text-center hover:border-theme-border-hover transition-colors">
-                        <div className="text-theme-foreground-muted text-sm mb-2">
+                        <div className="text-theme-foreground-secondary text-sm mb-2">
                           <svg className="mx-auto h-12 w-12 mb-3" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                             <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                           Drop contract file here or click to browse
                         </div>
-                        <p className="text-xs text-white/30">PDF, DOC, DOCX up to 10MB</p>
+                        <p className="text-xs text-theme-foreground-secondary">PDF, DOC, DOCX up to 10MB</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Contract Text Input for Analysis */}
                   <div className="bg-black/30 border border-theme-border p-4 space-y-4">
-                    <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Contract Text for AI Analysis</p>
+                    <p className="text-xs text-theme-foreground-secondary uppercase tracking-wider">Contract Text for AI Analysis</p>
                     <textarea
                       value={contractText}
                       onChange={(e) => setContractText(e.target.value)}
@@ -2018,7 +2018,7 @@ const PlacementTracker: React.FC = () => {
 
                   {/* AI Analysis Tools */}
                   <div className="bg-black/30 border border-theme-border p-4 space-y-4">
-                    <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Legal AI Actions</p>
+                    <p className="text-xs text-theme-foreground-secondary uppercase tracking-wider">Legal AI Actions</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <button
@@ -2158,7 +2158,7 @@ const PlacementTracker: React.FC = () => {
 
                   {/* Legal Terms Reference */}
                   <div className="bg-black/30 border border-theme-border p-4 space-y-4">
-                    <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Deal Terms & Legal Notes</p>
+                    <p className="text-xs text-theme-foreground-secondary uppercase tracking-wider">Deal Terms & Legal Notes</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -2216,7 +2216,7 @@ const PlacementTracker: React.FC = () => {
 
                   {/* Legal Fee Tracking */}
                   <div className="bg-black/30 border border-theme-border p-4 space-y-4">
-                    <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">Legal Fee Information</p>
+                    <p className="text-xs text-theme-foreground-secondary uppercase tracking-wider">Legal Fee Information</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -2266,8 +2266,8 @@ const PlacementTracker: React.FC = () => {
                   {/* AI Analysis Results */}
                   <div className="bg-black/30 border border-theme-border p-4 space-y-4">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs text-theme-foreground-muted uppercase tracking-wider">AI Analysis Results</p>
-                      <span className="text-xs text-white/30">{aiAnalysisResult || aiGeneratedContract || termExplanations.length > 0 ? 'Results ready' : 'No analysis run yet'}</span>
+                      <p className="text-xs text-theme-foreground-secondary uppercase tracking-wider">AI Analysis Results</p>
+                      <span className="text-xs text-theme-foreground-secondary">{aiAnalysisResult || aiGeneratedContract || termExplanations.length > 0 ? 'Results ready' : 'No analysis run yet'}</span>
                     </div>
 
                     <div className="bg-white rounded-lg p-6 text-gray-900 min-h-[200px] max-h-[500px] overflow-y-auto">
