@@ -25,6 +25,7 @@ import { MiniMap } from './MiniMap';
 import { WarpTunnel } from './WarpTunnel';
 import { HoldingsInterior } from './HoldingsInterior';
 import { useRef, useState, useMemo, Suspense, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../../hooks/useSocket';
 import * as THREE from 'three';
 
@@ -1931,7 +1932,8 @@ function PortalController({
   warpProgress,
   setWarpProgress,
   setNearPortal,
-  setOrbitTarget
+  setOrbitTarget,
+  onEnterHoldings
 }: {
   isActive: boolean;
   shipPosition: THREE.Vector3;
@@ -1941,6 +1943,7 @@ function PortalController({
   setWarpProgress: (progress: number) => void;
   setNearPortal: (id: string | null) => void;
   setOrbitTarget: (id: string | null) => void;
+  onEnterHoldings: () => void;
 }) {
   const [, getKeys] = useKeyboardControls();
   const hasEnteredPortal = useRef(false);
@@ -1985,7 +1988,8 @@ function PortalController({
       const newProgress = warpProgress + dt / warpDuration;
       if (newProgress >= 1) {
         setWarpProgress(1);
-        setPortalState('inside');
+        // Navigate to Holdings interior page instead of staying in same scene
+        onEnterHoldings();
       } else {
         setWarpProgress(newProgress);
       }
@@ -2370,7 +2374,8 @@ function Scene({
   setWarpProgress,
   setNearPortal,
   otherPlayers,
-  shipModel
+  shipModel,
+  onEnterHoldings
 }: {
   selectedEntity: string | null;
   setSelectedEntity: (id: string | null) => void;
@@ -2397,6 +2402,7 @@ function Scene({
   setNearPortal: (id: string | null) => void;
   otherPlayers: Player3D[];
   shipModel: 'rocket' | 'fighter' | 'unaf';
+  onEnterHoldings: () => void;
 }) {
   const [isUserInteracting, setIsUserInteracting] = useState(false);
   const interactionTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -2419,168 +2425,176 @@ function Scene({
     }, 3000);
   }, []);
 
+  // Hide exterior when inside Holdings
+  const showExterior = portalState !== 'inside';
+
   return (
     <>
       {/* Depth fog for immersive atmosphere */}
-      <fog attach="fog" args={['#020617', SCALE.FOG_NEAR, SCALE.FOG_FAR]} />
+      {showExterior && <fog attach="fog" args={['#020617', SCALE.FOG_NEAR, SCALE.FOG_FAR]} />}
 
       {/* Lighting - scaled for expanded universe */}
-      <ambientLight intensity={0.3} />
-      <pointLight position={[35, 50, 35]} intensity={2} color="#ffffff" castShadow />
-      <pointLight position={[-35, 35, -35]} intensity={1} color="#3b82f6" />
-      <pointLight position={[0, -15, 0]} intensity={0.6} color="#10b981" />
-      <spotLight
-        position={[0, 100, 0]}
-        intensity={1.5}
-        angle={0.4}
-        penumbra={1}
-        color="#ffffff"
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-      />
-
-      {/* Nebula galaxy background */}
-      <NebulaSkybox />
-
-      {/* Stars background - expanded for 3.5x universe */}
-      <Stars
-        radius={500}
-        depth={200}
-        count={4000}
-        factor={5}
-        saturation={0.5}
-        fade
-        speed={0.2}
-      />
-
-      {/* Environment */}
-      <Environment preset="night" />
-
-      {/* Ambient particles */}
-      <AmbientParticles />
-
-      {/* Orbital rings - scaled 3.5x for expanded universe */}
-      <OrbitalRing radius={70} speed={0.02} color="#3b82f6" thickness={0.08} />
-      <OrbitalRing radius={112} speed={-0.01} color="#a855f7" thickness={0.06} />
-
-      {/* Grid floor */}
-      <GridFloor />
-
-      {/* Flow connections */}
-      {flowConnections.map((connection, index) => (
-        <FlowLine
-          key={index}
-          connection={connection}
-          isActive={!selectedEntity || activeFlows.includes(connection.from + connection.to)}
-          onSelect={setSelectedFlow}
-          isSelected={selectedFlow?.from === connection.from && selectedFlow?.to === connection.to}
-        />
-      ))}
-
-      {/* Money flow using energy pulses in tubes instead of floating $ */}
-
-      {/* Revenue sources */}
-      {revenueSources.map((source) => (
-        <RevenueSourceNode
-          key={source.id}
-          source={source}
-          targetPosition={entities.find(e => e.id === 'admin')?.position || [0, 0, 0]}
-          onSelect={setSelectedRevenue}
-          isSelected={selectedRevenue === source.id}
-        />
-      ))}
-
-      {/* Revenue funnel and ownership beams removed - too cluttered */}
-
-      {/* Entity nodes */}
-      {entities.map((entity) => (
-        <EntityNode
-          key={entity.id}
-          entity={entity}
-          isSelected={selectedEntity === entity.id || orbitTarget === entity.id}
-          onSelect={(id) => {
-            // If in fly mode and not already orbiting, start orbit mode
-            if (flyMode !== 'off' && id && !orbitTarget) {
-              setOrbitTarget(id);
-              setSelectedEntity(id); // Also show the info panel when orbiting
-            } else if (flyMode !== 'off' && orbitTarget === id) {
-              // Clicking same entity while orbiting - exit orbit
-              setOrbitTarget(null);
-              setSelectedEntity(null); // Hide info panel when exiting orbit
-            } else if (flyMode === 'off') {
-              // Normal selection in non-fly mode
-              setSelectedEntity(id);
-            }
-          }}
-          isHovered={hoveredEntity === entity.id}
-          onHover={setHoveredEntity}
-        />
-      ))}
-
-      {/* Camera controller */}
-      <CameraController selectedEntity={selectedEntity} orbitControlsRef={orbitControlsRef} />
-
-      {/* Shield bubble around IP LLC on hover - raised to encapsulate planet */}
-      <ShieldBubble
-        position={(() => {
-          const pos = entities.find(e => e.id === 'ip')?.position || [-8, 2, 4];
-          return [pos[0], pos[1] + 5.5, pos[2]] as [number, number, number];
-        })()}
-        isActive={hoveredEntity === 'ip'}
-      />
-
-      {/* Crown effect for Holdings on hover - raised more for larger planet */}
-      <CrownEffect
-        position={(() => {
-          const pos = entities.find(e => e.id === 'holdings')?.position || [0, 6, 0];
-          return [pos[0], pos[1] + 9.5, pos[2]] as [number, number, number];
-        })()}
-        isActive={hoveredEntity === 'holdings'}
-      />
-
-      {/* Gear effect for Ops LLC on hover - raised to encapsulate planet */}
-      <GearEffect
-        position={(() => {
-          const pos = entities.find(e => e.id === 'ops')?.position || [8, 2, -4];
-          return [pos[0], pos[1] + 5.5, pos[2]] as [number, number, number];
-        })()}
-        isActive={hoveredEntity === 'ops'}
-      />
-
-      {/* Vault effect for Finance LLC on hover - raised to encapsulate planet */}
-      <VaultEffect
-        position={(() => {
-          const pos = entities.find(e => e.id === 'finance')?.position || [8, 2, 4];
-          return [pos[0], pos[1] + 5.5, pos[2]] as [number, number, number];
-        })()}
-        isActive={hoveredEntity === 'finance'}
-      />
-
-      {/* Enhanced pulse effect for PT LLC (Admin) on hover - raised to encapsulate planet */}
-      <AdminPulseEffect
-        position={(() => {
-          const pos = entities.find(e => e.id === 'admin')?.position || [0, 2, 0];
-          return [pos[0], pos[1] + 5.5, pos[2]] as [number, number, number];
-        })()}
-        isActive={hoveredEntity === 'admin'}
-      />
-
-      {/* Pulse waves from PT LLC (admin entity) - always visible */}
-      <PulseWaves position={entities.find(e => e.id === 'admin')?.position || [0, 2, 0]} />
-
-      {/* Compliance warnings for entities with overdue items */}
-      {entities.map((entity) => {
-        const overdueCount = overdueComplianceByEntity[entity.id] || 0;
-        if (overdueCount === 0) return null;
-        return (
-          <ComplianceWarning
-            key={`warning-${entity.id}`}
-            position={entity.position}
-            count={overdueCount}
-            yOffset={complianceOrbiterYOffsets[entity.id] || 2.0}
+      {showExterior && (
+        <>
+          <ambientLight intensity={0.3} />
+          <pointLight position={[35, 50, 35]} intensity={2} color="#ffffff" castShadow />
+          <pointLight position={[-35, 35, -35]} intensity={1} color="#3b82f6" />
+          <pointLight position={[0, -15, 0]} intensity={0.6} color="#10b981" />
+          <spotLight
+            position={[0, 100, 0]}
+            intensity={1.5}
+            angle={0.4}
+            penumbra={1}
+            color="#ffffff"
+            castShadow
+            shadow-mapSize={[2048, 2048]}
           />
-        );
-      })}
+
+          {/* Nebula galaxy background */}
+          <NebulaSkybox />
+
+          {/* Stars background - expanded for 3.5x universe */}
+          <Stars
+            radius={500}
+            depth={200}
+            count={4000}
+            factor={5}
+            saturation={0.5}
+            fade
+            speed={0.2}
+          />
+
+          {/* Environment */}
+          <Environment preset="night" />
+
+          {/* Ambient particles */}
+          <AmbientParticles />
+
+          {/* Orbital rings - scaled 3.5x for expanded universe */}
+          <OrbitalRing radius={70} speed={0.02} color="#3b82f6" thickness={0.08} />
+          <OrbitalRing radius={112} speed={-0.01} color="#a855f7" thickness={0.06} />
+
+          {/* Grid floor */}
+          <GridFloor />
+        </>
+      )}
+
+      {/* Exterior scene elements - hidden when inside Holdings */}
+      {showExterior && (
+        <>
+          {/* Flow connections */}
+          {flowConnections.map((connection, index) => (
+            <FlowLine
+              key={index}
+              connection={connection}
+              isActive={!selectedEntity || activeFlows.includes(connection.from + connection.to)}
+              onSelect={setSelectedFlow}
+              isSelected={selectedFlow?.from === connection.from && selectedFlow?.to === connection.to}
+            />
+          ))}
+
+          {/* Revenue sources */}
+          {revenueSources.map((source) => (
+            <RevenueSourceNode
+              key={source.id}
+              source={source}
+              targetPosition={entities.find(e => e.id === 'admin')?.position || [0, 0, 0]}
+              onSelect={setSelectedRevenue}
+              isSelected={selectedRevenue === source.id}
+            />
+          ))}
+
+          {/* Entity nodes */}
+          {entities.map((entity) => (
+            <EntityNode
+              key={entity.id}
+              entity={entity}
+              isSelected={selectedEntity === entity.id || orbitTarget === entity.id}
+              onSelect={(id) => {
+                // If in fly mode and not already orbiting, start orbit mode
+                if (flyMode !== 'off' && id && !orbitTarget) {
+                  setOrbitTarget(id);
+                  setSelectedEntity(id); // Also show the info panel when orbiting
+                } else if (flyMode !== 'off' && orbitTarget === id) {
+                  // Clicking same entity while orbiting - exit orbit
+                  setOrbitTarget(null);
+                  setSelectedEntity(null); // Hide info panel when exiting orbit
+                } else if (flyMode === 'off') {
+                  // Normal selection in non-fly mode
+                  setSelectedEntity(id);
+                }
+              }}
+              isHovered={hoveredEntity === entity.id}
+              onHover={setHoveredEntity}
+            />
+          ))}
+
+          {/* Camera controller */}
+          <CameraController selectedEntity={selectedEntity} orbitControlsRef={orbitControlsRef} />
+
+          {/* Shield bubble around IP LLC on hover - raised to encapsulate planet */}
+          <ShieldBubble
+            position={(() => {
+              const pos = entities.find(e => e.id === 'ip')?.position || [-8, 2, 4];
+              return [pos[0], pos[1] + 5.5, pos[2]] as [number, number, number];
+            })()}
+            isActive={hoveredEntity === 'ip'}
+          />
+
+          {/* Crown effect for Holdings on hover - raised more for larger planet */}
+          <CrownEffect
+            position={(() => {
+              const pos = entities.find(e => e.id === 'holdings')?.position || [0, 6, 0];
+              return [pos[0], pos[1] + 9.5, pos[2]] as [number, number, number];
+            })()}
+            isActive={hoveredEntity === 'holdings'}
+          />
+
+          {/* Gear effect for Ops LLC on hover - raised to encapsulate planet */}
+          <GearEffect
+            position={(() => {
+              const pos = entities.find(e => e.id === 'ops')?.position || [8, 2, -4];
+              return [pos[0], pos[1] + 5.5, pos[2]] as [number, number, number];
+            })()}
+            isActive={hoveredEntity === 'ops'}
+          />
+
+          {/* Vault effect for Finance LLC on hover - raised to encapsulate planet */}
+          <VaultEffect
+            position={(() => {
+              const pos = entities.find(e => e.id === 'finance')?.position || [8, 2, 4];
+              return [pos[0], pos[1] + 5.5, pos[2]] as [number, number, number];
+            })()}
+            isActive={hoveredEntity === 'finance'}
+          />
+
+          {/* Enhanced pulse effect for PT LLC (Admin) on hover - raised to encapsulate planet */}
+          <AdminPulseEffect
+            position={(() => {
+              const pos = entities.find(e => e.id === 'admin')?.position || [0, 2, 0];
+              return [pos[0], pos[1] + 5.5, pos[2]] as [number, number, number];
+            })()}
+            isActive={hoveredEntity === 'admin'}
+          />
+
+          {/* Pulse waves from PT LLC (admin entity) - always visible */}
+          <PulseWaves position={entities.find(e => e.id === 'admin')?.position || [0, 2, 0]} />
+
+          {/* Compliance warnings for entities with overdue items */}
+          {entities.map((entity) => {
+            const overdueCount = overdueComplianceByEntity[entity.id] || 0;
+            if (overdueCount === 0) return null;
+            return (
+              <ComplianceWarning
+                key={`warning-${entity.id}`}
+                position={entity.position}
+                count={overdueCount}
+                yOffset={complianceOrbiterYOffsets[entity.id] || 2.0}
+              />
+            );
+          })}
+        </>
+      )}
 
       {/* Spaceship fly mode components */}
       {flyMode !== 'off' && portalState === 'outside' && (
@@ -2651,6 +2665,7 @@ function Scene({
           setWarpProgress={setWarpProgress}
           setNearPortal={setNearPortal}
           setOrbitTarget={setOrbitTarget}
+          onEnterHoldings={onEnterHoldings}
         />
       )}
 
@@ -2670,33 +2685,35 @@ function Scene({
         }}
       />
 
-      {/* Other multiplayer players */}
-      {otherPlayers.map((player) => (
+      {/* Other multiplayer players - only shown in exterior */}
+      {showExterior && otherPlayers.map((player) => (
         <OtherPlayerShip key={player.id} player={player} />
       ))}
 
-      {/* Controls - adjusted for expanded 3.5x universe */}
-      <OrbitControls
-        ref={orbitControlsRef}
-        enabled={flyMode === 'off'}
-        enablePan={true}
-        enableZoom={true}
-        enableRotate={true}
-        minDistance={SCALE.ZOOM_MIN}
-        maxDistance={SCALE.ZOOM_MAX}
-        target={[0, 10, 0]} // Center for expanded layout
-        maxPolarAngle={Math.PI / 2 + 0.3}
-        minPolarAngle={0.3}
-        autoRotate={!selectedEntity && !isUserInteracting && flyMode === 'off'}
-        autoRotateSpeed={0.1}
-        enableDamping={true}
-        dampingFactor={0.06}
-        rotateSpeed={0.5}
-        zoomSpeed={1.2}
-        panSpeed={0.8}
-        onStart={handleInteractionStart}
-        onEnd={handleInteractionEnd}
-      />
+      {/* Controls - adjusted for expanded 3.5x universe, disabled when inside Holdings */}
+      {showExterior && (
+        <OrbitControls
+          ref={orbitControlsRef}
+          enabled={flyMode === 'off'}
+          enablePan={true}
+          enableZoom={true}
+          enableRotate={true}
+          minDistance={SCALE.ZOOM_MIN}
+          maxDistance={SCALE.ZOOM_MAX}
+          target={[0, 10, 0]} // Center for expanded layout
+          maxPolarAngle={Math.PI / 2 + 0.3}
+          minPolarAngle={0.3}
+          autoRotate={!selectedEntity && !isUserInteracting && flyMode === 'off'}
+          autoRotateSpeed={0.1}
+          enableDamping={true}
+          dampingFactor={0.06}
+          rotateSpeed={0.5}
+          zoomSpeed={1.2}
+          panSpeed={0.8}
+          onStart={handleInteractionStart}
+          onEnd={handleInteractionEnd}
+        />
+      )}
 
       {/* Post-processing disabled - incompatible with three.js 0.182+ */}
     </>
@@ -3218,6 +3235,7 @@ function FlowLegend() {
 // ============================================================================
 
 export function Structure3D() {
+  const navigate = useNavigate();
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
   const [hoveredEntity, setHoveredEntity] = useState<string | null>(null);
   const [selectedFlow, setSelectedFlow] = useState<FlowConnection | null>(null);
@@ -3279,6 +3297,11 @@ export function Structure3D() {
     if (soundEnabled && id) playSelectSound();
     setSelectedRevenue(id);
   }, [soundEnabled, playSelectSound]);
+
+  // Navigate to Holdings interior page when warp completes
+  const handleEnterHoldings = useCallback(() => {
+    navigate('/tools/corporate-structure/holdings');
+  }, [navigate]);
 
   // Initialize audio on first click
   const handleContainerClick = useCallback(() => {
@@ -3998,6 +4021,7 @@ export function Structure3D() {
               setNearPortal={setNearPortal}
               otherPlayers={otherPlayers}
               shipModel={shipModel}
+              onEnterHoldings={handleEnterHoldings}
             />
           </Suspense>
         </Canvas>

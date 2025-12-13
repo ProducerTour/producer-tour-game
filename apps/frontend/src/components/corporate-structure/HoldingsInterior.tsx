@@ -427,7 +427,6 @@ export function HoldingsInterior({ onExit, isActive }: HoldingsInteriorProps) {
         color="#60a5fa"
         anchorX="center"
         anchorY="middle"
-        font="/fonts/Inter-Bold.woff"
       >
         Producer Tour Holdings, Inc.
       </Text>
@@ -449,7 +448,7 @@ export function HoldingsInterior({ onExit, isActive }: HoldingsInteriorProps) {
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-80 bg-slate-900/95 backdrop-blur-xl rounded-xl border border-green-500/30 shadow-2xl overflow-hidden"
+              className="absolute left-4 top-20 w-80 max-h-[calc(100vh-10rem)] bg-slate-900/95 backdrop-blur-xl rounded-xl border border-green-500/30 shadow-2xl overflow-hidden flex flex-col"
             >
               <div className="p-4 border-b border-green-500/20 bg-green-500/10">
                 <h3 className="text-lg font-bold text-green-400 flex items-center gap-2">
@@ -459,7 +458,7 @@ export function HoldingsInterior({ onExit, isActive }: HoldingsInteriorProps) {
                 <p className="text-xs text-green-300/70 mt-1">Complete these to become operational</p>
               </div>
 
-              <div className="p-3 space-y-2 max-h-[400px] overflow-y-auto">
+              <div className="p-3 space-y-2 flex-1 overflow-y-auto">
                 {holdingsQuests.map((quest) => (
                   <div
                     key={quest.id}
@@ -524,7 +523,7 @@ export function HoldingsInterior({ onExit, isActive }: HoldingsInteriorProps) {
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 50 }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-80 bg-slate-900/95 backdrop-blur-xl rounded-xl border border-purple-500/30 shadow-2xl overflow-hidden"
+              className="absolute right-4 top-20 w-80 max-h-[calc(100vh-10rem)] bg-slate-900/95 backdrop-blur-xl rounded-xl border border-purple-500/30 shadow-2xl overflow-hidden flex flex-col"
             >
               <div className="p-4 border-b border-purple-500/20 bg-purple-500/10">
                 <h3 className="text-lg font-bold text-purple-400 flex items-center gap-2">
@@ -534,7 +533,7 @@ export function HoldingsInterior({ onExit, isActive }: HoldingsInteriorProps) {
                 <p className="text-xs text-purple-300/70 mt-1">Critical compliance documents</p>
               </div>
 
-              <div className="p-3 space-y-2 max-h-[400px] overflow-y-auto">
+              <div className="p-3 space-y-2 flex-1 overflow-y-auto">
                 {complianceDocs.map((doc) => (
                   <div
                     key={doc.id}

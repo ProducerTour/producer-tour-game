@@ -56,6 +56,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import ToolsPage from './pages/ToolsPage';
 import TrifectaPlannerPage from './pages/TrifectaPlannerPage';
 import CorporateStructurePage from './pages/CorporateStructurePage';
+import HoldingsInteriorPage from './pages/HoldingsInteriorPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -340,6 +341,14 @@ function App() {
           element={
             <PrivateRoute roles={['ADMIN']}>
               <CorporateStructurePage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/tools/corporate-structure/holdings"
+          element={
+            <PrivateRoute roles={['ADMIN']}>
+              <HoldingsInteriorPage />
             </PrivateRoute>
           }
         />
