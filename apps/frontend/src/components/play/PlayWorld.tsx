@@ -7,20 +7,21 @@ import {
   useGLTF,
   Grid,
   ContactShadows,
-  Stars
+  Stars,
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { Gamepad2, Music, Briefcase, Users, Mic2 } from 'lucide-react';
 import { useKeyboardControls } from './hooks/useKeyboardControls';
 
-// Debug mode - set to true to see bone helpers and debug panel
-const DEBUG_MODE = true;
+// Debug mode - toggle with backtick (`) key
+let DEBUG_MODE = false;
 
-// Movement constants
-const WALK_SPEED = 4;
-const SPRINT_SPEED = 8;
-const ROTATION_SPEED = 10;
+// Movement constants - realistic speeds (1 unit = ~1 meter)
+// Average human walk: ~1.4 m/s, jog: ~2.5 m/s, run: ~4-5 m/s
+const WALK_SPEED = 2.5;
+const SPRINT_SPEED = 5;
+const ROTATION_SPEED = 8;
 
 // Ready Player Me uses Mixamo bone naming convention
 // See: https://docs.readyplayer.me/ready-player-me/api-reference/avatars/full-body-avatars
@@ -69,6 +70,12 @@ const ARM_ROTATION = {
   angle: 1.31, // radians (75 degrees)
 };
 
+// Foot rotation settings - X axis at 0.86 rad (49°) for flat feet
+const FOOT_ROTATION = {
+  axis: 'x' as const,
+  angle: 0.86, // radians (49 degrees)
+};
+
 // Debug state for real-time adjustments
 const debugState = {
   armDownAngle: ARM_ROTATION.angle,
@@ -86,19 +93,12 @@ function DebugPanel({
   const [selectedBone, setSelectedBone] = useState<'arms' | 'feet'>('feet');
   const [angle, setAngle] = useState(0);
   const [rotAxis, setRotAxis] = useState<'x' | 'y' | 'z'>('x');
-  const [updateCounter, setUpdateCounter] = useState(0);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const panelRef = useRef<HTMLDivElement>(null);
   const leftFoot = boneMap.get(BONE_NAMES.leftFoot);
   const leftArm = boneMap.get(BONE_NAMES.leftArm);
-
-  // Force re-render to update rotation display
-  useEffect(() => {
-    const interval = setInterval(() => setUpdateCounter(c => c + 1), 100);
-    return () => clearInterval(interval);
-  }, []);
 
   // Handle drag
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -274,27 +274,28 @@ function DebugPanel({
   );
 }
 
-// Helper function to set idle pose with arms at sides
+// Helper function to set idle pose with arms at sides and feet flat
 function setIdlePose(boneMap: Map<string, THREE.Bone>) {
   const leftArm = boneMap.get(BONE_NAMES.leftArm);
   const rightArm = boneMap.get(BONE_NAMES.rightArm);
   const leftForeArm = boneMap.get(BONE_NAMES.leftForeArm);
   const rightForeArm = boneMap.get(BONE_NAMES.rightForeArm);
+  const leftFoot = boneMap.get(BONE_NAMES.leftFoot);
+  const rightFoot = boneMap.get(BONE_NAMES.rightFoot);
 
-  // Use X axis rotation at 1.31 rad (75°) for natural arm position
+  // Arms: X axis rotation at 1.31 rad (75°) for natural position
   const armAngle = ARM_ROTATION.angle;
-  const axisVector = new THREE.Vector3(1, 0, 0); // X axis
+  const xAxis = new THREE.Vector3(1, 0, 0);
 
   if (leftArm) {
     leftArm.quaternion.identity();
-    const rotQ = new THREE.Quaternion().setFromAxisAngle(axisVector, armAngle);
+    const rotQ = new THREE.Quaternion().setFromAxisAngle(xAxis, armAngle);
     leftArm.quaternion.multiply(rotQ);
     originalArmQuaternions.leftArm.copy(leftArm.quaternion);
   }
   if (rightArm) {
     rightArm.quaternion.identity();
-    // X axis rotation is the same for both arms (not mirrored)
-    const rotQ = new THREE.Quaternion().setFromAxisAngle(axisVector, armAngle);
+    const rotQ = new THREE.Quaternion().setFromAxisAngle(xAxis, armAngle);
     rightArm.quaternion.multiply(rotQ);
     originalArmQuaternions.rightArm.copy(rightArm.quaternion);
   }
@@ -302,6 +303,22 @@ function setIdlePose(boneMap: Map<string, THREE.Bone>) {
   // Keep forearms in their position relative to upper arms
   if (leftForeArm) originalArmQuaternions.leftForeArm.copy(leftForeArm.quaternion);
   if (rightForeArm) originalArmQuaternions.rightForeArm.copy(rightForeArm.quaternion);
+
+  // Feet: X axis rotation at 0.86 rad (49°) for flat positioning
+  const footAngle = FOOT_ROTATION.angle;
+
+  if (leftFoot) {
+    leftFoot.quaternion.identity();
+    const rotQ = new THREE.Quaternion().setFromAxisAngle(xAxis, footAngle);
+    leftFoot.quaternion.multiply(rotQ);
+    originalFootQuaternions.leftFoot.copy(leftFoot.quaternion);
+  }
+  if (rightFoot) {
+    rightFoot.quaternion.identity();
+    const rotQ = new THREE.Quaternion().setFromAxisAngle(xAxis, footAngle);
+    rightFoot.quaternion.multiply(rotQ);
+    originalFootQuaternions.rightFoot.copy(rightFoot.quaternion);
+  }
 }
 
 // Animated Ready Player Me Avatar with procedural bone animation
@@ -327,6 +344,25 @@ function AnimatedAvatar({
   const idlePhase = useRef(0);
   const initialized = useRef(false);
   const [boneMapState, setBoneMapState] = useState<Map<string, THREE.Bone>>(new Map());
+  const [debugMode, setDebugMode] = useState(DEBUG_MODE);
+
+  // Toggle debug mode with backtick key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '`' || e.key === '~') {
+        DEBUG_MODE = !DEBUG_MODE;
+        setDebugMode(DEBUG_MODE);
+        console.log(`🔧 Debug mode: ${DEBUG_MODE ? 'ON' : 'OFF'}`);
+
+        // Reset to default pose when exiting debug mode
+        if (!DEBUG_MODE && bones.current.size > 0) {
+          setIdlePose(bones.current);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Clone scene for this instance
   const clonedScene = useMemo(() => {
@@ -391,6 +427,13 @@ function AnimatedAvatar({
       }
     };
   }, [clonedScene, threeScene]);
+
+  // Update skeleton helper visibility when debug mode changes
+  useEffect(() => {
+    if (skeletonHelperRef.current) {
+      skeletonHelperRef.current.visible = debugMode;
+    }
+  }, [debugMode]);
 
   // Handle real-time bone angle adjustment with axis selection
   const handleBoneAngleChange = useCallback((bone: 'arms' | 'feet', newAngle: number, axis: 'x' | 'y' | 'z' = 'x') => {
@@ -479,12 +522,12 @@ function AnimatedAvatar({
         rightUpLeg.rotation.x = Math.sin(t + Math.PI) * legSwingAmount;
       }
 
-      // Lower legs (knees) - bend when leg goes back
+      // Lower legs (knees) - bend naturally (negative X to bend forward like human knees)
       if (leftLeg) {
-        leftLeg.rotation.x = Math.max(0, Math.sin(t - 0.5)) * kneeAmount;
+        leftLeg.rotation.x = -Math.max(0, Math.sin(t - 0.5)) * kneeAmount;
       }
       if (rightLeg) {
-        rightLeg.rotation.x = Math.max(0, Math.sin(t + Math.PI - 0.5)) * kneeAmount;
+        rightLeg.rotation.x = -Math.max(0, Math.sin(t + Math.PI - 0.5)) * kneeAmount;
       }
 
       // Feet - use stored quaternion for flat positioning
@@ -495,13 +538,13 @@ function AnimatedAvatar({
         rightFoot.quaternion.copy(originalFootQuaternions.rightFoot);
       }
 
-      // Arms: add swing to original position
+      // Arms: swing front/back using Z axis (since arms are rotated to sides)
       if (leftArm) {
-        const swingQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.sin(t + Math.PI) * armSwingAmount);
+        const swingQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.sin(t + Math.PI) * armSwingAmount);
         leftArm.quaternion.copy(originalArmQuaternions.leftArm).multiply(swingQ);
       }
       if (rightArm) {
-        const swingQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.sin(t) * armSwingAmount);
+        const swingQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.sin(t) * armSwingAmount);
         rightArm.quaternion.copy(originalArmQuaternions.rightArm).multiply(swingQ);
       }
 
@@ -513,14 +556,27 @@ function AnimatedAvatar({
         rightForeArm.quaternion.copy(originalArmQuaternions.rightForeArm);
       }
 
-      // Subtle hip bob
+      // Hip bob and slight rotation
       if (hips) {
         hips.position.y = Math.abs(Math.sin(t * 2)) * 0.008;
+        hips.rotation.z = Math.sin(t) * 0.03; // Side-to-side hip sway
       }
 
-      // Spine subtle sway
+      // Spine sway and lean
       if (spine) {
-        spine.rotation.y = Math.sin(t) * 0.02;
+        spine.rotation.y = Math.sin(t) * 0.04; // Twist with walk
+        spine.rotation.z = Math.sin(t) * -0.02; // Counter-sway to hips
+      }
+
+      // Head bob and look
+      const head = boneMap.get(BONE_NAMES.head);
+      const neck = boneMap.get(BONE_NAMES.neck);
+      if (head) {
+        head.rotation.y = Math.sin(t * 0.5) * 0.03; // Subtle side look
+        head.rotation.x = Math.sin(t * 2) * 0.02; // Slight nod with steps
+      }
+      if (neck) {
+        neck.rotation.z = Math.sin(t) * 0.02; // Neck follows spine
       }
 
     } else {
@@ -545,15 +601,28 @@ function AnimatedAvatar({
       if (leftForeArm) leftForeArm.quaternion.copy(originalArmQuaternions.leftForeArm);
       if (rightForeArm) rightForeArm.quaternion.copy(originalArmQuaternions.rightForeArm);
 
+      // Reset head and neck
+      const head = boneMap.get(BONE_NAMES.head);
+      const neck = boneMap.get(BONE_NAMES.neck);
+      if (head) {
+        head.rotation.x = 0;
+        head.rotation.y = 0;
+      }
+      if (neck) {
+        neck.rotation.z = 0;
+      }
+
       // Subtle breathing - gentle spine movement
       if (spine) {
         spine.rotation.x = Math.sin(t) * 0.01;
         spine.rotation.y = 0;
+        spine.rotation.z = 0;
       }
 
       // Very subtle hip sway for breathing
       if (hips) {
         hips.position.y = Math.sin(t) * 0.002;
+        hips.rotation.z = 0;
       }
     }
   });
@@ -561,10 +630,10 @@ function AnimatedAvatar({
   return (
     <group ref={group}>
       {/* RPM avatar origin is at hips - lift up so feet are on ground */}
-      <primitive object={clonedScene} position={[0, 0.93, 0]} />
+      <primitive object={clonedScene} position={[0, 1.0, 0]} />
 
       {/* Debug panel rendered as HTML overlay */}
-      {DEBUG_MODE && boneMapState.size > 0 && (
+      {debugMode && boneMapState.size > 0 && (
         <Html position={[0, 3, 0]} center style={{ pointerEvents: 'auto' }}>
           <DebugPanel boneMap={boneMapState} onBoneAngleChange={handleBoneAngleChange} />
         </Html>
@@ -930,32 +999,112 @@ function ZoneMarker({
   );
 }
 
-// Cyberpunk ground - solid floor
+// Generate procedural concrete texture
+function createConcreteTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d')!;
+
+  // Base concrete color - dark asphalt
+  ctx.fillStyle = '#1a1a22';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Add noise for texture variation
+  const imageData = ctx.getImageData(0, 0, 512, 512);
+  const data = imageData.data;
+
+  for (let i = 0; i < data.length; i += 4) {
+    // Random noise for concrete grain
+    const noise = (Math.random() - 0.5) * 20;
+    data[i] = Math.min(255, Math.max(0, data[i] + noise));     // R
+    data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise)); // G
+    data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise)); // B
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+
+  // Add some cracks and lines
+  ctx.strokeStyle = 'rgba(30, 30, 40, 0.3)';
+  ctx.lineWidth = 1;
+
+  // Random cracks
+  for (let i = 0; i < 15; i++) {
+    ctx.beginPath();
+    const startX = Math.random() * 512;
+    const startY = Math.random() * 512;
+    ctx.moveTo(startX, startY);
+
+    let x = startX;
+    let y = startY;
+    for (let j = 0; j < 8; j++) {
+      x += (Math.random() - 0.5) * 60;
+      y += (Math.random() - 0.5) * 60;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // Subtle concrete slabs (expansion joints)
+  ctx.strokeStyle = 'rgba(40, 40, 50, 0.5)';
+  ctx.lineWidth = 2;
+
+  // Horizontal lines every ~128 pixels
+  for (let y = 128; y < 512; y += 128) {
+    ctx.beginPath();
+    ctx.moveTo(0, y + (Math.random() - 0.5) * 4);
+    ctx.lineTo(512, y + (Math.random() - 0.5) * 4);
+    ctx.stroke();
+  }
+
+  // Vertical lines
+  for (let x = 128; x < 512; x += 128) {
+    ctx.beginPath();
+    ctx.moveTo(x + (Math.random() - 0.5) * 4, 0);
+    ctx.lineTo(x + (Math.random() - 0.5) * 4, 512);
+    ctx.stroke();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
+
+// Cyberpunk ground - concrete street with grid overlay
 function CyberpunkGround() {
+  // Create procedural concrete texture
+  const concreteTexture = useMemo(() => {
+    const texture = createConcreteTexture();
+    // 1 unit = 1 meter, tile every 4 meters for realistic scale
+    texture.repeat.set(125, 125); // 500m / 4m per tile = 125 tiles
+    return texture;
+  }, []);
+
   return (
     <>
-      {/* Solid ground plane */}
+      {/* Concrete street surface */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[500, 500]} />
         <meshStandardMaterial
-          color="#0f0f18"
-          metalness={0.6}
-          roughness={0.5}
+          map={concreteTexture}
+          metalness={0.1}
+          roughness={0.9}
         />
       </mesh>
 
-      {/* Grid overlay */}
+      {/* Grid overlay - neon lines on the concrete */}
       <Grid
-        position={[0, 0.005, 0]}
+        position={[0, 0.008, 0]}
         args={[200, 200]}
         cellSize={2}
-        cellThickness={0.6}
+        cellThickness={0.4}
         cellColor="#1a1a2e"
         sectionSize={10}
-        sectionThickness={1.2}
+        sectionThickness={1}
         sectionColor="#8b5cf6"
-        fadeDistance={80}
-        fadeStrength={1}
+        fadeDistance={60}
+        fadeStrength={1.5}
         infiniteGrid
       />
     </>
