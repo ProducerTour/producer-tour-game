@@ -653,12 +653,16 @@ function FlowLine({
   if (connection.type === 'ownership') {
     mid.y += 2;
   } else {
-    const perpendicular = new THREE.Vector3()
-      .subVectors(end, start)
-      .cross(new THREE.Vector3(0, 1, 0))
-      .normalize()
-      .multiplyScalar(2);
-    mid.add(perpendicular);
+    const direction = new THREE.Vector3().subVectors(end, start);
+    const perpendicular = direction.clone().cross(new THREE.Vector3(0, 1, 0));
+    // Only normalize if not a zero vector (happens when direction is parallel to Y axis)
+    if (perpendicular.lengthSq() > 0.0001) {
+      perpendicular.normalize().multiplyScalar(2);
+      mid.add(perpendicular);
+    } else {
+      // Fallback: offset in X direction when vertical
+      mid.x += 2;
+    }
     mid.y += 1;
   }
 
