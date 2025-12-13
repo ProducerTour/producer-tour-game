@@ -30,11 +30,14 @@ interface Player3D {
   position: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number };
   color: string;
+  shipModel: 'rocket' | 'fighter' | 'unaf' | 'monkey';
   lastUpdate: number;
+  room: 'space' | 'holdings'; // Which room they're in
 }
 
 const players3D = new Map<string, Player3D>();
 const PLAYER_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
+const SHIP_MODELS: ('rocket' | 'fighter' | 'unaf' | 'monkey')[] = ['rocket', 'fighter', 'unaf', 'monkey'];
 
 export function initializeSocket(httpServer: HttpServer): Server {
   const allowedOrigins = [
@@ -383,9 +386,13 @@ export function initializeSocket(httpServer: HttpServer): Server {
     // === 3D MULTIPLAYER EVENTS ===
 
     // Join 3D corporate structure room
-    socket.on('3d:join', async (data: { username: string }) => {
+    socket.on('3d:join', async (data: { username: string; shipModel?: string; room?: 'space' | 'holdings' }) => {
       try {
         const username = data.username || `User_${socket.id.slice(0, 4)}`;
+        const room = data.room || 'space';
+        const shipModel = (SHIP_MODELS.includes(data.shipModel as typeof SHIP_MODELS[number])
+          ? data.shipModel
+          : 'rocket') as Player3D['shipModel'];
 
         // Assign a random color to this player
         const colorIndex = players3D.size % PLAYER_COLORS.length;
@@ -395,26 +402,30 @@ export function initializeSocket(httpServer: HttpServer): Server {
         const player: Player3D = {
           id: socket.id,
           username,
-          position: { x: 20, y: 10, z: 20 }, // Starting position
-          rotation: { x: 0, y: -Math.PI / 4, z: 0 },
+          position: room === 'holdings' ? { x: 0, y: 2, z: 5 } : { x: 20, y: 10, z: 20 }, // Starting position based on room
+          rotation: { x: 0, y: room === 'holdings' ? 0 : -Math.PI / 4, z: 0 },
           color,
+          shipModel,
           lastUpdate: Date.now(),
+          room,
         };
 
         players3D.set(socket.id, player);
-        socket.join('3d-room');
+        const socketRoom = room === 'holdings' ? '3d-holdings-room' : '3d-room';
+        socket.join(socketRoom);
 
-        console.log(`🚀 Player ${username} (${socket.id}) joined 3D room`);
+        console.log(`🚀 Player ${username} (${socket.id}) joined ${socketRoom} with ship: ${shipModel}`);
 
-        // Send current players to new joiner
-        const currentPlayers = Array.from(players3D.values()).filter(p => p.id !== socket.id);
+        // Send current players in the same room to new joiner
+        const currentPlayers = Array.from(players3D.values()).filter(p => p.id !== socket.id && p.room === room);
         socket.emit('3d:players', currentPlayers);
 
-        // Broadcast new player to others in room
-        socket.to('3d-room').emit('3d:player-joined', player);
+        // Broadcast new player to others in same room
+        socket.to(socketRoom).emit('3d:player-joined', player);
 
-        // Send player count update
-        io?.to('3d-room').emit('3d:player-count', players3D.size);
+        // Send player count update for this room
+        const roomPlayerCount = Array.from(players3D.values()).filter(p => p.room === room).length;
+        io?.to(socketRoom).emit('3d:player-count', roomPlayerCount);
       } catch (error) {
         console.error('Error joining 3D room:', error);
       }
@@ -424,11 +435,14 @@ export function initializeSocket(httpServer: HttpServer): Server {
     socket.on('3d:leave', () => {
       const player = players3D.get(socket.id);
       if (player) {
-        console.log(`🚀 Player ${player.username} (${socket.id}) left 3D room`);
+        const socketRoom = player.room === 'holdings' ? '3d-holdings-room' : '3d-room';
+        console.log(`🚀 Player ${player.username} (${socket.id}) left ${socketRoom}`);
+        const playerRoom = player.room;
         players3D.delete(socket.id);
-        socket.leave('3d-room');
-        socket.to('3d-room').emit('3d:player-left', { id: socket.id });
-        io?.to('3d-room').emit('3d:player-count', players3D.size);
+        socket.leave(socketRoom);
+        socket.to(socketRoom).emit('3d:player-left', { id: socket.id });
+        const roomPlayerCount = Array.from(players3D.values()).filter(p => p.room === playerRoom).length;
+        io?.to(socketRoom).emit('3d:player-count', roomPlayerCount);
       }
     });
 
@@ -443,11 +457,26 @@ export function initializeSocket(httpServer: HttpServer): Server {
         player.rotation = data.rotation;
         player.lastUpdate = Date.now();
 
-        // Broadcast position to others (throttled by client)
-        socket.to('3d-room').emit('3d:player-moved', {
+        // Broadcast position to others in same room (throttled by client)
+        const socketRoom = player.room === 'holdings' ? '3d-holdings-room' : '3d-room';
+        socket.to(socketRoom).emit('3d:player-moved', {
           id: socket.id,
           position: data.position,
           rotation: data.rotation,
+        });
+      }
+    });
+
+    // Update ship model
+    socket.on('3d:set-ship', (data: { shipModel: string }) => {
+      const player = players3D.get(socket.id);
+      if (player && SHIP_MODELS.includes(data.shipModel as typeof SHIP_MODELS[number])) {
+        player.shipModel = data.shipModel as Player3D['shipModel'];
+        const socketRoom = player.room === 'holdings' ? '3d-holdings-room' : '3d-room';
+        console.log(`🚀 Player ${player.username} changed ship to: ${player.shipModel}`);
+        socket.to(socketRoom).emit('3d:player-updated', {
+          id: socket.id,
+          shipModel: player.shipModel,
         });
       }
     });
@@ -457,10 +486,45 @@ export function initializeSocket(httpServer: HttpServer): Server {
       const player = players3D.get(socket.id);
       if (player && data.username) {
         player.username = data.username.slice(0, 20); // Max 20 chars
-        socket.to('3d-room').emit('3d:player-updated', {
+        const socketRoom = player.room === 'holdings' ? '3d-holdings-room' : '3d-room';
+        socket.to(socketRoom).emit('3d:player-updated', {
           id: socket.id,
           username: player.username,
         });
+      }
+    });
+
+    // Switch rooms (space <-> holdings)
+    socket.on('3d:switch-room', (data: { room: 'space' | 'holdings' }) => {
+      const player = players3D.get(socket.id);
+      if (player && (data.room === 'space' || data.room === 'holdings')) {
+        const oldSocketRoom = player.room === 'holdings' ? '3d-holdings-room' : '3d-room';
+        const newSocketRoom = data.room === 'holdings' ? '3d-holdings-room' : '3d-room';
+
+        // Leave old room
+        socket.leave(oldSocketRoom);
+        socket.to(oldSocketRoom).emit('3d:player-left', { id: socket.id });
+        const oldRoomCount = Array.from(players3D.values()).filter(p => p.room === player.room && p.id !== socket.id).length;
+        io?.to(oldSocketRoom).emit('3d:player-count', oldRoomCount);
+
+        // Update player room
+        player.room = data.room;
+        player.position = data.room === 'holdings' ? { x: 0, y: 2, z: 5 } : { x: 20, y: 10, z: 20 };
+        player.rotation = { x: 0, y: data.room === 'holdings' ? 0 : -Math.PI / 4, z: 0 };
+
+        // Join new room
+        socket.join(newSocketRoom);
+
+        // Send current players in new room
+        const currentPlayers = Array.from(players3D.values()).filter(p => p.id !== socket.id && p.room === data.room);
+        socket.emit('3d:players', currentPlayers);
+
+        // Broadcast to new room
+        socket.to(newSocketRoom).emit('3d:player-joined', player);
+        const newRoomCount = Array.from(players3D.values()).filter(p => p.room === data.room).length;
+        io?.to(newSocketRoom).emit('3d:player-count', newRoomCount);
+
+        console.log(`🚀 Player ${player.username} switched to ${data.room} room`);
       }
     });
 
@@ -471,10 +535,13 @@ export function initializeSocket(httpServer: HttpServer): Server {
       // Clean up 3D player if they were in the room
       const player = players3D.get(socket.id);
       if (player) {
-        console.log(`🚀 Player ${player.username} disconnected from 3D room`);
+        const socketRoom = player.room === 'holdings' ? '3d-holdings-room' : '3d-room';
+        const playerRoom = player.room;
+        console.log(`🚀 Player ${player.username} disconnected from ${socketRoom}`);
         players3D.delete(socket.id);
-        io?.to('3d-room').emit('3d:player-left', { id: socket.id });
-        io?.to('3d-room').emit('3d:player-count', players3D.size);
+        io?.to(socketRoom).emit('3d:player-left', { id: socket.id });
+        const roomPlayerCount = Array.from(players3D.values()).filter(p => p.room === playerRoom).length;
+        io?.to(socketRoom).emit('3d:player-count', roomPlayerCount);
       }
 
       // Remove socket from online users

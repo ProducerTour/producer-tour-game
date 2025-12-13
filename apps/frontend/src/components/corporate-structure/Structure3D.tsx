@@ -1686,9 +1686,10 @@ interface Player3D {
   position: { x: number; y: number; z: number };
   rotation: { x: number; y: number; z: number };
   color: string;
+  shipModel: 'rocket' | 'fighter' | 'unaf' | 'monkey';
 }
 
-// Other player's rocketship with username label
+// Other player's ship with username label - supports different ship models
 function OtherPlayerShip({ player }: { player: Player3D }) {
   const groupRef = useRef<THREE.Group>(null);
   const targetPosition = useRef(new THREE.Vector3(player.position.x, player.position.y, player.position.z));
@@ -1720,6 +1721,8 @@ function OtherPlayerShip({ player }: { player: Player3D }) {
     }
   });
 
+  const shipModel = player.shipModel || 'rocket';
+
   return (
     <group ref={groupRef}>
       {/* Username label above ship */}
@@ -1746,95 +1749,147 @@ function OtherPlayerShip({ player }: { player: Player3D }) {
         </Html>
       </Billboard>
 
-      {/* Rocket body - main fuselage */}
-      <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.2, 0.25, 1.5, 16]} />
-        <meshStandardMaterial
-          color={player.color}
-          emissive={player.color}
-          emissiveIntensity={0.3}
-          metalness={0.7}
-          roughness={0.3}
-        />
-      </mesh>
+      {/* ROCKET - Classic retro rocket */}
+      {shipModel === 'rocket' && (
+        <>
+          {/* Rocket body - main fuselage */}
+          <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.2, 0.25, 1.5, 16]} />
+            <meshStandardMaterial
+              color={player.color}
+              emissive={player.color}
+              emissiveIntensity={0.3}
+              metalness={0.7}
+              roughness={0.3}
+            />
+          </mesh>
+          {/* Nose cone */}
+          <mesh position={[0, 0, -1]} rotation={[Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.2, 0.5, 16]} />
+            <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.2} metalness={0.8} roughness={0.2} />
+          </mesh>
+          {/* Stripe band */}
+          <mesh position={[0, 0, -0.2]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.22, 0.22, 0.1, 16]} />
+            <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.1} />
+          </mesh>
+          {/* Porthole window */}
+          <mesh position={[0, 0.18, -0.4]}>
+            <sphereGeometry args={[0.06, 16, 16]} />
+            <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={1} transparent opacity={0.9} />
+          </mesh>
+          {/* Fins */}
+          {[0, 90, 180, 270].map((angle) => (
+            <mesh key={angle} position={[Math.sin((angle * Math.PI) / 180) * 0.25, Math.cos((angle * Math.PI) / 180) * 0.25, 0.6]} rotation={[0, 0, (-angle * Math.PI) / 180]}>
+              <boxGeometry args={[0.015, 0.4, 0.3]} />
+              <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.2} />
+            </mesh>
+          ))}
+        </>
+      )}
 
-      {/* Nose cone */}
-      <mesh position={[0, 0, -1]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.2, 0.5, 16]} />
-        <meshStandardMaterial
-          color="#ffffff"
-          emissive="#ffffff"
-          emissiveIntensity={0.2}
-          metalness={0.8}
-          roughness={0.2}
-        />
-      </mesh>
+      {/* FIGHTER - X-wing style */}
+      {shipModel === 'fighter' && (
+        <>
+          {/* Main body */}
+          <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.15, 0.2, 2.2, 6]} />
+            <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.15} metalness={0.9} roughness={0.2} />
+          </mesh>
+          {/* Cockpit */}
+          <mesh position={[0, 0.15, -0.4]}>
+            <sphereGeometry args={[0.18, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            <meshStandardMaterial color="#60a5fa" emissive="#60a5fa" emissiveIntensity={0.8} transparent opacity={0.7} />
+          </mesh>
+          {/* Nose */}
+          <mesh position={[0, 0, -1.4]} rotation={[Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.15, 0.6, 6]} />
+            <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.2} metalness={0.9} roughness={0.1} />
+          </mesh>
+          {/* Wings */}
+          {[-1, 1].map((side) => (
+            <group key={side}>
+              <mesh position={[side * 0.6, 0.3, 0.2]} rotation={[0, 0, side * 0.3]}>
+                <boxGeometry args={[1.0, 0.03, 0.6]} />
+                <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.1} metalness={0.8} roughness={0.3} />
+              </mesh>
+              <mesh position={[side * 0.6, -0.3, 0.2]} rotation={[0, 0, side * -0.3]}>
+                <boxGeometry args={[1.0, 0.03, 0.6]} />
+                <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.1} metalness={0.8} roughness={0.3} />
+              </mesh>
+            </group>
+          ))}
+        </>
+      )}
 
-      {/* Stripe band */}
-      <mesh position={[0, 0, -0.2]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.22, 0.22, 0.1, 16]} />
-        <meshStandardMaterial
-          color="#ffffff"
-          emissive="#ffffff"
-          emissiveIntensity={0.1}
-        />
-      </mesh>
+      {/* UNAF - Modular spaceship */}
+      {shipModel === 'unaf' && (
+        <>
+          {/* Cockpit sphere */}
+          <mesh position={[0, 0, -0.8]}>
+            <sphereGeometry args={[0.4, 16, 16]} />
+            <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.3} metalness={0.8} roughness={0.2} />
+          </mesh>
+          {/* Main body */}
+          <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.3, 0.35, 1.2, 8]} />
+            <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.2} metalness={0.7} roughness={0.3} />
+          </mesh>
+          {/* Engine pods */}
+          {[-0.5, 0.5].map((x) => (
+            <mesh key={x} position={[x, 0, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
+              <cylinderGeometry args={[0.12, 0.15, 0.6, 8]} />
+              <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.4} metalness={0.9} roughness={0.1} />
+            </mesh>
+          ))}
+        </>
+      )}
 
-      {/* Porthole window */}
-      <mesh position={[0, 0.18, -0.4]}>
-        <sphereGeometry args={[0.06, 16, 16]} />
-        <meshStandardMaterial
-          color={player.color}
-          emissive={player.color}
-          emissiveIntensity={1}
-          transparent
-          opacity={0.9}
-        />
-      </mesh>
+      {/* MONKEY - Simple representation for other players (full model too heavy) */}
+      {shipModel === 'monkey' && (
+        <>
+          {/* Monkey silhouette - glowing orb */}
+          <mesh position={[0, 0, 0]}>
+            <sphereGeometry args={[0.5, 16, 16]} />
+            <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.5} metalness={0.3} roughness={0.7} />
+          </mesh>
+          {/* Ears */}
+          <mesh position={[-0.4, 0.3, 0]}>
+            <sphereGeometry args={[0.15, 8, 8]} />
+            <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.3} />
+          </mesh>
+          <mesh position={[0.4, 0.3, 0]}>
+            <sphereGeometry args={[0.15, 8, 8]} />
+            <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.3} />
+          </mesh>
+          {/* Face marker */}
+          <mesh position={[0, 0, -0.4]}>
+            <sphereGeometry args={[0.25, 8, 8]} />
+            <meshStandardMaterial color="#fcd34d" emissive="#fcd34d" emissiveIntensity={0.3} />
+          </mesh>
+        </>
+      )}
 
-      {/* Fins - 4 stabilizer fins */}
-      {[0, 90, 180, 270].map((angle) => (
-        <mesh
-          key={angle}
-          position={[
-            Math.sin((angle * Math.PI) / 180) * 0.25,
-            Math.cos((angle * Math.PI) / 180) * 0.25,
-            0.6
-          ]}
-          rotation={[0, 0, (-angle * Math.PI) / 180]}
-        >
-          <boxGeometry args={[0.015, 0.4, 0.3]} />
-          <meshStandardMaterial
-            color={player.color}
-            emissive={player.color}
-            emissiveIntensity={0.2}
-          />
-        </mesh>
-      ))}
-
-      {/* Engine nozzle */}
-      <mesh position={[0, 0, 0.8]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.15, 0.22, 0.12, 16]} />
-        <meshStandardMaterial
-          color="#374151"
-          emissive={player.color}
-          emissiveIntensity={0.3}
-          metalness={0.9}
-          roughness={0.1}
-        />
-      </mesh>
-
-      {/* Outer flame */}
-      <mesh ref={flameRef} position={[0, 0, 1.1]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.15, 0.6, 8]} />
-        <meshBasicMaterial color={player.color} transparent opacity={0.7} />
-      </mesh>
-
-      {/* Inner flame */}
-      <mesh position={[0, 0, 1]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.08, 0.4, 8]} />
-        <meshBasicMaterial color="#fef08a" transparent opacity={0.9} />
-      </mesh>
+      {/* Engine effects - shared across all models */}
+      {shipModel !== 'monkey' && (
+        <>
+          {/* Engine nozzle */}
+          <mesh position={[0, 0, 0.8]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.15, 0.22, 0.12, 16]} />
+            <meshStandardMaterial color="#374151" emissive={player.color} emissiveIntensity={0.3} metalness={0.9} roughness={0.1} />
+          </mesh>
+          {/* Outer flame */}
+          <mesh ref={flameRef} position={[0, 0, 1.1]} rotation={[Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.15, 0.6, 8]} />
+            <meshBasicMaterial color={player.color} transparent opacity={0.7} />
+          </mesh>
+          {/* Inner flame */}
+          <mesh position={[0, 0, 1]} rotation={[Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.08, 0.4, 8]} />
+            <meshBasicMaterial color="#fef08a" transparent opacity={0.9} />
+          </mesh>
+        </>
+      )}
 
       {/* Trail sparkles */}
       <Sparkles
@@ -1844,7 +1899,7 @@ function OtherPlayerShip({ player }: { player: Player3D }) {
         speed={2}
         color={player.color}
         opacity={0.6}
-        position={[0, 0, 1.2]}
+        position={[0, 0, shipModel === 'monkey' ? 0.5 : 1.2]}
       />
     </group>
   );
@@ -3658,11 +3713,11 @@ export function Structure3D() {
       ));
     };
 
-    // Handle player username update
-    const handlePlayerUpdated = (data: { id: string; username: string }) => {
+    // Handle player updates (username, ship model, etc)
+    const handlePlayerUpdated = (data: { id: string; username?: string; shipModel?: string }) => {
       setOtherPlayers(prev => prev.map(p =>
         p.id === data.id
-          ? { ...p, username: data.username }
+          ? { ...p, ...(data.username && { username: data.username }), ...(data.shipModel && { shipModel: data.shipModel as Player3D['shipModel'] }) }
           : p
       ));
     };
@@ -3697,10 +3752,10 @@ export function Structure3D() {
     }
 
     if (flyMode !== 'off' && !isInRoom) {
-      // Join 3D room with username
+      // Join 3D room with username and ship model
       const pilotName = username || `Pilot_${Math.random().toString(36).slice(2, 6)}`;
-      console.log('[3D Multiplayer] Joining 3D room as:', pilotName);
-      socket.emit('3d:join', { username: pilotName });
+      console.log('[3D Multiplayer] Joining 3D room as:', pilotName, 'with ship:', shipModel);
+      socket.emit('3d:join', { username: pilotName, shipModel, room: 'space' });
       setIsInRoom(true);
     } else if (flyMode === 'off' && isInRoom) {
       // Leave 3D room
@@ -3709,7 +3764,14 @@ export function Structure3D() {
       setIsInRoom(false);
       setOtherPlayers([]);
     }
-  }, [flyMode, socket, isConnected, isInRoom, username]);
+  }, [flyMode, socket, isConnected, isInRoom, username, shipModel]);
+
+  // Broadcast ship model changes to other players
+  useEffect(() => {
+    if (!socket || !isInRoom) return;
+    console.log('[3D Multiplayer] Broadcasting ship change:', shipModel);
+    socket.emit('3d:set-ship', { shipModel });
+  }, [socket, isInRoom, shipModel]);
 
   // Broadcast position updates when flying (throttled to 60fps = ~16ms)
   useEffect(() => {
