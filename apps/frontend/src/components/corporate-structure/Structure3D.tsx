@@ -737,10 +737,10 @@ function FlowLine({
   // Offset connection points to sit just below planet meshes (not at center)
   // Holdings needs larger offset since it's the biggest planet
   if (toEntity.id === 'holdings') {
-    end.y += 2; // Raise anchor to sit just below Holdings planet
+    end.y += 6; // Raise anchor to sit just below Holdings planet
   }
   if (fromEntity.id === 'holdings') {
-    start.y += 2; // Also offset outgoing connections from Holdings
+    start.y += 6; // Also offset outgoing connections from Holdings
   }
 
   const mid = new THREE.Vector3().lerpVectors(start, end, 0.5);
@@ -1212,7 +1212,7 @@ function PulseWaves({ position }: { position: [number, number, number] }) {
 }
 
 // Compliance warning indicator - 3D holographic alert orbiting an entity
-function ComplianceWarning({ position, count }: { position: [number, number, number]; count: number }) {
+function ComplianceWarning({ position, count, yOffset = 2.0 }: { position: [number, number, number]; count: number; yOffset?: number }) {
   const groupRef = useRef<THREE.Group>(null);
   const coreRef = useRef<THREE.Mesh>(null);
   const ring1Ref = useRef<THREE.Mesh>(null);
@@ -1228,7 +1228,7 @@ function ComplianceWarning({ position, count }: { position: [number, number, num
       const radius = 2; // Reduced from 3 - closer orbit
       const orbitSpeed = 0.8;
       groupRef.current.position.x = position[0] + Math.cos(time * orbitSpeed) * radius;
-      groupRef.current.position.y = position[1] + 2.0 + Math.sin(time * 1.5) * 0.3; // Reduced to 2.0 to match lowered Holdings position
+      groupRef.current.position.y = position[1] + yOffset + Math.sin(time * 1.5) * 0.3;
       groupRef.current.position.z = position[2] + Math.sin(time * orbitSpeed) * radius;
     }
 
@@ -1363,6 +1363,13 @@ const overdueComplianceByEntity: Record<string, number> = {
   'ip': 0,       // None overdue
   'ops': 0,      // None overdue
   'finance': 1,  // 1 overdue: Intercompany reconciliation
+};
+
+// Y-offset for each entity's compliance warning orbiter (adjust individually)
+const complianceOrbiterYOffsets: Record<string, number> = {
+  'holdings': 5.0,  // Higher offset for Holdings
+  'admin': 2.0,     // PT LLC orbiter offset
+  'finance': 2.0,   // Finance orbiter offset
 };
 
 // Spaceship component for fly mode - Proper rocket ship design
@@ -2404,6 +2411,7 @@ function Scene({
             key={`warning-${entity.id}`}
             position={entity.position}
             count={overdueCount}
+            yOffset={complianceOrbiterYOffsets[entity.id] || 2.0}
           />
         );
       })}
