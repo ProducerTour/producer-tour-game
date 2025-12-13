@@ -3965,12 +3965,13 @@ export function Structure3D() {
               {flyMode !== 'off' && (
                 <div className="pt-2 border-t border-white/10">
                   <p className="text-xs text-text-muted mb-2 font-medium">Ship Model</p>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-3 gap-1.5">
                     {[
                       { id: 'rocket', name: 'Rocket', icon: '🚀' },
                       { id: 'fighter', name: 'Fighter', icon: '✈️' },
                       { id: 'unaf', name: 'UNAF', icon: '🛸' },
-                      { id: 'monkey', name: 'Monkey', icon: '🐵' },
+                      // Monkey disabled - 93MB FBX too large for web, causes crashes
+                      // { id: 'monkey', name: 'Monkey', icon: '🐵' },
                     ].map((ship) => (
                       <button
                         key={ship.id}
