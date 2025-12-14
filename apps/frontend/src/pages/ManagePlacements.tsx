@@ -42,6 +42,7 @@ export default function ManagePlacements() {
   // Track which placements have been processed for artwork to avoid re-fetching
   const processedArtworkIds = useRef<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [writerFilter, setWriterFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -89,23 +90,39 @@ export default function ManagePlacements() {
     loadApprovedPlacements();
   }, []);
 
+  // Get unique writer names for the filter dropdown
+  const uniqueWriters = [...new Set(
+    placements
+      .filter(p => p.user?.firstName || p.user?.lastName)
+      .map(p => `${p.user?.firstName || ''} ${p.user?.lastName || ''}`.trim())
+  )].sort();
+
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredPlacements(placements);
-    } else {
+    let filtered = placements;
+
+    // Apply writer filter
+    if (writerFilter !== 'all') {
+      filtered = filtered.filter(p => {
+        const writerName = `${p.user?.firstName || ''} ${p.user?.lastName || ''}`.trim();
+        return writerName === writerFilter;
+      });
+    }
+
+    // Apply search query filter
+    if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
-      setFilteredPlacements(
-        placements.filter(
-          (p) =>
-            p.title.toLowerCase().includes(query) ||
-            p.artist.toLowerCase().includes(query) ||
-            p.caseNumber?.toLowerCase().includes(query) ||
-            p.user?.firstName?.toLowerCase().includes(query) ||
-            p.user?.lastName?.toLowerCase().includes(query)
-        )
+      filtered = filtered.filter(
+        (p) =>
+          p.title.toLowerCase().includes(query) ||
+          p.artist.toLowerCase().includes(query) ||
+          p.caseNumber?.toLowerCase().includes(query) ||
+          p.user?.firstName?.toLowerCase().includes(query) ||
+          p.user?.lastName?.toLowerCase().includes(query)
       );
     }
-  }, [searchQuery, placements]);
+
+    setFilteredPlacements(filtered);
+  }, [searchQuery, writerFilter, placements]);
 
   // Auto-fetch Spotify artwork for placements missing album art
   // Uses a ref to track processed IDs so we don't re-fetch on every render
@@ -780,6 +797,22 @@ export default function ManagePlacements() {
             <Plus className="w-5 h-5" />
             Add Placement
           </button>
+
+          {/* Writer Filter Dropdown */}
+          <div className="relative">
+            <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-foreground-muted pointer-events-none" />
+            <select
+              value={writerFilter}
+              onChange={(e) => setWriterFilter(e.target.value)}
+              className="pl-10 pr-8 py-3 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus transition-colors appearance-none cursor-pointer min-w-[180px]"
+            >
+              <option value="all">All Writers</option>
+              {uniqueWriters.map(writer => (
+                <option key={writer} value={writer}>{writer}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-foreground-muted pointer-events-none" />
+          </div>
 
           {/* Search */}
           <div className="relative max-w-md w-full">
