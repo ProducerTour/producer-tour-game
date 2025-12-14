@@ -18,13 +18,97 @@ import {
   ChevronRight,
   Zap,
   Crown,
-  Star
+  Star,
+  Pause,
+  Play,
+  Save
 } from 'lucide-react';
 import { PlayWorld } from '../components/play/PlayWorld';
 import { AvatarCreator } from '../components/play/AvatarCreator';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { userApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
+
+// Auto-save storage key
+const WORLD_STATE_KEY = 'producerTour_worldState';
+
+// World state interface for auto-save
+interface WorldState {
+  playerPosition: { x: number; y: number; z: number };
+  avatarUrl: string | null;
+  settings: {
+    isMuted: boolean;
+    showMiniMap: boolean;
+  };
+  stats: {
+    level: number;
+    xp: number;
+  };
+  lastSaved: number;
+}
+
+// Auto-save hook - saves world state continuously
+function useAutoSave(state: Partial<WorldState>, interval = 5000) {
+  const lastSaveRef = useRef<number>(0);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  // Save function
+  const saveState = useCallback(() => {
+    try {
+      const existingState = localStorage.getItem(WORLD_STATE_KEY);
+      const existing = existingState ? JSON.parse(existingState) : {};
+
+      const newState: WorldState = {
+        ...existing,
+        ...state,
+        lastSaved: Date.now(),
+      };
+
+      localStorage.setItem(WORLD_STATE_KEY, JSON.stringify(newState));
+      lastSaveRef.current = Date.now();
+      setSaveStatus('saved');
+
+      // Reset status after a moment
+      setTimeout(() => setSaveStatus('idle'), 1000);
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    }
+  }, [state]);
+
+  // Auto-save on interval
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSaveStatus('saving');
+      saveState();
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [saveState, interval]);
+
+  // Save immediately when important state changes (position moved significantly)
+  useEffect(() => {
+    const now = Date.now();
+    // Debounce: only save if more than 1 second since last save
+    if (now - lastSaveRef.current > 1000) {
+      saveState();
+    }
+  }, [state.playerPosition?.x, state.playerPosition?.z, saveState]);
+
+  return { saveStatus, saveState };
+}
+
+// Load saved world state
+function loadWorldState(): Partial<WorldState> | null {
+  try {
+    const saved = localStorage.getItem(WORLD_STATE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (error) {
+    console.error('Failed to load world state:', error);
+  }
+  return null;
+}
 
 // Sandbox-style loading screen
 function LoadingScreen() {
@@ -190,6 +274,110 @@ function MiniMap({ onClose }: { onClose: () => void }) {
   );
 }
 
+// Pause Menu
+function PauseMenu({
+  onResume,
+  onSettings,
+  onQuit,
+  stats,
+}: {
+  onResume: () => void;
+  onSettings: () => void;
+  onQuit: () => void;
+  stats: { level: number; xp: number; maxXp: number; playTime: number };
+}) {
+  const formatPlayTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md"
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="max-w-sm w-full mx-4"
+      >
+        {/* Gradient border */}
+        <div className="absolute -inset-[1px] bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 rounded-2xl opacity-50" />
+
+        <div className="relative bg-[#12121a] rounded-2xl p-6 overflow-hidden">
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-violet-600/20 rounded-full blur-2xl" />
+
+          <div className="relative z-10">
+            {/* Header */}
+            <div className="text-center mb-6">
+              <Pause className="w-12 h-12 text-violet-400 mx-auto mb-2" />
+              <h2 className="text-2xl font-black text-white">PAUSED</h2>
+              <p className="text-white/40 text-sm">Your progress is auto-saved</p>
+            </div>
+
+            {/* Quick stats */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="bg-white/5 rounded-xl p-3 text-center">
+                <div className="text-2xl font-bold text-white">{stats.level}</div>
+                <div className="text-white/40 text-xs">Level</div>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3 text-center">
+                <div className="text-2xl font-bold text-white">{formatPlayTime(stats.playTime)}</div>
+                <div className="text-white/40 text-xs">Play Time</div>
+              </div>
+            </div>
+
+            {/* Menu buttons */}
+            <div className="space-y-2">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onResume}
+                className="w-full py-3 px-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+              >
+                <Play className="w-5 h-5" />
+                Resume
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onSettings}
+                className="w-full py-3 px-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+              >
+                <Settings className="w-5 h-5" />
+                Settings
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onQuit}
+                className="w-full py-3 px-4 bg-white/5 hover:bg-red-500/20 text-white/70 hover:text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Exit to Home
+              </motion.button>
+            </div>
+
+            {/* Auto-save indicator */}
+            <div className="flex items-center justify-center gap-2 mt-4 text-white/30 text-xs">
+              <Save className="w-3 h-3" />
+              <span>World saves automatically</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // Player stats panel
 function PlayerStats({ level, xp, maxXp }: { level: number; xp: number; maxXp: number }) {
   return (
@@ -309,20 +497,69 @@ export default function PlayPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  // Load saved state on mount
+  const savedState = useRef(loadWorldState());
+
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(savedState.current?.avatarUrl || null);
   const [isAvatarCreatorOpen, setIsAvatarCreatorOpen] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showMiniMap, setShowMiniMap] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(savedState.current?.settings?.isMuted ?? false);
+  const [showMiniMap, setShowMiniMap] = useState(savedState.current?.settings?.showMiniMap ?? true);
+  const [_showSettings, setShowSettings] = useState(false);
+
   // Skip welcome modal if returning from an interior (sessionStorage flag set on entry)
   const [showWelcome, setShowWelcome] = useState(() => {
     const hasEnteredBefore = sessionStorage.getItem('producerTour_hasEnteredWorld');
     return !hasEnteredBefore;
   });
   const [onlineCount] = useState(Math.floor(Math.random() * 500) + 150);
-  const [playerCoords, setPlayerCoords] = useState({ x: 0, y: 0, z: 5 });
 
-  // Player stats (placeholder)
-  const playerStats = { level: 5, xp: 2450, maxXp: 5000 };
+  // Player position - restore from save or use default
+  const [playerCoords, setPlayerCoords] = useState(
+    savedState.current?.playerPosition || { x: 0, y: 0, z: 5 }
+  );
+
+  // Player stats - restore from save or use defaults
+  const [playerStats, setPlayerStats] = useState({
+    level: savedState.current?.stats?.level ?? 1,
+    xp: savedState.current?.stats?.xp ?? 0,
+    maxXp: 1000,
+    playTime: 0,
+  });
+
+  // Track play time
+  useEffect(() => {
+    if (showWelcome || isPaused) return;
+
+    const timer = setInterval(() => {
+      setPlayerStats(prev => ({ ...prev, playTime: prev.playTime + 1 }));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [showWelcome, isPaused]);
+
+  // Auto-save hook - saves every 5 seconds and on position change
+  const { saveStatus } = useAutoSave({
+    playerPosition: playerCoords,
+    avatarUrl,
+    settings: { isMuted, showMiniMap },
+    stats: { level: playerStats.level, xp: playerStats.xp },
+  }, 5000);
+
+  // Handle ESC key for pause menu
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // Don't pause if welcome modal or avatar creator is open
+        if (showWelcome || isAvatarCreatorOpen) return;
+        setIsPaused(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showWelcome, isAvatarCreatorOpen]);
 
   // Focus container when modals close to capture keyboard events
   const focusContainer = useCallback(() => {
@@ -416,6 +653,47 @@ export default function PlayPage() {
         onClose={handleCloseAvatarCreator}
         onAvatarCreated={handleAvatarCreated}
       />
+
+      {/* Pause Menu */}
+      <AnimatePresence>
+        {isPaused && (
+          <PauseMenu
+            onResume={() => {
+              setIsPaused(false);
+              focusContainer();
+            }}
+            onSettings={() => setShowSettings(true)}
+            onQuit={() => navigate('/')}
+            stats={playerStats}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Auto-save indicator */}
+      <AnimatePresence>
+        {saveStatus === 'saving' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="fixed top-20 right-4 z-50 flex items-center gap-2 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-lg"
+          >
+            <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+            <span className="text-white/60 text-xs">Saving...</span>
+          </motion.div>
+        )}
+        {saveStatus === 'saved' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="fixed top-20 right-4 z-50 flex items-center gap-2 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-lg"
+          >
+            <Save className="w-3 h-3 text-emerald-400" />
+            <span className="text-white/60 text-xs">Saved</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Top HUD */}
       <motion.div
@@ -541,7 +819,7 @@ export default function PlayPage() {
             <span className="text-white/40 text-xs">
               <span className="text-white/60 font-medium">WASD</span> move •{' '}
               <span className="text-white/60 font-medium">Shift</span> sprint •{' '}
-              <span className="text-white/60 font-medium">Arrow Keys</span> also work
+              <span className="text-white/60 font-medium">ESC</span> pause
             </span>
           </div>
 
