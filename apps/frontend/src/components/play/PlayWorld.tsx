@@ -5,7 +5,6 @@ import {
   Float,
   Sparkles,
   useGLTF,
-  useFBX,
   useTexture,
   Grid,
   ContactShadows,
@@ -13,8 +12,9 @@ import {
   useAnimations,
 } from '@react-three/drei';
 import * as THREE from 'three';
-import { SkeletonUtils } from 'three-stdlib';
-import { useControls } from 'leva';
+import { SkeletonUtils, FBXLoader } from 'three-stdlib';
+import { useLoader } from '@react-three/fiber';
+// Leva removed - debug controls no longer needed for basketball court positioning
 
 // Assets URL (Cloudflare R2 CDN)
 const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
@@ -1352,7 +1352,7 @@ function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
   // Load the court FBX from R2
   const court = useFBX(`${ASSETS_URL}/models/basketball-court/Court.fbx`);
 
-  // Load all textures from R2
+  // Pre-load all textures from R2 (for fallback assignment)
   const textures = useTexture({
     court: `${ASSETS_URL}/models/basketball-court/textures/court.png`,
     floor1: `${ASSETS_URL}/models/basketball-court/textures/floor1.png`,
@@ -1372,96 +1372,90 @@ function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
     window2: `${ASSETS_URL}/models/basketball-court/textures/window2.png`,
   });
 
-  // Clone and setup model - fix textures by replacing failed loads with our CDN textures
+  // Clone and setup model - assign textures from our CDN based on material/mesh names
   const model = useMemo(() => {
     const clone = court.clone();
 
-    // Debug: Log all mesh and material names
-    console.log('🏀 Basketball Court - Analyzing meshes:');
-    const meshInfo: string[] = [];
+    console.log('🏀 Basketball Court - Processing model:');
+
+    // First pass: log all meshes and materials for debugging
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         materials.forEach((mat) => {
           const m = mat as THREE.MeshStandardMaterial;
-          meshInfo.push(`  Mesh: "${mesh.name}" | Material: "${m.name}"`);
+          console.log(`  Mesh: "${mesh.name}" | Material: "${m.name}" | Has map: ${!!m.map}`);
         });
       }
     });
-    console.log(meshInfo.join('\n'));
 
-    // Explicit texture assignments based on material/mesh names
-    // These mappings are based on typical FBX exports from this model
-    const assignTexture = (meshName: string, matName: string): {
-      texture: THREE.Texture | null;
+    // Function to find the right texture based on material/mesh name
+    const getTextureForMaterial = (meshName: string, matName: string): {
+      texture: THREE.Texture;
       isFence: boolean;
-      isBuilding: boolean;
-    } => {
-      const name = (meshName + ' ' + matName).toLowerCase();
+    } | null => {
+      const combined = (meshName + ' ' + matName).toLowerCase();
 
-      // Court/floor surfaces
-      if (name.includes('court') || name.includes('cancha')) {
-        return { texture: textures.court, isFence: false, isBuilding: false };
+      // Court surface
+      if (combined.includes('court') || combined.includes('cancha') || combined.includes('piso_cancha')) {
+        return { texture: textures.court, isFence: false };
       }
-      if (name.includes('piso') || name.includes('vereda') || name.includes('floor')) {
-        if (name.includes('2')) {
-          return { texture: textures.floor2, isFence: false, isBuilding: false };
+
+      // Floor/sidewalk
+      if (combined.includes('floor') || combined.includes('piso') || combined.includes('vereda') || combined.includes('suelo')) {
+        if (combined.includes('2')) {
+          return { texture: textures.floor2, isFence: false };
         }
-        return { texture: textures.floor1, isFence: false, isBuilding: false };
+        return { texture: textures.floor1, isFence: false };
       }
 
-      // Hoops/basketball equipment
-      if (name.includes('aro') || name.includes('hoop') || name.includes('tablero') || name.includes('poste')) {
-        if (name.includes('5')) return { texture: textures.hoop5, isFence: false, isBuilding: false };
-        if (name.includes('4')) return { texture: textures.hoop4, isFence: false, isBuilding: false };
-        if (name.includes('3')) return { texture: textures.hoop3, isFence: false, isBuilding: false };
-        if (name.includes('2')) return { texture: textures.hoop2, isFence: false, isBuilding: false };
-        return { texture: textures.hoop1, isFence: false, isBuilding: false };
+      // Hoops and basketball equipment
+      if (combined.includes('hoop') || combined.includes('aro') || combined.includes('tablero') ||
+          combined.includes('poste') || combined.includes('basket') || combined.includes('red') ||
+          combined.includes('net') || combined.includes('rim')) {
+        if (combined.includes('5')) return { texture: textures.hoop5, isFence: false };
+        if (combined.includes('4')) return { texture: textures.hoop4, isFence: false };
+        if (combined.includes('3')) return { texture: textures.hoop3, isFence: false };
+        if (combined.includes('2')) return { texture: textures.hoop2, isFence: false };
+        return { texture: textures.hoop1, isFence: false };
       }
 
-      // Fences - chainlink
-      if (name.includes('reja') || name.includes('fence') || name.includes('malla')) {
-        return { texture: textures.fence1, isFence: true, isBuilding: false };
+      // Chainlink fence (not metal posts)
+      if ((combined.includes('reja') || combined.includes('fence') || combined.includes('malla') ||
+           combined.includes('alambre') || combined.includes('chain')) &&
+          !combined.includes('metal') && !combined.includes('poste') && !combined.includes('tubo')) {
+        return { texture: textures.fence1, isFence: true };
       }
 
       // Metal fence posts/frames
-      if (name.includes('metal') || name.includes('tubo') || name.includes('barra')) {
-        return { texture: textures.metalfence, isFence: false, isBuilding: false };
+      if (combined.includes('metal') || combined.includes('tubo') || combined.includes('barra') ||
+          combined.includes('pipe') || combined.includes('post')) {
+        return { texture: textures.metalfence, isFence: false };
       }
 
       // Buildings
-      if (name.includes('edificio') || name.includes('building') || name.includes('casa') || name.includes('pared')) {
-        if (name.includes('2')) {
-          return { texture: textures.building2, isFence: false, isBuilding: true };
+      if (combined.includes('edificio') || combined.includes('building') || combined.includes('casa') ||
+          combined.includes('pared') || combined.includes('wall') || combined.includes('muro')) {
+        if (combined.includes('2')) {
+          return { texture: textures.building2, isFence: false };
         }
-        return { texture: textures.building1, isFence: false, isBuilding: true };
+        return { texture: textures.building1, isFence: false };
       }
 
       // Windows
-      if (name.includes('ventana') || name.includes('window') || name.includes('vidrio')) {
-        if (name.includes('2')) {
-          return { texture: textures.window2, isFence: false, isBuilding: false };
+      if (combined.includes('ventana') || combined.includes('window') || combined.includes('vidrio') ||
+          combined.includes('glass')) {
+        if (combined.includes('2')) {
+          return { texture: textures.window2, isFence: false };
         }
-        return { texture: textures.window1, isFence: false, isBuilding: false };
+        return { texture: textures.window1, isFence: false };
       }
 
-      // Default - try to match by texture keywords in name
-      if (name.includes('floor1')) return { texture: textures.floor1, isFence: false, isBuilding: false };
-      if (name.includes('floor2')) return { texture: textures.floor2, isFence: false, isBuilding: false };
-      if (name.includes('hoop1')) return { texture: textures.hoop1, isFence: false, isBuilding: false };
-      if (name.includes('hoop2')) return { texture: textures.hoop2, isFence: false, isBuilding: false };
-      if (name.includes('hoop3')) return { texture: textures.hoop3, isFence: false, isBuilding: false };
-      if (name.includes('hoop4')) return { texture: textures.hoop4, isFence: false, isBuilding: false };
-      if (name.includes('hoop5')) return { texture: textures.hoop5, isFence: false, isBuilding: false };
-      if (name.includes('building1')) return { texture: textures.building1, isFence: false, isBuilding: true };
-      if (name.includes('building2')) return { texture: textures.building2, isFence: false, isBuilding: true };
-      if (name.includes('window1')) return { texture: textures.window1, isFence: false, isBuilding: false };
-      if (name.includes('window2')) return { texture: textures.window2, isFence: false, isBuilding: false };
-
-      return { texture: null, isFence: false, isBuilding: false };
+      return null;
     };
 
+    // Second pass: assign textures
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
@@ -1472,11 +1466,11 @@ function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
 
         materials.forEach((mat, idx) => {
           const origMat = mat as THREE.MeshStandardMaterial;
-          const { texture, isFence, isBuilding } = assignTexture(mesh.name, origMat.name);
+          const result = getTextureForMaterial(mesh.name, origMat.name);
 
-          if (texture) {
-            if (isFence) {
-              // Chainlink fence with transparency
+          if (result) {
+            if (result.isFence) {
+              // Create new material with alpha for chainlink
               const newMat = new THREE.MeshStandardMaterial({
                 map: textures.fence1,
                 alphaMap: textures.fence1Alpha,
@@ -1491,19 +1485,18 @@ function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
               } else {
                 mesh.material = newMat;
               }
-              console.log(`  ✓ Fence: ${mesh.name}`);
+              console.log(`  ✓ Fence applied: ${mesh.name}`);
             } else {
-              // Standard texture replacement
-              origMat.map = texture;
+              // Assign texture to existing material
+              origMat.map = result.texture;
               origMat.needsUpdate = true;
-              if (isBuilding) {
-                origMat.roughness = 0.8;
-                origMat.metalness = 0.1;
-              }
-              console.log(`  ✓ Textured: ${mesh.name} -> ${texture.name || 'texture'}`);
+              console.log(`  ✓ Texture applied: ${mesh.name} (${origMat.name})`);
             }
           } else {
-            console.log(`  ⚠ No texture match: ${mesh.name} (material: ${origMat.name})`);
+            // No match - apply a default texture based on position/context
+            console.log(`  ⚠ No texture match: ${mesh.name} (${origMat.name}) - applying floor1 as default`);
+            origMat.map = textures.floor1;
+            origMat.needsUpdate = true;
           }
         });
       }
@@ -1522,20 +1515,17 @@ function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
   );
 }
 
-// Basketball Court wrapper with Leva controls for positioning
+// Basketball Court - positioned and scaled for the play world
 function BasketballCourt() {
-  // Leva controls for positioning - adjust these in real-time!
-  const { posX, posY, posZ, rotY, scale, visible } = useControls('Basketball Court', {
-    visible: true,
-    posX: { value: 30, min: -100, max: 100, step: 1 },
-    posY: { value: 0, min: -10, max: 10, step: 0.1 },
-    posZ: { value: -20, min: -100, max: 100, step: 1 },
-    rotY: { value: 0, min: -Math.PI, max: Math.PI, step: 0.1 },
-    scale: { value: 0.01, min: 0.001, max: 0.1, step: 0.001 },
-  });
+  // Fixed position values (previously configured with Leva debug controls)
+  const posX = 30;
+  const posY = 0;
+  const posZ = -20;
+  const rotY = 0;
+  const scale = 0.01;
 
-  // Skip if not visible or no ASSETS_URL configured
-  if (!visible || !ASSETS_URL) {
+  // Skip if no ASSETS_URL configured
+  if (!ASSETS_URL) {
     return null;
   }
 
