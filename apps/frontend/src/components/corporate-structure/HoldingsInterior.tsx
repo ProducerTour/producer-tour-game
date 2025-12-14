@@ -27,7 +27,7 @@ import {
   DollarSign,
   Scale
 } from 'lucide-react';
-import { useHoldingsData, useStartQuest, useCompleteStep, useCompleteQuest, useExplainQuestStep, useUploadStepDocument, useQuestSocketUpdates } from './hooks';
+import { useHoldingsData, useStartQuest, useCompleteStep, useCompleteQuest, useExplainQuestStep, useUploadStepDocument, useQuestSocketUpdates, useEmitQuestUpdate } from './hooks';
 import type { CorporateQuest, CorporateQuestStep, StepActionType, QuestStepExplanation } from './types';
 
 // Interactive station in the interior
@@ -795,6 +795,9 @@ export function HoldingsInterior({ onExit, isActive }: HoldingsInteriorProps) {
   const explainStepMutation = useExplainQuestStep();
   const uploadDocumentMutation = useUploadStepDocument();
 
+  // Socket emit for co-op quest updates
+  const emitQuestUpdate = useEmitQuestUpdate();
+
   // Handle file upload for a step
   const handleUploadFile = (step: CorporateQuestStep, file: File) => {
     uploadDocumentMutation.mutate({ stepId: step.id, file });
@@ -950,12 +953,27 @@ export function HoldingsInterior({ onExit, isActive }: HoldingsInteriorProps) {
                       isExpanded={expandedQuest === quest.id}
                       onToggle={() => setExpandedQuest(expandedQuest === quest.id ? null : quest.id)}
                       onStartQuest={() => {
-                      startQuestMutation.mutate(quest.id);
-                      // Auto-expand the quest to show steps after starting
-                      setExpandedQuest(quest.id);
-                    }}
-                      onCompleteStep={(stepId) => completeStepMutation.mutate({ stepId })}
-                      onCompleteQuest={() => completeQuestMutation.mutate(quest.id)}
+                        startQuestMutation.mutate(quest.id, {
+                          onSuccess: () => {
+                            // Emit co-op update to other admins
+                            emitQuestUpdate('holdings', quest.id, 'started');
+                          }
+                        });
+                        // Auto-expand the quest to show steps after starting
+                        setExpandedQuest(quest.id);
+                      }}
+                      onCompleteStep={(stepId) => completeStepMutation.mutate({ stepId }, {
+                        onSuccess: () => {
+                          // Emit co-op update to other admins
+                          emitQuestUpdate('holdings', quest.id, 'step-completed');
+                        }
+                      })}
+                      onCompleteQuest={() => completeQuestMutation.mutate(quest.id, {
+                        onSuccess: () => {
+                          // Emit co-op update to other admins
+                          emitQuestUpdate('holdings', quest.id, 'completed');
+                        }
+                      })}
                       onExplainStep={(step) => handleExplainStep(step, quest)}
                       onUploadFile={(step, file) => handleUploadFile(step, file)}
                       isStarting={startQuestMutation.isPending}

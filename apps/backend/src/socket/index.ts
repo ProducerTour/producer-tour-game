@@ -494,6 +494,23 @@ export function initializeSocket(httpServer: HttpServer): Server {
       }
     });
 
+    // === QUEST CO-OP EVENTS ===
+
+    // Handle quest updates from admins - broadcast to other admins in holdings
+    socket.on('quest:update', (data: { entityId: string; questId: string; type: 'started' | 'step-completed' | 'completed' }) => {
+      // Only allow admins to broadcast quest updates
+      if (socket.userRole === 'ADMIN') {
+        console.log(`📋 Quest update from ${socket.userId}: ${data.type} for quest ${data.questId}`);
+        // Broadcast to all other admins in the holdings room
+        socket.to('3d-holdings-room').emit('quest:updated', {
+          entityId: data.entityId,
+          questId: data.questId,
+          type: data.type,
+          updatedBy: socket.userId,
+        });
+      }
+    });
+
     // Switch rooms (space <-> holdings)
     socket.on('3d:switch-room', (data: { room: 'space' | 'holdings' }) => {
       const player = players3D.get(socket.id);
