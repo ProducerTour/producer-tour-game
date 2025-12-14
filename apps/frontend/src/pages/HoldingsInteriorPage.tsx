@@ -16,14 +16,20 @@ import { Html, Billboard, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import { Socket } from 'socket.io-client';
 
-// Mouse drag hook for camera look - uses right-click drag to avoid conflicts with R3F
+// Mouse drag hook for camera look - supports both left and right click drag
+// Left click has a drag threshold so clicks on objects still work
+const DRAG_THRESHOLD = 5; // pixels before drag starts
+
 function useMouseLook() {
   const isDraggingRef = useRef(false);
-  const lookOffsetRef = useRef({ yaw: 0, pitch: 0 });
+  const isMouseDownRef = useRef(false);
+  const mouseButtonRef = useRef<number | null>(null);
+  const startMousePos = useRef({ x: 0, y: 0 });
   const lastMousePos = useRef({ x: 0, y: 0 });
+  const lookOffsetRef = useRef({ yaw: 0, pitch: 0 });
 
   useFrame(() => {
-    // This just ensures the component re-renders when lookOffset changes
+    // This ensures the camera updates with the lookOffset
   });
 
   useEffect(() => {
@@ -32,22 +38,44 @@ function useMouseLook() {
     };
 
     const handleMouseDown = (e: MouseEvent) => {
-      // Right click (button 2) for camera control
-      if (e.button === 2) {
-        isDraggingRef.current = true;
+      // Track both left (0) and right (2) clicks
+      if (e.button === 0 || e.button === 2) {
+        isMouseDownRef.current = true;
+        mouseButtonRef.current = e.button;
+        startMousePos.current = { x: e.clientX, y: e.clientY };
         lastMousePos.current = { x: e.clientX, y: e.clientY };
-        document.body.style.cursor = 'grabbing';
+
+        // Right click starts dragging immediately
+        if (e.button === 2) {
+          isDraggingRef.current = true;
+          document.body.style.cursor = 'grabbing';
+        }
       }
     };
 
-    const handleMouseUp = (e: MouseEvent) => {
-      if (e.button === 2) {
-        isDraggingRef.current = false;
-        document.body.style.cursor = 'auto';
-      }
+    const handleMouseUp = () => {
+      isMouseDownRef.current = false;
+      isDraggingRef.current = false;
+      mouseButtonRef.current = null;
+      document.body.style.cursor = 'auto';
     };
 
     const handleMouseMove = (e: MouseEvent) => {
+      if (!isMouseDownRef.current) return;
+
+      const deltaFromStart = Math.sqrt(
+        Math.pow(e.clientX - startMousePos.current.x, 2) +
+        Math.pow(e.clientY - startMousePos.current.y, 2)
+      );
+
+      // For left click, only start dragging after threshold
+      if (mouseButtonRef.current === 0 && !isDraggingRef.current) {
+        if (deltaFromStart > DRAG_THRESHOLD) {
+          isDraggingRef.current = true;
+          document.body.style.cursor = 'grabbing';
+        }
+      }
+
       if (!isDraggingRef.current) return;
 
       const deltaX = e.clientX - lastMousePos.current.x;
@@ -668,7 +696,7 @@ export default function HoldingsInteriorPage() {
             <span className="text-blue-400">WASD</span> Move •
             <span className="text-blue-400 ml-2">Space/Ctrl</span> Up/Down •
             <span className="text-blue-400 ml-2">Shift</span> Sprint •
-            <span className="text-blue-400 ml-2">Right-Click Drag</span> Look
+            <span className="text-blue-400 ml-2">Click+Drag</span> Look
           </p>
           <p className="text-slate-500 text-xs mt-1">
             Fly to stations to view compliance tasks and documents

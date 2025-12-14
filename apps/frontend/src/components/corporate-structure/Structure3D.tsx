@@ -2128,12 +2128,14 @@ function SpaceshipCameraController({
   shipPosition,
   shipRotation,
   viewMode,
-  isActive
+  isActive,
+  lookOffsetRef
 }: {
   shipPosition: THREE.Vector3;
   shipRotation: THREE.Euler;
   viewMode: 'first' | 'third';
   isActive: boolean;
+  lookOffsetRef?: React.RefObject<{ yaw: number; pitch: number }>;
 }) {
   const { camera } = useThree();
   const targetPosition = useRef(new THREE.Vector3());
@@ -2148,21 +2150,29 @@ function SpaceshipCameraController({
     // Clamp delta to prevent huge jumps
     const dt = Math.min(delta, 0.05);
 
+    // Get look offset from mouse drag (if available)
+    const yawOffset = lookOffsetRef?.current?.yaw || 0;
+    const pitchOffset = lookOffsetRef?.current?.pitch || 0;
+
     if (viewMode === 'first') {
       // First person - camera inside cockpit
       targetPosition.current.copy(shipPosition);
       targetPosition.current.y += 0.3;
 
-      // Look in direction of ship
+      // Look in direction of ship with mouse look offset
       const lookDir = new THREE.Vector3(0, 0, -10);
-      lookDir.applyEuler(shipRotation);
+      lookDir.applyEuler(new THREE.Euler(pitchOffset, shipRotation.y + yawOffset, 0, 'YXZ'));
       targetLookAt.current.copy(shipPosition).add(lookDir);
     } else {
-      // Third person - camera behind and above ship
+      // Third person - camera behind and above ship with mouse look offset
       const offset = new THREE.Vector3(0, 3, 8);
-      offset.applyEuler(new THREE.Euler(0, shipRotation.y, 0));
+      offset.applyEuler(new THREE.Euler(0, shipRotation.y + yawOffset, 0));
       targetPosition.current.copy(shipPosition).add(offset);
-      targetLookAt.current.copy(shipPosition);
+
+      // Apply pitch offset to look target
+      const lookTarget = shipPosition.clone();
+      lookTarget.y += pitchOffset * 5; // Scale pitch for look target adjustment
+      targetLookAt.current.copy(lookTarget);
     }
 
     // Initialize smooth values on first frame
@@ -2186,6 +2196,97 @@ function SpaceshipCameraController({
     camera.position.copy(smoothPosition.current);
     camera.lookAt(smoothLookAt.current);
   });
+
+  return null;
+}
+
+// Mouse look controller - handles click+drag to rotate camera view
+const MOUSE_LOOK_DRAG_THRESHOLD = 5; // pixels before drag starts (for left click)
+
+function MouseLookController({
+  isActive,
+  lookOffsetRef
+}: {
+  isActive: boolean;
+  lookOffsetRef: React.MutableRefObject<{ yaw: number; pitch: number }>;
+}) {
+  const isDraggingRef = useRef(false);
+  const isMouseDownRef = useRef(false);
+  const mouseButtonRef = useRef<number | null>(null);
+  const startMousePos = useRef({ x: 0, y: 0 });
+  const lastMousePos = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault(); // Prevent right-click menu
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      // Track both left (0) and right (2) clicks
+      if (e.button === 0 || e.button === 2) {
+        isMouseDownRef.current = true;
+        mouseButtonRef.current = e.button;
+        startMousePos.current = { x: e.clientX, y: e.clientY };
+        lastMousePos.current = { x: e.clientX, y: e.clientY };
+
+        // Right click starts dragging immediately
+        if (e.button === 2) {
+          isDraggingRef.current = true;
+          document.body.style.cursor = 'grabbing';
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      isMouseDownRef.current = false;
+      isDraggingRef.current = false;
+      mouseButtonRef.current = null;
+      document.body.style.cursor = 'auto';
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isMouseDownRef.current) return;
+
+      const deltaFromStart = Math.sqrt(
+        Math.pow(e.clientX - startMousePos.current.x, 2) +
+        Math.pow(e.clientY - startMousePos.current.y, 2)
+      );
+
+      // For left click, only start dragging after threshold
+      if (mouseButtonRef.current === 0 && !isDraggingRef.current) {
+        if (deltaFromStart > MOUSE_LOOK_DRAG_THRESHOLD) {
+          isDraggingRef.current = true;
+          document.body.style.cursor = 'grabbing';
+        }
+      }
+
+      if (!isDraggingRef.current) return;
+
+      const deltaX = e.clientX - lastMousePos.current.x;
+      const deltaY = e.clientY - lastMousePos.current.y;
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
+
+      lookOffsetRef.current = {
+        yaw: lookOffsetRef.current.yaw - deltaX * 0.005,
+        pitch: Math.max(-0.8, Math.min(0.8, lookOffsetRef.current.pitch - deltaY * 0.003)),
+      };
+    };
+
+    window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mousemove', handleMouseMove);
+      document.body.style.cursor = 'auto';
+    };
+  }, [isActive, lookOffsetRef]);
 
   return null;
 }
@@ -2948,6 +3049,7 @@ function Scene({
   const [isUserInteracting, setIsUserInteracting] = useState(false);
   const interactionTimeout = useRef<NodeJS.Timeout | null>(null);
   const orbitControlsRef = useRef<any>(null);
+  const lookOffsetRef = useRef({ yaw: 0, pitch: 0 });
 
   const activeFlows = selectedEntity
     ? flowConnections.filter(f => f.from === selectedEntity || f.to === selectedEntity).map(f => f.from + f.to)
@@ -3151,6 +3253,12 @@ function Scene({
             shipRotation={shipRotation}
             viewMode={flyMode}
             isActive={true}
+            lookOffsetRef={lookOffsetRef}
+          />
+          {/* Mouse look controller - enables click+drag to rotate camera view */}
+          <MouseLookController
+            isActive={!orbitTarget}
+            lookOffsetRef={lookOffsetRef}
           />
           {/* Regular fly controller - disabled when in orbit mode */}
           <SpaceshipFlyController
