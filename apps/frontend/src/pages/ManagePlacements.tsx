@@ -101,7 +101,12 @@ export default function ManagePlacements() {
             p.artist.toLowerCase().includes(query) ||
             p.caseNumber?.toLowerCase().includes(query) ||
             p.user?.firstName?.toLowerCase().includes(query) ||
-            p.user?.lastName?.toLowerCase().includes(query)
+            p.user?.lastName?.toLowerCase().includes(query) ||
+            p.credits?.some(
+              (c: any) =>
+                c.firstName?.toLowerCase().includes(query) ||
+                c.lastName?.toLowerCase().includes(query)
+            )
         )
       );
     }
