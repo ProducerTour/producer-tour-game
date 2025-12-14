@@ -34,11 +34,10 @@ import { useKeyboardControls } from './hooks/useKeyboardControls';
 // Debug mode - toggle with backtick (`) key
 let DEBUG_MODE = false;
 
-// Movement constants - realistic speeds (1 unit = ~1 meter)
-// Average human walk: ~1.4 m/s, jog: ~2.5 m/s, run: ~4-5 m/s
+// Movement constants
 const WALK_SPEED = 2.5;
 const SPRINT_SPEED = 5;
-const ROTATION_SPEED = 8;
+const ROTATION_SPEED = 10;
 
 // Ready Player Me uses Mixamo bone naming convention
 // See: https://docs.readyplayer.me/ready-player-me/api-reference/avatars/full-body-avatars
@@ -937,6 +936,10 @@ function ThirdPersonCamera({
 // Ground level constant - character stands ON the ground
 const GROUND_Y = 0.01;
 
+// Collision detection constants
+const PLAYER_RADIUS = 0.5; // Player collision radius
+const COLLISION_CHECK_HEIGHT = 1.0; // Height at which to check collisions (chest level)
+
 // Main player controller with movement
 function PlayerController({
   avatarUrl,
@@ -947,15 +950,85 @@ function PlayerController({
 }) {
   const keys = useKeyboardControls();
   const playerRef = useRef<THREE.Group>(null!);
-  const { camera } = useThree();
+  const { camera, scene } = useThree();
 
   const velocity = useRef(new THREE.Vector3());
   const facingAngle = useRef(0);
   const [isMoving, setIsMoving] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
 
+  // Raycaster for collision detection
+  const raycaster = useMemo(() => new THREE.Raycaster(), []);
+
+  // Reusable vectors to avoid GC pressure (allocated once, reused every frame)
+  const tempVectors = useRef({
+    cameraDir: new THREE.Vector3(),
+    cameraRight: new THREE.Vector3(),
+    moveDir: new THREE.Vector3(),
+    targetVel: new THREE.Vector3(),
+    upVector: new THREE.Vector3(0, 1, 0),
+    zeroVel: new THREE.Vector3(0, 0, 0),
+    rayOrigin: new THREE.Vector3(),
+    rayDir: new THREE.Vector3(),
+    dirX: new THREE.Vector3(),
+    dirZ: new THREE.Vector3(),
+  });
+
+  // Cache collidable objects (rebuild when scene changes significantly)
+  const collidablesRef = useRef<THREE.Object3D[]>([]);
+  const lastCollidableUpdate = useRef(0);
+
+  // Update collidables cache periodically (not every frame)
+  const updateCollidables = useCallback(() => {
+    const now = Date.now();
+    if (now - lastCollidableUpdate.current < 1000) return; // Only update every second
+    lastCollidableUpdate.current = now;
+
+    const collidables: THREE.Object3D[] = [];
+    scene.traverse((obj) => {
+      if ((obj as THREE.Mesh).isMesh) {
+        const mesh = obj as THREE.Mesh;
+        const name = mesh.name.toLowerCase();
+        // Only collide with buildings, fences, walls
+        if (name.includes('fence') || name.includes('building') ||
+            name.includes('wall') || name.includes('reja')) {
+          collidables.push(obj);
+        }
+      }
+    });
+    collidablesRef.current = collidables;
+  }, [scene]);
+
+  // Check for collision in a given direction (horizontal only, uses reusable vectors)
+  const checkCollision = useCallback((
+    posX: number,
+    posZ: number,
+    dirX: number,
+    dirZ: number,
+    distance: number
+  ): boolean => {
+    updateCollidables();
+
+    if (collidablesRef.current.length === 0) return false;
+
+    const vecs = tempVectors.current;
+
+    // Set raycaster origin at player's chest height
+    vecs.rayOrigin.set(posX, COLLISION_CHECK_HEIGHT, posZ);
+    vecs.rayDir.set(dirX, 0, dirZ).normalize(); // Horizontal collision only
+
+    raycaster.set(vecs.rayOrigin, vecs.rayDir);
+    raycaster.far = distance + PLAYER_RADIUS;
+
+    const intersects = raycaster.intersectObjects(collidablesRef.current, true);
+    return intersects.length > 0 && intersects[0].distance < distance + PLAYER_RADIUS;
+  }, [raycaster, updateCollidables]);
+
   useFrame((_, delta) => {
     if (!playerRef.current) return;
+
+    const vecs = tempVectors.current;
+    const pos = playerRef.current.position;
 
     // Get raw input
     let inputX = 0; // left/right
@@ -978,31 +1051,30 @@ function PlayerController({
       inputX /= inputLen;
       inputZ /= inputLen;
 
-      // Get camera's horizontal direction (ignore Y component)
-      const cameraDir = new THREE.Vector3();
-      camera.getWorldDirection(cameraDir);
-      cameraDir.y = 0;
-      cameraDir.normalize();
+      // Get camera's horizontal direction (ignore Y component) - reuse vector
+      camera.getWorldDirection(vecs.cameraDir);
+      vecs.cameraDir.y = 0;
+      vecs.cameraDir.normalize();
 
-      // Calculate camera's right vector
-      const cameraRight = new THREE.Vector3();
-      cameraRight.crossVectors(cameraDir, new THREE.Vector3(0, 1, 0)).normalize();
+      // Calculate camera's right vector - reuse vectors
+      vecs.upVector.set(0, 1, 0);
+      vecs.cameraRight.crossVectors(vecs.cameraDir, vecs.upVector).normalize();
 
-      // Calculate world-space movement direction relative to camera
-      const moveDir = new THREE.Vector3();
-      moveDir.addScaledVector(cameraDir, -inputZ); // Forward/back relative to camera
-      moveDir.addScaledVector(cameraRight, inputX); // Left/right relative to camera
-      moveDir.normalize();
+      // Calculate world-space movement direction relative to camera - reuse vector
+      vecs.moveDir.set(0, 0, 0);
+      vecs.moveDir.addScaledVector(vecs.cameraDir, -inputZ); // Forward/back relative to camera
+      vecs.moveDir.addScaledVector(vecs.cameraRight, inputX); // Left/right relative to camera
+      vecs.moveDir.normalize();
 
       // Calculate speed
       const speed = keys.sprint ? SPRINT_SPEED : WALK_SPEED;
 
-      // Set target velocity
-      const targetVel = moveDir.multiplyScalar(speed);
-      velocity.current.lerp(targetVel, 1 - Math.exp(-10 * delta));
+      // Set target velocity - reuse vector
+      vecs.targetVel.copy(vecs.moveDir).multiplyScalar(speed);
+      velocity.current.lerp(vecs.targetVel, 1 - Math.exp(-10 * delta));
 
       // Calculate target facing angle (direction of movement)
-      const targetAngle = Math.atan2(moveDir.x, moveDir.z);
+      const targetAngle = Math.atan2(vecs.moveDir.x, vecs.moveDir.z);
 
       // Smoothly rotate player to face movement direction
       let angleDiff = targetAngle - facingAngle.current;
@@ -1012,22 +1084,47 @@ function PlayerController({
 
       playerRef.current.rotation.y = facingAngle.current;
     } else {
-      // Decelerate when no input
-      velocity.current.lerp(new THREE.Vector3(0, 0, 0), 1 - Math.exp(-8 * delta));
+      // Decelerate when no input - reuse zero vector
+      vecs.zeroVel.set(0, 0, 0);
+      velocity.current.lerp(vecs.zeroVel, 1 - Math.exp(-8 * delta));
     }
 
-    // Apply movement (keep Y at ground level)
-    playerRef.current.position.x += velocity.current.x * delta;
-    playerRef.current.position.z += velocity.current.z * delta;
-    playerRef.current.position.y = GROUND_Y; // Keep on ground
+    // Calculate proposed movement
+    const proposedX = velocity.current.x * delta;
+    const proposedZ = velocity.current.z * delta;
 
-    // Report position
-    onPositionChange?.(playerRef.current.position.clone());
+    // Check X movement (use primitive values to avoid object allocation)
+    if (Math.abs(proposedX) > 0.001) {
+      const signX = Math.sign(proposedX);
+      if (!checkCollision(pos.x, pos.z, signX, 0, Math.abs(proposedX))) {
+        pos.x += proposedX;
+      } else {
+        velocity.current.x = 0; // Stop X velocity on collision
+      }
+    }
+
+    // Check Z movement
+    if (Math.abs(proposedZ) > 0.001) {
+      const signZ = Math.sign(proposedZ);
+      if (!checkCollision(pos.x, pos.z, 0, signZ, Math.abs(proposedZ))) {
+        pos.z += proposedZ;
+      } else {
+        velocity.current.z = 0; // Stop Z velocity on collision
+      }
+    }
+
+    // Keep on ground
+    pos.y = GROUND_Y;
+
+    // Report position (only allocate when callback exists)
+    if (onPositionChange) {
+      onPositionChange(pos.clone());
+    }
   });
 
   return (
     <>
-      <group ref={playerRef} position={[0, GROUND_Y, 5]}>
+      <group ref={playerRef} position={[30, GROUND_Y, -20]}>
         <Suspense fallback={<PlaceholderAvatar isMoving={isMoving} />}>
           {avatarUrl ? (
             USE_MIXAMO_ANIMATIONS ? (
@@ -1255,104 +1352,165 @@ function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
   // Load the court FBX from R2
   const court = useFBX(`${ASSETS_URL}/models/basketball-court/Court.fbx`);
 
-  // Load only the court texture we know exists
-  const courtTexture = useTexture(`${ASSETS_URL}/models/basketball-court/textures/court.jpg`);
+  // Load all textures from R2
+  const textures = useTexture({
+    court: `${ASSETS_URL}/models/basketball-court/textures/court.png`,
+    floor1: `${ASSETS_URL}/models/basketball-court/textures/floor1.png`,
+    floor2: `${ASSETS_URL}/models/basketball-court/textures/floor2.png`,
+    hoop1: `${ASSETS_URL}/models/basketball-court/textures/hoop1.png`,
+    hoop2: `${ASSETS_URL}/models/basketball-court/textures/hoop2.png`,
+    hoop3: `${ASSETS_URL}/models/basketball-court/textures/hoop3.png`,
+    hoop4: `${ASSETS_URL}/models/basketball-court/textures/hoop4.png`,
+    hoop5: `${ASSETS_URL}/models/basketball-court/textures/hoop5.png`,
+    fence1: `${ASSETS_URL}/models/basketball-court/textures/fence1.png`,
+    fence2: `${ASSETS_URL}/models/basketball-court/textures/fence2.png`,
+    fence1Alpha: `${ASSETS_URL}/models/basketball-court/textures/fence1_alpha.png`,
+    metalfence: `${ASSETS_URL}/models/basketball-court/textures/metalfence.png`,
+    building1: `${ASSETS_URL}/models/basketball-court/textures/building1.png`,
+    building2: `${ASSETS_URL}/models/basketball-court/textures/building2.png`,
+    window1: `${ASSETS_URL}/models/basketball-court/textures/window1.png`,
+    window2: `${ASSETS_URL}/models/basketball-court/textures/window2.png`,
+  });
 
-  // Clone and setup model - use fallback materials since textures aren't on R2
+  // Clone and setup model - fix textures by replacing failed loads with our CDN textures
   const model = useMemo(() => {
     const clone = court.clone();
 
-    // Log mesh names for debugging
-    console.log('Basketball court meshes:');
+    // Debug: Log all mesh and material names
+    console.log('🏀 Basketball Court - Analyzing meshes:');
+    const meshInfo: string[] = [];
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
-        console.log('  -', child.name, '| material:', (child as THREE.Mesh).material);
+        const mesh = child as THREE.Mesh;
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        materials.forEach((mat) => {
+          const m = mat as THREE.MeshStandardMaterial;
+          meshInfo.push(`  Mesh: "${mesh.name}" | Material: "${m.name}"`);
+        });
       }
     });
+    console.log(meshInfo.join('\n'));
 
-    // Apply materials based on mesh/material names with fallback colors
+    // Explicit texture assignments based on material/mesh names
+    // These mappings are based on typical FBX exports from this model
+    const assignTexture = (meshName: string, matName: string): {
+      texture: THREE.Texture | null;
+      isFence: boolean;
+      isBuilding: boolean;
+    } => {
+      const name = (meshName + ' ' + matName).toLowerCase();
+
+      // Court/floor surfaces
+      if (name.includes('court') || name.includes('cancha')) {
+        return { texture: textures.court, isFence: false, isBuilding: false };
+      }
+      if (name.includes('piso') || name.includes('vereda') || name.includes('floor')) {
+        if (name.includes('2')) {
+          return { texture: textures.floor2, isFence: false, isBuilding: false };
+        }
+        return { texture: textures.floor1, isFence: false, isBuilding: false };
+      }
+
+      // Hoops/basketball equipment
+      if (name.includes('aro') || name.includes('hoop') || name.includes('tablero') || name.includes('poste')) {
+        if (name.includes('5')) return { texture: textures.hoop5, isFence: false, isBuilding: false };
+        if (name.includes('4')) return { texture: textures.hoop4, isFence: false, isBuilding: false };
+        if (name.includes('3')) return { texture: textures.hoop3, isFence: false, isBuilding: false };
+        if (name.includes('2')) return { texture: textures.hoop2, isFence: false, isBuilding: false };
+        return { texture: textures.hoop1, isFence: false, isBuilding: false };
+      }
+
+      // Fences - chainlink
+      if (name.includes('reja') || name.includes('fence') || name.includes('malla')) {
+        return { texture: textures.fence1, isFence: true, isBuilding: false };
+      }
+
+      // Metal fence posts/frames
+      if (name.includes('metal') || name.includes('tubo') || name.includes('barra')) {
+        return { texture: textures.metalfence, isFence: false, isBuilding: false };
+      }
+
+      // Buildings
+      if (name.includes('edificio') || name.includes('building') || name.includes('casa') || name.includes('pared')) {
+        if (name.includes('2')) {
+          return { texture: textures.building2, isFence: false, isBuilding: true };
+        }
+        return { texture: textures.building1, isFence: false, isBuilding: true };
+      }
+
+      // Windows
+      if (name.includes('ventana') || name.includes('window') || name.includes('vidrio')) {
+        if (name.includes('2')) {
+          return { texture: textures.window2, isFence: false, isBuilding: false };
+        }
+        return { texture: textures.window1, isFence: false, isBuilding: false };
+      }
+
+      // Default - try to match by texture keywords in name
+      if (name.includes('floor1')) return { texture: textures.floor1, isFence: false, isBuilding: false };
+      if (name.includes('floor2')) return { texture: textures.floor2, isFence: false, isBuilding: false };
+      if (name.includes('hoop1')) return { texture: textures.hoop1, isFence: false, isBuilding: false };
+      if (name.includes('hoop2')) return { texture: textures.hoop2, isFence: false, isBuilding: false };
+      if (name.includes('hoop3')) return { texture: textures.hoop3, isFence: false, isBuilding: false };
+      if (name.includes('hoop4')) return { texture: textures.hoop4, isFence: false, isBuilding: false };
+      if (name.includes('hoop5')) return { texture: textures.hoop5, isFence: false, isBuilding: false };
+      if (name.includes('building1')) return { texture: textures.building1, isFence: false, isBuilding: true };
+      if (name.includes('building2')) return { texture: textures.building2, isFence: false, isBuilding: true };
+      if (name.includes('window1')) return { texture: textures.window1, isFence: false, isBuilding: false };
+      if (name.includes('window2')) return { texture: textures.window2, isFence: false, isBuilding: false };
+
+      return { texture: null, isFence: false, isBuilding: false };
+    };
+
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
 
-        const name = mesh.name.toLowerCase();
         const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
 
         materials.forEach((mat, idx) => {
-          const matName = (mat && 'name' in mat ? mat.name : '').toLowerCase();
-          const searchName = matName || name;
+          const origMat = mat as THREE.MeshStandardMaterial;
+          const { texture, isFence, isBuilding } = assignTexture(mesh.name, origMat.name);
 
-          let newMaterial: THREE.MeshStandardMaterial;
-
-          // Match by material or mesh name and apply appropriate material
-          if (searchName.includes('court')) {
-            newMaterial = new THREE.MeshStandardMaterial({
-              map: courtTexture,
-              metalness: 0.1,
-              roughness: 0.8,
-            });
-          } else if (searchName.includes('floor')) {
-            newMaterial = new THREE.MeshStandardMaterial({
-              color: '#3a3a4a',
-              metalness: 0.1,
-              roughness: 0.9,
-            });
-          } else if (searchName.includes('hoop') || searchName.includes('rim')) {
-            newMaterial = new THREE.MeshStandardMaterial({
-              color: '#ff6600',
-              metalness: 0.8,
-              roughness: 0.3,
-            });
-          } else if (searchName.includes('backboard')) {
-            newMaterial = new THREE.MeshStandardMaterial({
-              color: '#ffffff',
-              metalness: 0.1,
-              roughness: 0.1,
-              transparent: true,
-              opacity: 0.7,
-            });
-          } else if (searchName.includes('fence') || searchName.includes('metal')) {
-            newMaterial = new THREE.MeshStandardMaterial({
-              color: '#666677',
-              metalness: 0.9,
-              roughness: 0.2,
-            });
-          } else if (searchName.includes('building')) {
-            newMaterial = new THREE.MeshStandardMaterial({
-              color: '#2a2a3a',
-              metalness: 0.1,
-              roughness: 0.8,
-            });
-          } else if (searchName.includes('window')) {
-            newMaterial = new THREE.MeshStandardMaterial({
-              color: '#4488aa',
-              metalness: 0.3,
-              roughness: 0.1,
-              transparent: true,
-              opacity: 0.8,
-            });
+          if (texture) {
+            if (isFence) {
+              // Chainlink fence with transparency
+              const newMat = new THREE.MeshStandardMaterial({
+                map: textures.fence1,
+                alphaMap: textures.fence1Alpha,
+                transparent: true,
+                alphaTest: 0.5,
+                side: THREE.DoubleSide,
+                metalness: 0.7,
+                roughness: 0.4,
+              });
+              if (Array.isArray(mesh.material)) {
+                mesh.material[idx] = newMat;
+              } else {
+                mesh.material = newMat;
+              }
+              console.log(`  ✓ Fence: ${mesh.name}`);
+            } else {
+              // Standard texture replacement
+              origMat.map = texture;
+              origMat.needsUpdate = true;
+              if (isBuilding) {
+                origMat.roughness = 0.8;
+                origMat.metalness = 0.1;
+              }
+              console.log(`  ✓ Textured: ${mesh.name} -> ${texture.name || 'texture'}`);
+            }
           } else {
-            // Default gray material
-            newMaterial = new THREE.MeshStandardMaterial({
-              color: '#555566',
-              metalness: 0.2,
-              roughness: 0.7,
-            });
-          }
-
-          if (Array.isArray(mesh.material)) {
-            mesh.material[idx] = newMaterial;
-          } else {
-            mesh.material = newMaterial;
+            console.log(`  ⚠ No texture match: ${mesh.name} (material: ${origMat.name})`);
           }
         });
       }
     });
 
     return clone;
-  }, [court, courtTexture]);
+  }, [court, textures]);
 
   return (
     <primitive
@@ -1373,7 +1531,7 @@ function BasketballCourt() {
     posY: { value: 0, min: -10, max: 10, step: 0.1 },
     posZ: { value: -20, min: -100, max: 100, step: 1 },
     rotY: { value: 0, min: -Math.PI, max: Math.PI, step: 0.1 },
-    scale: { value: 0.02, min: 0.001, max: 0.1, step: 0.001 },
+    scale: { value: 0.01, min: 0.001, max: 0.1, step: 0.001 },
   });
 
   // Skip if not visible or no ASSETS_URL configured
@@ -1464,8 +1622,8 @@ export function PlayWorld({
         <ZoneMarker key={zone.label} {...zone} />
       ))}
 
-      {/* Spawn indicator */}
-      <mesh position={[0, 0.006, 5]} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* Spawn indicator - at basketball court center */}
+      <mesh position={[30, 0.006, -20]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.8, 1, 32]} />
         <meshBasicMaterial color="#8b5cf6" transparent opacity={0.3} />
       </mesh>

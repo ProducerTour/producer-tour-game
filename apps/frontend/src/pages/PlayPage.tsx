@@ -313,7 +313,11 @@ export default function PlayPage() {
   const [isAvatarCreatorOpen, setIsAvatarCreatorOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showMiniMap, setShowMiniMap] = useState(true);
-  const [showWelcome, setShowWelcome] = useState(true);
+  // Skip welcome modal if returning from an interior (sessionStorage flag set on entry)
+  const [showWelcome, setShowWelcome] = useState(() => {
+    const hasEnteredBefore = sessionStorage.getItem('producerTour_hasEnteredWorld');
+    return !hasEnteredBefore;
+  });
   const [onlineCount] = useState(Math.floor(Math.random() * 500) + 150);
   const [playerCoords, setPlayerCoords] = useState({ x: 0, y: 0, z: 5 });
 
@@ -382,6 +386,8 @@ export default function PlayPage() {
   // Handle entering the world
   const handleEnterWorld = useCallback(() => {
     setShowWelcome(false);
+    // Remember that user has entered the world (persists for session)
+    sessionStorage.setItem('producerTour_hasEnteredWorld', 'true');
     focusContainer();
   }, [focusContainer]);
 

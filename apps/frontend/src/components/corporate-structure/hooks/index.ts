@@ -29,5 +29,8 @@ export {
   useTriggerComplianceCheck,
   useSendQuestNotification,
   useSendComplianceNotification,
+  // Co-op Quest Updates
+  useQuestSocketUpdates,
+  useEmitQuestUpdate,
 } from './useCorporateQuests';
 export type { ExplainStepContext } from './useCorporateQuests';

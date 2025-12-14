@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { corporateApi, aiApi } from '../../../lib/api';
+import { useSocket } from '../../../hooks/useSocket';
 import type {
   CorporateEntity,
   CorporateQuest,
@@ -42,7 +44,7 @@ export function useCorporateEntity(id: string) {
 // Quest Hooks
 // ============================================================================
 
-export function useCorporateQuests(entityId: string) {
+export function useCorporateQuests(entityId: string, enablePolling = false) {
   return useQuery<CorporateQuest[]>({
     queryKey: ['corporate', 'quests', entityId],
     queryFn: async () => {
@@ -50,7 +52,10 @@ export function useCorporateQuests(entityId: string) {
       return response.data;
     },
     enabled: !!entityId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 30 * 1000, // 30 seconds for faster co-op updates
+    // Enable polling for co-op mode - refresh every 10 seconds when active
+    refetchInterval: enablePolling ? 10000 : false,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -251,11 +256,12 @@ export function useUploadStepDocument() {
 // Combined Hook for Holdings Interior
 // ============================================================================
 
-export function useHoldingsData() {
+export function useHoldingsData(enableCoopPolling = true) {
   const entityId = 'holdings';
 
   const entityQuery = useCorporateEntity(entityId);
-  const questsQuery = useCorporateQuests(entityId);
+  // Enable polling for co-op mode - quests refresh every 10 seconds for real-time collaboration
+  const questsQuery = useCorporateQuests(entityId, enableCoopPolling);
   const complianceQuery = useComplianceItems(entityId);
   const progressQuery = useCorporateProgress();
   const statsQuery = useCorporateStats();
@@ -269,6 +275,8 @@ export function useHoldingsData() {
     isLoading: entityQuery.isLoading || questsQuery.isLoading,
     isError: entityQuery.isError || questsQuery.isError,
     error: entityQuery.error || questsQuery.error,
+    // Expose refetch for manual refresh
+    refetchQuests: questsQuery.refetch,
   };
 }
 
@@ -431,4 +439,57 @@ export function useSendComplianceNotification() {
       return response.data;
     },
   });
+}
+
+// ============================================================================
+// Co-op Quest Socket Updates
+// ============================================================================
+
+/**
+ * Hook to listen for real-time quest updates via WebSocket
+ * When another admin completes a quest step, this invalidates the local cache
+ * so the UI updates automatically
+ */
+export function useQuestSocketUpdates() {
+  const { socket, isConnected } = useSocket();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    // Listen for quest updates from other admins
+    const handleQuestUpdate = (data: { entityId: string; questId?: string; type: 'started' | 'step-completed' | 'completed' }) => {
+      console.log('[Quest Co-op] Received update:', data);
+
+      // Invalidate quest queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['corporate', 'quests', data.entityId] });
+      if (data.questId) {
+        queryClient.invalidateQueries({ queryKey: ['corporate', 'quest', data.questId] });
+      }
+      // Also refresh stats and progress
+      queryClient.invalidateQueries({ queryKey: ['corporate', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['corporate', 'progress'] });
+    };
+
+    // Subscribe to quest events
+    socket.on('quest:updated', handleQuestUpdate);
+
+    return () => {
+      socket.off('quest:updated', handleQuestUpdate);
+    };
+  }, [socket, isConnected, queryClient]);
+}
+
+/**
+ * Hook to emit quest updates when the current user makes changes
+ * Call this after successful quest mutations to notify other admins
+ */
+export function useEmitQuestUpdate() {
+  const { socket, isConnected } = useSocket();
+
+  return (entityId: string, questId: string, type: 'started' | 'step-completed' | 'completed') => {
+    if (socket && isConnected) {
+      socket.emit('quest:update', { entityId, questId, type });
+    }
+  };
 }

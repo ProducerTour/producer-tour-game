@@ -27,7 +27,7 @@ import {
   DollarSign,
   Scale
 } from 'lucide-react';
-import { useHoldingsData, useStartQuest, useCompleteStep, useCompleteQuest, useExplainQuestStep, useUploadStepDocument } from './hooks';
+import { useHoldingsData, useStartQuest, useCompleteStep, useCompleteQuest, useExplainQuestStep, useUploadStepDocument, useQuestSocketUpdates } from './hooks';
 import type { CorporateQuest, CorporateQuestStep, StepActionType, QuestStepExplanation } from './types';
 
 // Interactive station in the interior
@@ -770,8 +770,13 @@ export function HoldingsInterior({ onExit, isActive }: HoldingsInteriorProps) {
   const [selectedStepForExplanation, setSelectedStepForExplanation] = useState<CorporateQuestStep | null>(null);
   const [selectedQuestForExplanation, setSelectedQuestForExplanation] = useState<CorporateQuest | null>(null);
 
-  // Fetch data from API
-  const { quests, compliance, progress, stats, isLoading, isError } = useHoldingsData();
+  // Fetch data from API with co-op polling enabled
+  const { quests, compliance, progress, stats, isLoading, isError } = useHoldingsData(true);
+
+  // Enable real-time co-op updates via WebSocket
+  // Listens for quest:updated events and refreshes data automatically
+  // Also polls every 10 seconds for changes made by other admins
+  useQuestSocketUpdates();
 
   // Mutations
   const startQuestMutation = useStartQuest();

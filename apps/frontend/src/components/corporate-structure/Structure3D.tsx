@@ -89,7 +89,8 @@ interface ModelErrorBoundaryState {
 }
 
 // ErrorBoundary to catch model loading failures and prevent white screen
-class ModelErrorBoundary extends Component<ModelErrorBoundaryProps, ModelErrorBoundaryState> {
+// Exported for use in Holdings interior
+export class ModelErrorBoundary extends Component<ModelErrorBoundaryProps, ModelErrorBoundaryState> {
   constructor(props: ModelErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -1586,7 +1587,8 @@ function MonkeyShip() {
 }
 
 // Other player's UNAF ship - simplified version without local controls
-function OtherPlayerUNAFShip({ color }: { color: string }) {
+// Exported for use in Holdings interior
+export function OtherPlayerUNAFShip({ color }: { color: string }) {
   // Load all the FBX parts from R2 CDN
   const front = useFBX(`${ASSETS_URL}/models/Front_01.FBX`);
   const cockpit = useFBX(`${ASSETS_URL}/models/Cockpit_01.FBX`);
@@ -1644,7 +1646,8 @@ function OtherPlayerUNAFShip({ color }: { color: string }) {
 }
 
 // Other player's Monkey ship - simplified version without keyboard controls
-function OtherPlayerMonkeyShip({ color }: { color: string }) {
+// Exported for use in Holdings interior
+export function OtherPlayerMonkeyShip({ color }: { color: string }) {
   const meshGroupRef = useRef<THREE.Group>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
 

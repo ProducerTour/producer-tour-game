@@ -4,9 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Loader2, Users } from 'lucide-react';
 import { HoldingsInterior } from '../components/corporate-structure/HoldingsInterior';
+import {
+  OtherPlayerUNAFShip,
+  OtherPlayerMonkeyShip,
+  ModelErrorBoundary
+} from '../components/corporate-structure/Structure3D';
 import { useSocket } from '../hooks/useSocket';
 import { useAuthStore } from '../store/auth.store';
-import { Html, Billboard } from '@react-three/drei';
+import { Html, Billboard, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Player interface for multiplayer
@@ -19,37 +24,97 @@ interface Player3D {
   shipModel: 'rocket' | 'fighter' | 'unaf' | 'monkey';
 }
 
-// Other player avatar in holdings interior
+// Other player avatar in holdings interior - shows actual ship models
 function OtherPlayerAvatar({ player }: { player: Player3D }) {
   const groupRef = useRef<THREE.Group>(null);
   const targetPosition = useRef(new THREE.Vector3(player.position.x, player.position.y, player.position.z));
+  const targetRotation = useRef(new THREE.Euler(player.rotation.x, player.rotation.y, player.rotation.z));
 
   useEffect(() => {
     targetPosition.current.set(player.position.x, player.position.y, player.position.z);
-  }, [player.position]);
+    targetRotation.current.set(player.rotation.x, player.rotation.y, player.rotation.z);
+  }, [player.position, player.rotation]);
 
   useFrame((_, delta) => {
     if (groupRef.current) {
       // Smooth interpolation to target position
       groupRef.current.position.lerp(targetPosition.current, Math.min(1, delta * 10));
+      // Smooth rotation
+      groupRef.current.rotation.y += (targetRotation.current.y - groupRef.current.rotation.y) * Math.min(1, delta * 8);
     }
   });
 
+  const shipModel = player.shipModel || 'rocket';
+
+  // Procedural rocket for simple ships
+  const ProceduralRocket = () => (
+    <>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.15, 0.2, 1.2, 16]} />
+        <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.3} metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0, -0.8]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.15, 0.4, 16]} />
+        <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.2} />
+      </mesh>
+      <Sparkles count={10} scale={0.5} size={2} speed={2} color={player.color} position={[0, 0, 0.8]} />
+    </>
+  );
+
+  // Procedural fighter
+  const ProceduralFighter = () => (
+    <>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.1, 0.15, 1.5, 6]} />
+        <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.15} metalness={0.9} roughness={0.2} />
+      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * 0.4, 0.2, 0.1]} rotation={[0, 0, side * 0.3]}>
+          <boxGeometry args={[0.7, 0.02, 0.4]} />
+          <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.1} />
+        </mesh>
+      ))}
+      <Sparkles count={10} scale={0.5} size={2} speed={2} color={player.color} position={[0, 0, 0.9]} />
+    </>
+  );
+
   return (
     <group ref={groupRef} position={[player.position.x, player.position.y, player.position.z]}>
-      {/* Simple avatar representation - glowing orb with username */}
-      <mesh>
-        <sphereGeometry args={[0.3, 16, 16]} />
-        <meshStandardMaterial
-          color={player.color}
-          emissive={player.color}
-          emissiveIntensity={0.5}
-        />
-      </mesh>
+      {/* Ship model based on player selection */}
+      {shipModel === 'rocket' && <ProceduralRocket />}
+      {shipModel === 'fighter' && <ProceduralFighter />}
+
+      {/* UNAF - Load actual FBX model */}
+      {shipModel === 'unaf' && (
+        <ModelErrorBoundary modelName={`${player.username}'s UNAF`} fallbackColor={player.color}>
+          <Suspense fallback={
+            <mesh>
+              <sphereGeometry args={[0.3, 16, 16]} />
+              <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.3} wireframe />
+            </mesh>
+          }>
+            <OtherPlayerUNAFShip color={player.color} />
+          </Suspense>
+        </ModelErrorBoundary>
+      )}
+
+      {/* MONKEY - Load actual GLB model */}
+      {shipModel === 'monkey' && (
+        <ModelErrorBoundary modelName={`${player.username}'s Monkey`} fallbackColor={player.color}>
+          <Suspense fallback={
+            <mesh>
+              <sphereGeometry args={[0.4, 16, 16]} />
+              <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.5} wireframe />
+            </mesh>
+          }>
+            <OtherPlayerMonkeyShip color={player.color} />
+          </Suspense>
+        </ModelErrorBoundary>
+      )}
 
       {/* Username label */}
       <Billboard follow lockX={false} lockY={false} lockZ={false}>
-        <Html center position={[0, 0.6, 0]} style={{ pointerEvents: 'none' }}>
+        <Html center position={[0, 1.2, 0]} style={{ pointerEvents: 'none' }}>
           <div
             className="px-2 py-1 rounded text-white text-xs font-medium whitespace-nowrap"
             style={{
