@@ -18,6 +18,7 @@ import { SkeletonUtils } from 'three-stdlib';
 // Assets URL (Cloudflare R2 CDN)
 const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
 
+
 // Animation file paths - place converted Mixamo GLB files in public/animations/
 const ANIMATIONS = {
   idle: '/animations/idle.glb',
@@ -1348,10 +1349,10 @@ function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
   rotY: number;
   scale: number;
 }) {
-  // Load the court FBX from R2
+  // Load the court FBX (textures will 404 but we'll reassign them)
   const court = useFBX(`${ASSETS_URL}/models/basketball-court/Court.fbx`);
 
-  // Pre-load all textures from R2 (for fallback assignment)
+  // Load all textures from R2 CDN
   const textures = useTexture({
     court: `${ASSETS_URL}/models/basketball-court/textures/court.png`,
     floor1: `${ASSETS_URL}/models/basketball-court/textures/floor1.png`,
@@ -1371,90 +1372,57 @@ function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
     window2: `${ASSETS_URL}/models/basketball-court/textures/window2.png`,
   });
 
-  // Clone and setup model - assign textures from our CDN based on material/mesh names
+  // Track if we've already processed the model
+  const processedRef = useRef(false);
+
+  // Clone and setup model with manual texture assignment (only once)
   const model = useMemo(() => {
     const clone = court.clone();
 
-    console.log('🏀 Basketball Court - Processing model:');
-
-    // First pass: log all meshes and materials for debugging
-    clone.traverse((child: THREE.Object3D) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-        materials.forEach((mat) => {
-          const m = mat as THREE.MeshStandardMaterial;
-          console.log(`  Mesh: "${mesh.name}" | Material: "${m.name}" | Has map: ${!!m.map}`);
-        });
-      }
-    });
-
-    // Function to find the right texture based on material/mesh name
-    const getTextureForMaterial = (meshName: string, matName: string): {
-      texture: THREE.Texture;
-      isFence: boolean;
-    } | null => {
-      const combined = (meshName + ' ' + matName).toLowerCase();
-
-      // Court surface
-      if (combined.includes('court') || combined.includes('cancha') || combined.includes('piso_cancha')) {
-        return { texture: textures.court, isFence: false };
-      }
-
-      // Floor/sidewalk
-      if (combined.includes('floor') || combined.includes('piso') || combined.includes('vereda') || combined.includes('suelo')) {
-        if (combined.includes('2')) {
-          return { texture: textures.floor2, isFence: false };
+    // Log mesh names for debugging (only once)
+    if (!processedRef.current) {
+      console.log('🏀 Basketball Court - Mesh names in model:');
+      const meshNames: string[] = [];
+      clone.traverse((child: THREE.Object3D) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          materials.forEach((mat) => {
+            const m = mat as THREE.MeshStandardMaterial;
+            meshNames.push(`  Mesh: "${mesh.name}" | Material: "${m.name}"`);
+          });
         }
-        return { texture: textures.floor1, isFence: false };
-      }
+      });
+      meshNames.forEach(n => console.log(n));
+      console.log('🏀 Total meshes:', meshNames.length);
+      processedRef.current = true;
+    }
 
-      // Hoops and basketball equipment
-      if (combined.includes('hoop') || combined.includes('aro') || combined.includes('tablero') ||
-          combined.includes('poste') || combined.includes('basket') || combined.includes('red') ||
-          combined.includes('net') || combined.includes('rim')) {
-        if (combined.includes('5')) return { texture: textures.hoop5, isFence: false };
-        if (combined.includes('4')) return { texture: textures.hoop4, isFence: false };
-        if (combined.includes('3')) return { texture: textures.hoop3, isFence: false };
-        if (combined.includes('2')) return { texture: textures.hoop2, isFence: false };
-        return { texture: textures.hoop1, isFence: false };
-      }
-
-      // Chainlink fence (not metal posts)
-      if ((combined.includes('reja') || combined.includes('fence') || combined.includes('malla') ||
-           combined.includes('alambre') || combined.includes('chain')) &&
-          !combined.includes('metal') && !combined.includes('poste') && !combined.includes('tubo')) {
-        return { texture: textures.fence1, isFence: true };
-      }
-
-      // Metal fence posts/frames
-      if (combined.includes('metal') || combined.includes('tubo') || combined.includes('barra') ||
-          combined.includes('pipe') || combined.includes('post')) {
-        return { texture: textures.metalfence, isFence: false };
-      }
-
-      // Buildings
-      if (combined.includes('edificio') || combined.includes('building') || combined.includes('casa') ||
-          combined.includes('pared') || combined.includes('wall') || combined.includes('muro')) {
-        if (combined.includes('2')) {
-          return { texture: textures.building2, isFence: false };
-        }
-        return { texture: textures.building1, isFence: false };
-      }
-
-      // Windows
-      if (combined.includes('ventana') || combined.includes('window') || combined.includes('vidrio') ||
-          combined.includes('glass')) {
-        if (combined.includes('2')) {
-          return { texture: textures.window2, isFence: false };
-        }
-        return { texture: textures.window1, isFence: false };
-      }
-
-      return null;
+    // Texture assignment - material names match texture file names exactly
+    const textureMap: Record<string, { tex: THREE.Texture; isFence: boolean }> = {
+      'court': { tex: textures.court, isFence: false },
+      'floor1': { tex: textures.floor1, isFence: false },
+      'floor2': { tex: textures.floor2, isFence: false },
+      'hoop1': { tex: textures.hoop1, isFence: false },
+      'hoop2': { tex: textures.hoop2, isFence: false },
+      'hoop3': { tex: textures.hoop3, isFence: false },
+      'hoop4': { tex: textures.hoop4, isFence: false },
+      'hoop5': { tex: textures.hoop5, isFence: false },
+      'fence1': { tex: textures.fence1, isFence: true },  // Chainlink with alpha
+      'fence2': { tex: textures.fence2, isFence: false },
+      'metalfence': { tex: textures.metalfence, isFence: false },
+      'building1': { tex: textures.building1, isFence: false },
+      'building2': { tex: textures.building2, isFence: false },
+      'window1': { tex: textures.window1, isFence: false },
+      'window2': { tex: textures.window2, isFence: false },
     };
 
-    // Second pass: assign textures
+    const getTexture = (_meshName: string, matName: string): { tex: THREE.Texture; isFence: boolean } => {
+      const key = matName.toLowerCase();
+      return textureMap[key] || { tex: textures.floor1, isFence: false };
+    };
+
+    // Apply textures to all meshes
     clone.traverse((child: THREE.Object3D) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
@@ -1464,45 +1432,37 @@ function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
         const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
 
         materials.forEach((mat, idx) => {
-          const origMat = mat as THREE.MeshStandardMaterial;
-          const result = getTextureForMaterial(mesh.name, origMat.name);
+          const m = mat as THREE.MeshStandardMaterial;
+          const { tex, isFence } = getTexture(mesh.name, m.name);
 
-          if (result) {
-            if (result.isFence) {
-              // Create new material with alpha for chainlink
-              const newMat = new THREE.MeshStandardMaterial({
-                map: textures.fence1,
-                alphaMap: textures.fence1Alpha,
-                transparent: true,
-                alphaTest: 0.5,
-                side: THREE.DoubleSide,
-                metalness: 0.7,
-                roughness: 0.4,
-              });
-              if (Array.isArray(mesh.material)) {
-                mesh.material[idx] = newMat;
-              } else {
-                mesh.material = newMat;
-              }
-              console.log(`  ✓ Fence applied: ${mesh.name}`);
+          if (isFence) {
+            // Chainlink fence with alpha transparency
+            const newMat = new THREE.MeshStandardMaterial({
+              map: tex,
+              alphaMap: textures.fence1Alpha,
+              transparent: true,
+              alphaTest: 0.5,
+              side: THREE.DoubleSide,
+              metalness: 0.7,
+              roughness: 0.4,
+            });
+            if (Array.isArray(mesh.material)) {
+              mesh.material[idx] = newMat;
             } else {
-              // Assign texture to existing material
-              origMat.map = result.texture;
-              origMat.needsUpdate = true;
-              console.log(`  ✓ Texture applied: ${mesh.name} (${origMat.name})`);
+              mesh.material = newMat;
             }
           } else {
-            // No match - apply a default texture based on position/context
-            console.log(`  ⚠ No texture match: ${mesh.name} (${origMat.name}) - applying floor1 as default`);
-            origMat.map = textures.floor1;
-            origMat.needsUpdate = true;
+            // Regular texture assignment
+            m.map = tex;
+            m.needsUpdate = true;
           }
         });
       }
     });
 
     return clone;
-  }, [court, textures]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [court]);
 
   return (
     <primitive
@@ -1538,6 +1498,338 @@ function BasketballCourt() {
     />
   );
 }
+
+// Animation names from the monkey GLB
+const MONKEY_ANIMS = {
+  idle: 'Armature|Idle',
+  idle2: 'Armature|Idle2',
+  run: 'Armature|Run',
+  eat: 'Armature|Eat',
+  roar: 'Armature|Roar',
+  smile: 'Armature|Smile',
+  jump: 'Armature|Jump',
+  sit: 'Armature|Sit',
+  sitIdle: 'Armature|SitIdle',
+};
+
+type MonkeyAnimState = 'idle' | 'run' | 'special';
+
+// Animated Monkey NPC that wanders around the basketball court
+function MonkeyNPC({ position }: { position: [number, number, number] }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const modelRef = useRef<THREE.Group>(null);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const actionsRef = useRef<Record<string, THREE.AnimationAction>>({});
+  const currentAnimRef = useRef<MonkeyAnimState>('idle');
+  const currentActionRef = useRef<string>(MONKEY_ANIMS.idle);
+
+  // Wandering state
+  const wanderState = useRef({
+    targetX: position[0],
+    targetZ: position[2],
+    waitTime: 2,
+    speed: 0.8,
+    isMoving: false,
+    specialActionTime: 0, // Time until next special action
+    isDoingSpecial: false,
+    specialDuration: 0,
+  });
+
+  // Procedural animation state
+  const proceduralState = useRef({
+    breathPhase: 0,
+    lookPhase: 0,
+    bobPhase: 0,
+    currentRotY: 0,
+    targetRotY: 0,
+  });
+
+  // Load the monkey GLB model from R2 CDN
+  const gltf = useGLTF(`${ASSETS_URL}/models/Monkey/Monkey.glb`);
+
+  // Load the diffuse texture (only used if model doesn't have embedded textures)
+  const diffuseTexture = useTexture(`${ASSETS_URL}/models/Monkey/Textures_B3/Monkey_B3_diffuse_1k.jpg`);
+
+  // Check if model has embedded textures
+  const hasEmbeddedTextures = useMemo(() => {
+    let hasTextures = false;
+    gltf.scene.traverse((child: THREE.Object3D) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        materials.forEach((mat) => {
+          if ((mat as THREE.MeshStandardMaterial).map) {
+            hasTextures = true;
+          }
+        });
+      }
+    });
+    return hasTextures;
+  }, [gltf.scene]);
+
+  // Clone and set up model
+  const { model, scale } = useMemo(() => {
+    const clone = SkeletonUtils.clone(gltf.scene);
+
+    // Calculate scale - 150x smaller than human-sized (1.8m / 150 = 0.012m)
+    const box = new THREE.Box3().setFromObject(clone);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const autoScale = maxDim > 0 ? 0.012 / maxDim : 0.01;
+
+    return { model: clone, scale: autoScale };
+  }, [gltf]);
+
+  // Apply material and set up animations
+  useEffect(() => {
+    if (!model) return;
+
+    // Log mesh and material info for debugging
+    console.log('🐵 Monkey mesh structure:');
+    model.traverse((child: THREE.Object3D) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        console.log(`  Mesh: "${mesh.name}" | Materials: ${materials.length}`);
+        materials.forEach((mat, i) => {
+          const m = mat as THREE.MeshStandardMaterial;
+          console.log(`    [${i}] "${m.name}" | hasMap: ${!!m.map}`);
+        });
+      }
+    });
+
+    // Apply texture and fix transparency
+    model.traverse((child: THREE.Object3D) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        materials.forEach((_mat, idx) => {
+          // Create new material with proper settings
+          const newMat = new THREE.MeshStandardMaterial({
+            map: diffuseTexture,
+            metalness: 0.2,
+            roughness: 0.8,
+            transparent: false,
+            opacity: 1,
+            side: THREE.FrontSide,
+            alphaTest: 0,
+          });
+
+          // Ensure texture is set to repeat properly
+          if (diffuseTexture) {
+            diffuseTexture.flipY = false; // GLB models typically need flipY = false
+            diffuseTexture.needsUpdate = true;
+          }
+
+          if (Array.isArray(mesh.material)) {
+            mesh.material[idx] = newMat;
+          } else {
+            mesh.material = newMat;
+          }
+        });
+      }
+    });
+
+    console.log('🐵 Monkey has embedded textures:', hasEmbeddedTextures);
+
+    // Set up animation mixer
+    if (gltf.animations.length > 0) {
+      const mixer = new THREE.AnimationMixer(model);
+      mixerRef.current = mixer;
+
+      // Remove root motion from animation to prevent drifting
+      const removeRootMotion = (clip: THREE.AnimationClip): THREE.AnimationClip => {
+        const filteredTracks = clip.tracks.filter(track => {
+          if (track.name.endsWith('.position')) return false;
+          if (track.name.endsWith('.quaternion') || track.name.endsWith('.rotation')) {
+            const boneName = track.name.split('.')[0].toLowerCase();
+            if (boneName.includes('root') || boneName.includes('armature')) return false;
+          }
+          return true;
+        });
+        return new THREE.AnimationClip(clip.name, clip.duration, filteredTracks);
+      };
+
+      // Create actions for all animations
+      gltf.animations.forEach(clip => {
+        const cleanedClip = removeRootMotion(clip);
+        const action = mixer.clipAction(cleanedClip);
+        action.setLoop(THREE.LoopRepeat, Infinity);
+        actionsRef.current[clip.name] = action;
+      });
+
+      // Start with idle animation
+      const idleAction = actionsRef.current[MONKEY_ANIMS.idle];
+      if (idleAction) {
+        idleAction.timeScale = 0.8;
+        idleAction.play();
+      }
+
+      // Schedule first special action
+      wanderState.current.specialActionTime = 5 + Math.random() * 10;
+    }
+
+    return () => {
+      mixerRef.current?.stopAllAction();
+    };
+  }, [model, diffuseTexture, hasEmbeddedTextures, gltf.animations]);
+
+  // Crossfade to a specific animation
+  const crossfadeTo = useCallback((animName: string, duration = 0.3, timeScale = 1.0) => {
+    if (currentActionRef.current === animName) return;
+
+    const fromAction = actionsRef.current[currentActionRef.current];
+    const toAction = actionsRef.current[animName];
+
+    if (fromAction && toAction) {
+      fromAction.fadeOut(duration);
+      toAction.reset().setEffectiveTimeScale(timeScale).setEffectiveWeight(1).fadeIn(duration).play();
+    } else if (toAction) {
+      toAction.reset().setEffectiveTimeScale(timeScale).play();
+    }
+
+    currentActionRef.current = animName;
+  }, []);
+
+  // Play a special action (one-shot or short loop)
+  const playSpecialAction = useCallback(() => {
+    const specials = [
+      { name: MONKEY_ANIMS.eat, duration: 2.5, timeScale: 1.0 },
+      { name: MONKEY_ANIMS.roar, duration: 1.5, timeScale: 1.0 },
+      { name: MONKEY_ANIMS.smile, duration: 2.0, timeScale: 0.8 },
+      { name: MONKEY_ANIMS.idle2, duration: 3.0, timeScale: 0.7 },
+      { name: MONKEY_ANIMS.jump, duration: 1.0, timeScale: 1.2 },
+    ];
+
+    const special = specials[Math.floor(Math.random() * specials.length)];
+    const action = actionsRef.current[special.name];
+
+    if (action) {
+      crossfadeTo(special.name, 0.2, special.timeScale);
+      wanderState.current.isDoingSpecial = true;
+      wanderState.current.specialDuration = special.duration;
+      currentAnimRef.current = 'special';
+    }
+  }, [crossfadeTo]);
+
+  // Animate: update mixer and wander around
+  useFrame((_, delta) => {
+    if (!groupRef.current || !modelRef.current) return;
+
+    // Update animation mixer
+    mixerRef.current?.update(delta);
+
+    const pos = groupRef.current.position;
+    const state = wanderState.current;
+    const proc = proceduralState.current;
+
+    // Update procedural animation phases
+    proc.breathPhase += delta * 2;
+    proc.lookPhase += delta * 0.5;
+    proc.bobPhase += delta * 8;
+
+    // Handle special action duration
+    if (state.isDoingSpecial) {
+      state.specialDuration -= delta;
+      if (state.specialDuration <= 0) {
+        state.isDoingSpecial = false;
+        state.specialActionTime = 8 + Math.random() * 15; // Next special in 8-23 seconds
+        crossfadeTo(MONKEY_ANIMS.idle, 0.3, 0.8);
+        currentAnimRef.current = 'idle';
+      }
+      return; // Don't move during special actions
+    }
+
+    // Check for special action trigger (only when idle)
+    if (!state.isMoving && state.waitTime > 0) {
+      state.specialActionTime -= delta;
+      if (state.specialActionTime <= 0) {
+        playSpecialAction();
+        return;
+      }
+    }
+
+    // Waiting state - idle animation with procedural details
+    if (state.waitTime > 0) {
+      state.waitTime -= delta;
+
+      if (state.isMoving) {
+        state.isMoving = false;
+        crossfadeTo(MONKEY_ANIMS.idle, 0.3, 0.8);
+        currentAnimRef.current = 'idle';
+      }
+
+      // Subtle breathing/idle movement
+      const breathOffset = Math.sin(proc.breathPhase) * 0.0001;
+      modelRef.current.position.y = breathOffset;
+
+      // Occasional look around (head/body slight rotation)
+      const lookOffset = Math.sin(proc.lookPhase) * 0.15;
+      modelRef.current.rotation.y = lookOffset;
+
+      // Reset lean
+      modelRef.current.rotation.x = 0;
+
+    } else {
+      // Moving state
+      const dx = state.targetX - pos.x;
+      const dz = state.targetZ - pos.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+
+      if (dist < 0.3) {
+        // Reached target, pick a new one
+        state.waitTime = 2 + Math.random() * 4;
+        const courtCenterX = position[0];
+        const courtCenterZ = position[2];
+        const wanderRadius = 5;
+        state.targetX = courtCenterX + (Math.random() - 0.5) * wanderRadius * 2;
+        state.targetZ = courtCenterZ + (Math.random() - 0.5) * wanderRadius * 2;
+      } else {
+        if (!state.isMoving) {
+          state.isMoving = true;
+          crossfadeTo(MONKEY_ANIMS.run, 0.2, 1.0);
+          currentAnimRef.current = 'run';
+        }
+
+        // Move towards target
+        const moveSpeed = state.speed * delta;
+        pos.x += (dx / dist) * moveSpeed;
+        pos.z += (dz / dist) * moveSpeed;
+
+        // Smooth rotation to face movement direction
+        proc.targetRotY = Math.atan2(dx, dz);
+        let rotDiff = proc.targetRotY - proc.currentRotY;
+        while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
+        while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
+        proc.currentRotY += rotDiff * Math.min(1, delta * 5);
+        groupRef.current.rotation.y = proc.currentRotY;
+
+        // Walking bob
+        const bobOffset = Math.abs(Math.sin(proc.bobPhase)) * 0.0002;
+        modelRef.current.position.y = bobOffset;
+
+        // Slight body lean while running
+        modelRef.current.rotation.x = 0.08;
+        modelRef.current.rotation.y = 0;
+      }
+    }
+  });
+
+  return (
+    <group ref={groupRef} position={position}>
+      <group ref={modelRef}>
+        <primitive object={model} scale={scale} />
+      </group>
+    </group>
+  );
+}
+
+// Preload monkey model
+useGLTF.preload(`${ASSETS_URL}/models/Monkey/Monkey.glb`);
 
 // Main world component
 export function PlayWorld({
@@ -1588,6 +1880,8 @@ export function PlayWorld({
       {/* Basketball Court - use Leva panel to adjust position */}
       <Suspense fallback={null}>
         <BasketballCourt />
+        {/* Animated Monkey NPC on the court */}
+        <MonkeyNPC position={[32, 0.01, -18]} />
       </Suspense>
 
       {/* Contact shadow - sits just above ground */}

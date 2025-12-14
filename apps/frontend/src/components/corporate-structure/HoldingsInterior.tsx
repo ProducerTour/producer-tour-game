@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html, Float, Sparkles, Billboard, Text } from '@react-three/drei';
 import * as THREE from 'three';
@@ -778,6 +778,16 @@ export function HoldingsInterior({ onExit, isActive }: HoldingsInteriorProps) {
   // Also polls every 10 seconds for changes made by other admins
   useQuestSocketUpdates();
 
+  // Auto-expand any in-progress quest when the panel opens or quests load
+  useEffect(() => {
+    if (showQuestPanel && quests.length > 0 && !expandedQuest) {
+      const inProgressQuest = quests.find(q => q.status === 'IN_PROGRESS');
+      if (inProgressQuest) {
+        setExpandedQuest(inProgressQuest.id);
+      }
+    }
+  }, [showQuestPanel, quests, expandedQuest]);
+
   // Mutations
   const startQuestMutation = useStartQuest();
   const completeStepMutation = useCompleteStep();
@@ -939,7 +949,11 @@ export function HoldingsInterior({ onExit, isActive }: HoldingsInteriorProps) {
                       quest={quest}
                       isExpanded={expandedQuest === quest.id}
                       onToggle={() => setExpandedQuest(expandedQuest === quest.id ? null : quest.id)}
-                      onStartQuest={() => startQuestMutation.mutate(quest.id)}
+                      onStartQuest={() => {
+                      startQuestMutation.mutate(quest.id);
+                      // Auto-expand the quest to show steps after starting
+                      setExpandedQuest(quest.id);
+                    }}
                       onCompleteStep={(stepId) => completeStepMutation.mutate({ stepId })}
                       onCompleteQuest={() => completeQuestMutation.mutate(quest.id)}
                       onExplainStep={(step) => handleExplainStep(step, quest)}
