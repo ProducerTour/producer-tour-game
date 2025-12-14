@@ -95,6 +95,9 @@ app.use(helmet({
 const allowedOrigins = [
   'http://localhost:5173', // Local development
   'http://localhost:5174', // Local development (alternate port)
+  'http://localhost:5175', // Local development (alternate port)
+  'http://localhost:5176', // Local development (alternate port)
+  'http://localhost:5177', // Local development (alternate port)
   'http://localhost:3000',  // Local backend
   'https://website-frontend-producer-tour.vercel.app', // Vercel production domain
   'https://producertour.com', // Custom domain

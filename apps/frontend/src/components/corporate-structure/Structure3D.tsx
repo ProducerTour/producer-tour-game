@@ -27,9 +27,10 @@ import { Waypoints } from './Waypoints';
 import { MiniMap } from './MiniMap';
 import { WarpTunnel } from './WarpTunnel';
 import { HoldingsInterior } from './HoldingsInterior';
+import { HoldingsHUD } from './HoldingsHUD';
 import { useRef, useState, useMemo, Suspense, useEffect, useCallback, Component, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../../hooks/useSocket';
+import { usePlayerStore } from '../../store/player.store';
 import * as THREE from 'three';
 
 // Modular imports - data, constants, and types from separate files
@@ -2196,7 +2197,8 @@ function SpaceshipFlyController({
   shipRotation,
   setShipPosition,
   setShipRotation,
-  setVelocityMagnitude
+  setVelocityMagnitude,
+  portalState = 'outside'
 }: {
   isActive: boolean;
   shipPosition: THREE.Vector3;
@@ -2204,6 +2206,7 @@ function SpaceshipFlyController({
   setShipPosition: (pos: THREE.Vector3) => void;
   setShipRotation: (rot: THREE.Euler) => void;
   setVelocityMagnitude?: (vel: number) => void;
+  portalState?: 'outside' | 'warping-in' | 'inside' | 'warping-out';
 }) {
   const [, getKeys] = useKeyboardControls();
 
@@ -2285,18 +2288,26 @@ function SpaceshipFlyController({
     // Apply angular velocity to rotation
     newRotation.y += angularVelocity.current;
 
-    // Clamp Y position with soft bounce - scaled for expanded universe
-    if (newPosition.y < 1) {
-      newPosition.y = 1;
+    // Different bounds for space vs Holdings interior
+    const isInsideHoldings = portalState === 'inside';
+
+    // Holdings interior bounds: floor at y=-2, dome radius ~45 (smaller than crystal floor radius 50)
+    // Space bounds: y 1-80, XZ ±150
+    const minY = isInsideHoldings ? 0 : 1;
+    const maxY = isInsideHoldings ? 35 : 80;
+    const boundary = isInsideHoldings ? 40 : 150;
+
+    // Clamp Y position with soft bounce
+    if (newPosition.y < minY) {
+      newPosition.y = minY;
       velocity.current.y = Math.abs(velocity.current.y) * 0.2;
     }
-    if (newPosition.y > 80) {
-      newPosition.y = 80;
+    if (newPosition.y > maxY) {
+      newPosition.y = maxY;
       velocity.current.y = -Math.abs(velocity.current.y) * 0.2;
     }
 
-    // Boundary check for X and Z - scaled 3.5x for expanded universe
-    const boundary = 150;
+    // Boundary check for X and Z
     if (Math.abs(newPosition.x) > boundary) {
       newPosition.x = Math.sign(newPosition.x) * boundary;
       velocity.current.x *= -0.2;
@@ -2903,7 +2914,8 @@ function Scene({
   setNearPortal,
   otherPlayers,
   shipModel,
-  onEnterHoldings
+  onEnterHoldings,
+  onExitHoldings
 }: {
   selectedEntity: string | null;
   setSelectedEntity: (id: string | null) => void;
@@ -2931,6 +2943,7 @@ function Scene({
   otherPlayers: Player3D[];
   shipModel: 'rocket' | 'fighter' | 'unaf' | 'monkey';
   onEnterHoldings: () => void;
+  onExitHoldings: () => void;
 }) {
   const [isUserInteracting, setIsUserInteracting] = useState(false);
   const interactionTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -3124,8 +3137,8 @@ function Scene({
         </>
       )}
 
-      {/* Spaceship fly mode components */}
-      {flyMode !== 'off' && portalState === 'outside' && (
+      {/* Spaceship fly mode components - rendered in both space and Holdings */}
+      {flyMode !== 'off' && (portalState === 'outside' || portalState === 'inside') && (
         <>
           <Spaceship
             position={shipPosition}
@@ -3147,6 +3160,7 @@ function Scene({
             setShipPosition={setShipPosition}
             setShipRotation={setShipRotation}
             setVelocityMagnitude={setShipVelocity}
+            portalState={portalState}
           />
           {/* Orbit mode controller - takes over when orbiting an entity */}
           <OrbitModeController
@@ -3161,24 +3175,26 @@ function Scene({
               setSelectedEntity(null); // Also hide info panel when exiting orbit via keyboard
             }}
           />
-          {/* Speed effects (wind streaks) when moving fast - disabled in orbit */}
+          {/* Speed effects (wind streaks) when moving fast - disabled in orbit and inside Holdings */}
           <SpeedEffects
             shipPosition={shipPosition}
             shipRotation={shipRotation}
             velocity={orbitTarget ? 0 : shipVelocity}
-            isActive={!orbitTarget}
+            isActive={!orbitTarget && portalState !== 'inside'}
           />
-          {/* Waypoint markers above entities */}
-          <Waypoints
-            entities={entities.map(e => ({
-              id: e.id,
-              name: e.shortName,
-              position: e.position,
-              color: e.color,
-            }))}
-            shipPosition={shipPosition}
-            isActive={true}
-          />
+          {/* Waypoint markers above entities - only in space, not inside Holdings */}
+          {portalState !== 'inside' && (
+            <Waypoints
+              entities={entities.map(e => ({
+                id: e.id,
+                name: e.shortName,
+                position: e.position,
+                color: e.color,
+              }))}
+              shipPosition={shipPosition}
+              isActive={true}
+            />
+          )}
         </>
       )}
 
@@ -3207,14 +3223,11 @@ function Scene({
       {/* Holdings Interior - shown when inside the portal */}
       <HoldingsInterior
         isActive={portalState === 'inside'}
-        onExit={() => {
-          setPortalState('warping-out');
-          setWarpProgress(0);
-        }}
+        onExit={onExitHoldings}
       />
 
-      {/* Other multiplayer players - only shown in exterior */}
-      {showExterior && otherPlayers.map((player) => (
+      {/* Other multiplayer players - shown in both space and Holdings */}
+      {otherPlayers.map((player) => (
         <OtherPlayerShip key={player.id} player={player} />
       ))}
 
@@ -3765,7 +3778,6 @@ function FlowLegend() {
 // ============================================================================
 
 export function Structure3D() {
-  const navigate = useNavigate();
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
   const [hoveredEntity, setHoveredEntity] = useState<string | null>(null);
   const [selectedFlow, setSelectedFlow] = useState<FlowConnection | null>(null);
@@ -3780,7 +3792,10 @@ export function Structure3D() {
   const [showInstructions, setShowInstructions] = useState(true);
   const [showControls, setShowControls] = useState(true);
   const [showMultiplayer, setShowMultiplayer] = useState(true);
-  const [shipModel, setShipModel] = useState<'rocket' | 'fighter' | 'unaf' | 'monkey'>('rocket');
+
+  // Player data from persistent store (consistent across all spaces)
+  const { shipModel, color: playerColor, setShipModel } = usePlayerStore();
+
   const [shipPosition, setShipPosition] = useState(() => new THREE.Vector3(50, 15, 50)); // Scaled for expanded universe
   const [shipRotation, setShipRotation] = useState(() => new THREE.Euler(0, -Math.PI / 4, 0));
   const [shipVelocity, setShipVelocity] = useState(0); // Speed magnitude for effects
@@ -3828,10 +3843,25 @@ export function Structure3D() {
     setSelectedRevenue(id);
   }, [soundEnabled, playSelectSound]);
 
-  // Navigate to Holdings interior page when warp completes
+  // Enter Holdings interior (stay in same scene for seamless game experience)
   const handleEnterHoldings = useCallback(() => {
-    navigate('/tools/corporate-structure/holdings');
-  }, [navigate]);
+    setPortalState('inside');
+    // Clear any selected entity/orbit from space view
+    setSelectedEntity(null);
+    setOrbitTarget(null);
+    // Reset ship position to Holdings interior starting point (2x scale)
+    setShipPosition(new THREE.Vector3(0, 6, 30));
+    setShipRotation(new THREE.Euler(0, Math.PI, 0)); // Face forward into Holdings
+  }, []);
+
+  // Exit Holdings back to space
+  const handleExitHoldings = useCallback(() => {
+    setPortalState('warping-out');
+    setWarpProgress(0);
+    // Reset ship position back to space near Holdings planet
+    setShipPosition(new THREE.Vector3(0, 15, 50));
+    setShipRotation(new THREE.Euler(0, 0, 0));
+  }, []);
 
   // Initialize audio on first click
   const handleContainerClick = useCallback(() => {
@@ -3969,10 +3999,10 @@ export function Structure3D() {
     }
 
     if (flyMode !== 'off' && !isInRoom) {
-      // Join 3D room with username and ship model
+      // Join 3D room with username, ship model, and color from persistent store
       const pilotName = username || `Pilot_${Math.random().toString(36).slice(2, 6)}`;
       console.log('[3D Multiplayer] Joining 3D room as:', pilotName, 'with ship:', shipModel);
-      socket.emit('3d:join', { username: pilotName, shipModel, room: 'space' });
+      socket.emit('3d:join', { username: pilotName, shipModel, color: playerColor, room: 'space' });
       setIsInRoom(true);
     } else if (flyMode === 'off' && isInRoom) {
       // Leave 3D room
@@ -3981,7 +4011,19 @@ export function Structure3D() {
       setIsInRoom(false);
       setOtherPlayers([]);
     }
-  }, [flyMode, socket, isConnected, isInRoom, username, shipModel]);
+  }, [flyMode, socket, isConnected, isInRoom, username, shipModel, playerColor]);
+
+  // Reset ship position when exiting Holdings back to space
+  const prevPortalState = useRef(portalState);
+  useEffect(() => {
+    // When transitioning from inside to outside (after warp-out completes)
+    if (prevPortalState.current === 'warping-out' && portalState === 'outside') {
+      // Reset ship position to space near Holdings planet
+      setShipPosition(new THREE.Vector3(0, 15, 60));
+      setShipRotation(new THREE.Euler(0, 0, 0));
+    }
+    prevPortalState.current = portalState;
+  }, [portalState]);
 
   // Broadcast ship model changes to other players
   useEffect(() => {
@@ -4021,9 +4063,9 @@ export function Structure3D() {
         isFullscreen ? 'h-screen' : 'h-[750px]'
       }`}
     >
-      {/* Header / Instructions - Collapsible */}
+      {/* Header / Instructions - Collapsible, hidden inside Holdings */}
       <AnimatePresence>
-        {showInstructions && (
+        {showInstructions && portalState !== 'inside' && (
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -4051,9 +4093,9 @@ export function Structure3D() {
         )}
       </AnimatePresence>
 
-      {/* Minimized instructions button */}
+      {/* Minimized instructions button - hidden inside Holdings */}
       <AnimatePresence>
-        {!showInstructions && (
+        {!showInstructions && portalState !== 'inside' && (
           <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -4067,7 +4109,8 @@ export function Structure3D() {
         )}
       </AnimatePresence>
 
-      {/* Control buttons */}
+      {/* Control buttons - hidden inside Holdings */}
+      {portalState !== 'inside' && (
       <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
         {/* Settings Button */}
         <motion.button
@@ -4164,10 +4207,11 @@ export function Structure3D() {
           )}
         </motion.button>
       </div>
+      )}
 
-      {/* Settings Dropdown Panel */}
+      {/* Settings Dropdown Panel - hidden inside Holdings */}
       <AnimatePresence>
-        {showSettings && (
+        {showSettings && portalState !== 'inside' && (
           <motion.div
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -4273,9 +4317,9 @@ export function Structure3D() {
         )}
       </AnimatePresence>
 
-      {/* Fly mode indicator */}
+      {/* Fly mode indicator - hidden inside Holdings */}
       <AnimatePresence>
-        {flyMode !== 'off' && showControls && (
+        {flyMode !== 'off' && showControls && portalState !== 'inside' && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -4316,9 +4360,9 @@ export function Structure3D() {
         )}
       </AnimatePresence>
 
-      {/* Multiplayer panel - shows when in fly mode (shows connection status) */}
+      {/* Multiplayer panel - shows when in fly mode (shows connection status), hidden inside Holdings */}
       <AnimatePresence>
-        {flyMode !== 'off' && showMultiplayer && (
+        {flyMode !== 'off' && showMultiplayer && portalState !== 'inside' && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -4400,8 +4444,8 @@ export function Structure3D() {
         )}
       </AnimatePresence>
 
-      {/* Flow Legend */}
-      <FlowLegend />
+      {/* Flow Legend - hidden when inside Holdings */}
+      {portalState !== 'inside' && <FlowLegend />}
 
       {/* Portal prompt - when near Holdings in fly mode */}
       <AnimatePresence>
@@ -4457,8 +4501,8 @@ export function Structure3D() {
         )}
       </AnimatePresence>
 
-      {/* Key insight - hide when fly mode is active to make room for minimap */}
-      {flyMode === 'off' && (
+      {/* Key insight - hide when fly mode is active or inside Holdings */}
+      {flyMode === 'off' && portalState !== 'inside' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -4472,9 +4516,9 @@ export function Structure3D() {
         </motion.div>
       )}
 
-      {/* Mini-map when in fly mode */}
+      {/* Mini-map when in fly mode - hidden inside Holdings */}
       <AnimatePresence>
-        {flyMode !== 'off' && (
+        {flyMode !== 'off' && portalState !== 'inside' && (
           <MiniMap
             entities={entities.map(e => ({
               id: e.id,
@@ -4489,33 +4533,35 @@ export function Structure3D() {
         )}
       </AnimatePresence>
 
-      {/* Controls hint panel */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.4 }}
-        className="absolute bottom-4 left-4 z-10 p-3 bg-surface/80 backdrop-blur-xl rounded-xl border border-white/10 shadow-lg"
-      >
-        <p className="text-xs text-text-muted mb-2 font-medium">Navigation</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-          <div className="flex items-center gap-2">
-            <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-text-secondary">W A S D</kbd>
-            <span className="text-text-muted">Move</span>
+      {/* Controls hint panel - hidden inside Holdings (HoldingsHUD has its own controls) */}
+      {portalState !== 'inside' && (
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
+          className="absolute bottom-4 left-4 z-10 p-3 bg-surface/80 backdrop-blur-xl rounded-xl border border-white/10 shadow-lg"
+        >
+          <p className="text-xs text-text-muted mb-2 font-medium">Navigation</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+            <div className="flex items-center gap-2">
+              <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-text-secondary">W A S D</kbd>
+              <span className="text-text-muted">Move</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-text-secondary">Q E</kbd>
+              <span className="text-text-muted">Up/Down</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-text-secondary">Drag</kbd>
+              <span className="text-text-muted">Rotate</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-text-secondary">Scroll</kbd>
+              <span className="text-text-muted">Zoom</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-text-secondary">Q E</kbd>
-            <span className="text-text-muted">Up/Down</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-text-secondary">Drag</kbd>
-            <span className="text-text-muted">Rotate</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-text-secondary">Scroll</kbd>
-            <span className="text-text-muted">Zoom</span>
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
 
       {/* 3D Canvas - camera positioned for expanded 3.5x universe */}
       <KeyboardControls map={keyboardMap}>
@@ -4560,24 +4606,35 @@ export function Structure3D() {
               otherPlayers={otherPlayers}
               shipModel={shipModel}
               onEnterHoldings={handleEnterHoldings}
+              onExitHoldings={handleExitHoldings}
             />
           </Suspense>
         </Canvas>
       </KeyboardControls>
 
-      {/* Info Panels */}
-      <EntityInfoPanel
-        entity={selectedEntityData}
-        onClose={() => setSelectedEntity(null)}
+      {/* Holdings Interior HUD - rendered outside Canvas for proper DOM layering */}
+      <HoldingsHUD
+        isActive={portalState === 'inside'}
+        onExit={handleExitHoldings}
       />
-      <FlowInfoPanel
-        flow={selectedFlow}
-        onClose={() => setSelectedFlow(null)}
-      />
-      <RevenueInfoPanel
-        sourceId={selectedRevenue}
-        onClose={() => setSelectedRevenue(null)}
-      />
+
+      {/* Info Panels - hidden when inside Holdings */}
+      {portalState !== 'inside' && (
+        <>
+          <EntityInfoPanel
+            entity={selectedEntityData}
+            onClose={() => setSelectedEntity(null)}
+          />
+          <FlowInfoPanel
+            flow={selectedFlow}
+            onClose={() => setSelectedFlow(null)}
+          />
+          <RevenueInfoPanel
+            sourceId={selectedRevenue}
+            onClose={() => setSelectedRevenue(null)}
+          />
+        </>
+      )}
 
       {/* Fullscreen indicator */}
       <AnimatePresence>

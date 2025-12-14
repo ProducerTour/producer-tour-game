@@ -263,13 +263,18 @@ router.post('/chat', async (req: Request, res: Response) => {
  * Get AI explanation for a quest step in context of music business formation
  */
 router.post('/explain-quest-step', async (req: Request, res: Response) => {
+  console.log('[explain-quest-step] ====== REQUEST RECEIVED ======');
+  console.log('[explain-quest-step] Request body:', JSON.stringify(req.body, null, 2));
+
   try {
     if (!openaiService.isEnabled()) {
+      console.log('[explain-quest-step] ERROR: AI service not enabled');
       return res.status(503).json({
         success: false,
         error: 'AI service is not configured. Set OPENAI_API_KEY to enable.',
       });
     }
+    console.log('[explain-quest-step] AI service is enabled');
 
     const {
       stepTitle,
@@ -285,11 +290,15 @@ router.post('/explain-quest-step', async (req: Request, res: Response) => {
 
     // Validate required fields
     if (!stepTitle || !stepDescription || !questTitle || !entityName) {
+      console.log('[explain-quest-step] ERROR: Missing required fields', { stepTitle, stepDescription, questTitle, entityName });
       return res.status(400).json({
         success: false,
         error: 'Missing required fields: stepTitle, stepDescription, questTitle, and entityName are required',
       });
     }
+
+    console.log('[explain-quest-step] Calling openaiService.explainQuestStep...');
+    const startTime = Date.now();
 
     const explanation = await openaiService.explainQuestStep({
       stepTitle,
@@ -303,12 +312,19 @@ router.post('/explain-quest-step', async (req: Request, res: Response) => {
       actionData,
     });
 
-    res.json({
+    const duration = Date.now() - startTime;
+    console.log(`[explain-quest-step] OpenAI response received in ${duration}ms`);
+    console.log('[explain-quest-step] Explanation keys:', Object.keys(explanation || {}));
+
+    const responsePayload = {
       success: true,
       explanation,
-    });
+    };
+    console.log('[explain-quest-step] Sending response:', JSON.stringify(responsePayload, null, 2).substring(0, 500) + '...');
+
+    res.json(responsePayload);
   } catch (error) {
-    console.error('Quest step explanation error:', error);
+    console.error('[explain-quest-step] ERROR:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to explain quest step',

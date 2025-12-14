@@ -1,5 +1,5 @@
-import { Suspense, useEffect, useState, useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Suspense, useEffect, useState, useRef, useCallback } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Loader2, Users } from 'lucide-react';
@@ -11,8 +11,121 @@ import {
 } from '../components/corporate-structure/Structure3D';
 import { useSocket } from '../hooks/useSocket';
 import { useAuthStore } from '../store/auth.store';
+import { usePlayerStore } from '../store/player.store';
 import { Html, Billboard, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
+import { Socket } from 'socket.io-client';
+
+// Mouse drag hook for camera look - uses right-click drag to avoid conflicts with R3F
+function useMouseLook() {
+  const isDraggingRef = useRef(false);
+  const lookOffsetRef = useRef({ yaw: 0, pitch: 0 });
+  const lastMousePos = useRef({ x: 0, y: 0 });
+
+  useFrame(() => {
+    // This just ensures the component re-renders when lookOffset changes
+  });
+
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault(); // Prevent right-click menu
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      // Right click (button 2) for camera control
+      if (e.button === 2) {
+        isDraggingRef.current = true;
+        lastMousePos.current = { x: e.clientX, y: e.clientY };
+        document.body.style.cursor = 'grabbing';
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 2) {
+        isDraggingRef.current = false;
+        document.body.style.cursor = 'auto';
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+
+      const deltaX = e.clientX - lastMousePos.current.x;
+      const deltaY = e.clientY - lastMousePos.current.y;
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
+
+      lookOffsetRef.current = {
+        yaw: lookOffsetRef.current.yaw - deltaX * 0.005,
+        pitch: Math.max(-0.8, Math.min(0.8, lookOffsetRef.current.pitch - deltaY * 0.003)),
+      };
+    };
+
+    window.addEventListener('contextmenu', handleContextMenu);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      window.removeEventListener('contextmenu', handleContextMenu);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mousemove', handleMouseMove);
+      document.body.style.cursor = 'auto';
+    };
+  }, []);
+
+  return { lookOffset: lookOffsetRef.current };
+}
+
+// Keyboard controls hook for WASD movement
+function useKeyboardControls() {
+  const [keys, setKeys] = useState({
+    forward: false,
+    backward: false,
+    left: false,
+    right: false,
+    up: false,
+    down: false,
+    sprint: false,
+  });
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+    switch (e.code) {
+      case 'KeyW': case 'ArrowUp': setKeys(k => ({ ...k, forward: true })); break;
+      case 'KeyS': case 'ArrowDown': setKeys(k => ({ ...k, backward: true })); break;
+      case 'KeyA': case 'ArrowLeft': setKeys(k => ({ ...k, left: true })); break;
+      case 'KeyD': case 'ArrowRight': setKeys(k => ({ ...k, right: true })); break;
+      case 'Space': setKeys(k => ({ ...k, up: true })); break;
+      case 'ControlLeft': case 'ControlRight': setKeys(k => ({ ...k, down: true })); break;
+      case 'ShiftLeft': case 'ShiftRight': setKeys(k => ({ ...k, sprint: true })); break;
+    }
+  }, []);
+
+  const handleKeyUp = useCallback((e: KeyboardEvent) => {
+    switch (e.code) {
+      case 'KeyW': case 'ArrowUp': setKeys(k => ({ ...k, forward: false })); break;
+      case 'KeyS': case 'ArrowDown': setKeys(k => ({ ...k, backward: false })); break;
+      case 'KeyA': case 'ArrowLeft': setKeys(k => ({ ...k, left: false })); break;
+      case 'KeyD': case 'ArrowRight': setKeys(k => ({ ...k, right: false })); break;
+      case 'Space': setKeys(k => ({ ...k, up: false })); break;
+      case 'ControlLeft': case 'ControlRight': setKeys(k => ({ ...k, down: false })); break;
+      case 'ShiftLeft': case 'ShiftRight': setKeys(k => ({ ...k, sprint: false })); break;
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [handleKeyDown, handleKeyUp]);
+
+  return keys;
+}
 
 // Player interface for multiplayer
 interface Player3D {
@@ -133,6 +246,219 @@ function OtherPlayerAvatar({ player }: { player: Player3D }) {
   );
 }
 
+// Movement constants for interior space (2x scale)
+const MOVE_SPEED = 5;
+const SPRINT_MULTIPLIER = 2;
+const ROTATION_SPEED = 5;
+
+// Local player ship with WASD controls and camera follow
+function LocalPlayerShip({
+  color,
+  shipModel,
+  username,
+  socket,
+}: {
+  color: string;
+  shipModel: 'rocket' | 'fighter' | 'unaf' | 'monkey';
+  username: string;
+  socket: Socket | null;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const { camera } = useThree();
+  const keys = useKeyboardControls();
+  const { lookOffset } = useMouseLook();
+
+  const velocity = useRef(new THREE.Vector3());
+  const facingAngle = useRef(0);
+  const lastEmitTime = useRef(0);
+
+  // Camera follow offset (2x scale interior)
+  const baseCameraOffset = useRef(new THREE.Vector3(0, 6, 14));
+  const cameraLookOffset = useRef(new THREE.Vector3(0, 1, 0));
+
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+
+    const pos = groupRef.current.position;
+    const speed = keys.sprint ? MOVE_SPEED * SPRINT_MULTIPLIER : MOVE_SPEED;
+
+    // Calculate movement direction based on camera
+    let inputX = 0;
+    let inputZ = 0;
+    let inputY = 0;
+
+    if (keys.forward) inputZ = -1;
+    if (keys.backward) inputZ = 1;
+    if (keys.left) inputX = -1;
+    if (keys.right) inputX = 1;
+    if (keys.up) inputY = 1;
+    if (keys.down) inputY = -1;
+
+    const hasInput = inputX !== 0 || inputZ !== 0 || inputY !== 0;
+
+    if (hasInput) {
+      // Get camera's horizontal direction
+      const cameraDir = new THREE.Vector3();
+      camera.getWorldDirection(cameraDir);
+      cameraDir.y = 0;
+      cameraDir.normalize();
+
+      const cameraRight = new THREE.Vector3();
+      cameraRight.crossVectors(cameraDir, new THREE.Vector3(0, 1, 0)).normalize();
+
+      // Calculate movement vector
+      const moveDir = new THREE.Vector3();
+      moveDir.addScaledVector(cameraDir, -inputZ);
+      moveDir.addScaledVector(cameraRight, inputX);
+      moveDir.y = inputY * 0.5; // Vertical movement
+      moveDir.normalize();
+
+      // Apply velocity
+      velocity.current.lerp(moveDir.multiplyScalar(speed), delta * 5);
+
+      // Update facing angle based on movement direction (horizontal only)
+      if (inputX !== 0 || inputZ !== 0) {
+        const targetAngle = Math.atan2(moveDir.x, moveDir.z);
+        const angleDiff = targetAngle - facingAngle.current;
+        const wrappedDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+        facingAngle.current += wrappedDiff * delta * ROTATION_SPEED;
+      }
+    } else {
+      // Decelerate
+      velocity.current.lerp(new THREE.Vector3(0, 0, 0), delta * 3);
+    }
+
+    // Apply movement
+    pos.add(velocity.current.clone().multiplyScalar(delta));
+
+    // Clamp to interior bounds (2x scale)
+    pos.x = Math.max(-40, Math.min(40, pos.x));
+    pos.y = Math.max(0, Math.min(24, pos.y));
+    pos.z = Math.max(-40, Math.min(45, pos.z));
+
+    // Apply rotation
+    groupRef.current.rotation.y = facingAngle.current;
+
+    // Tilt based on movement
+    const targetTiltX = -velocity.current.z * 0.05;
+    const targetTiltZ = velocity.current.x * 0.1;
+    groupRef.current.rotation.x += (targetTiltX - groupRef.current.rotation.x) * delta * 5;
+    groupRef.current.rotation.z += (targetTiltZ - groupRef.current.rotation.z) * delta * 5;
+
+    // Camera follow - chase camera behind ship with mouse look offset
+    const cameraYaw = facingAngle.current + lookOffset.yaw;
+    const idealOffset = baseCameraOffset.current.clone();
+    // Apply pitch to camera height
+    idealOffset.y += lookOffset.pitch * 10;
+    idealOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraYaw);
+    const idealPosition = pos.clone().add(idealOffset);
+
+    camera.position.lerp(idealPosition, delta * 3);
+
+    const lookTarget = pos.clone().add(cameraLookOffset.current);
+    camera.lookAt(lookTarget);
+
+    // Emit position to server (throttled to 20 times per second)
+    const now = Date.now();
+    if (socket && now - lastEmitTime.current > 50) {
+      socket.emit('3d:move', {
+        position: { x: pos.x, y: pos.y, z: pos.z },
+        rotation: { x: groupRef.current.rotation.x, y: groupRef.current.rotation.y, z: groupRef.current.rotation.z },
+      });
+      lastEmitTime.current = now;
+    }
+  });
+
+  // Procedural rocket
+  const ProceduralRocket = () => (
+    <>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.2, 0.25, 1.5, 16]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.4} metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0, -1]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.2, 0.5, 16]} />
+        <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.3} />
+      </mesh>
+      {/* Engine glow */}
+      <Sparkles count={20} scale={0.8} size={3} speed={3} color={color} position={[0, 0, 1]} />
+      <pointLight color={color} intensity={1} distance={5} position={[0, 0, 1]} />
+    </>
+  );
+
+  // Procedural fighter
+  const ProceduralFighter = () => (
+    <>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.12, 0.18, 2, 6]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.2} metalness={0.9} roughness={0.2} />
+      </mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * 0.5, 0.25, 0.2]} rotation={[0, 0, side * 0.3]}>
+          <boxGeometry args={[0.9, 0.03, 0.5]} />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.15} />
+        </mesh>
+      ))}
+      <Sparkles count={20} scale={0.8} size={3} speed={3} color={color} position={[0, 0, 1.2]} />
+      <pointLight color={color} intensity={1} distance={5} position={[0, 0, 1.2]} />
+    </>
+  );
+
+  return (
+    <group ref={groupRef} position={[0, 6, 30]}>
+      {/* Ship model based on selection */}
+      {shipModel === 'rocket' && <ProceduralRocket />}
+      {shipModel === 'fighter' && <ProceduralFighter />}
+
+      {/* UNAF model */}
+      {shipModel === 'unaf' && (
+        <ModelErrorBoundary modelName="Your UNAF" fallbackColor={color}>
+          <Suspense fallback={
+            <mesh>
+              <sphereGeometry args={[0.4, 16, 16]} />
+              <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} wireframe />
+            </mesh>
+          }>
+            <OtherPlayerUNAFShip color={color} />
+          </Suspense>
+        </ModelErrorBoundary>
+      )}
+
+      {/* Monkey model */}
+      {shipModel === 'monkey' && (
+        <ModelErrorBoundary modelName="Your Monkey" fallbackColor={color}>
+          <Suspense fallback={
+            <mesh>
+              <sphereGeometry args={[0.5, 16, 16]} />
+              <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} wireframe />
+            </mesh>
+          }>
+            <OtherPlayerMonkeyShip color={color} />
+          </Suspense>
+        </ModelErrorBoundary>
+      )}
+
+      {/* Username label */}
+      <Billboard follow lockX={false} lockY={false} lockZ={false}>
+        <Html center position={[0, 1.5, 0]} style={{ pointerEvents: 'none' }}>
+          <div
+            className="px-2 py-1 rounded text-white text-xs font-medium whitespace-nowrap"
+            style={{
+              backgroundColor: `${color}cc`,
+              boxShadow: `0 0 15px ${color}`,
+            }}
+          >
+            {username} (You)
+          </div>
+        </Html>
+      </Billboard>
+
+      {/* Ship light */}
+      <pointLight color={color} intensity={0.8} distance={8} />
+    </group>
+  );
+}
+
 // Loading screen during 3D scene initialization
 function LoadingScreen() {
   return (
@@ -155,10 +481,17 @@ export default function HoldingsInteriorPage() {
   const { socket, isConnected } = useSocket();
   const { user } = useAuthStore();
 
+  // Player data from persistent store (consistent across all spaces)
+  const { shipModel: playerShipModel, color: playerColor, displayName } = usePlayerStore();
+
   // Multiplayer state
   const [otherPlayers, setOtherPlayers] = useState<Player3D[]>([]);
   const [playerCount, setPlayerCount] = useState(0);
   const [isInRoom, setIsInRoom] = useState(false);
+
+  // Username - use display name from store, or fall back to auth user name
+  const playerUsername = displayName
+    || (user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Admin' : `Guest_${Math.random().toString(36).slice(2, 6)}`);
 
   const handleExit = () => {
     // Leave the holdings room before navigating
@@ -173,13 +506,12 @@ export default function HoldingsInteriorPage() {
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    const username = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : `Guest_${Math.random().toString(36).slice(2, 6)}`;
-
-    // Join the holdings room
+    // Join the holdings room with player's persistent ship/color data
     socket.emit('3d:join', {
-      username,
+      username: playerUsername,
       room: 'holdings',
-      shipModel: 'rocket' // Default ship for holdings
+      shipModel: playerShipModel,
+      color: playerColor,
     });
     setIsInRoom(true);
 
@@ -303,10 +635,18 @@ export default function HoldingsInteriorPage() {
       {/* 3D Canvas */}
       <Suspense fallback={<LoadingScreen />}>
         <Canvas
-          camera={{ position: [0, 5, 15], fov: 60 }}
+          camera={{ position: [0, 8, 25], fov: 60 }}
           gl={{ antialias: true, alpha: false }}
           dpr={[1, 2]}
         >
+          {/* Local player ship with WASD controls */}
+          <LocalPlayerShip
+            color={playerColor}
+            shipModel={playerShipModel}
+            username={playerUsername}
+            socket={socket}
+          />
+
           <HoldingsInterior isActive={true} onExit={handleExit} />
 
           {/* Render other players */}
@@ -323,9 +663,17 @@ export default function HoldingsInteriorPage() {
         transition={{ delay: 1 }}
         className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 text-center"
       >
-        <p className="text-slate-500 text-sm">
-          Click on stations to view compliance tasks and documents
-        </p>
+        <div className="bg-slate-900/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-slate-700/50">
+          <p className="text-slate-300 text-sm font-medium">
+            <span className="text-blue-400">WASD</span> Move •
+            <span className="text-blue-400 ml-2">Space/Ctrl</span> Up/Down •
+            <span className="text-blue-400 ml-2">Shift</span> Sprint •
+            <span className="text-blue-400 ml-2">Right-Click Drag</span> Look
+          </p>
+          <p className="text-slate-500 text-xs mt-1">
+            Fly to stations to view compliance tasks and documents
+          </p>
+        </div>
       </motion.div>
     </div>
   );

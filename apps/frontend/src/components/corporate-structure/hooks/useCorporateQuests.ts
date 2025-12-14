@@ -228,8 +228,26 @@ export interface ExplainStepContext {
 export function useExplainQuestStep() {
   return useMutation<QuestStepExplanation, Error, ExplainStepContext>({
     mutationFn: async (context) => {
-      const response = await aiApi.explainQuestStep(context);
-      return response.data.explanation;
+      console.log('[useExplainQuestStep] mutationFn called with:', context);
+      try {
+        const response = await aiApi.explainQuestStep(context);
+        console.log('[useExplainQuestStep] API response status:', response.status);
+        console.log('[useExplainQuestStep] API response.data:', response.data);
+        console.log('[useExplainQuestStep] Extracted explanation:', response.data.explanation);
+        return response.data.explanation;
+      } catch (error) {
+        console.error('[useExplainQuestStep] API call failed:', error);
+        throw error;
+      }
+    },
+    onMutate: (variables) => {
+      console.log('[useExplainQuestStep] onMutate - starting with:', variables.stepTitle);
+    },
+    onSuccess: (data) => {
+      console.log('[useExplainQuestStep] onSuccess - data keys:', Object.keys(data || {}));
+    },
+    onError: (error) => {
+      console.error('[useExplainQuestStep] onError:', error.message);
     },
   });
 }
