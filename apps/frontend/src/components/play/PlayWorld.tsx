@@ -5,6 +5,7 @@ import {
   Float,
   Sparkles,
   useGLTF,
+  useFBX,
   useTexture,
   Grid,
   ContactShadows,
@@ -12,9 +13,7 @@ import {
   useAnimations,
 } from '@react-three/drei';
 import * as THREE from 'three';
-import { SkeletonUtils, FBXLoader } from 'three-stdlib';
-import { useLoader } from '@react-three/fiber';
-// Leva removed - debug controls no longer needed for basketball court positioning
+import { SkeletonUtils } from 'three-stdlib';
 
 // Assets URL (Cloudflare R2 CDN)
 const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
@@ -1379,7 +1378,7 @@ function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
     console.log('🏀 Basketball Court - Processing model:');
 
     // First pass: log all meshes and materials for debugging
-    clone.traverse((child) => {
+    clone.traverse((child: THREE.Object3D) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
@@ -1456,7 +1455,7 @@ function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
     };
 
     // Second pass: assign textures
-    clone.traverse((child) => {
+    clone.traverse((child: THREE.Object3D) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         mesh.castShadow = true;
