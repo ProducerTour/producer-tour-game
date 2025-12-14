@@ -8,6 +8,7 @@ export {
   useCompleteQuest,
   useCompleteStep,
   useSkipStep,
+  useUncompleteStep,
   useComplianceItems,
   useUpcomingCompliance,
   useUpdateCompliance,

@@ -399,6 +399,70 @@ router.patch('/steps/:id/skip', authenticate, requireAdmin, async (req: AuthRequ
   }
 });
 
+// Uncomplete a step (revert to pending)
+router.patch('/steps/:id/uncomplete', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const step = await prisma.corporateQuestStep.findUnique({
+      where: { id },
+      include: { quest: { include: { steps: true } } },
+    });
+
+    if (!step) {
+      return res.status(404).json({ error: 'Step not found' });
+    }
+
+    if (step.status !== 'COMPLETED' && step.status !== 'SKIPPED') {
+      return res.status(400).json({ error: 'Step is not completed or skipped' });
+    }
+
+    // Check if quest is already completed - can't uncomplete steps of completed quests
+    if (step.quest.status === 'COMPLETED') {
+      return res.status(400).json({ error: 'Cannot uncomplete steps of a completed quest' });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Mark the step as pending (or in_progress if it's the current step)
+      const previousSteps = step.quest.steps.filter(
+        (s) => s.order < step.order
+      );
+      const allPreviousCompleted = previousSteps.every(
+        (s) => s.status === 'COMPLETED' || s.status === 'SKIPPED'
+      );
+
+      const newStatus = allPreviousCompleted ? 'IN_PROGRESS' : 'PENDING';
+
+      const updatedStep = await tx.corporateQuestStep.update({
+        where: { id },
+        data: {
+          status: newStatus,
+          completedAt: null,
+          completedBy: null,
+        },
+      });
+
+      // If there are steps after this one that were in progress, mark them as pending
+      const laterSteps = step.quest.steps.filter(
+        (s) => s.order > step.order && s.status === 'IN_PROGRESS'
+      );
+      for (const laterStep of laterSteps) {
+        await tx.corporateQuestStep.update({
+          where: { id: laterStep.id },
+          data: { status: 'PENDING' },
+        });
+      }
+
+      return updatedStep;
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Uncomplete step error:', error);
+    res.status(500).json({ error: 'Failed to uncomplete step' });
+  }
+});
+
 // Upload document for a step
 router.post(
   '/steps/:id/upload',

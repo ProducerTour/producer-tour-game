@@ -11,9 +11,12 @@ import {
   ContactShadows,
   Stars,
   useAnimations,
+  Billboard,
+  Text,
 } from '@react-three/drei';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
+import { usePlayMultiplayer, Player3D } from './hooks/usePlayMultiplayer';
 
 // Assets URL (Cloudflare R2 CDN)
 const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
@@ -946,7 +949,7 @@ function PlayerController({
   onPositionChange,
 }: {
   avatarUrl?: string;
-  onPositionChange?: (pos: THREE.Vector3) => void;
+  onPositionChange?: (pos: THREE.Vector3, rotation?: THREE.Euler) => void;
 }) {
   const keys = useKeyboardControls();
   const playerRef = useRef<THREE.Group>(null!);
@@ -1116,9 +1119,9 @@ function PlayerController({
     // Keep on ground
     pos.y = GROUND_Y;
 
-    // Report position (only allocate when callback exists)
+    // Report position and rotation (only allocate when callback exists)
     if (onPositionChange) {
-      onPositionChange(pos.clone());
+      onPositionChange(pos.clone(), playerRef.current.rotation.clone());
     }
   });
 
@@ -1831,20 +1834,122 @@ function MonkeyNPC({ position }: { position: [number, number, number] }) {
 // Preload monkey model
 useGLTF.preload(`${ASSETS_URL}/models/Monkey/Monkey.glb`);
 
+// Other Player - simplified avatar for remote players
+function OtherPlayer({ player }: { player: Player3D }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const targetPos = useRef(new THREE.Vector3(player.position.x, player.position.y, player.position.z));
+  const targetRot = useRef(player.rotation.y);
+
+  // Smoothly interpolate to target position
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+
+    // Update targets when player data changes
+    targetPos.current.set(player.position.x, player.position.y, player.position.z);
+    targetRot.current = player.rotation.y;
+
+    // Smooth interpolation
+    const lerpSpeed = 8;
+    groupRef.current.position.lerp(targetPos.current, 1 - Math.exp(-lerpSpeed * delta));
+
+    // Smooth rotation
+    let rotDiff = targetRot.current - groupRef.current.rotation.y;
+    while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
+    while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
+    groupRef.current.rotation.y += rotDiff * Math.min(1, delta * lerpSpeed);
+  });
+
+  return (
+    <group ref={groupRef} position={[player.position.x, player.position.y, player.position.z]}>
+      {/* Glow ring on ground */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+        <ringGeometry args={[0.4, 0.7, 32]} />
+        <meshBasicMaterial color={player.color} transparent opacity={0.4} />
+      </mesh>
+
+      {/* Body */}
+      <mesh position={[0, 0.9, 0]} castShadow>
+        <capsuleGeometry args={[0.25, 0.6, 8, 16]} />
+        <meshStandardMaterial color="#1a1a2e" emissive={player.color} emissiveIntensity={0.2} />
+      </mesh>
+
+      {/* Head */}
+      <mesh position={[0, 1.6, 0]} castShadow>
+        <sphereGeometry args={[0.2, 16, 16]} />
+        <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.3} />
+      </mesh>
+
+      {/* Headphones */}
+      <mesh position={[0, 1.7, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <torusGeometry args={[0.22, 0.03, 8, 16, Math.PI]} />
+        <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.5} />
+      </mesh>
+
+      {/* Username label */}
+      <Billboard position={[0, 2.2, 0]}>
+        <Text
+          fontSize={0.18}
+          color="white"
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.02}
+          outlineColor="#000000"
+        >
+          {player.username}
+        </Text>
+      </Billboard>
+
+      {/* Point light for glow effect */}
+      <pointLight position={[0, 1, 0]} intensity={0.3} color={player.color} distance={3} />
+    </group>
+  );
+}
+
+// Render all other players
+function OtherPlayers({ players }: { players: Player3D[] }) {
+  return (
+    <>
+      {players.map((player) => (
+        <OtherPlayer key={player.id} player={player} />
+      ))}
+    </>
+  );
+}
+
 // Main world component
 export function PlayWorld({
   avatarUrl,
   onPlayerPositionChange,
+  onMultiplayerReady,
 }: {
   avatarUrl?: string;
   onPlayerPositionChange?: (pos: THREE.Vector3) => void;
+  onMultiplayerReady?: (data: { playerCount: number; isConnected: boolean }) => void;
 }) {
   const [playerPos, setPlayerPos] = useState(new THREE.Vector3(0, 0, 5));
+  const playerRotation = useRef(new THREE.Euler());
 
-  const handlePositionChange = useCallback((pos: THREE.Vector3) => {
+  // Multiplayer - connect to play room
+  const { otherPlayers, playerCount, isConnected, updatePosition } = usePlayMultiplayer({
+    enabled: true,
+    avatarUrl,
+  });
+
+  // Notify parent of multiplayer status
+  useEffect(() => {
+    onMultiplayerReady?.({ playerCount, isConnected });
+  }, [playerCount, isConnected, onMultiplayerReady]);
+
+  const handlePositionChange = useCallback((pos: THREE.Vector3, rotation?: THREE.Euler) => {
     setPlayerPos(pos);
+    if (rotation) {
+      playerRotation.current.copy(rotation);
+    }
     onPlayerPositionChange?.(pos);
-  }, [onPlayerPositionChange]);
+
+    // Update multiplayer position
+    updatePosition(pos, playerRotation.current);
+  }, [onPlayerPositionChange, updatePosition]);
 
   const zones = [
     { position: [15, 2, -15] as [number, number, number], label: 'Studio District', icon: Mic2, color: '#8b5cf6', description: 'Create & collaborate' },
@@ -1899,6 +2004,9 @@ export function PlayWorld({
         avatarUrl={avatarUrl}
         onPositionChange={handlePositionChange}
       />
+
+      {/* Other Players (multiplayer) */}
+      <OtherPlayers players={otherPlayers} />
 
       {/* Zones */}
       {zones.map((zone) => (

@@ -21,7 +21,7 @@ import {
   ArrowLeft,
   List,
 } from 'lucide-react';
-import { useHoldingsData, useStartQuest, useCompleteStep, useCompleteQuest, useExplainQuestStep, useQuestSocketUpdates, useEmitQuestUpdate } from './hooks';
+import { useHoldingsData, useStartQuest, useCompleteStep, useUncompleteStep, useCompleteQuest, useExplainQuestStep, useQuestSocketUpdates, useEmitQuestUpdate } from './hooks';
 import type { CorporateQuest, CorporateQuestStep, QuestStepExplanation } from './types';
 
 // Quest Tracker - Shows current active quest in compact form
@@ -191,10 +191,12 @@ function QuestPanel({
   quests,
   onStartQuest,
   onCompleteStep,
+  onUncompleteStep,
   onCompleteQuest,
   onExplainStep,
   isStarting,
   isCompletingStep,
+  isUncompletingStep,
   isCompletingQuest,
   isExplaining,
 }: {
@@ -203,10 +205,12 @@ function QuestPanel({
   quests: CorporateQuest[];
   onStartQuest: (questId: string) => void;
   onCompleteStep: (stepId: string) => void;
+  onUncompleteStep: (stepId: string) => void;
   onCompleteQuest: (questId: string) => void;
   onExplainStep: (step: CorporateQuestStep, quest: CorporateQuest) => void;
   isStarting: boolean;
   isCompletingStep: boolean;
+  isUncompletingStep: boolean;
   isCompletingQuest: boolean;
   isExplaining: boolean;
 }) {
@@ -352,19 +356,47 @@ function QuestPanel({
                                 }`}
                               >
                                 <div className="flex items-start gap-2">
-                                  <div className={`mt-0.5 ${
-                                    step.status === 'COMPLETED' ? 'text-green-400' :
-                                    step.status === 'IN_PROGRESS' ? 'text-yellow-400' :
-                                    'text-slate-600'
-                                  }`}>
-                                    {step.status === 'COMPLETED' ? (
+                                  {/* Clickable checkbox for toggling completion */}
+                                  <button
+                                    onClick={() => {
+                                      if (step.status === 'COMPLETED') {
+                                        onUncompleteStep(step.id);
+                                      } else if (step.status === 'IN_PROGRESS' && !step.requiresUpload) {
+                                        onCompleteStep(step.id);
+                                      }
+                                    }}
+                                    disabled={
+                                      (step.status === 'COMPLETED' && isUncompletingStep) ||
+                                      (step.status === 'IN_PROGRESS' && isCompletingStep) ||
+                                      step.status === 'PENDING' ||
+                                      (step.status === 'IN_PROGRESS' && step.requiresUpload)
+                                    }
+                                    className={`mt-0.5 transition-colors ${
+                                      step.status === 'COMPLETED'
+                                        ? 'text-green-400 hover:text-green-300 cursor-pointer'
+                                        : step.status === 'IN_PROGRESS' && !step.requiresUpload
+                                        ? 'text-yellow-400 hover:text-green-400 cursor-pointer'
+                                        : 'text-slate-600 cursor-not-allowed'
+                                    }`}
+                                    title={
+                                      step.status === 'COMPLETED'
+                                        ? 'Click to mark as incomplete'
+                                        : step.status === 'IN_PROGRESS' && !step.requiresUpload
+                                        ? 'Click to mark as complete'
+                                        : ''
+                                    }
+                                  >
+                                    {(step.status === 'COMPLETED' && isUncompletingStep) ||
+                                     (step.status === 'IN_PROGRESS' && isCompletingStep) ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : step.status === 'COMPLETED' ? (
                                       <CheckCircle2 className="w-3 h-3" />
                                     ) : (
                                       <span className="w-3 h-3 flex items-center justify-center text-[10px]">
                                         {idx + 1}
                                       </span>
                                     )}
-                                  </div>
+                                  </button>
                                   <div className="flex-1">
                                     <div className={`font-medium ${
                                       step.status === 'COMPLETED' ? 'text-green-300 line-through' :
@@ -614,6 +646,7 @@ export function HoldingsHUD({ isActive, onExit }: HoldingsHUDProps) {
   // Mutations
   const startQuestMutation = useStartQuest();
   const completeStepMutation = useCompleteStep();
+  const uncompleteStepMutation = useUncompleteStep();
   const completeQuestMutation = useCompleteQuest();
   const explainStepMutation = useExplainQuestStep();
   const emitQuestUpdate = useEmitQuestUpdate();
@@ -671,6 +704,16 @@ export function HoldingsHUD({ isActive, onExit }: HoldingsHUDProps) {
       }
     });
   }, [completeStepMutation, emitQuestUpdate, activeQuest]);
+
+  const handleUncompleteStep = useCallback((stepId: string) => {
+    uncompleteStepMutation.mutate(stepId, {
+      onSuccess: () => {
+        if (activeQuest) {
+          emitQuestUpdate('holdings', activeQuest.id, 'step-completed');
+        }
+      }
+    });
+  }, [uncompleteStepMutation, emitQuestUpdate, activeQuest]);
 
   if (!isActive) return null;
 
@@ -737,6 +780,7 @@ export function HoldingsHUD({ isActive, onExit }: HoldingsHUDProps) {
           });
         }}
         onCompleteStep={handleCompleteStep}
+        onUncompleteStep={handleUncompleteStep}
         onCompleteQuest={(questId) => {
           completeQuestMutation.mutate(questId, {
             onSuccess: () => emitQuestUpdate('holdings', questId, 'completed')
@@ -744,6 +788,7 @@ export function HoldingsHUD({ isActive, onExit }: HoldingsHUDProps) {
         }}
         onExplainStep={handleExplainStep}
         isStarting={startQuestMutation.isPending}
+        isUncompletingStep={uncompleteStepMutation.isPending}
         isCompletingStep={completeStepMutation.isPending}
         isCompletingQuest={completeQuestMutation.isPending}
         isExplaining={explainStepMutation.isPending}

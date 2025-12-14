@@ -1396,6 +1396,8 @@ export const corporateApi = {
     api.patch(`/corporate/steps/${stepId}/complete`, { documentId }),
   skipStep: (stepId: string, reason?: string) =>
     api.patch(`/corporate/steps/${stepId}/skip`, { reason }),
+  uncompleteStep: (stepId: string) =>
+    api.patch(`/corporate/steps/${stepId}/uncomplete`),
 
   // ========== Documents ==========
   getDocuments: (entityId: string, category?: string, status?: string) =>

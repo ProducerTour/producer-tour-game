@@ -32,7 +32,7 @@ interface Player3D {
   color: string;
   shipModel: 'rocket' | 'fighter' | 'unaf' | 'monkey';
   lastUpdate: number;
-  room: 'space' | 'holdings'; // Which room they're in
+  room: 'space' | 'holdings' | 'play'; // Which room they're in
 }
 
 const players3D = new Map<string, Player3D>();
@@ -386,7 +386,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
     // === 3D MULTIPLAYER EVENTS ===
 
     // Join 3D corporate structure room
-    socket.on('3d:join', async (data: { username: string; shipModel?: string; room?: 'space' | 'holdings' }) => {
+    socket.on('3d:join', async (data: { username: string; shipModel?: string; room?: 'space' | 'holdings' | 'play'; avatarUrl?: string }) => {
       try {
         const username = data.username || `User_${socket.id.slice(0, 4)}`;
         const room = data.room || 'space';
@@ -398,12 +398,25 @@ export function initializeSocket(httpServer: HttpServer): Server {
         const colorIndex = players3D.size % PLAYER_COLORS.length;
         const color = PLAYER_COLORS[colorIndex];
 
+        // Starting positions based on room
+        let startPosition = { x: 20, y: 10, z: 20 };
+        let startRotation = { x: 0, y: -Math.PI / 4, z: 0 };
+
+        if (room === 'holdings') {
+          startPosition = { x: 0, y: 2, z: 5 };
+          startRotation = { x: 0, y: 0, z: 0 };
+        } else if (room === 'play') {
+          // Random spawn around the basketball court
+          startPosition = { x: (Math.random() - 0.5) * 20, y: 0, z: (Math.random() - 0.5) * 20 + 5 };
+          startRotation = { x: 0, y: Math.random() * Math.PI * 2, z: 0 };
+        }
+
         // Create player entry
         const player: Player3D = {
           id: socket.id,
           username,
-          position: room === 'holdings' ? { x: 0, y: 2, z: 5 } : { x: 20, y: 10, z: 20 }, // Starting position based on room
-          rotation: { x: 0, y: room === 'holdings' ? 0 : -Math.PI / 4, z: 0 },
+          position: startPosition,
+          rotation: startRotation,
           color,
           shipModel,
           lastUpdate: Date.now(),
@@ -411,7 +424,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
         };
 
         players3D.set(socket.id, player);
-        const socketRoom = room === 'holdings' ? '3d-holdings-room' : '3d-room';
+        const socketRoom = room === 'holdings' ? '3d-holdings-room' : room === 'play' ? '3d-play-room' : '3d-room';
         socket.join(socketRoom);
 
         console.log(`🚀 Player ${username} (${socket.id}) joined ${socketRoom} with ship: ${shipModel}`);
@@ -435,7 +448,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
     socket.on('3d:leave', () => {
       const player = players3D.get(socket.id);
       if (player) {
-        const socketRoom = player.room === 'holdings' ? '3d-holdings-room' : '3d-room';
+        const socketRoom = player.room === 'holdings' ? '3d-holdings-room' : player.room === 'play' ? '3d-play-room' : '3d-room';
         console.log(`🚀 Player ${player.username} (${socket.id}) left ${socketRoom}`);
         const playerRoom = player.room;
         players3D.delete(socket.id);
@@ -445,6 +458,13 @@ export function initializeSocket(httpServer: HttpServer): Server {
         io?.to(socketRoom).emit('3d:player-count', roomPlayerCount);
       }
     });
+
+    // Helper to get socket room name
+    const getSocketRoom = (room: string) => {
+      if (room === 'holdings') return '3d-holdings-room';
+      if (room === 'play') return '3d-play-room';
+      return '3d-room';
+    };
 
     // Update player position/rotation
     socket.on('3d:update', (data: {
@@ -458,7 +478,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
         player.lastUpdate = Date.now();
 
         // Broadcast position to others in same room (throttled by client)
-        const socketRoom = player.room === 'holdings' ? '3d-holdings-room' : '3d-room';
+        const socketRoom = getSocketRoom(player.room);
         socket.to(socketRoom).emit('3d:player-moved', {
           id: socket.id,
           position: data.position,
@@ -472,7 +492,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
       const player = players3D.get(socket.id);
       if (player && SHIP_MODELS.includes(data.shipModel as typeof SHIP_MODELS[number])) {
         player.shipModel = data.shipModel as Player3D['shipModel'];
-        const socketRoom = player.room === 'holdings' ? '3d-holdings-room' : '3d-room';
+        const socketRoom = getSocketRoom(player.room);
         console.log(`🚀 Player ${player.username} changed ship to: ${player.shipModel}`);
         socket.to(socketRoom).emit('3d:player-updated', {
           id: socket.id,
@@ -486,7 +506,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
       const player = players3D.get(socket.id);
       if (player && data.username) {
         player.username = data.username.slice(0, 20); // Max 20 chars
-        const socketRoom = player.room === 'holdings' ? '3d-holdings-room' : '3d-room';
+        const socketRoom = getSocketRoom(player.room);
         socket.to(socketRoom).emit('3d:player-updated', {
           id: socket.id,
           username: player.username,
@@ -511,12 +531,12 @@ export function initializeSocket(httpServer: HttpServer): Server {
       }
     });
 
-    // Switch rooms (space <-> holdings)
-    socket.on('3d:switch-room', (data: { room: 'space' | 'holdings' }) => {
+    // Switch rooms (space <-> holdings <-> play)
+    socket.on('3d:switch-room', (data: { room: 'space' | 'holdings' | 'play' }) => {
       const player = players3D.get(socket.id);
-      if (player && (data.room === 'space' || data.room === 'holdings')) {
-        const oldSocketRoom = player.room === 'holdings' ? '3d-holdings-room' : '3d-room';
-        const newSocketRoom = data.room === 'holdings' ? '3d-holdings-room' : '3d-room';
+      if (player && (data.room === 'space' || data.room === 'holdings' || data.room === 'play')) {
+        const oldSocketRoom = getSocketRoom(player.room);
+        const newSocketRoom = getSocketRoom(data.room);
 
         // Leave old room
         socket.leave(oldSocketRoom);
@@ -524,10 +544,18 @@ export function initializeSocket(httpServer: HttpServer): Server {
         const oldRoomCount = Array.from(players3D.values()).filter(p => p.room === player.room && p.id !== socket.id).length;
         io?.to(oldSocketRoom).emit('3d:player-count', oldRoomCount);
 
-        // Update player room
+        // Update player room with appropriate starting positions
         player.room = data.room;
-        player.position = data.room === 'holdings' ? { x: 0, y: 2, z: 5 } : { x: 20, y: 10, z: 20 };
-        player.rotation = { x: 0, y: data.room === 'holdings' ? 0 : -Math.PI / 4, z: 0 };
+        if (data.room === 'holdings') {
+          player.position = { x: 0, y: 2, z: 5 };
+          player.rotation = { x: 0, y: 0, z: 0 };
+        } else if (data.room === 'play') {
+          player.position = { x: (Math.random() - 0.5) * 20, y: 0, z: (Math.random() - 0.5) * 20 + 5 };
+          player.rotation = { x: 0, y: Math.random() * Math.PI * 2, z: 0 };
+        } else {
+          player.position = { x: 20, y: 10, z: 20 };
+          player.rotation = { x: 0, y: -Math.PI / 4, z: 0 };
+        }
 
         // Join new room
         socket.join(newSocketRoom);
@@ -552,7 +580,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
       // Clean up 3D player if they were in the room
       const player = players3D.get(socket.id);
       if (player) {
-        const socketRoom = player.room === 'holdings' ? '3d-holdings-room' : '3d-room';
+        const socketRoom = getSocketRoom(player.room);
         const playerRoom = player.room;
         console.log(`🚀 Player ${player.username} disconnected from ${socketRoom}`);
         players3D.delete(socket.id);

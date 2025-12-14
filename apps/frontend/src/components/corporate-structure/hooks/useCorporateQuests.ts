@@ -137,6 +137,21 @@ export function useSkipStep() {
   });
 }
 
+export function useUncompleteStep() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (stepId: string) => {
+      const response = await corporateApi.uncompleteStep(stepId);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['corporate', 'quests'] });
+      queryClient.invalidateQueries({ queryKey: ['corporate', 'quest', data.questId] });
+    },
+  });
+}
+
 // ============================================================================
 // Compliance Hooks
 // ============================================================================
