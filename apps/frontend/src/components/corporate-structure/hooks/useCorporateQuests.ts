@@ -286,6 +286,22 @@ export function useUploadStepDocument() {
 }
 
 // ============================================================================
+// Document Hooks
+// ============================================================================
+
+export function useCorporateDocuments(entityId: string, category?: string) {
+  return useQuery<import('../types').CorporateDocument[]>({
+    queryKey: ['corporate', 'documents', entityId, category],
+    queryFn: async () => {
+      const response = await corporateApi.getDocuments(entityId, category);
+      return response.data;
+    },
+    enabled: !!entityId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+}
+
+// ============================================================================
 // Combined Hook for Holdings Interior
 // ============================================================================
 

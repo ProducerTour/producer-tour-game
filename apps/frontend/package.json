@@ -18,6 +18,9 @@
     "@ffmpeg/util": "^0.12.2",
     "@gsap/react": "^2.1.2",
     "@hookform/resolvers": "^5.2.2",
+    "@liveblocks/client": "^3.11.1",
+    "@liveblocks/react": "^3.11.1",
+    "@liveblocks/yjs": "^3.11.1",
     "@nivo/bar": "^0.99.0",
     "@nivo/core": "^0.99.0",
     "@nivo/line": "^0.99.0",
@@ -91,6 +94,7 @@
     "viem": "^2.41.2",
     "wagmi": "^3.1.0",
     "wavesurfer.js": "^7.11.1",
+    "yjs": "^13.6.27",
     "zod": "^4.1.12",
     "zustand": "^5.0.1"
   },

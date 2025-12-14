@@ -2392,11 +2392,12 @@ function SpaceshipFlyController({
     // Different bounds for space vs Holdings interior
     const isInsideHoldings = portalState === 'inside';
 
-    // Holdings interior bounds: floor at y=-2, dome radius ~45 (smaller than crystal floor radius 50)
+    // Holdings interior bounds: scaled 2x larger
+    // Floor at y=0, dome extends to ~70, crystal floor radius ~100, boundary at 90
     // Space bounds: y 1-80, XZ ±150
     const minY = isInsideHoldings ? 0 : 1;
-    const maxY = isInsideHoldings ? 35 : 80;
-    const boundary = isInsideHoldings ? 40 : 150;
+    const maxY = isInsideHoldings ? 70 : 80;
+    const boundary = isInsideHoldings ? 90 : 150;
 
     // Clamp Y position with soft bounce
     if (newPosition.y < minY) {

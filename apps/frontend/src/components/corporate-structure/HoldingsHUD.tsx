@@ -20,8 +20,10 @@ import {
   Scale,
   ArrowLeft,
   List,
+  Users,
 } from 'lucide-react';
 import { useHoldingsData, useStartQuest, useCompleteStep, useUncompleteStep, useCompleteQuest, useExplainQuestStep, useQuestSocketUpdates, useEmitQuestUpdate } from './hooks';
+import { CoopDocumentEditor } from './CoopDocumentEditor';
 import type { CorporateQuest, CorporateQuestStep, QuestStepExplanation } from './types';
 
 // Quest Tracker - Shows current active quest in compact form
@@ -194,6 +196,7 @@ function QuestPanel({
   onUncompleteStep,
   onCompleteQuest,
   onExplainStep,
+  onOpenDocument,
   isStarting,
   isCompletingStep,
   isUncompletingStep,
@@ -208,6 +211,7 @@ function QuestPanel({
   onUncompleteStep: (stepId: string) => void;
   onCompleteQuest: (questId: string) => void;
   onExplainStep: (step: CorporateQuestStep, quest: CorporateQuest) => void;
+  onOpenDocument: (step: CorporateQuestStep, quest: CorporateQuest) => void;
   isStarting: boolean;
   isCompletingStep: boolean;
   isUncompletingStep: boolean;
@@ -409,6 +413,16 @@ function QuestPanel({
                                     {/* Actions for current step */}
                                     {step.status === 'IN_PROGRESS' && (
                                       <div className="flex flex-wrap gap-1.5 mt-2">
+                                        {/* Co-op Document Edit button for TEMPLATE action type */}
+                                        {step.actionType === 'TEMPLATE' && (
+                                          <button
+                                            onClick={() => onOpenDocument(step, quest)}
+                                            className="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded hover:bg-cyan-500/30 flex items-center gap-1"
+                                          >
+                                            <Users className="w-2.5 h-2.5" />
+                                            Co-op Edit
+                                          </button>
+                                        )}
                                         <button
                                           onClick={() => onExplainStep(step, quest)}
                                           disabled={isExplaining}
@@ -636,6 +650,7 @@ interface HoldingsHUDProps {
 export function HoldingsHUD({ isActive, onExit }: HoldingsHUDProps) {
   const [showQuestPanel, setShowQuestPanel] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [showDocumentEditor, setShowDocumentEditor] = useState(false);
   const [selectedStep, setSelectedStep] = useState<CorporateQuestStep | null>(null);
   const [selectedQuest, setSelectedQuest] = useState<CorporateQuest | null>(null);
 
@@ -663,7 +678,9 @@ export function HoldingsHUD({ isActive, onExit }: HoldingsHUDProps) {
         setShowQuestPanel(prev => !prev);
       }
       if (e.key === 'Escape') {
-        if (showExplanation) {
+        if (showDocumentEditor) {
+          setShowDocumentEditor(false);
+        } else if (showExplanation) {
           setShowExplanation(false);
         } else if (showQuestPanel) {
           setShowQuestPanel(false);
@@ -673,7 +690,7 @@ export function HoldingsHUD({ isActive, onExit }: HoldingsHUDProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showQuestPanel, showExplanation]);
+  }, [showQuestPanel, showExplanation, showDocumentEditor]);
 
   // Handlers
   const handleExplainStep = useCallback((step: CorporateQuestStep, quest: CorporateQuest) => {
@@ -714,6 +731,20 @@ export function HoldingsHUD({ isActive, onExit }: HoldingsHUDProps) {
       }
     });
   }, [uncompleteStepMutation, emitQuestUpdate, activeQuest]);
+
+  // Handler to open co-op document editor
+  const handleOpenDocument = useCallback((step: CorporateQuestStep, quest: CorporateQuest) => {
+    setSelectedStep(step);
+    setSelectedQuest(quest);
+    setShowDocumentEditor(true);
+    setShowQuestPanel(false); // Close quest panel when opening document
+  }, []);
+
+  // Handler to complete step from document editor
+  const handleDocumentComplete = useCallback((stepId: string) => {
+    handleCompleteStep(stepId);
+    setShowDocumentEditor(false);
+  }, [handleCompleteStep]);
 
   if (!isActive) return null;
 
@@ -787,6 +818,7 @@ export function HoldingsHUD({ isActive, onExit }: HoldingsHUDProps) {
           });
         }}
         onExplainStep={handleExplainStep}
+        onOpenDocument={handleOpenDocument}
         isStarting={startQuestMutation.isPending}
         isUncompletingStep={uncompleteStepMutation.isPending}
         isCompletingStep={completeStepMutation.isPending}
@@ -804,6 +836,18 @@ export function HoldingsHUD({ isActive, onExit }: HoldingsHUDProps) {
         isLoading={explainStepMutation.isPending}
         error={explainStepMutation.error}
       />
+
+      {/* Co-op Document Editor */}
+      {selectedStep && selectedQuest && (
+        <CoopDocumentEditor
+          isOpen={showDocumentEditor}
+          onClose={() => setShowDocumentEditor(false)}
+          step={selectedStep}
+          quest={selectedQuest}
+          entityId="holdings"
+          onComplete={handleDocumentComplete}
+        />
+      )}
     </>
   );
 }

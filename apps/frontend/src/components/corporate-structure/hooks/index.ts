@@ -17,6 +17,8 @@ export {
   useHoldingsData,
   useExplainQuestStep,
   useUploadStepDocument,
+  // Document Storage
+  useCorporateDocuments,
   // Entity Verification (OpenCorporates)
   useVerificationStatus,
   useVerifyEntity,

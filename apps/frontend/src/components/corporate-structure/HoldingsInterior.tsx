@@ -8,6 +8,7 @@ import {
   Building2,
   ExternalLink
 } from 'lucide-react';
+import { FileCabinet3D } from './FileCabinet';
 
 // Interactive station in the interior
 function InteractiveStation({
@@ -323,6 +324,14 @@ export function HoldingsInterior({ onExit, isActive }: HoldingsInteriorProps) {
         color="#3b82f6"
         onClick={() => {}}
         isActive={false}
+      />
+
+      {/* File Cabinet for Document Storage */}
+      <FileCabinet3D
+        position={[25, 0, 5]}
+        rotation={[0, -Math.PI / 4, 0]}
+        entityId="holdings"
+        entityName="Producer Tour Holdings, Inc."
       />
 
       {/* Exit Portal - 2x position */}
