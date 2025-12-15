@@ -71,3 +71,14 @@ apps/frontend/ios/App/App.xcworkspace/xcuserdata/
 apps/frontend/ios/App/App.xcodeproj/xcuserdata/
 apps/frontend/ios/DerivedData/
 *.xcuserstate
+
+# Large 3D assets (served from R2 CDN in production)
+# Source files - never commit
+*.fbx
+*.FBX
+*.obj
+*.OBJ
+
+# Local dev animations/models (use R2 CDN URLs in production)
+apps/frontend/public/animations/
+apps/frontend/public/models/
