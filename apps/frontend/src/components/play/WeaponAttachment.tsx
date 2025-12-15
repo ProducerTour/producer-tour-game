@@ -39,13 +39,34 @@ interface WeaponAttachmentProps {
 }
 
 // Find a bone by trying multiple naming conventions
-function findBone(skeleton: THREE.Object3D, names: string[], debug = false): THREE.Bone | null {
+// RPM avatars store bones inside SkinnedMesh.skeleton, not as direct children
+function findBone(root: THREE.Object3D, names: string[], debug = false): THREE.Bone | null {
   let foundBone: THREE.Bone | null = null;
   const allBones: string[] = [];
 
-  skeleton.traverse((child) => {
+  // First, try to find bones via SkinnedMesh.skeleton (RPM avatars)
+  root.traverse((child) => {
+    if (foundBone) return;
+
+    // Check if this is a SkinnedMesh with a skeleton
+    const skinnedMesh = child as THREE.SkinnedMesh;
+    if (skinnedMesh.isSkinnedMesh && skinnedMesh.skeleton) {
+      for (const bone of skinnedMesh.skeleton.bones) {
+        allBones.push(bone.name);
+        if (foundBone) continue;
+        for (const name of names) {
+          if (bone.name === name || bone.name.includes(name)) {
+            foundBone = bone;
+          }
+        }
+      }
+    }
+
+    // Also check direct Bone children (Mixamo style)
     if (child instanceof THREE.Bone) {
-      allBones.push(child.name);
+      if (!allBones.includes(child.name)) {
+        allBones.push(child.name);
+      }
       if (foundBone) return;
       for (const name of names) {
         if (child.name === name || child.name.includes(name)) {
@@ -57,7 +78,7 @@ function findBone(skeleton: THREE.Object3D, names: string[], debug = false): THR
   });
 
   if (debug && !foundBone) {
-    console.log('🦴 All bones in skeleton:', allBones);
+    console.log('🦴 All bones found:', allBones);
     console.log('🦴 Looking for:', names);
   }
 
