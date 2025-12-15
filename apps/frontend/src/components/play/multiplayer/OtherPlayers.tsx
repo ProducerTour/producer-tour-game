@@ -67,11 +67,7 @@ const ALL_ANIMATIONS = {
   pistolIdle: ANIMATION_CONFIG.pistolIdle.url,
   pistolWalk: ANIMATION_CONFIG.pistolWalk.url,
   pistolRun: ANIMATION_CONFIG.pistolRun.url,
-  // Crouch + Weapons
-  crouchRifleIdle: ANIMATION_CONFIG.crouchRifleIdle.url,
-  crouchRifleWalk: ANIMATION_CONFIG.crouchRifleWalk.url,
-  crouchPistolIdle: ANIMATION_CONFIG.crouchPistolIdle.url,
-  crouchPistolWalk: ANIMATION_CONFIG.crouchPistolWalk.url,
+  // NOTE: crouch+weapon animations not yet available on CDN
 } as const;
 
 const ONE_SHOT_ANIMATIONS = ['jump', 'jumpJog', 'jumpRun'];
@@ -181,10 +177,6 @@ function FullAnimatedAvatar({
   const pistolIdleGltf = useGLTF(ALL_ANIMATIONS.pistolIdle);
   const pistolWalkGltf = useGLTF(ALL_ANIMATIONS.pistolWalk);
   const pistolRunGltf = useGLTF(ALL_ANIMATIONS.pistolRun);
-  const crouchRifleIdleGltf = useGLTF(ALL_ANIMATIONS.crouchRifleIdle);
-  const crouchRifleWalkGltf = useGLTF(ALL_ANIMATIONS.crouchRifleWalk);
-  const crouchPistolIdleGltf = useGLTF(ALL_ANIMATIONS.crouchPistolIdle);
-  const crouchPistolWalkGltf = useGLTF(ALL_ANIMATIONS.crouchPistolWalk);
 
   const clonedScene = useMemo(() => {
     const clone = SkeletonUtils.clone(scene);
@@ -238,10 +230,6 @@ function FullAnimatedAvatar({
     addAnim(pistolIdleGltf, 'pistolIdle');
     addAnim(pistolWalkGltf, 'pistolWalk');
     addAnim(pistolRunGltf, 'pistolRun');
-    addAnim(crouchRifleIdleGltf, 'crouchRifleIdle');
-    addAnim(crouchRifleWalkGltf, 'crouchRifleWalk');
-    addAnim(crouchPistolIdleGltf, 'crouchPistolIdle');
-    addAnim(crouchPistolWalkGltf, 'crouchPistolWalk');
 
     return anims;
   }, [
@@ -252,8 +240,6 @@ function FullAnimatedAvatar({
     crouchStrafeLeftGltf.animations, crouchStrafeRightGltf.animations,
     rifleIdleGltf.animations, rifleWalkGltf.animations, rifleRunGltf.animations,
     pistolIdleGltf.animations, pistolWalkGltf.animations, pistolRunGltf.animations,
-    crouchRifleIdleGltf.animations, crouchRifleWalkGltf.animations,
-    crouchPistolIdleGltf.animations, crouchPistolWalkGltf.animations,
   ]);
 
   const { actions } = useAnimations(animations, group);
@@ -289,11 +275,20 @@ function FullAnimatedAvatar({
     // Direct mapping - use exact animation name if available
     let targetAnim = animationState;
     if (!actions[targetAnim]) {
-      // Fallback mapping
-      if (targetAnim.includes('Run') || targetAnim.includes('running')) {
+      // Fallback mapping for animations not loaded
+      if (targetAnim.includes('crouchRifle') || targetAnim.includes('crouchPistol')) {
+        // Crouch+weapon → fallback to crouch
+        if (targetAnim.includes('Walk')) {
+          targetAnim = 'crouchWalk';
+        } else {
+          targetAnim = 'crouchIdle';
+        }
+      } else if (targetAnim.includes('Run') || targetAnim.includes('running')) {
         targetAnim = 'running';
       } else if (targetAnim.includes('Walk') || targetAnim.includes('walking')) {
         targetAnim = 'walking';
+      } else if (targetAnim.includes('crouch')) {
+        targetAnim = 'crouchIdle';
       } else {
         targetAnim = 'idle';
       }
