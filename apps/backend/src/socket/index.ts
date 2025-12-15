@@ -23,7 +23,7 @@ let io: Server | null = null;
 // Track online users: Map<userId, Set<socketId>>
 const onlineUsers = new Map<string, Set<string>>();
 
-// 3D Multiplayer state - track players in the corporate structure view
+// 3D Multiplayer state - track players in various 3D rooms
 interface Player3D {
   id: string;
   username: string;
@@ -31,6 +31,7 @@ interface Player3D {
   rotation: { x: number; y: number; z: number };
   color: string;
   shipModel: 'rocket' | 'fighter' | 'unaf' | 'monkey';
+  avatarUrl?: string; // For play room - Ready Player Me avatar
   lastUpdate: number;
   room: 'space' | 'holdings' | 'play'; // Which room they're in
 }
@@ -385,8 +386,8 @@ export function initializeSocket(httpServer: HttpServer): Server {
 
     // === 3D MULTIPLAYER EVENTS ===
 
-    // Join 3D corporate structure room
-    socket.on('3d:join', async (data: { username: string; shipModel?: string; room?: 'space' | 'holdings' | 'play'; avatarUrl?: string }) => {
+    // Join 3D room (space, holdings, or play)
+    socket.on('3d:join', async (data: { username: string; shipModel?: string; room?: 'space' | 'holdings' | 'play'; avatarUrl?: string; color?: string }) => {
       try {
         const username = data.username || `User_${socket.id.slice(0, 4)}`;
         const room = data.room || 'space';
@@ -394,9 +395,9 @@ export function initializeSocket(httpServer: HttpServer): Server {
           ? data.shipModel
           : 'rocket') as Player3D['shipModel'];
 
-        // Assign a random color to this player
+        // Assign a random color to this player (or use provided color for play room)
         const colorIndex = players3D.size % PLAYER_COLORS.length;
-        const color = PLAYER_COLORS[colorIndex];
+        const color = data.color || PLAYER_COLORS[colorIndex];
 
         // Starting positions based on room
         let startPosition = { x: 20, y: 10, z: 20 };
@@ -419,6 +420,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
           rotation: startRotation,
           color,
           shipModel,
+          avatarUrl: data.avatarUrl, // Store avatar URL for play room
           lastUpdate: Date.now(),
           room,
         };
@@ -427,7 +429,12 @@ export function initializeSocket(httpServer: HttpServer): Server {
         const socketRoom = room === 'holdings' ? '3d-holdings-room' : room === 'play' ? '3d-play-room' : '3d-room';
         socket.join(socketRoom);
 
-        console.log(`🚀 Player ${username} (${socket.id}) joined ${socketRoom} with ship: ${shipModel}`);
+        // Log appropriate message based on room type
+        if (room === 'play') {
+          console.log(`🎮 Player ${username} (${socket.id}) joined play-room${data.avatarUrl ? ' with avatar' : ''}`);
+        } else {
+          console.log(`🚀 Player ${username} (${socket.id}) joined ${socketRoom} with ship: ${shipModel}`);
+        }
 
         // Send current players in the same room to new joiner
         const currentPlayers = Array.from(players3D.values()).filter(p => p.id !== socket.id && p.room === room);
@@ -449,7 +456,8 @@ export function initializeSocket(httpServer: HttpServer): Server {
       const player = players3D.get(socket.id);
       if (player) {
         const socketRoom = player.room === 'holdings' ? '3d-holdings-room' : player.room === 'play' ? '3d-play-room' : '3d-room';
-        console.log(`🚀 Player ${player.username} (${socket.id}) left ${socketRoom}`);
+        const emoji = player.room === 'play' ? '🎮' : '🚀';
+        console.log(`${emoji} Player ${player.username} (${socket.id}) left ${socketRoom}`);
         const playerRoom = player.room;
         players3D.delete(socket.id);
         socket.leave(socketRoom);
@@ -582,7 +590,8 @@ export function initializeSocket(httpServer: HttpServer): Server {
       if (player) {
         const socketRoom = getSocketRoom(player.room);
         const playerRoom = player.room;
-        console.log(`🚀 Player ${player.username} disconnected from ${socketRoom}`);
+        const emoji = player.room === 'play' ? '🎮' : '🚀';
+        console.log(`${emoji} Player ${player.username} disconnected from ${socketRoom}`);
         players3D.delete(socket.id);
         io?.to(socketRoom).emit('3d:player-left', { id: socket.id });
         const roomPlayerCount = Array.from(players3D.values()).filter(p => p.room === playerRoom).length;
