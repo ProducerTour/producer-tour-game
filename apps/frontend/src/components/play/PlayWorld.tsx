@@ -2632,7 +2632,7 @@ export function PlayWorld({
     const animationName = animState ? getAnimationName(animState, weaponType) : 'idle';
 
     // Update multiplayer position with animation state and weapon
-    updatePosition(pos, playerRotation.current, animationName, weaponType);
+    updatePosition(pos, playerRotation.current, animationName, weaponType ?? 'none');
   }, [onPlayerPositionChange, updatePosition, getAnimationName, weaponType]);
 
   const zones = [
