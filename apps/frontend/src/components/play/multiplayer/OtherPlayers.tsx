@@ -4,7 +4,7 @@ import { Billboard, Text, useGLTF, useAnimations, useFBX } from '@react-three/dr
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import type { Player3D } from '../hooks/usePlayMultiplayer';
-import { ANIMATION_CONFIG } from '../animations.config';
+import { ANIMATION_CONFIG, isMixamoAnimation } from '../animations.config';
 
 // Render distance constants
 const FULL_RENDER_DISTANCE = 30; // Full animated avatar within this range
@@ -71,6 +71,58 @@ const ALL_ANIMATIONS = {
 } as const;
 
 const ONE_SHOT_ANIMATIONS = ['jump', 'jumpJog', 'jumpRun'];
+
+/**
+ * Strip root motion, scale tracks, and remap bone names from Mixamo format
+ * This prevents the "giant player" bug from Mixamo animations
+ */
+function stripRootMotion(clip: THREE.AnimationClip, clipName: string): THREE.AnimationClip {
+  const newClip = clip.clone();
+  const isMixamoAnim = isMixamoAnimation(clipName);
+
+  // Process tracks: remap bone names and filter problematic tracks
+  newClip.tracks = newClip.tracks
+    .map(track => {
+      let newName = track.name;
+
+      // Remove armature prefix if present
+      if (newName.includes('|')) {
+        newName = newName.split('|').pop() || newName;
+      }
+
+      // Remove mixamorig variants (with colon, without, numbered)
+      newName = newName.replace(/mixamorig\d*:/g, '');
+      newName = newName.replace(/^mixamorig(\d*)([A-Z])/g, '$2');
+
+      if (newName !== track.name) {
+        const newTrack = track.clone();
+        newTrack.name = newName;
+        return newTrack;
+      }
+      return track;
+    })
+    .filter(track => {
+      if (isMixamoAnim) {
+        // For Mixamo: keep only quaternion (rotation) tracks
+        // Remove position and scale tracks to prevent drift/glitching
+        if (!track.name.endsWith('.quaternion')) {
+          return false;
+        }
+        return true;
+      }
+
+      // For regular animations: keep rotations and non-Hips positions
+      if (!track.name.endsWith('.quaternion')) {
+        if (track.name.endsWith('.position') && !track.name.includes('Hips')) {
+          return true;
+        }
+        return false;
+      }
+      return true;
+    });
+
+  return newClip;
+}
 
 // Weapon model paths
 const WEAPON_MODELS = {
@@ -205,7 +257,8 @@ function FullAnimatedAvatar({
 
     const addAnim = (gltf: { animations: THREE.AnimationClip[] }, name: string) => {
       if (gltf.animations.length > 0) {
-        const clip = gltf.animations[0].clone();
+        // Apply stripRootMotion to fix Mixamo scale/position track issues
+        const clip = stripRootMotion(gltf.animations[0], name);
         clip.name = name;
         anims.push(clip);
       }
