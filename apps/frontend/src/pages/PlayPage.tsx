@@ -23,7 +23,8 @@ import {
   Play,
   Save
 } from 'lucide-react';
-import { PlayWorld } from '../components/play/PlayWorld';
+import { Leva } from 'leva';
+import { PlayWorld, type PlayerInfo } from '../components/play/PlayWorld';
 import { AvatarCreator } from '../components/play/AvatarCreator';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { PlayerHealthBar, AmmoDisplay, Crosshair } from '../components/play/combat/HealthBar';
@@ -819,6 +820,9 @@ export default function PlayPage() {
   const { user } = useAuthStore();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Game settings - for weapon editor visibility
+  const { showWeaponEditor } = useGameSettings();
+
   // Socket connection for multiplayer and server version checks
   const { socket, isConnected } = useSocket();
 
@@ -844,6 +848,7 @@ export default function PlayPage() {
     return !hasEnteredBefore;
   });
   const [onlineCount] = useState(Math.floor(Math.random() * 500) + 150);
+  const [onlinePlayers, setOnlinePlayers] = useState<PlayerInfo[]>([]);
 
   // Player position - restore from save or use default
   const [playerCoords, setPlayerCoords] = useState(
@@ -976,6 +981,9 @@ export default function PlayPage() {
         secondsUntilRefresh={secondsUntilRefresh}
         onRefreshNow={refreshNow}
       />
+
+      {/* Leva controls panel - hidden by default, toggle with /weaponedit command */}
+      <Leva hidden={!showWeaponEditor} collapsed={false} />
 
       {/* Welcome Modal */}
       <AnimatePresence>
@@ -1197,6 +1205,7 @@ export default function PlayPage() {
             <PlayWorld
               avatarUrl={avatarUrl || undefined}
               onPlayerPositionChange={(pos) => setPlayerCoords({ x: pos.x, y: pos.y, z: pos.z })}
+              onPlayersChange={setOnlinePlayers}
             />
           </Canvas>
         </Suspense>
@@ -1209,7 +1218,7 @@ export default function PlayPage() {
       <QuestTracker />
 
       {/* Dev Console - Toggle with ` key */}
-      <DevConsole />
+      <DevConsole onlinePlayers={onlinePlayers} />
     </div>
   );
 }

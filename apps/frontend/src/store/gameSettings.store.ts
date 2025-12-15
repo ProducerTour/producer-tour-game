@@ -19,6 +19,9 @@ interface GameSettingsState {
   mouseSensitivity: number;
   invertY: boolean;
 
+  // Dev/Admin (not persisted)
+  showWeaponEditor: boolean;
+
   // Actions - Graphics
   setShadowQuality: (quality: ShadowQuality) => void;
   setRenderDistance: (distance: number) => void;
@@ -33,6 +36,10 @@ interface GameSettingsState {
   // Actions - Controls
   setMouseSensitivity: (sensitivity: number) => void;
   setInvertY: (invert: boolean) => void;
+
+  // Actions - Dev/Admin
+  setShowWeaponEditor: (show: boolean) => void;
+  toggleWeaponEditor: () => void;
 
   // Utilities
   resetToDefaults: () => void;
@@ -54,6 +61,9 @@ const DEFAULT_SETTINGS = {
   // Controls
   mouseSensitivity: 1,
   invertY: false,
+
+  // Dev/Admin (not persisted)
+  showWeaponEditor: false,
 };
 
 export const useGameSettings = create<GameSettingsState>()(
@@ -75,6 +85,10 @@ export const useGameSettings = create<GameSettingsState>()(
       // Control setters
       setMouseSensitivity: (sensitivity) => set({ mouseSensitivity: Math.max(0.1, Math.min(3, sensitivity)) }),
       setInvertY: (invert) => set({ invertY: invert }),
+
+      // Dev/Admin setters
+      setShowWeaponEditor: (show) => set({ showWeaponEditor: show }),
+      toggleWeaponEditor: () => set((state) => ({ showWeaponEditor: !state.showWeaponEditor })),
 
       // Utilities
       resetToDefaults: () => set(DEFAULT_SETTINGS),

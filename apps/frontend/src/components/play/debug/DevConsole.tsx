@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useGameSettings } from '../../../store/gameSettings.store';
 
 interface LogEntry {
   type: 'log' | 'warn' | 'error' | 'info' | 'cmd';
@@ -14,6 +15,7 @@ interface LogEntry {
 
 interface DevConsoleProps {
   onCommand?: (command: string, args: string[]) => void;
+  onlinePlayers?: Array<{ id: string; username: string; color: string }>;
 }
 
 // Built-in commands
@@ -91,9 +93,15 @@ const BUILT_IN_COMMANDS: Record<string, { description: string; handler: (args: s
       addLog({ type: 'info', message: 'Debug overlay toggled', timestamp: new Date() });
     },
   },
+  weaponedit: {
+    description: 'Toggle weapon position editor (admin)',
+    handler: (_args, _addLog) => {
+      // Handled specially in component to access zustand store
+    },
+  },
 };
 
-export function DevConsole({ onCommand }: DevConsoleProps) {
+export function DevConsole({ onCommand, onlinePlayers = [] }: DevConsoleProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [input, setInput] = useState('');
@@ -101,6 +109,9 @@ export function DevConsole({ onCommand }: DevConsoleProps) {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  // Access game settings store for weapon editor toggle
+  const { showWeaponEditor, toggleWeaponEditor } = useGameSettings();
 
   const addLog = useCallback((entry: LogEntry) => {
     setLogs(prev => [...prev.slice(-200), entry]); // Keep last 200 logs
@@ -190,6 +201,37 @@ export function DevConsole({ onCommand }: DevConsoleProps) {
 
       if (cmd === 'clear') {
         setLogs([]);
+      } else if (cmd === 'weaponedit') {
+        // Handle weapon editor toggle specially (needs zustand store)
+        toggleWeaponEditor();
+        const newState = !showWeaponEditor;
+        addLog({
+          type: 'info',
+          message: `Weapon position editor ${newState ? 'ENABLED' : 'DISABLED'}`,
+          timestamp: new Date()
+        });
+        if (newState) {
+          addLog({
+            type: 'info',
+            message: 'Adjust weapon position/rotation/scale in the Leva panel (top right)',
+            timestamp: new Date()
+          });
+        }
+      } else if (cmd === 'players') {
+        // Handle players list with actual data
+        addLog({ type: 'info', message: '=== Online Players ===', timestamp: new Date() });
+        if (onlinePlayers.length === 0) {
+          addLog({ type: 'info', message: '  No other players online', timestamp: new Date() });
+        } else {
+          onlinePlayers.forEach((player, i) => {
+            addLog({
+              type: 'info',
+              message: `  ${i + 1}. ${player.username} (${player.id.slice(0, 8)}...)`,
+              timestamp: new Date()
+            });
+          });
+        }
+        addLog({ type: 'info', message: `  Total: ${onlinePlayers.length + 1} player(s) (including you)`, timestamp: new Date() });
       } else if (BUILT_IN_COMMANDS[cmd]) {
         BUILT_IN_COMMANDS[cmd].handler(args, addLog);
       } else {

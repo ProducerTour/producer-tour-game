@@ -942,15 +942,24 @@ function MonkeyNPC({ position }: { position: [number, number, number] }) {
 // Preload monkey model
 useGLTF.preload(`${ASSETS_URL}/models/Monkey/Monkey.glb`);
 
+// Player info for console display
+export interface PlayerInfo {
+  id: string;
+  username: string;
+  color: string;
+}
+
 // Main world component
 export function PlayWorld({
   avatarUrl,
   onPlayerPositionChange,
   onMultiplayerReady,
+  onPlayersChange,
 }: {
   avatarUrl?: string;
   onPlayerPositionChange?: (pos: THREE.Vector3) => void;
   onMultiplayerReady?: (data: { playerCount: number; isConnected: boolean }) => void;
+  onPlayersChange?: (players: PlayerInfo[]) => void;
 }) {
   const [playerPos, setPlayerPos] = useState(new THREE.Vector3(0, 0, 5));
   const playerRotation = useRef(new THREE.Euler());
@@ -998,6 +1007,15 @@ export function PlayWorld({
   useEffect(() => {
     onMultiplayerReady?.({ playerCount, isConnected });
   }, [playerCount, isConnected, onMultiplayerReady]);
+
+  // Notify parent of player list changes
+  useEffect(() => {
+    onPlayersChange?.(otherPlayers.map(p => ({
+      id: p.id,
+      username: p.username,
+      color: p.color,
+    })));
+  }, [otherPlayers, onPlayersChange]);
 
   // Derive animation name from state (simplified for network sync)
   const getAnimationName = useCallback((state: AnimationState, weapon: WeaponType): string => {
