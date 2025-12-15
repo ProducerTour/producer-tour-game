@@ -38,6 +38,7 @@ interface Player3D {
   shipModel: 'rocket' | 'fighter' | 'unaf' | 'monkey';
   avatarUrl?: string; // For play room - Ready Player Me avatar
   animationState?: string; // Current animation (idle, walking, running, etc.)
+  weaponType?: 'none' | 'rifle' | 'pistol'; // Current equipped weapon
   lastUpdate: number;
   room: 'space' | 'holdings' | 'play'; // Which room they're in
 }
@@ -793,11 +794,12 @@ export function initializeSocket(httpServer: HttpServer): Server {
       return '3d-room';
     };
 
-    // Update player position/rotation/animation
+    // Update player position/rotation/animation/weapon
     socket.on('3d:update', (data: {
       position: { x: number; y: number; z: number };
       rotation: { x: number; y: number; z: number };
       animationState?: string;
+      weaponType?: 'none' | 'rifle' | 'pistol';
     }) => {
       const player = players3D.get(socket.id);
       if (player) {
@@ -805,6 +807,9 @@ export function initializeSocket(httpServer: HttpServer): Server {
         player.rotation = data.rotation;
         if (data.animationState) {
           player.animationState = data.animationState;
+        }
+        if (data.weaponType !== undefined) {
+          player.weaponType = data.weaponType;
         }
         player.lastUpdate = Date.now();
 
@@ -815,6 +820,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
           position: data.position,
           rotation: data.rotation,
           ...(data.animationState && { animationState: data.animationState }),
+          ...(data.weaponType !== undefined && { weaponType: data.weaponType }),
         });
       }
     });
