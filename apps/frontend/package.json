@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:check": "tsc --noEmit && echo '✅ TypeScript OK - safe to push'",
     "build:analyze": "ANALYZE=true tsc && ANALYZE=true vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
