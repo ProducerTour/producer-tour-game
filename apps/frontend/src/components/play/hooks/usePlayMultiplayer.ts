@@ -11,6 +11,7 @@ export interface Player3D {
   rotation: { x: number; y: number; z: number };
   color: string;
   avatarUrl?: string;
+  animationState?: string; // Current animation name (idle, walking, running, etc.)
   lastUpdate: number;
 }
 
@@ -25,7 +26,7 @@ interface UsePlayMultiplayerReturn {
   isConnected: boolean;
   username: string;
   setUsername: (name: string) => void;
-  updatePosition: (position: THREE.Vector3, rotation: THREE.Euler) => void;
+  updatePosition: (position: THREE.Vector3, rotation: THREE.Euler, animationState?: string) => void;
 }
 
 export function usePlayMultiplayer({
@@ -99,6 +100,7 @@ export function usePlayMultiplayer({
       id: string;
       position: { x: number; y: number; z: number };
       rotation: { x: number; y: number; z: number };
+      animationState?: string;
     }) => {
       setOtherPlayers((prev) =>
         prev.map((p) =>
@@ -107,6 +109,7 @@ export function usePlayMultiplayer({
                 ...p,
                 position: data.position,
                 rotation: data.rotation,
+                ...(data.animationState && { animationState: data.animationState }),
                 lastUpdate: Date.now(),
               }
             : p
@@ -171,7 +174,7 @@ export function usePlayMultiplayer({
 
   // Update position (throttled)
   const updatePosition = useCallback(
-    (position: THREE.Vector3, rotation: THREE.Euler) => {
+    (position: THREE.Vector3, rotation: THREE.Euler, animationState?: string) => {
       if (!socket || !isInRoom) return;
 
       const now = Date.now();
@@ -180,6 +183,7 @@ export function usePlayMultiplayer({
       socket.emit('3d:update', {
         position: { x: position.x, y: position.y, z: position.z },
         rotation: { x: rotation.x, y: rotation.y, z: rotation.z },
+        ...(animationState && { animationState }),
       });
 
       lastPositionUpdate.current = now;

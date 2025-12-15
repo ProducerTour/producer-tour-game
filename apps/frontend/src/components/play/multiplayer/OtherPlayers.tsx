@@ -1,9 +1,10 @@
 import { useRef, useEffect, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Billboard, Text, useGLTF } from '@react-three/drei';
+import { Billboard, Text, useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import type { Player3D } from '../hooks/usePlayMultiplayer';
+import { ANIMATION_CONFIG } from '../animations.config';
 
 // Snapshot interpolation constants
 const INTERPOLATION_DELAY = 100; // ms behind real-time for smooth interpolation
@@ -36,9 +37,30 @@ function findSurroundingSnapshots(
   return null;
 }
 
-// RPM Avatar for other players - renders actual Ready Player Me model
-function RPMAvatar({ url, color }: { url: string; color: string }) {
+// Core animation URLs for other players (simplified set)
+const CORE_ANIMATIONS = {
+  idle: ANIMATION_CONFIG.idle.url,
+  walking: ANIMATION_CONFIG.walking.url,
+  running: ANIMATION_CONFIG.running.url,
+};
+
+// Animated RPM Avatar for other players
+function AnimatedRPMAvatar({
+  url,
+  color,
+  animationState = 'idle'
+}: {
+  url: string;
+  color: string;
+  animationState?: string;
+}) {
+  const group = useRef<THREE.Group>(null);
   const { scene } = useGLTF(url);
+
+  // Load core animations
+  const idleGltf = useGLTF(CORE_ANIMATIONS.idle);
+  const walkingGltf = useGLTF(CORE_ANIMATIONS.walking);
+  const runningGltf = useGLTF(CORE_ANIMATIONS.running);
 
   const clonedScene = useMemo(() => {
     const clone = SkeletonUtils.clone(scene);
@@ -51,8 +73,64 @@ function RPMAvatar({ url, color }: { url: string; color: string }) {
     return clone;
   }, [scene]);
 
+  // Combine all animations
+  const animations = useMemo(() => {
+    const anims: THREE.AnimationClip[] = [];
+
+    const addAnim = (gltf: { animations: THREE.AnimationClip[] }, name: string) => {
+      if (gltf.animations.length > 0) {
+        const clip = gltf.animations[0].clone();
+        clip.name = name;
+        anims.push(clip);
+      }
+    };
+
+    addAnim(idleGltf, 'idle');
+    addAnim(walkingGltf, 'walking');
+    addAnim(runningGltf, 'running');
+
+    return anims;
+  }, [idleGltf.animations, walkingGltf.animations, runningGltf.animations]);
+
+  const { actions } = useAnimations(animations, group);
+  const currentAction = useRef<string>('idle');
+
+  // Start with idle animation
+  useEffect(() => {
+    if (actions?.idle) {
+      actions.idle.play();
+    }
+  }, [actions]);
+
+  // Switch animations based on animationState
+  useEffect(() => {
+    if (!actions) return;
+
+    // Map received animation state to available animations
+    let targetAnim = 'idle';
+    if (animationState.includes('running') || animationState.includes('Run')) {
+      targetAnim = 'running';
+    } else if (animationState.includes('walking') || animationState.includes('Walk') || animationState === 'crouchWalk') {
+      targetAnim = 'walking';
+    }
+
+    if (targetAnim !== currentAction.current && actions[targetAnim]) {
+      const prevAction = actions[currentAction.current];
+      const nextAction = actions[targetAnim];
+
+      if (prevAction && nextAction) {
+        prevAction.fadeOut(0.15);
+        nextAction.reset().fadeIn(0.15).play();
+      } else if (nextAction) {
+        nextAction.reset().play();
+      }
+
+      currentAction.current = targetAnim;
+    }
+  }, [animationState, actions]);
+
   return (
-    <group>
+    <group ref={group}>
       <primitive object={clonedScene} position={[0, 0, 0]} />
       {/* Glow ring on ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
@@ -107,8 +185,9 @@ function OtherPlayer({ player }: OtherPlayerProps) {
 
   // Debug: log player avatar info on mount
   useEffect(() => {
-    console.log(`👤 OtherPlayer ${player.username}: avatarUrl=${player.avatarUrl || 'none'}`);
-  }, [player.username, player.avatarUrl]);
+    console.log(`👤 OtherPlayer ${player.username}: avatarUrl=${player.avatarUrl || 'none'}, anim=${player.animationState || 'none'}`);
+  }, [player.username, player.avatarUrl, player.animationState]);
+
   const positionBuffer = useRef<PositionSnapshot[]>([]);
   const lastReceivedPos = useRef({ x: player.position.x, y: player.position.y, z: player.position.z });
   const lastReceivedRot = useRef(player.rotation.y);
@@ -188,10 +267,14 @@ function OtherPlayer({ player }: OtherPlayerProps) {
 
   return (
     <group ref={groupRef} position={[player.position.x, player.position.y, player.position.z]}>
-      {/* Render RPM avatar if URL available, otherwise fallback */}
+      {/* Render animated RPM avatar if URL available, otherwise fallback */}
       {player.avatarUrl ? (
         <Suspense fallback={<FallbackAvatar color={player.color} />}>
-          <RPMAvatar url={player.avatarUrl} color={player.color} />
+          <AnimatedRPMAvatar
+            url={player.avatarUrl}
+            color={player.color}
+            animationState={player.animationState}
+          />
         </Suspense>
       ) : (
         <FallbackAvatar color={player.color} />
@@ -228,3 +311,8 @@ export function OtherPlayers({ players }: OtherPlayersProps) {
     </>
   );
 }
+
+// Preload core animations
+useGLTF.preload(CORE_ANIMATIONS.idle);
+useGLTF.preload(CORE_ANIMATIONS.walking);
+useGLTF.preload(CORE_ANIMATIONS.running);

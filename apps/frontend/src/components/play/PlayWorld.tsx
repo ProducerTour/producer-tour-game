@@ -17,7 +17,7 @@ import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { usePlayMultiplayer } from './hooks/usePlayMultiplayer';
 import { OtherPlayers } from './multiplayer/OtherPlayers';
-import { PhysicsPlayerController } from './PhysicsPlayerController';
+import { PhysicsPlayerController, type AnimationState } from './PhysicsPlayerController';
 import { AnimationErrorBoundary } from './AnimationErrorBoundary';
 import { WeaponAttachment, type WeaponType } from './WeaponAttachment';
 import {
@@ -2601,16 +2601,39 @@ export function PlayWorld({
     onMultiplayerReady?.({ playerCount, isConnected });
   }, [playerCount, isConnected, onMultiplayerReady]);
 
-  const handlePositionChange = useCallback((pos: THREE.Vector3, rotation?: THREE.Euler) => {
+  // Derive animation name from state (simplified for network sync)
+  const getAnimationName = useCallback((state: AnimationState, weapon: WeaponType): string => {
+    if (state.isDancing) return 'dance1';
+    if (state.isJumping) return state.isRunning ? 'jumpRun' : state.isMoving ? 'jumpJog' : 'jump';
+    if (state.isCrouching) {
+      if (weapon === 'rifle') return state.isMoving ? 'crouchRifleWalk' : 'crouchRifleIdle';
+      if (weapon === 'pistol') return state.isMoving ? 'crouchPistolWalk' : 'crouchPistolIdle';
+      if (state.isStrafingLeft) return 'crouchStrafeLeft';
+      if (state.isStrafingRight) return 'crouchStrafeRight';
+      return 'crouchWalk';
+    }
+    if (weapon === 'rifle') {
+      return state.isRunning ? 'rifleRun' : state.isMoving ? 'rifleWalk' : 'rifleIdle';
+    }
+    if (weapon === 'pistol') {
+      return state.isRunning ? 'pistolRun' : state.isMoving ? 'pistolWalk' : 'pistolIdle';
+    }
+    return state.isRunning ? 'running' : state.isMoving ? 'walking' : 'idle';
+  }, []);
+
+  const handlePositionChange = useCallback((pos: THREE.Vector3, rotation?: THREE.Euler, animState?: AnimationState) => {
     setPlayerPos(pos);
     if (rotation) {
       playerRotation.current.copy(rotation);
     }
     onPlayerPositionChange?.(pos);
 
-    // Update multiplayer position
-    updatePosition(pos, playerRotation.current);
-  }, [onPlayerPositionChange, updatePosition]);
+    // Derive animation name for network sync
+    const animationName = animState ? getAnimationName(animState, weaponType) : 'idle';
+
+    // Update multiplayer position with animation state
+    updatePosition(pos, playerRotation.current, animationName);
+  }, [onPlayerPositionChange, updatePosition, getAnimationName, weaponType]);
 
   const zones = [
     { position: [15, 2, -15] as [number, number, number], label: 'Studio District', icon: Mic2, color: '#8b5cf6', description: 'Create & collaborate' },

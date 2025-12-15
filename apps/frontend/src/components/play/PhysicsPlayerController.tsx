@@ -56,7 +56,7 @@ export interface AvatarAnimationProps {
 }
 
 interface PhysicsPlayerControllerProps {
-  onPositionChange?: (pos: THREE.Vector3, rotation?: THREE.Euler) => void;
+  onPositionChange?: (pos: THREE.Vector3, rotation?: THREE.Euler, animState?: AnimationState) => void;
   children?: ReactNode | ((state: AnimationState) => ReactNode);
 }
 
@@ -390,12 +390,7 @@ export function PhysicsPlayerController({
       groupRef.current.rotation.y = facingAngle.current;
     }
 
-    if (onPositionChange) {
-      rotation.set(0, facingAngle.current, 0);
-      onPositionChange(position.clone(), rotation.clone());
-    }
-
-    // Update animation state (only when changed to avoid re-renders)
+    // Compute animation state
     const isMoving = hasInput;
     const isRunning = isMoving && keys.sprint;
     const isJumping = !grounded; // Entire airborne phase = jumping animation
@@ -406,6 +401,24 @@ export function PhysicsPlayerController({
     const isStrafingRight = keys.right && !keys.forward && !keys.backward;
     const velocity = Math.sqrt(vx * vx + vz * vz);
 
+    const currentAnimState: AnimationState = {
+      isMoving,
+      isRunning,
+      isGrounded: grounded,
+      isJumping,
+      isDancing,
+      isCrouching,
+      isStrafingLeft,
+      isStrafingRight,
+      velocity,
+    };
+
+    if (onPositionChange) {
+      rotation.set(0, facingAngle.current, 0);
+      onPositionChange(position.clone(), rotation.clone(), currentAnimState);
+    }
+
+    // Update animation state (only when changed to avoid re-renders)
     if (
       lastAnimState.current.isMoving !== isMoving ||
       lastAnimState.current.isRunning !== isRunning ||
@@ -417,7 +430,7 @@ export function PhysicsPlayerController({
       (lastAnimState.current as { isStrafingRight?: boolean }).isStrafingRight !== isStrafingRight
     ) {
       lastAnimState.current = { isMoving, isRunning, isGrounded: grounded, isJumping, isDancing, isCrouching, isStrafingLeft, isStrafingRight } as typeof lastAnimState.current;
-      setAnimState({ isMoving, isRunning, isGrounded: grounded, isJumping, isDancing, isCrouching, isStrafingLeft, isStrafingRight, velocity });
+      setAnimState(currentAnimState);
     }
   });
 
