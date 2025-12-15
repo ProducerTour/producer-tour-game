@@ -104,6 +104,11 @@ interface OtherPlayerProps {
 // Other Player - renders RPM avatar or fallback with snapshot interpolation
 function OtherPlayer({ player }: OtherPlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
+
+  // Debug: log player avatar info on mount
+  useEffect(() => {
+    console.log(`👤 OtherPlayer ${player.username}: avatarUrl=${player.avatarUrl || 'none'}`);
+  }, [player.username, player.avatarUrl]);
   const positionBuffer = useRef<PositionSnapshot[]>([]);
   const lastReceivedPos = useRef({ x: player.position.x, y: player.position.y, z: player.position.z });
   const lastReceivedRot = useRef(player.rotation.y);
