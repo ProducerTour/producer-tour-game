@@ -1,6 +1,6 @@
 import { useRef, useEffect, useMemo, Suspense, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Billboard, Text, useGLTF, useAnimations, useFBX } from '@react-three/drei';
+import { Billboard, Text, useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import type { Player3D } from '../hooks/usePlayMultiplayer';
@@ -108,6 +108,11 @@ function stripRootMotion(clip: THREE.AnimationClip, clipName: string): THREE.Ani
         if (!track.name.endsWith('.quaternion')) {
           return false;
         }
+        // FILTER OUT Hips rotation - Mixamo has different reference pose than RPM
+        // which causes the character to flip onto their back
+        if (track.name.startsWith('Hips.') || track.name.includes('Hips.')) {
+          return false;
+        }
         return true;
       }
 
@@ -124,22 +129,29 @@ function stripRootMotion(clip: THREE.AnimationClip, clipName: string): THREE.Ani
   return newClip;
 }
 
-// Weapon model paths
+// Use local path in dev, R2 CDN in production
+const MODELS_BASE = import.meta.env.DEV
+  ? '/models'
+  : `${import.meta.env.VITE_ASSETS_URL || ''}/models`;
+
+// Weapon model paths - same as WeaponAttachment.tsx
 const WEAPON_MODELS = {
-  rifle: '/models/weapons/ak47.fbx',
-  pistol: '/models/weapons/orange.fbx',
+  rifle: `${MODELS_BASE}/weapons/ak47fbx_gltf/scene.gltf`,
+  pistol: `${MODELS_BASE}/weapons/pistolorange_gltf/scene.gltf`,
 };
 
+// Transforms matching local player's WeaponAttachment.tsx
+const DEG_TO_RAD = Math.PI / 180;
 const WEAPON_TRANSFORMS = {
   rifle: {
     position: [0.01, 0.23, 0.03] as [number, number, number],
-    rotation: [89 * (Math.PI / 180), -144 * (Math.PI / 180), 85 * (Math.PI / 180)] as [number, number, number],
-    scale: 1,
+    rotation: [89 * DEG_TO_RAD, -144 * DEG_TO_RAD, 85 * DEG_TO_RAD] as [number, number, number],
+    scale: 1.1,
   },
   pistol: {
-    position: [0, 0.07, 0.05] as [number, number, number],
-    rotation: [0, -3 * (Math.PI / 180), -90 * (Math.PI / 180)] as [number, number, number],
-    scale: 1,
+    position: [0.03, 0.08, 0.03] as [number, number, number],
+    rotation: [20 * DEG_TO_RAD, 0, -90 * DEG_TO_RAD] as [number, number, number],
+    scale: 1.8,
   },
 };
 
@@ -152,13 +164,14 @@ function OtherPlayerWeapon({
   parentBone: THREE.Bone;
 }) {
   const weaponRef = useRef<THREE.Group>(null);
-  const fbx = useFBX(WEAPON_MODELS[weaponType]);
+  const { scene } = useGLTF(WEAPON_MODELS[weaponType]);
 
   const clonedWeapon = useMemo(() => {
-    const clone = fbx.clone(true);
+    const clone = scene.clone(true);
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         child.castShadow = true;
+        child.receiveShadow = true;
         const mesh = child as THREE.Mesh;
         if (mesh.material) {
           const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
@@ -169,27 +182,28 @@ function OtherPlayerWeapon({
       }
     });
     return clone;
-  }, [fbx]);
+  }, [scene]);
 
   const transform = WEAPON_TRANSFORMS[weaponType];
 
-  useFrame(() => {
-    if (weaponRef.current && parentBone) {
-      parentBone.updateWorldMatrix(true, false);
-      weaponRef.current.position.set(...transform.position);
-      weaponRef.current.rotation.set(...transform.rotation);
-      weaponRef.current.scale.setScalar(transform.scale);
-      parentBone.add(weaponRef.current);
-    }
-  });
-
+  // Attach to bone once on mount
   useEffect(() => {
+    if (!weaponRef.current || !parentBone) return;
+
+    // Set transform
+    weaponRef.current.position.set(...transform.position);
+    weaponRef.current.rotation.set(...transform.rotation);
+    weaponRef.current.scale.setScalar(transform.scale);
+
+    // Attach to parent bone
+    parentBone.add(weaponRef.current);
+
     return () => {
       if (weaponRef.current && weaponRef.current.parent) {
         weaponRef.current.parent.remove(weaponRef.current);
       }
     };
-  }, []);
+  }, [parentBone, transform]);
 
   return <primitive ref={weaponRef} object={clonedWeapon} />;
 }
@@ -351,9 +365,12 @@ function FullAnimatedAvatar({
       const prevAction = actions[currentAction.current];
       const nextAction = actions[targetAnim];
 
+      // Use longer fade time for other players to smooth network jitter
+      const fadeTime = 0.25;
+
       if (prevAction && nextAction) {
-        prevAction.fadeOut(0.15);
-        nextAction.reset().fadeIn(0.15).play();
+        prevAction.fadeOut(fadeTime);
+        nextAction.reset().fadeIn(fadeTime).play();
       } else if (nextAction) {
         nextAction.reset().play();
       }
@@ -549,5 +566,5 @@ export function OtherPlayers({ players }: OtherPlayersProps) {
 Object.values(ALL_ANIMATIONS).forEach(url => useGLTF.preload(url));
 
 // Preload weapon models
-useFBX.preload(WEAPON_MODELS.rifle);
-useFBX.preload(WEAPON_MODELS.pistol);
+useGLTF.preload(WEAPON_MODELS.rifle);
+useGLTF.preload(WEAPON_MODELS.pistol);
