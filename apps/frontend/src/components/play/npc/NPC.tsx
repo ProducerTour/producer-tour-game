@@ -21,14 +21,20 @@ interface NPCProps {
   data: NPCData;
   playerPosition?: { x: number; y: number; z: number };
   onInteract?: (npc: NPCData) => void;
+  /** If true, NPC position is controlled by server - disable local AI */
+  serverControlled?: boolean;
 }
 
-export function NPC({ data, playerPosition, onInteract }: NPCProps) {
+export function NPC({ data, playerPosition, onInteract, serverControlled = false }: NPCProps) {
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
   const lastAIUpdate = useRef(0);
   const currentTarget = useRef<{ x: number; z: number } | null>(null);
   const waitUntil = useRef(0);
+
+  // For smooth interpolation when server-controlled
+  const interpolatedPos = useRef({ x: data.position.x, y: data.position.y, z: data.position.z });
+  const interpolatedRot = useRef(data.rotation);
 
   const { updateNPC, setNPCPosition, setNPCState } = useNPCStore();
 
@@ -56,21 +62,45 @@ export function NPC({ data, playerPosition, onInteract }: NPCProps) {
   useFrame((_, delta) => {
     if (!groupRef.current || data.state === 'dead') return;
 
-    const now = Date.now();
+    if (serverControlled) {
+      // Server-controlled: smoothly interpolate to server position
+      const lerpSpeed = 8;
+      const t = 1 - Math.exp(-lerpSpeed * delta);
 
-    // Update AI at fixed intervals
-    if (now - lastAIUpdate.current > AI_UPDATE_INTERVAL) {
-      lastAIUpdate.current = now;
-      updateAI();
+      interpolatedPos.current.x += (data.position.x - interpolatedPos.current.x) * t;
+      interpolatedPos.current.y += (data.position.y - interpolatedPos.current.y) * t;
+      interpolatedPos.current.z += (data.position.z - interpolatedPos.current.z) * t;
+
+      // Interpolate rotation (handling wrap-around)
+      let rotDiff = data.rotation - interpolatedRot.current;
+      while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
+      while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
+      interpolatedRot.current += rotDiff * t;
+
+      groupRef.current.position.set(
+        interpolatedPos.current.x,
+        interpolatedPos.current.y,
+        interpolatedPos.current.z
+      );
+      groupRef.current.rotation.y = interpolatedRot.current;
+    } else {
+      // Local AI mode
+      const now = Date.now();
+
+      // Update AI at fixed intervals
+      if (now - lastAIUpdate.current > AI_UPDATE_INTERVAL) {
+        lastAIUpdate.current = now;
+        updateAI();
+      }
+
+      // Move toward target
+      if (currentTarget.current && now > waitUntil.current) {
+        moveTowardTarget(delta);
+      }
+
+      // Always update visual position
+      groupRef.current.position.set(data.position.x, data.position.y, data.position.z);
     }
-
-    // Move toward target
-    if (currentTarget.current && now > waitUntil.current) {
-      moveTowardTarget(delta);
-    }
-
-    // Always update visual position
-    groupRef.current.position.set(data.position.x, data.position.y, data.position.z);
   });
 
   // AI decision making

@@ -41,6 +41,288 @@ const players3D = new Map<string, Player3D>();
 const PLAYER_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
 const SHIP_MODELS: ('rocket' | 'fighter' | 'unaf' | 'monkey')[] = ['rocket', 'fighter', 'unaf', 'monkey'];
 
+// === SERVER-AUTHORITATIVE NPC SYSTEM ===
+interface ServerNPC {
+  id: string;
+  name: string;
+  type: 'friendly' | 'neutral' | 'hostile';
+  position: { x: number; y: number; z: number };
+  rotation: number;
+  behavior: 'idle' | 'patrol' | 'wander';
+  state: 'idle' | 'walking' | 'running';
+  color: string;
+  scale: number;
+  // Movement state
+  targetPosition?: { x: number; y: number; z: number };
+  patrolPoints?: { x: number; y: number; z: number }[];
+  currentPatrolIndex: number;
+  waitUntil: number;
+  // Wander bounds (around spawn point)
+  spawnPosition: { x: number; y: number; z: number };
+  wanderRadius: number;
+}
+
+// NPCs per room - using Map for easy lookup
+const roomNPCs = new Map<string, Map<string, ServerNPC>>();
+
+// Define initial NPCs for the play room
+const PLAY_ROOM_NPCS: Omit<ServerNPC, 'waitUntil' | 'currentPatrolIndex' | 'spawnPosition'>[] = [
+  // Wandering monkey near the spawn area
+  {
+    id: 'npc_monkey_1',
+    name: 'Curious Monkey',
+    type: 'friendly',
+    position: { x: 5, y: 0, z: 10 },
+    rotation: 0,
+    behavior: 'wander',
+    state: 'idle',
+    color: '#8B4513',
+    scale: 0.8,
+    wanderRadius: 15,
+  },
+  // Patrolling guard
+  {
+    id: 'npc_guard_1',
+    name: 'Guard Bot',
+    type: 'neutral',
+    position: { x: -10, y: 0, z: 0 },
+    rotation: 0,
+    behavior: 'patrol',
+    state: 'walking',
+    color: '#3b82f6',
+    scale: 1,
+    patrolPoints: [
+      { x: -10, y: 0, z: 0 },
+      { x: -10, y: 0, z: 20 },
+      { x: 10, y: 0, z: 20 },
+      { x: 10, y: 0, z: 0 },
+    ],
+    wanderRadius: 5,
+  },
+  // Another wandering NPC
+  {
+    id: 'npc_wanderer_1',
+    name: 'Wandering Spirit',
+    type: 'friendly',
+    position: { x: -15, y: 0, z: -10 },
+    rotation: 0,
+    behavior: 'wander',
+    state: 'idle',
+    color: '#8b5cf6',
+    scale: 1,
+    wanderRadius: 20,
+  },
+  // Idle NPC
+  {
+    id: 'npc_merchant_1',
+    name: 'Merchant',
+    type: 'friendly',
+    position: { x: 0, y: 0, z: -5 },
+    rotation: Math.PI / 4,
+    behavior: 'idle',
+    state: 'idle',
+    color: '#22c55e',
+    scale: 1,
+    wanderRadius: 0,
+  },
+];
+
+// NPC AI constants
+const NPC_WALK_SPEED = 1.5;
+const NPC_UPDATE_INTERVAL = 50; // ms - server tick rate for NPCs
+const NPC_BROADCAST_INTERVAL = 100; // ms - how often to broadcast updates
+
+// Initialize NPCs for a room
+function initializeRoomNPCs(room: string): Map<string, ServerNPC> {
+  const npcs = new Map<string, ServerNPC>();
+
+  if (room === 'play') {
+    PLAY_ROOM_NPCS.forEach(npcDef => {
+      const npc: ServerNPC = {
+        ...npcDef,
+        spawnPosition: { ...npcDef.position },
+        currentPatrolIndex: 0,
+        waitUntil: 0,
+      };
+      npcs.set(npc.id, npc);
+    });
+  }
+
+  return npcs;
+}
+
+// Update NPC AI (called by server tick)
+function updateNPCAI(npc: ServerNPC, deltaTime: number): boolean {
+  const now = Date.now();
+  let changed = false;
+
+  // Skip if waiting
+  if (now < npc.waitUntil) {
+    if (npc.state !== 'idle') {
+      npc.state = 'idle';
+      changed = true;
+    }
+    return changed;
+  }
+
+  switch (npc.behavior) {
+    case 'idle':
+      // Just stand there
+      if (npc.state !== 'idle') {
+        npc.state = 'idle';
+        changed = true;
+      }
+      break;
+
+    case 'patrol':
+      changed = updatePatrolBehavior(npc, deltaTime, now) || changed;
+      break;
+
+    case 'wander':
+      changed = updateWanderBehavior(npc, deltaTime, now) || changed;
+      break;
+  }
+
+  return changed;
+}
+
+function updatePatrolBehavior(npc: ServerNPC, deltaTime: number, now: number): boolean {
+  if (!npc.patrolPoints || npc.patrolPoints.length === 0) return false;
+
+  const targetPoint = npc.patrolPoints[npc.currentPatrolIndex];
+  const dx = targetPoint.x - npc.position.x;
+  const dz = targetPoint.z - npc.position.z;
+  const distance = Math.sqrt(dx * dx + dz * dz);
+
+  if (distance < 0.5) {
+    // Reached point, wait then move to next
+    npc.waitUntil = now + 2000 + Math.random() * 1000;
+    npc.currentPatrolIndex = (npc.currentPatrolIndex + 1) % npc.patrolPoints.length;
+    npc.state = 'idle';
+    npc.targetPosition = undefined;
+    return true;
+  }
+
+  // Move toward target
+  npc.targetPosition = targetPoint;
+  return moveNPCTowardTarget(npc, deltaTime);
+}
+
+function updateWanderBehavior(npc: ServerNPC, deltaTime: number, now: number): boolean {
+  // Pick new target if we don't have one
+  if (!npc.targetPosition) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 3 + Math.random() * (npc.wanderRadius - 3);
+    npc.targetPosition = {
+      x: npc.spawnPosition.x + Math.cos(angle) * dist,
+      y: npc.spawnPosition.y,
+      z: npc.spawnPosition.z + Math.sin(angle) * dist,
+    };
+    npc.state = 'walking';
+    return true;
+  }
+
+  // Check if reached target
+  const dx = npc.targetPosition.x - npc.position.x;
+  const dz = npc.targetPosition.z - npc.position.z;
+  const distance = Math.sqrt(dx * dx + dz * dz);
+
+  if (distance < 0.5) {
+    npc.targetPosition = undefined;
+    npc.waitUntil = now + 1500 + Math.random() * 3000;
+    npc.state = 'idle';
+    return true;
+  }
+
+  return moveNPCTowardTarget(npc, deltaTime);
+}
+
+function moveNPCTowardTarget(npc: ServerNPC, deltaTime: number): boolean {
+  if (!npc.targetPosition) return false;
+
+  const dx = npc.targetPosition.x - npc.position.x;
+  const dz = npc.targetPosition.z - npc.position.z;
+  const distance = Math.sqrt(dx * dx + dz * dz);
+
+  if (distance < 0.1) return false;
+
+  // Move
+  const dirX = dx / distance;
+  const dirZ = dz / distance;
+  const moveAmount = Math.min(NPC_WALK_SPEED * deltaTime, distance);
+
+  npc.position.x += dirX * moveAmount;
+  npc.position.z += dirZ * moveAmount;
+
+  // Rotate to face direction
+  npc.rotation = Math.atan2(dirX, dirZ);
+  npc.state = 'walking';
+
+  return true;
+}
+
+// Server NPC simulation loop
+let npcSimulationInterval: ReturnType<typeof setInterval> | null = null;
+let lastNPCUpdate = Date.now();
+let lastNPCBroadcast = Date.now();
+
+function startNPCSimulation(ioInstance: Server) {
+  if (npcSimulationInterval) return;
+
+  console.log('🤖 Starting NPC simulation...');
+
+  npcSimulationInterval = setInterval(() => {
+    const now = Date.now();
+    const deltaTime = (now - lastNPCUpdate) / 1000;
+    lastNPCUpdate = now;
+
+    // Update all NPCs in all rooms
+    roomNPCs.forEach((npcs, room) => {
+      const socketRoom = getSocketRoomName(room);
+      let hasChanges = false;
+
+      npcs.forEach(npc => {
+        const changed = updateNPCAI(npc, deltaTime);
+        if (changed) hasChanges = true;
+      });
+
+      // Broadcast updates periodically
+      if (now - lastNPCBroadcast >= NPC_BROADCAST_INTERVAL && hasChanges) {
+        const npcArray = Array.from(npcs.values()).map(npc => ({
+          id: npc.id,
+          name: npc.name,
+          type: npc.type,
+          position: npc.position,
+          rotation: npc.rotation,
+          state: npc.state,
+          color: npc.color,
+          scale: npc.scale,
+        }));
+
+        ioInstance.to(socketRoom).emit('npc:update', npcArray);
+      }
+    });
+
+    if (now - lastNPCBroadcast >= NPC_BROADCAST_INTERVAL) {
+      lastNPCBroadcast = now;
+    }
+  }, NPC_UPDATE_INTERVAL);
+}
+
+function stopNPCSimulation() {
+  if (npcSimulationInterval) {
+    clearInterval(npcSimulationInterval);
+    npcSimulationInterval = null;
+    console.log('🤖 NPC simulation stopped');
+  }
+}
+
+function getSocketRoomName(room: string): string {
+  if (room === 'holdings') return '3d-holdings-room';
+  if (room === 'play') return '3d-play-room';
+  return '3d-room';
+}
+
 export function initializeSocket(httpServer: HttpServer): Server {
   const allowedOrigins = [
     'http://localhost:5173',
@@ -443,6 +725,34 @@ export function initializeSocket(httpServer: HttpServer): Server {
 
         // Broadcast new player to others in same room
         socket.to(socketRoom).emit('3d:player-joined', player);
+
+        // Initialize NPCs for this room if not already done
+        if (!roomNPCs.has(room)) {
+          const npcs = initializeRoomNPCs(room);
+          if (npcs.size > 0) {
+            roomNPCs.set(room, npcs);
+            console.log(`🤖 Initialized ${npcs.size} NPCs for ${room} room`);
+          }
+        }
+
+        // Send current NPCs to new player
+        const npcs = roomNPCs.get(room);
+        if (npcs && npcs.size > 0) {
+          const npcArray = Array.from(npcs.values()).map(npc => ({
+            id: npc.id,
+            name: npc.name,
+            type: npc.type,
+            position: npc.position,
+            rotation: npc.rotation,
+            state: npc.state,
+            color: npc.color,
+            scale: npc.scale,
+          }));
+          socket.emit('npc:init', npcArray);
+
+          // Start NPC simulation if not running
+          if (io) startNPCSimulation(io);
+        }
 
         // Send player count update for this room
         const roomPlayerCount = Array.from(players3D.values()).filter(p => p.room === room).length;

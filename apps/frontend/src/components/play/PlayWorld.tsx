@@ -2742,10 +2742,11 @@ export function PlayWorld({
       {/* VFX Manager - renders all active visual effects */}
       <VFXManager />
 
-      {/* NPC Manager - renders all NPCs in scene */}
+      {/* NPC Manager - renders all NPCs in scene (server-controlled when multiplayer connected) */}
       <NPCManager
         playerPosition={{ x: playerPos.x, y: playerPos.y, z: playerPos.z }}
         renderDistance={50}
+        multiplayerEnabled={isConnected}
         initialNPCs={[
           // Wandering NPC near spawn
           createNPC({
