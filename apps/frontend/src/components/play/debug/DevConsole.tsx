@@ -29,7 +29,7 @@ const BUILT_IN_COMMANDS: Record<string, { description: string; handler: (args: s
   },
   clear: {
     description: 'Clear the console',
-    handler: () => {}, // Handled specially
+    handler: (_args, _addLog) => {}, // Handled specially
   },
   fps: {
     description: 'Toggle FPS display',
@@ -78,7 +78,7 @@ const BUILT_IN_COMMANDS: Record<string, { description: string; handler: (args: s
   },
   players: {
     description: 'List online players',
-    handler: (_, addLog) => {
+    handler: (_args, _addLog) => {
       const event = new CustomEvent('devConsole:listPlayers');
       window.dispatchEvent(event);
     },
