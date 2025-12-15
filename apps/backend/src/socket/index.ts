@@ -368,8 +368,10 @@ export function initializeSocket(httpServer: HttpServer): Server {
   io.use(async (socket: AuthenticatedSocket, next) => {
     try {
       const token = socket.handshake.auth.token || socket.handshake.query.token;
+      console.log(`🔐 Socket auth attempt from ${socket.id}, hasToken: ${!!token}`);
 
       if (!token) {
+        console.log(`❌ Socket ${socket.id} rejected: No token provided`);
         return next(new Error('Authentication required'));
       }
 
@@ -385,21 +387,23 @@ export function initializeSocket(httpServer: HttpServer): Server {
       });
 
       if (!user) {
+        console.log(`❌ Socket ${socket.id} rejected: User ${decoded.userId} not found in DB`);
         return next(new Error('User not found'));
       }
 
+      console.log(`✅ Socket ${socket.id} authenticated as ${user.firstName} ${user.lastName} (${user.id.slice(0, 8)}...)`);
       socket.userId = user.id;
       socket.userRole = user.role;
       next();
     } catch (error) {
-      console.error('Socket authentication error:', error);
+      console.error(`❌ Socket ${socket.id} auth error:`, error);
       next(new Error('Invalid token'));
     }
   });
 
   io.on('connection', (socket: AuthenticatedSocket) => {
     const userId = socket.userId!;
-    console.log(`User connected: ${userId} (socket: ${socket.id})`);
+    console.log(`✅ User connected: ${userId} (socket: ${socket.id})`);
 
     // Track online status
     const isNewConnection = !onlineUsers.has(userId);

@@ -98,6 +98,7 @@ export function useSocket(): UseSocketReturn {
 
   useEffect(() => {
     if (!user || !token) {
+      console.log('🔌 Socket not connecting:', { hasUser: !!user, hasToken: !!token });
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -105,6 +106,7 @@ export function useSocket(): UseSocketReturn {
       }
       return;
     }
+    console.log('🔌 Socket connecting for user:', user.id?.slice(0, 8) + '...');
 
     // Create socket connection
     const socket = io(SOCKET_URL, {
@@ -118,17 +120,18 @@ export function useSocket(): UseSocketReturn {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('Socket connected:', socket.id);
+      console.log('✅ Socket connected:', socket.id);
       setIsConnected(true);
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
+      console.log('⚠️ Socket disconnected:', reason);
       setIsConnected(false);
     });
 
     socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error.message);
+      console.error('❌ Socket connection error:', error.message);
+      console.error('   This usually means: not logged in, invalid token, or server unreachable');
       setIsConnected(false);
     });
 

@@ -156,6 +156,8 @@ const WEAPON_TRANSFORMS = {
 };
 
 // Weapon component for other players
+// This component attaches the weapon directly to the bone (not via JSX)
+// Returns null - weapon is added to scene graph via bone.add()
 function OtherPlayerWeapon({
   weaponType,
   parentBone,
@@ -163,12 +165,18 @@ function OtherPlayerWeapon({
   weaponType: 'rifle' | 'pistol';
   parentBone: THREE.Bone;
 }) {
-  const weaponRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF(WEAPON_MODELS[weaponType]);
+  const attachedWeapon = useRef<THREE.Group | null>(null);
 
-  const clonedWeapon = useMemo(() => {
-    const clone = scene.clone(true);
-    clone.traverse((child) => {
+  useEffect(() => {
+    if (!parentBone) {
+      console.warn('[OtherPlayerWeapon] No parent bone provided');
+      return;
+    }
+
+    // Clone the weapon scene
+    const weaponClone = scene.clone(true);
+    weaponClone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
@@ -181,31 +189,34 @@ function OtherPlayerWeapon({
         }
       }
     });
-    return clone;
-  }, [scene]);
 
-  const transform = WEAPON_TRANSFORMS[weaponType];
+    // Apply transforms
+    const transform = WEAPON_TRANSFORMS[weaponType];
+    weaponClone.position.set(...transform.position);
+    weaponClone.rotation.set(...transform.rotation);
+    weaponClone.scale.setScalar(transform.scale);
 
-  // Attach to bone once on mount
-  useEffect(() => {
-    if (!weaponRef.current || !parentBone) return;
+    // Create a container and attach to bone
+    const container = new THREE.Group();
+    container.name = 'OtherPlayerWeaponContainer';
+    container.add(weaponClone);
+    parentBone.add(container);
+    attachedWeapon.current = container;
 
-    // Set transform
-    weaponRef.current.position.set(...transform.position);
-    weaponRef.current.rotation.set(...transform.rotation);
-    weaponRef.current.scale.setScalar(transform.scale);
+    console.log('[OtherPlayerWeapon] Weapon attached:', weaponType, 'to bone:', parentBone.name);
 
-    // Attach to parent bone
-    parentBone.add(weaponRef.current);
-
+    // Cleanup on unmount or weapon change
     return () => {
-      if (weaponRef.current && weaponRef.current.parent) {
-        weaponRef.current.parent.remove(weaponRef.current);
+      if (attachedWeapon.current && attachedWeapon.current.parent) {
+        attachedWeapon.current.parent.remove(attachedWeapon.current);
+        console.log('[OtherPlayerWeapon] Weapon detached');
       }
+      attachedWeapon.current = null;
     };
-  }, [parentBone, transform]);
+  }, [scene, weaponType, parentBone]);
 
-  return <primitive ref={weaponRef} object={clonedWeapon} />;
+  // This component doesn't render anything - weapon is added directly to bone
+  return null;
 }
 
 // Full animated RPM Avatar for nearby players
@@ -256,13 +267,49 @@ function FullAnimatedAvatar({
   }, [scene]);
 
   // Find RightHand bone for weapon attachment
+  // RPM avatars use 'RightHand', Mixamo uses 'mixamorigRightHand'
   const rightHandBone = useMemo(() => {
     let hand: THREE.Bone | null = null;
+    const possibleNames = ['RightHand', 'mixamorigRightHand', 'rightHand', 'Right_Hand', 'hand_r', 'hand.R'];
+
+    // First check skeleton bones (RPM avatars store bones this way)
     clonedScene.traverse((child) => {
-      if (child instanceof THREE.Bone && child.name === 'RightHand') {
-        hand = child;
+      if (hand) return;
+      const skinnedMesh = child as THREE.SkinnedMesh;
+      if (skinnedMesh.isSkinnedMesh && skinnedMesh.skeleton) {
+        for (const bone of skinnedMesh.skeleton.bones) {
+          if (hand) break;
+          for (const name of possibleNames) {
+            if (bone.name === name || bone.name.includes(name)) {
+              hand = bone;
+              console.log('[OtherPlayer] Found hand bone via skeleton:', bone.name);
+              break;
+            }
+          }
+        }
       }
     });
+
+    // Fallback: check direct bone children
+    if (!hand) {
+      clonedScene.traverse((child) => {
+        if (hand) return;
+        if (child instanceof THREE.Bone) {
+          for (const name of possibleNames) {
+            if (child.name === name || child.name.includes(name)) {
+              hand = child;
+              console.log('[OtherPlayer] Found hand bone directly:', child.name);
+              return;
+            }
+          }
+        }
+      });
+    }
+
+    if (!hand) {
+      console.warn('[OtherPlayer] Could not find RightHand bone!');
+    }
+
     return hand;
   }, [clonedScene]);
 
@@ -379,12 +426,21 @@ function FullAnimatedAvatar({
     }
   }, [animationState, actions]);
 
+  // Debug weapon state
+  useEffect(() => {
+    console.log('[OtherPlayer] Weapon state:', {
+      weaponType,
+      hasRightHandBone: !!rightHandBone,
+      shouldShowWeapon: weaponType !== 'none' && !!rightHandBone,
+    });
+  }, [weaponType, rightHandBone]);
+
   return (
     <group ref={group}>
       <primitive object={clonedScene} position={[0, 0, 0]} />
 
       {/* Weapon attachment */}
-      {weaponType !== 'none' && rightHandBone && (
+      {weaponType && weaponType !== 'none' && rightHandBone && (
         <Suspense fallback={null}>
           <OtherPlayerWeapon weaponType={weaponType} parentBone={rightHandBone} />
         </Suspense>

@@ -35,13 +35,22 @@ export function usePlayMultiplayer({
   avatarUrl,
 }: UsePlayMultiplayerProps = {}): UsePlayMultiplayerReturn {
   const { socket, isConnected } = useSocket();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const { color, displayName } = usePlayerStore();
 
   const [otherPlayers, setOtherPlayers] = useState<Player3D[]>([]);
   const [playerCount, setPlayerCount] = useState(0);
   const [isInRoom, setIsInRoom] = useState(false);
   const [username, setLocalUsername] = useState(() => displayName || user?.firstName || '');
+
+  // Debug: Log auth state
+  console.log('[Play Multiplayer] Auth state:', {
+    hasUser: !!user,
+    hasToken: !!token,
+    socketExists: !!socket,
+    isConnected,
+    userId: user?.id?.slice(0, 8) + '...',
+  });
 
   const lastPositionUpdate = useRef(0);
   const positionUpdateInterval = 50; // 20 updates per second
@@ -109,6 +118,11 @@ export function usePlayMultiplayer({
       animationState?: string;
       weaponType?: 'none' | 'rifle' | 'pistol';
     }) => {
+      // Debug: Log weapon changes
+      if (data.weaponType && data.weaponType !== 'none') {
+        console.log('[Play Multiplayer] Player weapon update:', data.id.slice(0, 8), 'weapon:', data.weaponType);
+      }
+
       setOtherPlayers((prev) =>
         prev.map((p) =>
           p.id === data.id
