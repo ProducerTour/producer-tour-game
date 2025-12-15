@@ -20,6 +20,11 @@ interface JwtPayload {
 
 let io: Server | null = null;
 
+// Server version - generated at startup, changes on each deployment
+// Clients compare this to detect when server has been updated
+const SERVER_VERSION = Date.now().toString();
+console.log(`🚀 Server version: ${SERVER_VERSION}`);
+
 // Track online users: Map<userId, Set<socketId>>
 const onlineUsers = new Map<string, Set<string>>();
 
@@ -722,6 +727,9 @@ export function initializeSocket(httpServer: HttpServer): Server {
         // Send current players in the same room to new joiner
         const currentPlayers = Array.from(players3D.values()).filter(p => p.id !== socket.id && p.room === room);
         socket.emit('3d:players', currentPlayers);
+
+        // Send server version for auto-refresh on deployment
+        socket.emit('server:version', SERVER_VERSION);
 
         // Broadcast new player to others in same room
         socket.to(socketRoom).emit('3d:player-joined', player);

@@ -29,9 +29,12 @@ import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { PlayerHealthBar, AmmoDisplay, Crosshair } from '../components/play/combat/HealthBar';
 import { QuestTracker } from '../components/play/quest/QuestTracker';
 import { DevConsole } from '../components/play/debug';
+import { UpdateOverlay } from '../components/play/UpdateOverlay';
 import { userApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import { useGameSettings, SHADOW_MAP_SIZES } from '../store/gameSettings.store';
+import { useSocket } from '../hooks/useSocket';
+import { useServerVersion } from '../hooks/useServerVersion';
 
 // Auto-save storage key
 const WORLD_STATE_KEY = 'producerTour_worldState';
@@ -816,6 +819,15 @@ export default function PlayPage() {
   const { user } = useAuthStore();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Socket connection for multiplayer and server version checks
+  const { socket, isConnected } = useSocket();
+
+  // Server version check - auto-refreshes when server is redeployed
+  const { isUpdateAvailable, secondsUntilRefresh, refreshNow } = useServerVersion({
+    socket,
+    isConnected,
+  });
+
   // Load saved state on mount
   const savedState = useRef(loadWorldState());
 
@@ -958,6 +970,13 @@ export default function PlayPage() {
       tabIndex={-1}
       className="w-full h-screen bg-[#0a0a0f] relative overflow-hidden outline-none"
     >
+      {/* Update Overlay - shows when server has been redeployed */}
+      <UpdateOverlay
+        isVisible={isUpdateAvailable}
+        secondsUntilRefresh={secondsUntilRefresh}
+        onRefreshNow={refreshNow}
+      />
+
       {/* Welcome Modal */}
       <AnimatePresence>
         {showWelcome && (
