@@ -11,13 +11,12 @@ import {
   ContactShadows,
   Stars,
   useAnimations,
-  Billboard,
-  Text,
 } from '@react-three/drei';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
-import { usePlayMultiplayer, Player3D } from './hooks/usePlayMultiplayer';
+import { usePlayMultiplayer } from './hooks/usePlayMultiplayer';
+import { OtherPlayers } from './multiplayer/OtherPlayers';
 import { PhysicsPlayerController } from './PhysicsPlayerController';
 import { AnimationErrorBoundary } from './AnimationErrorBoundary';
 import { WeaponAttachment, type WeaponType } from './WeaponAttachment';
@@ -2544,88 +2543,6 @@ function MonkeyNPC({ position }: { position: [number, number, number] }) {
 
 // Preload monkey model
 useGLTF.preload(`${ASSETS_URL}/models/Monkey/Monkey.glb`);
-
-// Other Player - simplified avatar for remote players
-function OtherPlayer({ player }: { player: Player3D }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const targetPos = useRef(new THREE.Vector3(player.position.x, player.position.y, player.position.z));
-  const targetRot = useRef(player.rotation.y);
-
-  // Smoothly interpolate to target position
-  useFrame((_, delta) => {
-    if (!groupRef.current) return;
-
-    // Update targets when player data changes
-    targetPos.current.set(player.position.x, player.position.y, player.position.z);
-    targetRot.current = player.rotation.y;
-
-    // Smooth interpolation
-    const lerpSpeed = 8;
-    groupRef.current.position.lerp(targetPos.current, 1 - Math.exp(-lerpSpeed * delta));
-
-    // Smooth rotation
-    let rotDiff = targetRot.current - groupRef.current.rotation.y;
-    while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
-    while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
-    groupRef.current.rotation.y += rotDiff * Math.min(1, delta * lerpSpeed);
-  });
-
-  return (
-    <group ref={groupRef} position={[player.position.x, player.position.y, player.position.z]}>
-      {/* Glow ring on ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <ringGeometry args={[0.4, 0.7, 32]} />
-        <meshBasicMaterial color={player.color} transparent opacity={0.4} />
-      </mesh>
-
-      {/* Body */}
-      <mesh position={[0, 0.9, 0]} castShadow>
-        <capsuleGeometry args={[0.25, 0.6, 8, 16]} />
-        <meshStandardMaterial color="#1a1a2e" emissive={player.color} emissiveIntensity={0.2} />
-      </mesh>
-
-      {/* Head */}
-      <mesh position={[0, 1.6, 0]} castShadow>
-        <sphereGeometry args={[0.2, 16, 16]} />
-        <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.3} />
-      </mesh>
-
-      {/* Headphones */}
-      <mesh position={[0, 1.7, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <torusGeometry args={[0.22, 0.03, 8, 16, Math.PI]} />
-        <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.5} />
-      </mesh>
-
-      {/* Username label */}
-      <Billboard position={[0, 2.2, 0]}>
-        <Text
-          fontSize={0.18}
-          color="white"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.02}
-          outlineColor="#000000"
-        >
-          {player.username}
-        </Text>
-      </Billboard>
-
-      {/* Point light for glow effect */}
-      <pointLight position={[0, 1, 0]} intensity={0.3} color={player.color} distance={3} />
-    </group>
-  );
-}
-
-// Render all other players
-function OtherPlayers({ players }: { players: Player3D[] }) {
-  return (
-    <>
-      {players.map((player) => (
-        <OtherPlayer key={player.id} player={player} />
-      ))}
-    </>
-  );
-}
 
 // Main world component
 export function PlayWorld({
