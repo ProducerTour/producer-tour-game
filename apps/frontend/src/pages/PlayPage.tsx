@@ -28,6 +28,7 @@ import { AvatarCreator } from '../components/play/AvatarCreator';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { PlayerHealthBar, AmmoDisplay, Crosshair } from '../components/play/combat/HealthBar';
 import { QuestTracker } from '../components/play/quest/QuestTracker';
+import { DevConsole } from '../components/play/debug';
 import { userApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import { useGameSettings, SHADOW_MAP_SIZES } from '../store/gameSettings.store';
@@ -1187,6 +1188,9 @@ export default function PlayPage() {
       <AmmoDisplay />
       <Crosshair />
       <QuestTracker />
+
+      {/* Dev Console - Toggle with ` key */}
+      <DevConsole />
     </div>
   );
 }
