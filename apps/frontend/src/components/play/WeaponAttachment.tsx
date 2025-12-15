@@ -10,10 +10,15 @@ import { useGLTF } from '@react-three/drei';
 import { useControls, folder, button } from 'leva';
 import * as THREE from 'three';
 
+// Use local path in dev, R2 CDN in production
+const MODELS_BASE = import.meta.env.DEV
+  ? '/models'
+  : `${import.meta.env.VITE_ASSETS_URL || ''}/models`;
+
 // Weapon model paths
 export const WEAPONS = {
-  rifle: '/models/weapons/ak47fbx_gltf/scene.gltf',
-  pistol: '/models/weapons/pistolorange_gltf/scene.gltf',
+  rifle: `${MODELS_BASE}/weapons/ak47fbx_gltf/scene.gltf`,
+  pistol: `${MODELS_BASE}/weapons/pistolorange_gltf/scene.gltf`,
 } as const;
 
 export type WeaponType = keyof typeof WEAPONS | null;
