@@ -727,12 +727,14 @@ export function initializeSocket(httpServer: HttpServer): Server {
 
         // Send current players in the same room to new joiner
         const currentPlayers = Array.from(players3D.values()).filter(p => p.id !== socket.id && p.room === room);
+        console.log(`📋 Sending ${currentPlayers.length} existing players to ${username}:`, currentPlayers.map(p => p.username));
         socket.emit('3d:players', currentPlayers);
 
         // Send server version for auto-refresh on deployment
         socket.emit('server:version', SERVER_VERSION);
 
         // Broadcast new player to others in same room
+        console.log(`📢 Broadcasting new player ${username} to room ${socketRoom}`);
         socket.to(socketRoom).emit('3d:player-joined', player);
 
         // Initialize NPCs for this room if not already done

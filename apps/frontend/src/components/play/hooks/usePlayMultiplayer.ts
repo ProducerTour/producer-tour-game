@@ -76,17 +76,22 @@ export function usePlayMultiplayer({
 
     // Receive initial player list when joining
     const handlePlayers = (players: Player3D[]) => {
-      console.log('[Play Multiplayer] Received players list:', players.length);
+      console.log('[Play Multiplayer] Received players list:', players.length, players.map(p => p.username));
       setOtherPlayers(players);
     };
 
     // New player joined
     const handlePlayerJoined = (player: Player3D) => {
-      console.log('[Play Multiplayer] Player joined:', player.username);
+      console.log('[Play Multiplayer] Player joined:', player.username, 'id:', player.id);
       setOtherPlayers((prev) => {
         // Avoid duplicates
-        if (prev.find((p) => p.id === player.id)) return prev;
-        return [...prev, player];
+        if (prev.find((p) => p.id === player.id)) {
+          console.log('[Play Multiplayer] Duplicate player, ignoring:', player.username);
+          return prev;
+        }
+        const newList = [...prev, player];
+        console.log('[Play Multiplayer] Updated player list:', newList.length, newList.map(p => p.username));
+        return newList;
       });
     };
 
