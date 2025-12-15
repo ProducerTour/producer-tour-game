@@ -396,6 +396,36 @@ export interface AnimationStateMachineResult {
   timeSinceTransition: number;
 }
 
+// Map one-shot animations to their target states after completion
+// These functions determine the next state based on current input
+const ONE_SHOT_NEXT_STATE: Partial<Record<AnimState, (input: AnimationInput) => AnimState>> = {
+  standToCrouch: (i) => {
+    if (i.weapon === 'rifle') return i.isMoving ? 'crouchRifleWalk' : 'crouchRifleIdle';
+    if (i.weapon === 'pistol') return i.isMoving ? 'crouchPistolWalk' : 'crouchPistolIdle';
+    return i.isMoving ? 'crouchWalk' : 'crouchIdle';
+  },
+  crouchToStand: (i) => {
+    if (i.weapon === 'rifle') return i.isMoving ? (i.isRunning ? 'rifleRun' : 'rifleWalk') : 'rifleIdle';
+    if (i.weapon === 'pistol') return i.isMoving ? (i.isRunning ? 'pistolRun' : 'pistolWalk') : 'pistolIdle';
+    return i.isMoving ? (i.isRunning ? 'run' : 'walk') : 'idle';
+  },
+  crouchToSprint: (i) => {
+    if (i.weapon === 'rifle') return 'rifleRun';
+    if (i.weapon === 'pistol') return 'pistolRun';
+    return 'run';
+  },
+  land: (i) => {
+    if (i.weapon === 'rifle') return i.isMoving ? (i.isRunning ? 'rifleRun' : 'rifleWalk') : 'rifleIdle';
+    if (i.weapon === 'pistol') return i.isMoving ? (i.isRunning ? 'pistolRun' : 'pistolWalk') : 'pistolIdle';
+    return i.isMoving ? (i.isRunning ? 'run' : 'walk') : 'idle';
+  },
+  jump: (i) => {
+    // Jump animation finished - transition based on grounded state
+    if (!i.isGrounded) return 'fall';
+    return i.isMoving ? (i.isRunning ? 'run' : 'walk') : 'idle';
+  },
+};
+
 export function useAnimationStateMachine(
   actions: Record<string, THREE.AnimationAction | null>,
   input: AnimationInput,
@@ -407,6 +437,12 @@ export function useAnimationStateMachine(
   const lastTransitionTime = useRef<number>(Date.now());
   const cooldowns = useRef<Map<AnimState, number>>(new Map());
   const isTransitioning = useRef(false);
+  const inputRef = useRef(input); // Keep latest input for finished callback
+  const finishedListenerRef = useRef<(() => void) | null>(null);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+
+  // Keep input ref updated for use in finished callback
+  inputRef.current = input;
 
   // Sort transitions by priority once
   const sortedTransitions = useMemo(
@@ -464,6 +500,12 @@ export function useAnimationStateMachine(
       const actionName = STATE_TO_ACTION[toState];
       const fadeTime = getFadeTime(actionName) || 0.15;
 
+      // Clean up previous finished listener
+      if (finishedListenerRef.current && mixerRef.current) {
+        mixerRef.current.removeEventListener('finished', finishedListenerRef.current);
+        finishedListenerRef.current = null;
+      }
+
       // Fade out current
       if (currentAction.current) {
         currentAction.current.fadeOut(fadeTime);
@@ -499,6 +541,30 @@ export function useAnimationStateMachine(
       setTimeout(() => {
         isTransitioning.current = false;
       }, fadeTime * 1000);
+
+      // Set up finished listener for one-shot animations
+      const nextStateFn = ONE_SHOT_NEXT_STATE[toState];
+      if (nextStateFn && toAction.getMixer()) {
+        mixerRef.current = toAction.getMixer();
+
+        const handleFinished = (e: { action: THREE.AnimationAction }) => {
+          // Only handle if this is our current action
+          if (e.action === currentAction.current && currentState.current === toState) {
+            const nextState = nextStateFn(inputRef.current);
+            console.log(`[AnimSM] One-shot finished: ${toState} → ${nextState}`);
+
+            // Small delay to ensure smooth transition
+            setTimeout(() => {
+              if (currentState.current === toState) {
+                transitionTo(nextState);
+              }
+            }, 50);
+          }
+        };
+
+        finishedListenerRef.current = handleFinished as () => void;
+        mixerRef.current.addEventListener('finished', handleFinished);
+      }
 
       // Call enter callback and state change handler
       transition?.onEnter?.();
@@ -561,6 +627,15 @@ export function useAnimationStateMachine(
       currentAction.current = idle;
     }
   }, [actions]);
+
+  // Cleanup finished listener on unmount
+  useEffect(() => {
+    return () => {
+      if (finishedListenerRef.current && mixerRef.current) {
+        mixerRef.current.removeEventListener('finished', finishedListenerRef.current);
+      }
+    };
+  }, []);
 
   return {
     currentState: currentState.current,
