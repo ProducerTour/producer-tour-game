@@ -14,23 +14,45 @@ import {
   Billboard,
   Text,
 } from '@react-three/drei';
+import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { usePlayMultiplayer, Player3D } from './hooks/usePlayMultiplayer';
+import { PhysicsPlayerController } from './PhysicsPlayerController';
+import { AnimationErrorBoundary } from './AnimationErrorBoundary';
+import { WeaponAttachment, type WeaponType } from './WeaponAttachment';
+import {
+  ANIMATION_CONFIG,
+  getFadeTime,
+  isMixamoAnimation,
+  type AnimationName,
+} from './animations.config';
+import { configureAllActions } from './hooks/useAnimationLoader';
+import { VFXManager } from './vfx/VFXManager';
+import { NPCManager } from './npc/NPCManager';
+import { createPatrolNPC, createNPC } from './npc/useNPCStore';
 
 // Assets URL (Cloudflare R2 CDN)
 const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
 
+// Animation URLs derived from config
+const ANIMATIONS = Object.fromEntries(
+  Object.entries(ANIMATION_CONFIG).map(([name, config]) => [name, config.url])
+) as Record<AnimationName, string>;
 
-// Animation file paths - place converted Mixamo GLB files in public/animations/
-const ANIMATIONS = {
-  idle: '/animations/idle.glb',
-  walking: '/animations/walking.glb',
-  running: '/animations/running.glb',
-} as const;
+// Track which weapon animations are available (set to true after downloading)
+const WEAPON_ANIMATIONS_AVAILABLE = true;
+
+// Track which crouch animations are available (set to true after downloading from Mixamo)
+// Download: "crouching idle" and "crouch walk" from Mixamo
+const CROUCH_ANIMATIONS_AVAILABLE = true;
 
 // Flag to use Mixamo animations vs procedural (set to true once you have the GLB files)
-const USE_MIXAMO_ANIMATIONS = false;
+const USE_MIXAMO_ANIMATIONS = true;
+
+// Preload all animations at module level - eliminates pop-in on first trigger
+Object.values(ANIMATIONS).forEach(url => useGLTF.preload(url));
+
 import { Gamepad2, Music, Briefcase, Users, Mic2 } from 'lucide-react';
 import { useKeyboardControls } from './hooks/useKeyboardControls';
 
@@ -83,41 +105,102 @@ const originalFootQuaternions = {
   rightFoot: new THREE.Quaternion(),
 };
 
-// Arm rotation settings - X axis at 1.31 rad (75°) for natural arm position
-const ARM_ROTATION = {
-  axis: 'x' as const,
-  angle: 1.31, // radians (75 degrees)
+// Store spine/head quaternions for posture adjustment
+const originalSpineQuaternions = {
+  spine: new THREE.Quaternion(),
+  spine1: new THREE.Quaternion(),
+  spine2: new THREE.Quaternion(),
+  neck: new THREE.Quaternion(),
+  head: new THREE.Quaternion(),
 };
 
-// Foot rotation settings - X axis at 0.86 rad (49°) for flat feet
-const FOOT_ROTATION = {
-  axis: 'x' as const,
-  angle: 0.86, // radians (49 degrees)
+// LocalStorage key for bone settings
+const BONE_SETTINGS_KEY = 'producerTour_boneSettings';
+
+// Default bone rotation settings
+const DEFAULT_BONE_SETTINGS = {
+  arms: { axis: 'x' as const, angle: 1.26 },      // 72° - natural arm position
+  forearms: { axis: 'x' as const, angle: 0 },     // neutral
+  feet: { axis: 'x' as const, angle: 0.86 },      // 49° - flat feet
+  spine: { axis: 'x' as const, angle: -0.09 },    // -5° - slight backward tilt
+  head: { axis: 'x' as const, angle: 0.08 },      // 5° - slight upward tilt
 };
+
+// Load saved bone settings from localStorage
+function loadBoneSettings(): typeof DEFAULT_BONE_SETTINGS {
+  try {
+    const saved = localStorage.getItem(BONE_SETTINGS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return { ...DEFAULT_BONE_SETTINGS, ...parsed };
+    }
+  } catch (e) {
+    console.warn('Failed to load bone settings:', e);
+  }
+  return DEFAULT_BONE_SETTINGS;
+}
+
+// Save bone settings to localStorage
+function saveBoneSettings(settings: typeof DEFAULT_BONE_SETTINGS) {
+  try {
+    localStorage.setItem(BONE_SETTINGS_KEY, JSON.stringify(settings));
+    console.log('🦴 Bone settings saved!', settings);
+    return true;
+  } catch (e) {
+    console.error('Failed to save bone settings:', e);
+    return false;
+  }
+}
+
+// Mutable bone settings (loaded from localStorage)
+// Using let so we can update it when user saves new settings
+let boneSettings = loadBoneSettings();
+
+// Function to update module-level settings (called when user saves)
+function updateBoneSettings(newSettings: typeof DEFAULT_BONE_SETTINGS) {
+  boneSettings = newSettings;
+}
+
+// Getter functions for bone settings (always read from current boneSettings)
+function getArmRotation() { return boneSettings.arms; }
+function getFootRotation() { return boneSettings.feet; }
+function getSpineRotation() { return boneSettings.spine; }
+function getHeadRotation() { return boneSettings.head; }
 
 // Debug state for real-time adjustments
 const debugState = {
-  armDownAngle: ARM_ROTATION.angle,
+  armDownAngle: boneSettings.arms.angle,
   showSkeleton: true,
 };
 
 // Debug Panel Component - Draggable
+type BoneType = 'arms' | 'forearms' | 'feet' | 'spine' | 'head';
+
 function DebugPanel({
   boneMap,
   onBoneAngleChange
 }: {
   boneMap: Map<string, THREE.Bone>;
-  onBoneAngleChange: (bone: 'arms' | 'feet', angle: number, axis: 'x' | 'y' | 'z') => void;
+  onBoneAngleChange: (bone: BoneType, angle: number, axis: 'x' | 'y' | 'z') => void;
 }) {
-  const [selectedBone, setSelectedBone] = useState<'arms' | 'feet'>('feet');
-  const [angle, setAngle] = useState(0);
-  const [rotAxis, setRotAxis] = useState<'x' | 'y' | 'z'>('x');
+  const [selectedBone, setSelectedBone] = useState<BoneType>('spine');
+  // Initialize angle and axis from saved settings for default bone (spine)
+  const initialSettings = loadBoneSettings();
+  const [angle, setAngle] = useState(initialSettings.spine.angle);
+  const [rotAxis, setRotAxis] = useState<'x' | 'y' | 'z'>(initialSettings.spine.axis);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
   const panelRef = useRef<HTMLDivElement>(null);
   const leftFoot = boneMap.get(BONE_NAMES.leftFoot);
   const leftArm = boneMap.get(BONE_NAMES.leftArm);
+  const leftForeArm = boneMap.get(BONE_NAMES.leftForeArm);
+  const spine = boneMap.get(BONE_NAMES.spine);
+  const head = boneMap.get(BONE_NAMES.head);
+
+  // Track current settings for all bones
+  const [currentSettings, setCurrentSettings] = useState(loadBoneSettings());
 
   // Handle drag
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -151,7 +234,11 @@ function DebugPanel({
   }, [isDragging, dragStart]);
 
   // Get current rotation info for selected bone
-  const activeBone = selectedBone === 'arms' ? leftArm : leftFoot;
+  const activeBone = selectedBone === 'arms' ? leftArm
+    : selectedBone === 'forearms' ? leftForeArm
+    : selectedBone === 'feet' ? leftFoot
+    : selectedBone === 'spine' ? spine
+    : head;
   const boneRot = activeBone ? {
     euler: activeBone.rotation.toArray().map(v => typeof v === 'number' ? v.toFixed(2) : v),
     quat: activeBone.quaternion.toArray().map(v => v.toFixed(3)),
@@ -161,16 +248,57 @@ function DebugPanel({
   const handleAngleChange = (newAngle: number) => {
     setAngle(newAngle);
     onBoneAngleChange(selectedBone, newAngle, rotAxis);
+    // Track the change
+    setCurrentSettings(prev => ({
+      ...prev,
+      [selectedBone]: { axis: rotAxis, angle: newAngle }
+    }));
+    setSaveStatus('idle');
   };
 
   const handleAxisChange = (axis: 'x' | 'y' | 'z') => {
     setRotAxis(axis);
     onBoneAngleChange(selectedBone, angle, axis);
+    // Track the change
+    setCurrentSettings(prev => ({
+      ...prev,
+      [selectedBone]: { axis, angle }
+    }));
+    setSaveStatus('idle');
   };
 
-  const handleBoneSelect = (bone: 'arms' | 'feet') => {
+  const handleBoneSelect = (bone: BoneType) => {
     setSelectedBone(bone);
-    setAngle(0); // Reset angle when switching bones
+    // Load current settings for this bone
+    const boneConfig = currentSettings[bone];
+    setAngle(boneConfig.angle);
+    setRotAxis(boneConfig.axis);
+  };
+
+  const handleSaveSettings = () => {
+    if (saveBoneSettings(currentSettings)) {
+      // Also update the module-level settings so setIdlePose uses new values
+      updateBoneSettings(currentSettings);
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } else {
+      setSaveStatus('error');
+    }
+  };
+
+  const handleResetToDefaults = () => {
+    setCurrentSettings(DEFAULT_BONE_SETTINGS);
+    // Apply defaults to all bones
+    Object.entries(DEFAULT_BONE_SETTINGS).forEach(([bone, config]) => {
+      onBoneAngleChange(bone as BoneType, config.angle, config.axis);
+    });
+    // Update current view
+    const defaultConfig = DEFAULT_BONE_SETTINGS[selectedBone];
+    setAngle(defaultConfig.angle);
+    setRotAxis(defaultConfig.axis);
+    // Clear saved settings
+    localStorage.removeItem(BONE_SETTINGS_KEY);
+    setSaveStatus('idle');
   };
 
   return (
@@ -187,8 +315,8 @@ function DebugPanel({
       {/* Bone Selection */}
       <div className="mb-3">
         <label className="block text-gray-400 mb-1">Select Bone:</label>
-        <div className="flex gap-2">
-          {(['arms', 'feet'] as const).map(bone => (
+        <div className="flex gap-2 flex-wrap">
+          {(['spine', 'head', 'arms', 'forearms', 'feet'] as const).map(bone => (
             <button
               key={bone}
               onClick={() => handleBoneSelect(bone)}
@@ -219,7 +347,7 @@ function DebugPanel({
       {/* Angle Slider */}
       <div className="mb-3">
         <label className="block text-gray-400 mb-1">
-          {selectedBone === 'arms' ? 'Arm' : 'Foot'} Rotation ({rotAxis.toUpperCase()}): {angle.toFixed(2)} rad ({(angle * 180 / Math.PI).toFixed(0)}°)
+          {selectedBone.charAt(0).toUpperCase() + selectedBone.slice(1)} Rotation ({rotAxis.toUpperCase()}): {angle.toFixed(2)} rad ({(angle * 180 / Math.PI).toFixed(0)}°)
         </label>
         <input
           type="range"
@@ -253,26 +381,59 @@ function DebugPanel({
         </div>
       </div>
 
-      {/* Copy Settings Button */}
-      <div className="mb-3">
+      {/* Save/Reset Buttons */}
+      <div className="mb-3 space-y-2">
         <button
-          onClick={() => {
-            const text = `${selectedBone === 'arms' ? 'Arm' : 'Foot'} Settings: axis=${rotAxis}, angle=${angle.toFixed(2)} rad (${Math.round(angle * 180 / Math.PI)}°)`;
-            navigator.clipboard.writeText(text);
-            alert('Copied to clipboard!');
-          }}
-          className="w-full px-3 py-2 bg-violet-600 hover:bg-violet-500 rounded font-bold text-sm"
+          onClick={handleSaveSettings}
+          className={`w-full px-3 py-2 rounded font-bold text-sm transition-colors ${
+            saveStatus === 'saved'
+              ? 'bg-emerald-600 text-white'
+              : saveStatus === 'error'
+              ? 'bg-red-600 text-white'
+              : 'bg-violet-600 hover:bg-violet-500 text-white'
+          }`}
         >
-          📋 Copy Settings
+          {saveStatus === 'saved' ? '✓ Saved!' : saveStatus === 'error' ? '✗ Error' : '💾 Save All Settings'}
         </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleResetToDefaults}
+            className="flex-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-[11px]"
+          >
+            ↺ Reset Defaults
+          </button>
+          <button
+            onClick={() => {
+              const boneName = selectedBone.charAt(0).toUpperCase() + selectedBone.slice(1);
+              const text = `${boneName} Settings: axis=${rotAxis}, angle=${angle.toFixed(2)} rad (${Math.round(angle * 180 / Math.PI)}°)`;
+              navigator.clipboard.writeText(text);
+            }}
+            className="flex-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-[11px]"
+          >
+            📋 Copy
+          </button>
+        </div>
+      </div>
+
+      {/* All Settings Summary */}
+      <div className="mb-3 p-2 bg-gray-800/50 rounded text-[10px]">
+        <div className="text-gray-400 mb-1 font-bold">Current Settings:</div>
+        {Object.entries(currentSettings).map(([bone, config]) => (
+          <div key={bone} className="flex justify-between text-gray-500">
+            <span className="capitalize">{bone}:</span>
+            <span className={selectedBone === bone ? 'text-violet-400' : ''}>
+              {config.axis.toUpperCase()} {config.angle.toFixed(2)}
+            </span>
+          </div>
+        ))}
       </div>
 
       {/* Current Rotation Info */}
       {boneRot && (
         <div className="border-t border-gray-700 pt-2">
-          <p className="text-gray-400">{selectedBone === 'arms' ? 'LeftArm' : 'LeftFoot'} Euler (XYZ):</p>
+          <p className="text-gray-400">{selectedBone.charAt(0).toUpperCase() + selectedBone.slice(1)} Euler (XYZ):</p>
           <p className="text-green-400 text-[11px]">[{boneRot.euler.slice(0, 3).join(', ')}]</p>
-          <p className="text-gray-400 mt-1">{selectedBone === 'arms' ? 'LeftArm' : 'LeftFoot'} Quaternion (XYZW):</p>
+          <p className="text-gray-400 mt-1">{selectedBone.charAt(0).toUpperCase() + selectedBone.slice(1)} Quaternion (XYZW):</p>
           <p className="text-cyan-400 text-[11px]">[{boneRot.quat.join(', ')}]</p>
           <p className="text-gray-400 mt-1">World Position:</p>
           <p className="text-yellow-400 text-[11px]">[{boneRot.worldPos.join(', ')}]</p>
@@ -293,7 +454,7 @@ function DebugPanel({
   );
 }
 
-// Helper function to set idle pose with arms at sides and feet flat
+// Helper function to set idle pose with arms at sides, feet flat, and upright posture
 function setIdlePose(boneMap: Map<string, THREE.Bone>) {
   const leftArm = boneMap.get(BONE_NAMES.leftArm);
   const rightArm = boneMap.get(BONE_NAMES.rightArm);
@@ -301,9 +462,20 @@ function setIdlePose(boneMap: Map<string, THREE.Bone>) {
   const rightForeArm = boneMap.get(BONE_NAMES.rightForeArm);
   const leftFoot = boneMap.get(BONE_NAMES.leftFoot);
   const rightFoot = boneMap.get(BONE_NAMES.rightFoot);
+  const spine = boneMap.get(BONE_NAMES.spine);
+  const spine1 = boneMap.get(BONE_NAMES.spine1);
+  const spine2 = boneMap.get(BONE_NAMES.spine2);
+  const neck = boneMap.get(BONE_NAMES.neck);
+  const head = boneMap.get(BONE_NAMES.head);
 
-  // Arms: X axis rotation at 1.31 rad (75°) for natural position
-  const armAngle = ARM_ROTATION.angle;
+  // Get current settings (uses saved values from localStorage)
+  const armRotation = getArmRotation();
+  const footRotation = getFootRotation();
+  const spineRotation = getSpineRotation();
+  const headRotation = getHeadRotation();
+
+  // Arms: use saved angle for natural position
+  const armAngle = armRotation.angle;
   const xAxis = new THREE.Vector3(1, 0, 0);
 
   if (leftArm) {
@@ -323,8 +495,8 @@ function setIdlePose(boneMap: Map<string, THREE.Bone>) {
   if (leftForeArm) originalArmQuaternions.leftForeArm.copy(leftForeArm.quaternion);
   if (rightForeArm) originalArmQuaternions.rightForeArm.copy(rightForeArm.quaternion);
 
-  // Feet: X axis rotation at 0.86 rad (49°) for flat positioning
-  const footAngle = FOOT_ROTATION.angle;
+  // Feet: use saved angle for flat positioning
+  const footAngle = footRotation.angle;
 
   if (leftFoot) {
     leftFoot.quaternion.identity();
@@ -337,6 +509,41 @@ function setIdlePose(boneMap: Map<string, THREE.Bone>) {
     const rotQ = new THREE.Quaternion().setFromAxisAngle(xAxis, footAngle);
     rightFoot.quaternion.multiply(rotQ);
     originalFootQuaternions.rightFoot.copy(rightFoot.quaternion);
+  }
+
+  // Spine: use saved angle for posture
+  const spineAngle = spineRotation.angle;
+  if (spine) {
+    spine.quaternion.identity();
+    const rotQ = new THREE.Quaternion().setFromAxisAngle(xAxis, spineAngle);
+    spine.quaternion.multiply(rotQ);
+    originalSpineQuaternions.spine.copy(spine.quaternion);
+  }
+  if (spine1) {
+    spine1.quaternion.identity();
+    const rotQ = new THREE.Quaternion().setFromAxisAngle(xAxis, spineAngle);
+    spine1.quaternion.multiply(rotQ);
+    originalSpineQuaternions.spine1.copy(spine1.quaternion);
+  }
+  if (spine2) {
+    spine2.quaternion.identity();
+    const rotQ = new THREE.Quaternion().setFromAxisAngle(xAxis, spineAngle);
+    spine2.quaternion.multiply(rotQ);
+    originalSpineQuaternions.spine2.copy(spine2.quaternion);
+  }
+
+  // Neck: keep neutral
+  if (neck) {
+    originalSpineQuaternions.neck.copy(neck.quaternion);
+  }
+
+  // Head: use saved angle for tilt
+  const headAngle = headRotation.angle;
+  if (head) {
+    head.quaternion.identity();
+    const rotQ = new THREE.Quaternion().setFromAxisAngle(xAxis, headAngle);
+    head.quaternion.multiply(rotQ);
+    originalSpineQuaternions.head.copy(head.quaternion);
   }
 }
 
@@ -455,7 +662,7 @@ function AnimatedAvatar({
   }, [debugMode]);
 
   // Handle real-time bone angle adjustment with axis selection
-  const handleBoneAngleChange = useCallback((bone: 'arms' | 'feet', newAngle: number, axis: 'x' | 'y' | 'z' = 'x') => {
+  const handleBoneAngleChange = useCallback((bone: BoneType, newAngle: number, axis: 'x' | 'y' | 'z' = 'x') => {
     const boneMap = bones.current;
 
     // Create axis vector based on selection
@@ -500,6 +707,71 @@ function AnimatedAvatar({
         rightFoot.quaternion.multiply(rotQ);
         originalFootQuaternions.rightFoot.copy(rightFoot.quaternion);
       }
+    } else if (bone === 'spine') {
+      const spine = boneMap.get(BONE_NAMES.spine);
+      const spine1 = boneMap.get(BONE_NAMES.spine1);
+      const spine2 = boneMap.get(BONE_NAMES.spine2);
+
+      console.log(`🦴 Adjusting spine: axis=${axis}, angle=${newAngle.toFixed(2)} rad`);
+
+      // Apply same rotation to all spine segments
+      if (spine) {
+        spine.quaternion.identity();
+        const rotQ = new THREE.Quaternion().setFromAxisAngle(axisVector, newAngle);
+        spine.quaternion.multiply(rotQ);
+        originalSpineQuaternions.spine.copy(spine.quaternion);
+      }
+      if (spine1) {
+        spine1.quaternion.identity();
+        const rotQ = new THREE.Quaternion().setFromAxisAngle(axisVector, newAngle);
+        spine1.quaternion.multiply(rotQ);
+        originalSpineQuaternions.spine1.copy(spine1.quaternion);
+      }
+      if (spine2) {
+        spine2.quaternion.identity();
+        const rotQ = new THREE.Quaternion().setFromAxisAngle(axisVector, newAngle);
+        spine2.quaternion.multiply(rotQ);
+        originalSpineQuaternions.spine2.copy(spine2.quaternion);
+      }
+    } else if (bone === 'head') {
+      const head = boneMap.get(BONE_NAMES.head);
+      const neck = boneMap.get(BONE_NAMES.neck);
+
+      console.log(`🦴 Adjusting head: axis=${axis}, angle=${newAngle.toFixed(2)} rad`);
+
+      if (head) {
+        head.quaternion.identity();
+        const rotQ = new THREE.Quaternion().setFromAxisAngle(axisVector, newAngle);
+        head.quaternion.multiply(rotQ);
+        originalSpineQuaternions.head.copy(head.quaternion);
+      }
+      // Optionally adjust neck with half the angle for natural look
+      if (neck) {
+        neck.quaternion.identity();
+        const rotQ = new THREE.Quaternion().setFromAxisAngle(axisVector, newAngle * 0.5);
+        neck.quaternion.multiply(rotQ);
+        originalSpineQuaternions.neck.copy(neck.quaternion);
+      }
+    } else if (bone === 'forearms') {
+      const leftForeArm = boneMap.get(BONE_NAMES.leftForeArm);
+      const rightForeArm = boneMap.get(BONE_NAMES.rightForeArm);
+
+      console.log(`🦴 Adjusting forearms: axis=${axis}, angle=${newAngle.toFixed(2)} rad`);
+
+      if (leftForeArm) {
+        leftForeArm.quaternion.identity();
+        const rotQ = new THREE.Quaternion().setFromAxisAngle(axisVector, newAngle);
+        leftForeArm.quaternion.multiply(rotQ);
+        originalArmQuaternions.leftForeArm.copy(leftForeArm.quaternion);
+      }
+      if (rightForeArm) {
+        rightForeArm.quaternion.identity();
+        // Mirror the angle for right forearm on Y and Z axes
+        const rightAngle = (axis === 'x') ? newAngle : -newAngle;
+        const rotQ = new THREE.Quaternion().setFromAxisAngle(axisVector, rightAngle);
+        rightForeArm.quaternion.multiply(rotQ);
+        originalArmQuaternions.rightForeArm.copy(rightForeArm.quaternion);
+      }
     }
   }, []);
 
@@ -523,15 +795,15 @@ function AnimatedAvatar({
     const rightForeArm = boneMap.get(BONE_NAMES.rightForeArm);
 
     if (isMoving) {
-      // Walking/Running animation
-      const speed = isRunning ? 10 : 6;
+      // Walking/Running animation - smoother speeds
+      const speed = isRunning ? 6 : 4;
       animPhase.current += delta * speed;
       const t = animPhase.current;
 
-      // Animation parameters
-      const legSwingAmount = isRunning ? 0.45 : 0.22;
-      const kneeAmount = isRunning ? 0.5 : 0.25;
-      const armSwingAmount = isRunning ? 0.3 : 0.12;
+      // Animation parameters - reduced for smoother motion
+      const legSwingAmount = isRunning ? 0.35 : 0.18;
+      const kneeAmount = isRunning ? 0.4 : 0.2;
+      const armSwingAmount = isRunning ? 0.22 : 0.1;
 
       // Upper legs (thighs) - swing forward/back
       if (leftUpLeg) {
@@ -575,27 +847,27 @@ function AnimatedAvatar({
         rightForeArm.quaternion.copy(originalArmQuaternions.rightForeArm);
       }
 
-      // Hip bob and slight rotation
+      // Hip bob and slight rotation - reduced for smoothness
       if (hips) {
-        hips.position.y = Math.abs(Math.sin(t * 2)) * 0.008;
-        hips.rotation.z = Math.sin(t) * 0.03; // Side-to-side hip sway
+        hips.position.y = Math.abs(Math.sin(t * 2)) * 0.005;
+        hips.rotation.z = Math.sin(t) * 0.02; // Side-to-side hip sway
       }
 
-      // Spine sway and lean
+      // Spine sway and lean - reduced
       if (spine) {
-        spine.rotation.y = Math.sin(t) * 0.04; // Twist with walk
-        spine.rotation.z = Math.sin(t) * -0.02; // Counter-sway to hips
+        spine.rotation.y = Math.sin(t) * 0.025; // Twist with walk
+        spine.rotation.z = Math.sin(t) * -0.015; // Counter-sway to hips
       }
 
-      // Head bob and look
+      // Head bob and look - reduced
       const head = boneMap.get(BONE_NAMES.head);
       const neck = boneMap.get(BONE_NAMES.neck);
       if (head) {
-        head.rotation.y = Math.sin(t * 0.5) * 0.03; // Subtle side look
-        head.rotation.x = Math.sin(t * 2) * 0.02; // Slight nod with steps
+        head.rotation.y = Math.sin(t * 0.5) * 0.02; // Subtle side look
+        head.rotation.x = Math.sin(t * 2) * 0.01; // Slight nod with steps
       }
       if (neck) {
-        neck.rotation.z = Math.sin(t) * 0.02; // Neck follows spine
+        neck.rotation.z = Math.sin(t) * 0.015; // Neck follows spine
       }
 
     } else {
@@ -667,18 +939,65 @@ function MixamoAnimatedAvatar({
   url,
   isMoving = false,
   isRunning = false,
+  isJumping = false,
+  isDancing = false,
+  isCrouching = false,
+  isStrafingLeft = false,
+  isStrafingRight = false,
+  weaponType = null,
 }: {
   url: string;
   isMoving?: boolean;
   isRunning?: boolean;
+  isJumping?: boolean;
+  isDancing?: boolean;
+  isCrouching?: boolean;
+  isStrafingLeft?: boolean;
+  isStrafingRight?: boolean;
+  weaponType?: WeaponType;
 }) {
   const group = useRef<THREE.Group>(null);
+  const avatarRef = useRef<THREE.Group>(null);
+  const crouchOffset = useRef(0);
   const { scene } = useGLTF(url);
 
   // Load animation files
   const idleGltf = useGLTF(ANIMATIONS.idle);
+  const idleVar1Gltf = useGLTF(ANIMATIONS.idleVar1);
+  const idleVar2Gltf = useGLTF(ANIMATIONS.idleVar2);
   const walkingGltf = useGLTF(ANIMATIONS.walking);
   const runningGltf = useGLTF(ANIMATIONS.running);
+  const jumpGltf = useGLTF(ANIMATIONS.jump);
+  const jumpJogGltf = useGLTF(ANIMATIONS.jumpJog);
+  const jumpRunGltf = useGLTF(ANIMATIONS.jumpRun);
+  const dance1Gltf = useGLTF(ANIMATIONS.dance1);
+  const dance2Gltf = useGLTF(ANIMATIONS.dance2);
+  const dance3Gltf = useGLTF(ANIMATIONS.dance3);
+
+  // Crouch animations - all loaded for proper crouch state handling
+  // Note: No proper "Crouching Idle" FBX exists yet - using crouchWalk as fallback
+  const crouchWalkGltf = useGLTF(CROUCH_ANIMATIONS_AVAILABLE ? ANIMATIONS.crouchWalk : ANIMATIONS.walking);
+  const crouchIdleGltf = crouchWalkGltf; // Use walk as idle until proper idle is downloaded
+  const crouchStrafeLeftGltf = useGLTF(CROUCH_ANIMATIONS_AVAILABLE ? ANIMATIONS.crouchStrafeLeft : ANIMATIONS.walking);
+  const crouchStrafeRightGltf = useGLTF(CROUCH_ANIMATIONS_AVAILABLE ? ANIMATIONS.crouchStrafeRight : ANIMATIONS.walking);
+  // Crouch transitions
+  const standToCrouchGltf = useGLTF(CROUCH_ANIMATIONS_AVAILABLE ? ANIMATIONS.standToCrouch : ANIMATIONS.idle);
+  const crouchToStandGltf = useGLTF(CROUCH_ANIMATIONS_AVAILABLE ? ANIMATIONS.crouchToStand : ANIMATIONS.idle);
+  const crouchToSprintGltf = useGLTF(CROUCH_ANIMATIONS_AVAILABLE ? ANIMATIONS.crouchToSprint : ANIMATIONS.running);
+
+  // Weapon animations (only load if available)
+  const rifleIdleGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.rifleIdle : ANIMATIONS.idle);
+  const rifleWalkGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.rifleWalk : ANIMATIONS.walking);
+  const rifleRunGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.rifleRun : ANIMATIONS.running);
+  const pistolIdleGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.pistolIdle : ANIMATIONS.idle);
+  const pistolWalkGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.pistolWalk : ANIMATIONS.walking);
+  const pistolRunGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.pistolRun : ANIMATIONS.running);
+
+  // Crouch + weapon animations - files don't exist yet, use regular weapon anims as fallback
+  const crouchRifleIdleGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.rifleIdle : ANIMATIONS.idle);
+  const crouchRifleWalkGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.rifleWalk : ANIMATIONS.walking);
+  const crouchPistolIdleGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.pistolIdle : ANIMATIONS.idle);
+  const crouchPistolWalkGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.pistolWalk : ANIMATIONS.walking);
 
   // Clone scene for this instance
   const clonedScene = useMemo(() => {
@@ -689,46 +1008,338 @@ function MixamoAnimatedAvatar({
         child.receiveShadow = true;
       }
     });
+
+    // Debug: log avatar's actual bone names (only once)
+    const bones: string[] = [];
+    clone.traverse((child) => {
+      if ((child as THREE.Bone).isBone) {
+        bones.push(child.name);
+      }
+    });
+    if (bones.length > 0) {
+      console.log(`🦴 Avatar bones (${bones.length} total):`, bones.slice(0, 10));
+    }
+
     return clone;
   }, [scene]);
 
-  // Collect all animations
+  // Strip root motion, scale tracks, and remap bone names from Mixamo format to RPM format
+  const stripRootMotion = (clip: THREE.AnimationClip, clipName?: string): THREE.AnimationClip => {
+    const newClip = clip.clone();
+    // Check config to see if this is a Mixamo animation (needs special track filtering)
+    const isMixamoAnim = clipName ? isMixamoAnimation(clipName) : false;
+
+    // Debug: log original tracks for Mixamo anims
+    if (isMixamoAnim) {
+      console.log(`🔧 Processing ${clipName}: ${newClip.tracks.length} original tracks`);
+      console.log(`   Sample tracks:`, newClip.tracks.slice(0, 5).map(t => t.name));
+    }
+
+    // Process tracks: remap bone names and filter problematic tracks
+    newClip.tracks = newClip.tracks
+      .map(track => {
+        let newName = track.name;
+
+        // Handle various Mixamo naming conventions from Blender export:
+        // 1. "mixamorig:Hips.quaternion" -> "Hips.quaternion"
+        // 2. "mixamorigHips.quaternion" -> "Hips.quaternion" (no colon)
+        // 3. "Armature|mixamorig:Hips.quaternion" -> "Hips.quaternion"
+        // 4. "mixamorig10:Hips.quaternion" -> "Hips.quaternion" (numbered rig)
+
+        // Remove armature prefix if present
+        if (newName.includes('|')) {
+          newName = newName.split('|').pop() || newName;
+        }
+
+        // Remove mixamorig variants (with colon, without, numbered)
+        newName = newName.replace(/mixamorig\d*:/g, ''); // mixamorig: or mixamorig10:
+        newName = newName.replace(/^mixamorig(\d*)([A-Z])/g, '$2'); // mixamorigHips -> Hips
+
+        if (newName !== track.name) {
+          const newTrack = track.clone();
+          newTrack.name = newName;
+          return newTrack;
+        }
+        return track;
+      })
+      .filter(track => {
+        // For Mixamo animations (weapons, crouch): ONLY keep quaternion (rotation) tracks
+        // EXCEPT for Hips - the Hips rotation would flip the whole character
+        // because Mixamo's reference pose differs from RPM's
+        if (isMixamoAnim) {
+          const isQuaternion = track.name.endsWith('.quaternion');
+          const isHips = track.name.startsWith('Hips');
+
+          // For all Mixamo animations (weapons and crouch): keep only rotations, filter Hips
+          if (!isQuaternion || isHips) {
+            console.log(`   ❌ Filtering track: ${track.name}`);
+            return false;
+          }
+          return true;
+        }
+
+        // For regular animations (designed for RPM): keep rotations and non-Hips positions
+        if (!track.name.endsWith('.quaternion')) {
+          // Allow position tracks only for non-Hips bones
+          if (track.name.endsWith('.position') && !track.name.includes('Hips')) {
+            return true;
+          }
+          return false;
+        }
+        return true;
+      });
+
+    if (isMixamoAnim) {
+      console.log(`   ✅ Kept ${newClip.tracks.length} tracks after filtering`);
+      console.log(`   Sample kept:`, newClip.tracks.slice(0, 5).map(t => t.name));
+    }
+
+    return newClip;
+  };
+
+  // Track current dance for cycling
+  const currentDanceIndex = useRef(0);
+
+  // Collect all animations (with root motion stripped)
   const animations = useMemo(() => {
     const anims: THREE.AnimationClip[] = [];
 
-    // Rename animations for easy access
-    if (idleGltf.animations[0]) {
-      const idle = idleGltf.animations[0].clone();
-      idle.name = 'idle';
-      anims.push(idle);
+    // Helper to add animation safely
+    const addAnim = (gltf: { animations: THREE.AnimationClip[] }, name: string) => {
+      if (gltf.animations[0]) {
+        // Pass name to stripRootMotion for debug logging
+        const clip = stripRootMotion(gltf.animations[0], name);
+        clip.name = name;
+        anims.push(clip);
+      } else {
+        console.warn(`⚠️ No animation found for ${name}`);
+      }
+    };
+
+    // Core animations
+    addAnim(idleGltf, 'idle');
+    addAnim(idleVar1Gltf, 'idleVar1');
+    addAnim(idleVar2Gltf, 'idleVar2');
+    addAnim(walkingGltf, 'walking');
+    addAnim(runningGltf, 'running');
+    addAnim(jumpGltf, 'jump');
+    addAnim(jumpJogGltf, 'jumpJog');
+    addAnim(jumpRunGltf, 'jumpRun');
+    addAnim(dance1Gltf, 'dance1');
+    addAnim(dance2Gltf, 'dance2');
+    addAnim(dance3Gltf, 'dance3');
+
+    // Crouch animations (only add if available)
+    if (CROUCH_ANIMATIONS_AVAILABLE) {
+      addAnim(crouchIdleGltf, 'crouchIdle');
+      addAnim(crouchWalkGltf, 'crouchWalk');
+      addAnim(crouchStrafeLeftGltf, 'crouchStrafeLeft');
+      addAnim(crouchStrafeRightGltf, 'crouchStrafeRight');
+      // Crouch transitions (one-shot animations)
+      addAnim(standToCrouchGltf, 'standToCrouch');
+      addAnim(crouchToStandGltf, 'crouchToStand');
+      addAnim(crouchToSprintGltf, 'crouchToSprint');
     }
-    if (walkingGltf.animations[0]) {
-      const walking = walkingGltf.animations[0].clone();
-      walking.name = 'walking';
-      anims.push(walking);
+
+    // Weapon animations (only add if available)
+    if (WEAPON_ANIMATIONS_AVAILABLE) {
+      addAnim(rifleIdleGltf, 'rifleIdle');
+      addAnim(rifleWalkGltf, 'rifleWalk');
+      addAnim(rifleRunGltf, 'rifleRun');
+      addAnim(pistolIdleGltf, 'pistolIdle');
+      addAnim(pistolWalkGltf, 'pistolWalk');
+      addAnim(pistolRunGltf, 'pistolRun');
     }
-    if (runningGltf.animations[0]) {
-      const running = runningGltf.animations[0].clone();
-      running.name = 'running';
-      anims.push(running);
+
+    // Crouch + weapon animations (only add if both available)
+    if (CROUCH_ANIMATIONS_AVAILABLE && WEAPON_ANIMATIONS_AVAILABLE) {
+      addAnim(crouchRifleIdleGltf, 'crouchRifleIdle');
+      addAnim(crouchRifleWalkGltf, 'crouchRifleWalk');
+      addAnim(crouchPistolIdleGltf, 'crouchPistolIdle');
+      addAnim(crouchPistolWalkGltf, 'crouchPistolWalk');
     }
 
     return anims;
-  }, [idleGltf.animations, walkingGltf.animations, runningGltf.animations]);
+  }, [idleGltf.animations, idleVar1Gltf.animations, idleVar2Gltf.animations,
+      walkingGltf.animations, runningGltf.animations, jumpGltf.animations,
+      jumpJogGltf.animations, jumpRunGltf.animations,
+      dance1Gltf.animations, dance2Gltf.animations, dance3Gltf.animations,
+      crouchWalkGltf.animations, // crouchIdleGltf uses same ref
+      crouchStrafeLeftGltf.animations, crouchStrafeRightGltf.animations,
+      standToCrouchGltf.animations, crouchToStandGltf.animations, crouchToSprintGltf.animations,
+      rifleIdleGltf.animations, rifleWalkGltf.animations, rifleRunGltf.animations,
+      pistolIdleGltf.animations, pistolWalkGltf.animations, pistolRunGltf.animations,
+      crouchRifleIdleGltf.animations, crouchRifleWalkGltf.animations,
+      crouchPistolIdleGltf.animations, crouchPistolWalkGltf.animations]);
 
   // Setup animations with the cloned scene
   const { actions } = useAnimations(animations, group);
 
   // Current animation state
   const currentAction = useRef<string>('idle');
+  const lastDanceState = useRef(false);
+  const lastCrouchState = useRef(false);
+  const crouchTransitionPlaying = useRef<string | null>(null); // Track active transition
+  const lastMovementState = useRef({ isMoving: false, isRunning: false });
+  const transitionLock = useRef(0); // Prevents rapid state flickering
+
+  // Configure animation properties once on setup
+  useEffect(() => {
+    if (!actions) return;
+
+    // Debug: log available animations
+    console.log('🎬 Available animations:', Object.keys(actions));
+    if (WEAPON_ANIMATIONS_AVAILABLE) {
+      console.log('🔫 Weapon anims available:',
+        ['rifleIdle', 'rifleWalk', 'rifleRun', 'pistolIdle', 'pistolWalk', 'pistolRun']
+          .map(n => `${n}: ${actions[n] ? '✓' : '✗'}`).join(', '));
+
+      // Debug: Show track names from weapon animations
+      const pistolAction = actions['pistolIdle'];
+      if (pistolAction) {
+        const clip = pistolAction.getClip();
+        console.log(`🔫 pistolIdle clip tracks (${clip.tracks.length}):`,
+          clip.tracks.slice(0, 8).map(t => t.name));
+      }
+
+      // Debug: Show avatar bone names for comparison
+      if (group.current) {
+        const bones: string[] = [];
+        group.current.traverse((child) => {
+          if ((child as THREE.Bone).isBone && bones.length < 10) {
+            bones.push(child.name);
+          }
+        });
+        console.log('🦴 Avatar bones for comparison:', bones);
+      }
+    }
+
+    // Configure all actions with loop modes from config (looping vs one-shot)
+    configureAllActions(actions);
+  }, [actions]);
+
+  // Handle crouch transition animation completion
+  useEffect(() => {
+    if (!actions) return;
+
+    const handleFinished = (e: { action: THREE.AnimationAction }) => {
+      const finishedClip = e.action.getClip().name;
+      // Clear transition state when a transition animation finishes
+      if (finishedClip === 'standToCrouch' || finishedClip === 'crouchToStand' || finishedClip === 'crouchToSprint') {
+        crouchTransitionPlaying.current = null;
+      }
+    };
+
+    // Get the mixer from any action
+    const mixer = actions.idle?.getMixer();
+    if (mixer) {
+      mixer.addEventListener('finished', handleFinished);
+      return () => {
+        mixer.removeEventListener('finished', handleFinished);
+      };
+    }
+  }, [actions]);
 
   // Handle animation transitions
   useEffect(() => {
     if (!actions) return;
 
+    // Transition cooldown to prevent flickering
+    const now = Date.now();
+    if (now - transitionLock.current < 50) return; // 50ms debounce
+
+    // Detect crouch state changes
+    const justStartedCrouching = isCrouching && !lastCrouchState.current;
+    const justStoppedCrouching = !isCrouching && lastCrouchState.current;
+    lastCrouchState.current = isCrouching;
+
+    // Determine target animation based on priority
     let targetAction = 'idle';
-    if (isMoving) {
+
+    if (isDancing && !isMoving && !weaponType) {
+      // Cycle through dances when E is pressed (only without weapon)
+      if (!lastDanceState.current) {
+        currentDanceIndex.current = (currentDanceIndex.current + 1) % 3;
+      }
+      targetAction = `dance${currentDanceIndex.current + 1}`;
+    } else if (isJumping) {
+      // Contextual jump - use previous movement state to pick animation
+      const wasRunning = lastMovementState.current.isRunning;
+      const wasMoving = lastMovementState.current.isMoving;
+      if (wasRunning) {
+        targetAction = 'jumpRun';
+      } else if (wasMoving) {
+        targetAction = 'jumpJog';
+      } else {
+        targetAction = 'jump';
+      }
+    } else if (justStartedCrouching && CROUCH_ANIMATIONS_AVAILABLE) {
+      // Entering crouch - play stand to crouch transition
+      targetAction = 'standToCrouch';
+      crouchTransitionPlaying.current = 'standToCrouch';
+    } else if (justStoppedCrouching && CROUCH_ANIMATIONS_AVAILABLE) {
+      // Exiting crouch - play crouch to stand transition
+      targetAction = 'crouchToStand';
+      crouchTransitionPlaying.current = 'crouchToStand';
+    } else if (crouchTransitionPlaying.current) {
+      // Transition is playing - don't interrupt it
+      return;
+    } else if (isCrouching && isRunning && CROUCH_ANIMATIONS_AVAILABLE) {
+      // Trying to sprint while crouching - play crouch to sprint transition
+      targetAction = 'crouchToSprint';
+      crouchTransitionPlaying.current = 'crouchToSprint';
+      // Note: After this transition, isCrouching should be set to false by the controller
+    } else if (isCrouching && CROUCH_ANIMATIONS_AVAILABLE && WEAPON_ANIMATIONS_AVAILABLE && weaponType) {
+      // Crouching with weapon - use crouch weapon animations
+      if (weaponType === 'rifle') {
+        targetAction = isMoving ? 'crouchRifleWalk' : 'crouchRifleIdle';
+      } else if (weaponType === 'pistol') {
+        targetAction = isMoving ? 'crouchPistolWalk' : 'crouchPistolIdle';
+      }
+      // Fall back to regular crouch if crouch weapon animation doesn't exist
+      if (!actions[targetAction]) {
+        targetAction = 'crouchWalk'; // Use walk for both idle and moving
+      }
+    } else if (isCrouching && CROUCH_ANIMATIONS_AVAILABLE) {
+      // Crouching without weapon
+      if (isStrafingLeft) {
+        targetAction = 'crouchStrafeLeft';
+      } else if (isStrafingRight) {
+        targetAction = 'crouchStrafeRight';
+      } else {
+        // Use crouchWalk for both idle and moving (no proper crouchIdle animation yet)
+        targetAction = 'crouchWalk';
+      }
+    } else if (isCrouching) {
+      // Crouching but no crouch animations available - use walking as fallback
+      // This at least shows the crouch state is being detected
+      targetAction = isMoving ? 'walking' : 'idle';
+    } else if (WEAPON_ANIMATIONS_AVAILABLE && weaponType) {
+      // Standing with weapon - use weapon-specific animations
+      if (weaponType === 'rifle') {
+        if (isRunning) targetAction = 'rifleRun';
+        else if (isMoving) targetAction = 'rifleWalk';
+        else targetAction = 'rifleIdle';
+      } else if (weaponType === 'pistol') {
+        if (isRunning) targetAction = 'pistolRun';
+        else if (isMoving) targetAction = 'pistolWalk';
+        else targetAction = 'pistolIdle';
+      }
+      // Fall back to regular animation if weapon animation doesn't exist
+      if (!actions[targetAction]) {
+        targetAction = isRunning ? 'running' : isMoving ? 'walking' : 'idle';
+      }
+    } else if (weaponType) {
+      // Weapon equipped but no weapon animations available - use regular animations
+      targetAction = isRunning ? 'running' : isMoving ? 'walking' : 'idle';
+    } else if (isMoving) {
       targetAction = isRunning ? 'running' : 'walking';
+    }
+
+    lastDanceState.current = isDancing;
+    // Only update movement state when grounded (not during jump)
+    if (!isJumping) {
+      lastMovementState.current = { isMoving, isRunning };
     }
 
     if (targetAction !== currentAction.current) {
@@ -736,16 +1347,26 @@ function MixamoAnimatedAvatar({
       const nextAction = actions[targetAction];
 
       if (prevAction && nextAction) {
-        // Smooth crossfade between animations
-        prevAction.fadeOut(0.2);
-        nextAction.reset().fadeIn(0.2).play();
+        // Smooth crossfade - duration from config (dance=0.3, jump=0.1, default=0.15)
+        const fadeDuration = getFadeTime(targetAction);
+
+        // Stop previous animation gracefully
+        prevAction.fadeOut(fadeDuration);
+
+        // Start next animation
+        nextAction.reset();
+        nextAction.fadeIn(fadeDuration);
+        nextAction.play();
+
+        // Lock transitions briefly
+        transitionLock.current = now;
       } else if (nextAction) {
         nextAction.reset().play();
       }
 
       currentAction.current = targetAction;
     }
-  }, [isMoving, isRunning, actions]);
+  }, [isMoving, isRunning, isJumping, isDancing, isCrouching, isStrafingLeft, isStrafingRight, weaponType, actions]);
 
   // Start idle animation on mount
   useEffect(() => {
@@ -754,19 +1375,37 @@ function MixamoAnimatedAvatar({
     }
   }, [actions]);
 
+  // Crouch offset - smoothly lower the character visually when crouching
+  // Since we filter position tracks from Mixamo animations, we need to manually offset
+  const CROUCH_Y_OFFSET = -0.35;
+  const CROUCH_LERP_SPEED = 8; // How fast to transition
+
+  useFrame((_, delta) => {
+    if (!avatarRef.current) return;
+
+    // Smoothly interpolate toward target offset
+    const targetOffset = isCrouching ? CROUCH_Y_OFFSET : 0;
+    crouchOffset.current += (targetOffset - crouchOffset.current) * Math.min(1, CROUCH_LERP_SPEED * delta);
+
+    // Apply to avatar group position
+    avatarRef.current.position.y = crouchOffset.current;
+  });
+
   return (
     <group ref={group}>
-      {/* RPM avatar - positioned so feet are on ground */}
-      <primitive object={clonedScene} position={[0, 0, 0]} />
+      {/* RPM avatar - positioned so feet are on ground, lowered when crouching */}
+      <group ref={avatarRef}>
+        <primitive object={clonedScene} position={[0, 0, 0]} />
+      </group>
+      {/* Weapon attachment */}
+      {weaponType && (
+        <WeaponAttachment
+          weaponType={weaponType}
+          avatarRef={avatarRef}
+        />
+      )}
     </group>
   );
-}
-
-// Preload animation files
-if (USE_MIXAMO_ANIMATIONS) {
-  useGLTF.preload(ANIMATIONS.idle);
-  useGLTF.preload(ANIMATIONS.walking);
-  useGLTF.preload(ANIMATIONS.running);
 }
 
 // Simple placeholder avatar when no RPM avatar is loaded
@@ -943,8 +1582,27 @@ const GROUND_Y = 0.01;
 const PLAYER_RADIUS = 0.5; // Player collision radius
 const COLLISION_CHECK_HEIGHT = 1.0; // Height at which to check collisions (chest level)
 
-// Main player controller with movement
-function PlayerController({
+// Validate avatar URL - must be a valid HTTPS URL ending with .glb
+function isValidAvatarUrl(url?: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    // Must be HTTPS and end with .glb
+    if (parsed.protocol !== 'https:') return false;
+    if (!url.includes('.glb')) return false;
+    // Must be from readyplayer.me and be a models URL (not a subdomain like 'producer-tour-play')
+    if (parsed.hostname.endsWith('readyplayer.me')) {
+      // Valid RPM URLs are like: https://models.readyplayer.me/{id}.glb
+      return parsed.hostname === 'models.readyplayer.me';
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// Legacy player controller with movement (non-physics, kept as fallback)
+export function LegacyPlayerController({
   avatarUrl,
   onPositionChange,
 }: {
@@ -954,6 +1612,9 @@ function PlayerController({
   const keys = useKeyboardControls();
   const playerRef = useRef<THREE.Group>(null!);
   const { camera, scene } = useThree();
+
+  // Validate avatar URL - skip invalid URLs to prevent fetch errors
+  const validAvatarUrl = isValidAvatarUrl(avatarUrl) ? avatarUrl : undefined;
 
   const velocity = useRef(new THREE.Vector3());
   const facingAngle = useRef(0);
@@ -1125,20 +1786,33 @@ function PlayerController({
     }
   });
 
+  // Use placeholder if no valid avatar URL
+  const shouldShowAvatar = !!validAvatarUrl;
+
   return (
     <>
       <group ref={playerRef} position={[30, GROUND_Y, -20]}>
         <Suspense fallback={<PlaceholderAvatar isMoving={isMoving} />}>
-          {avatarUrl ? (
+          {shouldShowAvatar ? (
             USE_MIXAMO_ANIMATIONS ? (
-              <MixamoAnimatedAvatar
-                url={avatarUrl}
-                isMoving={isMoving}
-                isRunning={isRunning}
-              />
+              <AnimationErrorBoundary
+                fallback={
+                  <AnimatedAvatar
+                    url={validAvatarUrl}
+                    isMoving={isMoving}
+                    isRunning={isRunning}
+                  />
+                }
+              >
+                <MixamoAnimatedAvatar
+                  url={validAvatarUrl}
+                  isMoving={isMoving}
+                  isRunning={isRunning}
+                />
+              </AnimationErrorBoundary>
             ) : (
               <AnimatedAvatar
-                url={avatarUrl}
+                url={validAvatarUrl}
                 isMoving={isMoving}
                 isRunning={isRunning}
               />
@@ -1478,6 +2152,14 @@ function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
 }
 
 // Basketball Court - positioned and scaled for the play world
+// Court dimensions at scale 0.01: approximately 28m x 15m
+const COURT_BOUNDS = {
+  width: 14,      // Half-width (total 28m)
+  depth: 8,       // Half-depth (total 16m)
+  fenceHeight: 3, // Fence height in meters
+  fenceThickness: 0.3,
+};
+
 function BasketballCourt() {
   // Fixed position values (previously configured with Leva debug controls)
   const posX = 30;
@@ -1492,13 +2174,42 @@ function BasketballCourt() {
   }
 
   return (
-    <BasketballCourtModel
-      posX={posX}
-      posY={posY}
-      posZ={posZ}
-      rotY={rotY}
-      scale={scale}
-    />
+    <RigidBody type="fixed" colliders={false} position={[posX, posY, posZ]}>
+      {/* Court visual model */}
+      <BasketballCourtModel
+        posX={0}
+        posY={0}
+        posZ={0}
+        rotY={rotY}
+        scale={scale}
+      />
+
+      {/* Fence colliders - invisible walls around the court */}
+      {/* North fence */}
+      <CuboidCollider
+        args={[COURT_BOUNDS.width, COURT_BOUNDS.fenceHeight, COURT_BOUNDS.fenceThickness]}
+        position={[0, COURT_BOUNDS.fenceHeight, -COURT_BOUNDS.depth]}
+      />
+      {/* South fence */}
+      <CuboidCollider
+        args={[COURT_BOUNDS.width, COURT_BOUNDS.fenceHeight, COURT_BOUNDS.fenceThickness]}
+        position={[0, COURT_BOUNDS.fenceHeight, COURT_BOUNDS.depth]}
+      />
+      {/* East fence */}
+      <CuboidCollider
+        args={[COURT_BOUNDS.fenceThickness, COURT_BOUNDS.fenceHeight, COURT_BOUNDS.depth]}
+        position={[COURT_BOUNDS.width, COURT_BOUNDS.fenceHeight, 0]}
+      />
+      {/* West fence */}
+      <CuboidCollider
+        args={[COURT_BOUNDS.fenceThickness, COURT_BOUNDS.fenceHeight, COURT_BOUNDS.depth]}
+        position={[-COURT_BOUNDS.width, COURT_BOUNDS.fenceHeight, 0]}
+      />
+
+      {/* Hoop poles - cylindrical colliders approximated as thin boxes */}
+      <CuboidCollider args={[0.15, 2, 0.15]} position={[-12, 2, 0]} />
+      <CuboidCollider args={[0.15, 2, 0.15]} position={[12, 2, 0]} />
+    </RigidBody>
   );
 }
 
@@ -1928,6 +2639,39 @@ export function PlayWorld({
 }) {
   const [playerPos, setPlayerPos] = useState(new THREE.Vector3(0, 0, 5));
   const playerRotation = useRef(new THREE.Euler());
+  const [physicsDebug, setPhysicsDebug] = useState(false);
+  const [weaponType, setWeaponType] = useState<WeaponType>(null);
+
+  // Weapon toggle (Q key) - cycles: none -> pistol -> rifle -> none
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'KeyQ') {
+        e.preventDefault();
+        setWeaponType(prev => {
+          const next = prev === null ? 'pistol' : prev === 'pistol' ? 'rifle' : null;
+          console.log('🔫 Weapon:', next || 'none');
+          return next;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Physics debug toggle (F3 key)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'F3') {
+        e.preventDefault();
+        setPhysicsDebug(prev => {
+          console.log(`🔧 Physics debug: ${!prev ? 'ON' : 'OFF'}`);
+          return !prev;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Multiplayer - connect to play room
   const { otherPlayers, playerCount, isConnected, updatePosition } = usePlayMultiplayer({
@@ -1979,33 +2723,69 @@ export function PlayWorld({
       <color attach="background" args={['#0a0a0f']} />
       <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
-      {/* Ground */}
-      <CyberpunkGround />
-
-      {/* Basketball Court - use Leva panel to adjust position */}
+      {/* Physics World - Suspense needed for Rapier WASM loading */}
+      {/* Press F3 to toggle debug visualization */}
       <Suspense fallback={null}>
-        <BasketballCourt />
-        {/* Animated Monkey NPC on the court */}
-        <MonkeyNPC position={[32, 0.01, -18]} />
+        <Physics gravity={[0, -20, 0]} timeStep={1/60} debug={physicsDebug}>
+          {/* Ground Collider */}
+          <RigidBody type="fixed" colliders={false}>
+            <CuboidCollider args={[250, 0.1, 250]} position={[0, -0.1, 0]} />
+          </RigidBody>
+
+          {/* Ground Visual */}
+          <CyberpunkGround />
+
+          {/* Basketball Court */}
+          <Suspense fallback={null}>
+            <BasketballCourt />
+            {/* Animated Monkey NPC on the court */}
+            <MonkeyNPC position={[32, 0.01, -18]} />
+          </Suspense>
+
+          {/* Physics Player Controller with animation state */}
+          <PhysicsPlayerController onPositionChange={handlePositionChange}>
+            {({ isMoving, isRunning, isJumping, isDancing, isCrouching, isStrafingLeft, isStrafingRight }) => (
+              <Suspense fallback={<PlaceholderAvatar isMoving={false} />}>
+                {avatarUrl ? (
+                  USE_MIXAMO_ANIMATIONS ? (
+                    <AnimationErrorBoundary
+                      fallback={<AnimatedAvatar url={avatarUrl} isMoving={isMoving} isRunning={isRunning} />}
+                    >
+                      <MixamoAnimatedAvatar
+                        url={avatarUrl}
+                        isMoving={isMoving}
+                        isRunning={isRunning}
+                        isJumping={isJumping}
+                        isDancing={isDancing}
+                        isCrouching={isCrouching}
+                        isStrafingLeft={isStrafingLeft}
+                        isStrafingRight={isStrafingRight}
+                        weaponType={weaponType}
+                      />
+                    </AnimationErrorBoundary>
+                  ) : (
+                    <AnimatedAvatar url={avatarUrl} isMoving={isMoving} isRunning={isRunning} />
+                  )
+                ) : (
+                  <PlaceholderAvatar isMoving={isMoving} />
+                )}
+              </Suspense>
+            )}
+          </PhysicsPlayerController>
+
+          {/* Contact shadow - sits just above ground */}
+          <ContactShadows
+            position={[playerPos.x, 0.005, playerPos.z]}
+            opacity={0.6}
+            scale={10}
+            blur={1.5}
+            far={3}
+            color="#8b5cf6"
+          />
+        </Physics>
       </Suspense>
 
-      {/* Contact shadow - sits just above ground */}
-      <ContactShadows
-        position={[playerPos.x, 0.005, playerPos.z]}
-        opacity={0.6}
-        scale={10}
-        blur={1.5}
-        far={3}
-        color="#8b5cf6"
-      />
-
-      {/* Player */}
-      <PlayerController
-        avatarUrl={avatarUrl}
-        onPositionChange={handlePositionChange}
-      />
-
-      {/* Other Players (multiplayer) */}
+      {/* Other Players (multiplayer) - outside physics for performance */}
       <OtherPlayers players={otherPlayers} />
 
       {/* Zones */}
@@ -2018,6 +2798,42 @@ export function PlayWorld({
         <ringGeometry args={[0.8, 1, 32]} />
         <meshBasicMaterial color="#8b5cf6" transparent opacity={0.3} />
       </mesh>
+
+      {/* VFX Manager - renders all active visual effects */}
+      <VFXManager />
+
+      {/* NPC Manager - renders all NPCs in scene */}
+      <NPCManager
+        playerPosition={{ x: playerPos.x, y: playerPos.y, z: playerPos.z }}
+        renderDistance={50}
+        initialNPCs={[
+          // Wandering NPC near spawn
+          createNPC({
+            position: { x: 5, y: 0, z: 0 },
+            behavior: 'wander',
+            name: 'Producer Bob',
+            type: 'friendly',
+          }),
+          // Patrolling NPC around the zones
+          createPatrolNPC(
+            'Guard',
+            [
+              { x: 10, y: 0, z: -10 },
+              { x: -10, y: 0, z: -10 },
+              { x: -10, y: 0, z: 10 },
+              { x: 10, y: 0, z: 10 },
+            ],
+            { type: 'neutral' }
+          ),
+          // Idle NPC at marketplace
+          createNPC({
+            position: { x: -20, y: 0, z: 5 },
+            behavior: 'idle',
+            name: 'Merchant',
+            type: 'friendly',
+          }),
+        ]}
+      />
     </>
   );
 }

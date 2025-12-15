@@ -26,8 +26,11 @@ import {
 import { PlayWorld } from '../components/play/PlayWorld';
 import { AvatarCreator } from '../components/play/AvatarCreator';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
+import { PlayerHealthBar, AmmoDisplay, Crosshair } from '../components/play/combat/HealthBar';
+import { QuestTracker } from '../components/play/quest/QuestTracker';
 import { userApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
+import { useGameSettings, SHADOW_MAP_SIZES } from '../store/gameSettings.store';
 
 // Auto-save storage key
 const WORLD_STATE_KEY = 'producerTour_worldState';
@@ -378,6 +381,320 @@ function PauseMenu({
   );
 }
 
+// Settings Panel
+function SettingsPanel({ onBack }: { onBack: () => void }) {
+  const {
+    shadowQuality,
+    renderDistance,
+    fov,
+    showFps,
+    masterVolume,
+    musicVolume,
+    sfxVolume,
+    mouseSensitivity,
+    invertY,
+    setShadowQuality,
+    setRenderDistance,
+    setFov,
+    setShowFps,
+    setMasterVolume,
+    setMusicVolume,
+    setSfxVolume,
+    setMouseSensitivity,
+    setInvertY,
+    resetToDefaults,
+  } = useGameSettings();
+
+  const [activeTab, setActiveTab] = useState<'graphics' | 'audio' | 'controls'>('graphics');
+
+  const tabs = [
+    { id: 'graphics' as const, label: 'Graphics', icon: '🎮' },
+    { id: 'audio' as const, label: 'Audio', icon: '🔊' },
+    { id: 'controls' as const, label: 'Controls', icon: '🎯' },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md"
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="max-w-lg w-full mx-4"
+      >
+        {/* Gradient border */}
+        <div className="absolute -inset-[1px] bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-500 rounded-2xl opacity-50" />
+
+        <div className="relative bg-[#12121a] rounded-2xl p-6 overflow-hidden max-h-[80vh] flex flex-col">
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-violet-600/20 rounded-full blur-2xl" />
+
+          <div className="relative z-10 flex flex-col h-full">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={onBack}
+                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </motion.button>
+                <h2 className="text-xl font-bold text-white">Settings</h2>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={resetToDefaults}
+                className="text-xs text-white/40 hover:text-white/70 transition-colors"
+              >
+                Reset to Defaults
+              </motion.button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-1 p-1 bg-white/5 rounded-xl mb-4">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === tab.id
+                      ? 'bg-violet-600 text-white'
+                      : 'text-white/50 hover:text-white/70 hover:bg-white/5'
+                  }`}
+                >
+                  <span className="mr-1.5">{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab content */}
+            <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+              {activeTab === 'graphics' && (
+                <>
+                  {/* Shadow Quality */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-white/70 text-sm">Shadow Quality</label>
+                      <span className="text-violet-400 text-xs font-mono">
+                        {SHADOW_MAP_SIZES[shadowQuality]}px
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      {(['off', 'low', 'medium', 'high'] as const).map((quality) => (
+                        <button
+                          key={quality}
+                          onClick={() => setShadowQuality(quality)}
+                          className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium capitalize transition-all ${
+                            shadowQuality === quality
+                              ? 'bg-violet-600 text-white'
+                              : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70'
+                          }`}
+                        >
+                          {quality}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Render Distance */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-white/70 text-sm">Render Distance</label>
+                      <span className="text-violet-400 text-xs font-mono">{renderDistance}m</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="30"
+                      max="200"
+                      value={renderDistance}
+                      onChange={(e) => setRenderDistance(Number(e.target.value))}
+                      className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                    />
+                  </div>
+
+                  {/* FOV */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-white/70 text-sm">Field of View</label>
+                      <span className="text-violet-400 text-xs font-mono">{fov}°</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="50"
+                      max="120"
+                      value={fov}
+                      onChange={(e) => setFov(Number(e.target.value))}
+                      className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                    />
+                  </div>
+
+                  {/* Show FPS */}
+                  <div className="flex items-center justify-between py-2">
+                    <label className="text-white/70 text-sm">Show FPS Counter</label>
+                    <button
+                      onClick={() => setShowFps(!showFps)}
+                      className={`w-12 h-6 rounded-full transition-all ${
+                        showFps ? 'bg-violet-600' : 'bg-white/10'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                          showFps ? 'translate-x-6' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'audio' && (
+                <>
+                  {/* Master Volume */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-white/70 text-sm">Master Volume</label>
+                      <span className="text-violet-400 text-xs font-mono">
+                        {Math.round(masterVolume * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={masterVolume * 100}
+                      onChange={(e) => setMasterVolume(Number(e.target.value) / 100)}
+                      className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                    />
+                  </div>
+
+                  {/* Music Volume */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-white/70 text-sm">Music Volume</label>
+                      <span className="text-violet-400 text-xs font-mono">
+                        {Math.round(musicVolume * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={musicVolume * 100}
+                      onChange={(e) => setMusicVolume(Number(e.target.value) / 100)}
+                      className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                    />
+                  </div>
+
+                  {/* SFX Volume */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-white/70 text-sm">Sound Effects</label>
+                      <span className="text-violet-400 text-xs font-mono">
+                        {Math.round(sfxVolume * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={sfxVolume * 100}
+                      onChange={(e) => setSfxVolume(Number(e.target.value) / 100)}
+                      className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                    />
+                  </div>
+
+                  {/* Volume indicator */}
+                  <div className="mt-4 p-3 bg-white/5 rounded-xl">
+                    <div className="flex items-center gap-2 text-white/40 text-xs">
+                      <Volume2 className="w-4 h-4" />
+                      <span>
+                        Effective music: {Math.round(masterVolume * musicVolume * 100)}% |
+                        Effective SFX: {Math.round(masterVolume * sfxVolume * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'controls' && (
+                <>
+                  {/* Mouse Sensitivity */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-white/70 text-sm">Mouse Sensitivity</label>
+                      <span className="text-violet-400 text-xs font-mono">
+                        {mouseSensitivity.toFixed(1)}x
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="10"
+                      max="300"
+                      value={mouseSensitivity * 100}
+                      onChange={(e) => setMouseSensitivity(Number(e.target.value) / 100)}
+                      className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                    />
+                  </div>
+
+                  {/* Invert Y */}
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <label className="text-white/70 text-sm">Invert Y-Axis</label>
+                      <p className="text-white/30 text-xs">Inverts vertical camera movement</p>
+                    </div>
+                    <button
+                      onClick={() => setInvertY(!invertY)}
+                      className={`w-12 h-6 rounded-full transition-all ${
+                        invertY ? 'bg-violet-600' : 'bg-white/10'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                          invertY ? 'translate-x-6' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Controls reference */}
+                  <div className="mt-4 p-4 bg-white/5 rounded-xl space-y-2">
+                    <h3 className="text-white/70 text-sm font-medium mb-3">Controls</h3>
+                    {[
+                      { keys: 'WASD', action: 'Move' },
+                      { keys: 'Shift', action: 'Sprint' },
+                      { keys: 'Space', action: 'Jump' },
+                      { keys: 'C', action: 'Crouch' },
+                      { keys: 'E', action: 'Dance' },
+                      { keys: 'Q', action: 'Toggle Weapon' },
+                      { keys: 'Mouse', action: 'Look Around' },
+                      { keys: 'ESC', action: 'Pause' },
+                    ].map(({ keys, action }) => (
+                      <div key={keys} className="flex items-center justify-between text-xs">
+                        <span className="text-white/40">{action}</span>
+                        <span className="px-2 py-0.5 bg-white/10 rounded text-white/60 font-mono">
+                          {keys}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // Player stats panel
 function PlayerStats({ level, xp, maxXp }: { level: number; xp: number; maxXp: number }) {
   return (
@@ -506,7 +823,7 @@ export default function PlayPage() {
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(savedState.current?.settings?.isMuted ?? false);
   const [showMiniMap, setShowMiniMap] = useState(savedState.current?.settings?.showMiniMap ?? true);
-  const [_showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Skip welcome modal if returning from an interior (sessionStorage flag set on entry)
   const [showWelcome, setShowWelcome] = useState(() => {
@@ -656,7 +973,7 @@ export default function PlayPage() {
 
       {/* Pause Menu */}
       <AnimatePresence>
-        {isPaused && (
+        {isPaused && !showSettings && (
           <PauseMenu
             onResume={() => {
               setIsPaused(false);
@@ -665,6 +982,15 @@ export default function PlayPage() {
             onSettings={() => setShowSettings(true)}
             onQuit={() => navigate('/')}
             stats={playerStats}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Settings Panel */}
+      <AnimatePresence>
+        {showSettings && (
+          <SettingsPanel
+            onBack={() => setShowSettings(false)}
           />
         )}
       </AnimatePresence>
@@ -855,6 +1181,12 @@ export default function PlayPage() {
           </Canvas>
         </Suspense>
       </ErrorBoundary>
+
+      {/* Game HUD Overlays */}
+      <PlayerHealthBar />
+      <AmmoDisplay />
+      <Crosshair />
+      <QuestTracker />
     </div>
   );
 }
