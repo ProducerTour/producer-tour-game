@@ -39,12 +39,14 @@ interface WeaponAttachmentProps {
 }
 
 // Find a bone by trying multiple naming conventions
-function findBone(skeleton: THREE.Object3D, names: string[]): THREE.Bone | null {
+function findBone(skeleton: THREE.Object3D, names: string[], debug = false): THREE.Bone | null {
   let foundBone: THREE.Bone | null = null;
+  const allBones: string[] = [];
 
   skeleton.traverse((child) => {
-    if (foundBone) return;
     if (child instanceof THREE.Bone) {
+      allBones.push(child.name);
+      if (foundBone) return;
       for (const name of names) {
         if (child.name === name || child.name.includes(name)) {
           foundBone = child;
@@ -53,6 +55,11 @@ function findBone(skeleton: THREE.Object3D, names: string[]): THREE.Bone | null 
       }
     }
   });
+
+  if (debug && !foundBone) {
+    console.log('🦴 All bones in skeleton:', allBones);
+    console.log('🦴 Looking for:', names);
+  }
 
   return foundBone;
 }
@@ -170,8 +177,8 @@ const WEAPON_CONFIGS = {
     // Wait for avatar
     if (!avatarRef.current) return;
 
-    // Find the hand bone
-    const handBone = findBone(avatarRef.current, RIGHT_HAND_BONE_NAMES);
+    // Find the hand bone (debug on first attempt to show all bones)
+    const handBone = findBone(avatarRef.current, RIGHT_HAND_BONE_NAMES, attemptCount.current === 1);
     if (!handBone) {
       if (attemptCount.current === 1) {
         console.log('🔫 Searching for hand bone...');
