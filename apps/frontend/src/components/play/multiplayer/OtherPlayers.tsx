@@ -1,7 +1,8 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Billboard, Text } from '@react-three/drei';
+import { Billboard, Text, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import { SkeletonUtils } from 'three-stdlib';
 import type { Player3D } from '../hooks/usePlayMultiplayer';
 
 // Snapshot interpolation constants
@@ -35,11 +36,72 @@ function findSurroundingSnapshots(
   return null;
 }
 
+// RPM Avatar for other players - renders actual Ready Player Me model
+function RPMAvatar({ url, color }: { url: string; color: string }) {
+  const { scene } = useGLTF(url);
+
+  const clonedScene = useMemo(() => {
+    const clone = SkeletonUtils.clone(scene);
+    clone.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    return clone;
+  }, [scene]);
+
+  return (
+    <group>
+      <primitive object={clonedScene} position={[0, 0, 0]} />
+      {/* Glow ring on ground */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+        <ringGeometry args={[0.4, 0.7, 32]} />
+        <meshBasicMaterial color={color} transparent opacity={0.4} />
+      </mesh>
+    </group>
+  );
+}
+
+// Fallback geometric avatar when no RPM model is available
+function FallbackAvatar({ color }: { color: string }) {
+  return (
+    <group>
+      {/* Glow ring on ground */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+        <ringGeometry args={[0.4, 0.7, 32]} />
+        <meshBasicMaterial color={color} transparent opacity={0.4} />
+      </mesh>
+
+      {/* Body */}
+      <mesh position={[0, 0.9, 0]} castShadow>
+        <capsuleGeometry args={[0.25, 0.6, 8, 16]} />
+        <meshStandardMaterial color="#1a1a2e" emissive={color} emissiveIntensity={0.2} />
+      </mesh>
+
+      {/* Head */}
+      <mesh position={[0, 1.6, 0]} castShadow>
+        <sphereGeometry args={[0.2, 16, 16]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} />
+      </mesh>
+
+      {/* Headphones */}
+      <mesh position={[0, 1.7, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <torusGeometry args={[0.22, 0.03, 8, 16, Math.PI]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
+      </mesh>
+
+      {/* Point light for glow effect */}
+      <pointLight position={[0, 1, 0]} intensity={0.3} color={color} distance={3} />
+    </group>
+  );
+}
+
 interface OtherPlayerProps {
   player: Player3D;
 }
 
-// Other Player - simplified avatar for remote players with snapshot interpolation
+// Other Player - renders RPM avatar or fallback with snapshot interpolation
 function OtherPlayer({ player }: OtherPlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const positionBuffer = useRef<PositionSnapshot[]>([]);
@@ -121,29 +183,14 @@ function OtherPlayer({ player }: OtherPlayerProps) {
 
   return (
     <group ref={groupRef} position={[player.position.x, player.position.y, player.position.z]}>
-      {/* Glow ring on ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <ringGeometry args={[0.4, 0.7, 32]} />
-        <meshBasicMaterial color={player.color} transparent opacity={0.4} />
-      </mesh>
-
-      {/* Body */}
-      <mesh position={[0, 0.9, 0]} castShadow>
-        <capsuleGeometry args={[0.25, 0.6, 8, 16]} />
-        <meshStandardMaterial color="#1a1a2e" emissive={player.color} emissiveIntensity={0.2} />
-      </mesh>
-
-      {/* Head */}
-      <mesh position={[0, 1.6, 0]} castShadow>
-        <sphereGeometry args={[0.2, 16, 16]} />
-        <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.3} />
-      </mesh>
-
-      {/* Headphones */}
-      <mesh position={[0, 1.7, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <torusGeometry args={[0.22, 0.03, 8, 16, Math.PI]} />
-        <meshStandardMaterial color={player.color} emissive={player.color} emissiveIntensity={0.5} />
-      </mesh>
+      {/* Render RPM avatar if URL available, otherwise fallback */}
+      {player.avatarUrl ? (
+        <Suspense fallback={<FallbackAvatar color={player.color} />}>
+          <RPMAvatar url={player.avatarUrl} color={player.color} />
+        </Suspense>
+      ) : (
+        <FallbackAvatar color={player.color} />
+      )}
 
       {/* Username label */}
       <Billboard position={[0, 2.2, 0]}>
@@ -158,9 +205,6 @@ function OtherPlayer({ player }: OtherPlayerProps) {
           {player.username}
         </Text>
       </Billboard>
-
-      {/* Point light for glow effect */}
-      <pointLight position={[0, 1, 0]} intensity={0.3} color={player.color} distance={3} />
     </group>
   );
 }

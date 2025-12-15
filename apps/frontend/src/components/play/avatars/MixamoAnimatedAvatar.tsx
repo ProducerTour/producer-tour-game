@@ -153,12 +153,13 @@ export function MixamoAnimatedAvatar({
       })
       .filter(track => {
         if (isMixamoAnim) {
-          const isQuaternion = track.name.endsWith('.quaternion');
-          const isHips = track.name.startsWith('Hips');
-
-          if (!isQuaternion || isHips) {
+          // For Mixamo: keep only quaternion (rotation) tracks
+          // Remove position and scale tracks to prevent drift/glitching
+          if (!track.name.endsWith('.quaternion')) {
             return false;
           }
+          // Keep Hips rotation - needed for proper poses (especially weapon holding)
+          // Only Hips.position causes drift, and that's already filtered above
           return true;
         }
 
