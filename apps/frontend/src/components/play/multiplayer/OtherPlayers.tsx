@@ -1,6 +1,6 @@
 import { useRef, useEffect, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Billboard, Text, useGLTF, useAnimations } from '@react-three/drei';
+import { Billboard, Text, useGLTF, useAnimations, useFBX } from '@react-three/drei';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import type { Player3D } from '../hooks/usePlayMultiplayer';
@@ -37,30 +37,161 @@ function findSurroundingSnapshots(
   return null;
 }
 
-// Core animation URLs for other players (simplified set)
-const CORE_ANIMATIONS = {
+// All animations to load for other players (comprehensive set)
+const ANIMATIONS_TO_LOAD = {
+  // Core locomotion
   idle: ANIMATION_CONFIG.idle.url,
   walking: ANIMATION_CONFIG.walking.url,
   running: ANIMATION_CONFIG.running.url,
+  // Jumps
+  jump: ANIMATION_CONFIG.jump.url,
+  jumpJog: ANIMATION_CONFIG.jumpJog.url,
+  jumpRun: ANIMATION_CONFIG.jumpRun.url,
+  // Dance
+  dance1: ANIMATION_CONFIG.dance1.url,
+  dance2: ANIMATION_CONFIG.dance2.url,
+  dance3: ANIMATION_CONFIG.dance3.url,
+  // Crouch
+  crouchIdle: ANIMATION_CONFIG.crouchIdle.url,
+  crouchWalk: ANIMATION_CONFIG.crouchWalk.url,
+  crouchStrafeLeft: ANIMATION_CONFIG.crouchStrafeLeft.url,
+  crouchStrafeRight: ANIMATION_CONFIG.crouchStrafeRight.url,
+  // Weapons - Rifle
+  rifleIdle: ANIMATION_CONFIG.rifleIdle.url,
+  rifleWalk: ANIMATION_CONFIG.rifleWalk.url,
+  rifleRun: ANIMATION_CONFIG.rifleRun.url,
+  // Weapons - Pistol
+  pistolIdle: ANIMATION_CONFIG.pistolIdle.url,
+  pistolWalk: ANIMATION_CONFIG.pistolWalk.url,
+  pistolRun: ANIMATION_CONFIG.pistolRun.url,
+  // Crouch + Weapons
+  crouchRifleIdle: ANIMATION_CONFIG.crouchRifleIdle.url,
+  crouchRifleWalk: ANIMATION_CONFIG.crouchRifleWalk.url,
+  crouchPistolIdle: ANIMATION_CONFIG.crouchPistolIdle.url,
+  crouchPistolWalk: ANIMATION_CONFIG.crouchPistolWalk.url,
+} as const;
+
+// One-shot animations that should play once and hold
+const ONE_SHOT_ANIMATIONS = ['jump', 'jumpJog', 'jumpRun'];
+
+// Weapon model paths
+const WEAPON_MODELS = {
+  rifle: '/models/weapons/ak47.fbx',
+  pistol: '/models/weapons/orange.fbx',
 };
+
+// Weapon transforms (from WeaponAttachment.tsx)
+const WEAPON_TRANSFORMS = {
+  rifle: {
+    position: [0.01, 0.23, 0.03] as [number, number, number],
+    rotation: [89 * (Math.PI / 180), -144 * (Math.PI / 180), 85 * (Math.PI / 180)] as [number, number, number],
+    scale: 1,
+  },
+  pistol: {
+    position: [0, 0.07, 0.05] as [number, number, number],
+    rotation: [0, -3 * (Math.PI / 180), -90 * (Math.PI / 180)] as [number, number, number],
+    scale: 1,
+  },
+};
+
+// Weapon component for other players
+function OtherPlayerWeapon({
+  weaponType,
+  parentBone,
+}: {
+  weaponType: 'rifle' | 'pistol';
+  parentBone: THREE.Bone;
+}) {
+  const weaponRef = useRef<THREE.Group>(null);
+  const fbx = useFBX(WEAPON_MODELS[weaponType]);
+
+  const clonedWeapon = useMemo(() => {
+    const clone = fbx.clone(true);
+    clone.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        child.castShadow = true;
+        // Darken the weapon material a bit
+        const mesh = child as THREE.Mesh;
+        if (mesh.material) {
+          const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
+          mat.metalness = 0.8;
+          mat.roughness = 0.3;
+          mesh.material = mat;
+        }
+      }
+    });
+    return clone;
+  }, [fbx]);
+
+  const transform = WEAPON_TRANSFORMS[weaponType];
+
+  // Attach to parent bone each frame
+  useFrame(() => {
+    if (weaponRef.current && parentBone) {
+      // Get world matrix of the hand bone
+      parentBone.updateWorldMatrix(true, false);
+
+      // Apply the transform relative to the bone
+      weaponRef.current.position.set(...transform.position);
+      weaponRef.current.rotation.set(...transform.rotation);
+      weaponRef.current.scale.setScalar(transform.scale);
+
+      // Parent to bone
+      parentBone.add(weaponRef.current);
+    }
+  });
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (weaponRef.current && weaponRef.current.parent) {
+        weaponRef.current.parent.remove(weaponRef.current);
+      }
+    };
+  }, []);
+
+  return <primitive ref={weaponRef} object={clonedWeapon} />;
+}
 
 // Animated RPM Avatar for other players
 function AnimatedRPMAvatar({
   url,
   color,
-  animationState = 'idle'
+  animationState = 'idle',
+  weaponType = 'none',
 }: {
   url: string;
   color: string;
   animationState?: string;
+  weaponType?: 'none' | 'rifle' | 'pistol';
 }) {
   const group = useRef<THREE.Group>(null);
   const { scene } = useGLTF(url);
 
-  // Load core animations
-  const idleGltf = useGLTF(CORE_ANIMATIONS.idle);
-  const walkingGltf = useGLTF(CORE_ANIMATIONS.walking);
-  const runningGltf = useGLTF(CORE_ANIMATIONS.running);
+  // Load all animations
+  const idleGltf = useGLTF(ANIMATIONS_TO_LOAD.idle);
+  const walkingGltf = useGLTF(ANIMATIONS_TO_LOAD.walking);
+  const runningGltf = useGLTF(ANIMATIONS_TO_LOAD.running);
+  const jumpGltf = useGLTF(ANIMATIONS_TO_LOAD.jump);
+  const jumpJogGltf = useGLTF(ANIMATIONS_TO_LOAD.jumpJog);
+  const jumpRunGltf = useGLTF(ANIMATIONS_TO_LOAD.jumpRun);
+  const dance1Gltf = useGLTF(ANIMATIONS_TO_LOAD.dance1);
+  const dance2Gltf = useGLTF(ANIMATIONS_TO_LOAD.dance2);
+  const dance3Gltf = useGLTF(ANIMATIONS_TO_LOAD.dance3);
+  const crouchIdleGltf = useGLTF(ANIMATIONS_TO_LOAD.crouchIdle);
+  const crouchWalkGltf = useGLTF(ANIMATIONS_TO_LOAD.crouchWalk);
+  const crouchStrafeLeftGltf = useGLTF(ANIMATIONS_TO_LOAD.crouchStrafeLeft);
+  const crouchStrafeRightGltf = useGLTF(ANIMATIONS_TO_LOAD.crouchStrafeRight);
+  const rifleIdleGltf = useGLTF(ANIMATIONS_TO_LOAD.rifleIdle);
+  const rifleWalkGltf = useGLTF(ANIMATIONS_TO_LOAD.rifleWalk);
+  const rifleRunGltf = useGLTF(ANIMATIONS_TO_LOAD.rifleRun);
+  const pistolIdleGltf = useGLTF(ANIMATIONS_TO_LOAD.pistolIdle);
+  const pistolWalkGltf = useGLTF(ANIMATIONS_TO_LOAD.pistolWalk);
+  const pistolRunGltf = useGLTF(ANIMATIONS_TO_LOAD.pistolRun);
+  const crouchRifleIdleGltf = useGLTF(ANIMATIONS_TO_LOAD.crouchRifleIdle);
+  const crouchRifleWalkGltf = useGLTF(ANIMATIONS_TO_LOAD.crouchRifleWalk);
+  const crouchPistolIdleGltf = useGLTF(ANIMATIONS_TO_LOAD.crouchPistolIdle);
+  const crouchPistolWalkGltf = useGLTF(ANIMATIONS_TO_LOAD.crouchPistolWalk);
 
   const clonedScene = useMemo(() => {
     const clone = SkeletonUtils.clone(scene);
@@ -72,6 +203,17 @@ function AnimatedRPMAvatar({
     });
     return clone;
   }, [scene]);
+
+  // Find RightHand bone for weapon attachment
+  const rightHandBone = useMemo(() => {
+    let hand: THREE.Bone | null = null;
+    clonedScene.traverse((child) => {
+      if (child instanceof THREE.Bone && child.name === 'RightHand') {
+        hand = child;
+      }
+    });
+    return hand;
+  }, [clonedScene]);
 
   // Combine all animations
   const animations = useMemo(() => {
@@ -85,15 +227,69 @@ function AnimatedRPMAvatar({
       }
     };
 
+    // Core
     addAnim(idleGltf, 'idle');
     addAnim(walkingGltf, 'walking');
     addAnim(runningGltf, 'running');
+    // Jumps
+    addAnim(jumpGltf, 'jump');
+    addAnim(jumpJogGltf, 'jumpJog');
+    addAnim(jumpRunGltf, 'jumpRun');
+    // Dances
+    addAnim(dance1Gltf, 'dance1');
+    addAnim(dance2Gltf, 'dance2');
+    addAnim(dance3Gltf, 'dance3');
+    // Crouch
+    addAnim(crouchIdleGltf, 'crouchIdle');
+    addAnim(crouchWalkGltf, 'crouchWalk');
+    addAnim(crouchStrafeLeftGltf, 'crouchStrafeLeft');
+    addAnim(crouchStrafeRightGltf, 'crouchStrafeRight');
+    // Weapons
+    addAnim(rifleIdleGltf, 'rifleIdle');
+    addAnim(rifleWalkGltf, 'rifleWalk');
+    addAnim(rifleRunGltf, 'rifleRun');
+    addAnim(pistolIdleGltf, 'pistolIdle');
+    addAnim(pistolWalkGltf, 'pistolWalk');
+    addAnim(pistolRunGltf, 'pistolRun');
+    // Crouch + Weapons
+    addAnim(crouchRifleIdleGltf, 'crouchRifleIdle');
+    addAnim(crouchRifleWalkGltf, 'crouchRifleWalk');
+    addAnim(crouchPistolIdleGltf, 'crouchPistolIdle');
+    addAnim(crouchPistolWalkGltf, 'crouchPistolWalk');
 
     return anims;
-  }, [idleGltf.animations, walkingGltf.animations, runningGltf.animations]);
+  }, [
+    idleGltf.animations, walkingGltf.animations, runningGltf.animations,
+    jumpGltf.animations, jumpJogGltf.animations, jumpRunGltf.animations,
+    dance1Gltf.animations, dance2Gltf.animations, dance3Gltf.animations,
+    crouchIdleGltf.animations, crouchWalkGltf.animations,
+    crouchStrafeLeftGltf.animations, crouchStrafeRightGltf.animations,
+    rifleIdleGltf.animations, rifleWalkGltf.animations, rifleRunGltf.animations,
+    pistolIdleGltf.animations, pistolWalkGltf.animations, pistolRunGltf.animations,
+    crouchRifleIdleGltf.animations, crouchRifleWalkGltf.animations,
+    crouchPistolIdleGltf.animations, crouchPistolWalkGltf.animations,
+  ]);
 
   const { actions } = useAnimations(animations, group);
   const currentAction = useRef<string>('idle');
+
+  // Configure loop modes for all animations
+  useEffect(() => {
+    if (!actions) return;
+
+    Object.entries(actions).forEach(([name, action]) => {
+      if (action) {
+        if (ONE_SHOT_ANIMATIONS.includes(name)) {
+          // One-shot animations play once and hold final frame
+          action.setLoop(THREE.LoopOnce, 1);
+          action.clampWhenFinished = true;
+        } else {
+          // Looping animations
+          action.setLoop(THREE.LoopRepeat, Infinity);
+        }
+      }
+    });
+  }, [actions]);
 
   // Start with idle animation
   useEffect(() => {
@@ -106,12 +302,18 @@ function AnimatedRPMAvatar({
   useEffect(() => {
     if (!actions) return;
 
-    // Map received animation state to available animations
-    let targetAnim = 'idle';
-    if (animationState.includes('running') || animationState.includes('Run')) {
-      targetAnim = 'running';
-    } else if (animationState.includes('walking') || animationState.includes('Walk') || animationState === 'crouchWalk') {
-      targetAnim = 'walking';
+    // Direct mapping - use the exact animation name sent from server
+    // Fall back to idle if animation doesn't exist
+    let targetAnim = animationState;
+    if (!actions[targetAnim]) {
+      // Fallback logic
+      if (targetAnim.includes('Run') || targetAnim.includes('running')) {
+        targetAnim = 'running';
+      } else if (targetAnim.includes('Walk') || targetAnim.includes('walking')) {
+        targetAnim = 'walking';
+      } else {
+        targetAnim = 'idle';
+      }
     }
 
     if (targetAnim !== currentAction.current && actions[targetAnim]) {
@@ -132,6 +334,14 @@ function AnimatedRPMAvatar({
   return (
     <group ref={group}>
       <primitive object={clonedScene} position={[0, 0, 0]} />
+
+      {/* Weapon attachment */}
+      {weaponType !== 'none' && rightHandBone && (
+        <Suspense fallback={null}>
+          <OtherPlayerWeapon weaponType={weaponType} parentBone={rightHandBone} />
+        </Suspense>
+      )}
+
       {/* Glow ring on ground */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
         <ringGeometry args={[0.4, 0.7, 32]} />
@@ -185,8 +395,8 @@ function OtherPlayer({ player }: OtherPlayerProps) {
 
   // Debug: log player avatar info on mount
   useEffect(() => {
-    console.log(`👤 OtherPlayer ${player.username}: avatarUrl=${player.avatarUrl || 'none'}, anim=${player.animationState || 'none'}`);
-  }, [player.username, player.avatarUrl, player.animationState]);
+    console.log(`👤 OtherPlayer ${player.username}: avatarUrl=${player.avatarUrl || 'none'}, anim=${player.animationState || 'none'}, weapon=${player.weaponType || 'none'}`);
+  }, [player.username, player.avatarUrl, player.animationState, player.weaponType]);
 
   const positionBuffer = useRef<PositionSnapshot[]>([]);
   const lastReceivedPos = useRef({ x: player.position.x, y: player.position.y, z: player.position.z });
@@ -274,6 +484,7 @@ function OtherPlayer({ player }: OtherPlayerProps) {
             url={player.avatarUrl}
             color={player.color}
             animationState={player.animationState}
+            weaponType={player.weaponType}
           />
         </Suspense>
       ) : (
@@ -312,7 +523,8 @@ export function OtherPlayers({ players }: OtherPlayersProps) {
   );
 }
 
-// Preload core animations
-useGLTF.preload(CORE_ANIMATIONS.idle);
-useGLTF.preload(CORE_ANIMATIONS.walking);
-useGLTF.preload(CORE_ANIMATIONS.running);
+// Preload all animations
+Object.values(ANIMATIONS_TO_LOAD).forEach(url => useGLTF.preload(url));
+
+// Preload weapon models
+Object.values(WEAPON_MODELS).forEach(path => useFBX.preload(path));

@@ -2631,8 +2631,8 @@ export function PlayWorld({
     // Derive animation name for network sync
     const animationName = animState ? getAnimationName(animState, weaponType) : 'idle';
 
-    // Update multiplayer position with animation state
-    updatePosition(pos, playerRotation.current, animationName);
+    // Update multiplayer position with animation state and weapon
+    updatePosition(pos, playerRotation.current, animationName, weaponType);
   }, [onPlayerPositionChange, updatePosition, getAnimationName, weaponType]);
 
   const zones = [

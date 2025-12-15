@@ -12,6 +12,7 @@ export interface Player3D {
   color: string;
   avatarUrl?: string;
   animationState?: string; // Current animation name (idle, walking, running, etc.)
+  weaponType?: 'none' | 'rifle' | 'pistol'; // Current equipped weapon
   lastUpdate: number;
 }
 
@@ -26,7 +27,7 @@ interface UsePlayMultiplayerReturn {
   isConnected: boolean;
   username: string;
   setUsername: (name: string) => void;
-  updatePosition: (position: THREE.Vector3, rotation: THREE.Euler, animationState?: string) => void;
+  updatePosition: (position: THREE.Vector3, rotation: THREE.Euler, animationState?: string, weaponType?: 'none' | 'rifle' | 'pistol') => void;
 }
 
 export function usePlayMultiplayer({
@@ -101,6 +102,7 @@ export function usePlayMultiplayer({
       position: { x: number; y: number; z: number };
       rotation: { x: number; y: number; z: number };
       animationState?: string;
+      weaponType?: 'none' | 'rifle' | 'pistol';
     }) => {
       setOtherPlayers((prev) =>
         prev.map((p) =>
@@ -110,6 +112,7 @@ export function usePlayMultiplayer({
                 position: data.position,
                 rotation: data.rotation,
                 ...(data.animationState && { animationState: data.animationState }),
+                ...(data.weaponType !== undefined && { weaponType: data.weaponType }),
                 lastUpdate: Date.now(),
               }
             : p
@@ -174,7 +177,7 @@ export function usePlayMultiplayer({
 
   // Update position (throttled)
   const updatePosition = useCallback(
-    (position: THREE.Vector3, rotation: THREE.Euler, animationState?: string) => {
+    (position: THREE.Vector3, rotation: THREE.Euler, animationState?: string, weaponType?: 'none' | 'rifle' | 'pistol') => {
       if (!socket || !isInRoom) return;
 
       const now = Date.now();
@@ -184,6 +187,7 @@ export function usePlayMultiplayer({
         position: { x: position.x, y: position.y, z: position.z },
         rotation: { x: rotation.x, y: rotation.y, z: rotation.z },
         ...(animationState && { animationState }),
+        ...(weaponType !== undefined && { weaponType }),
       });
 
       lastPositionUpdate.current = now;
