@@ -12,6 +12,7 @@ import { useKeyboardControls } from './hooks/useKeyboardControls';
 // Movement constants - tuned for smooth motion
 const WALK_SPEED = 2.5;
 const SPRINT_SPEED = 5;
+const CROUCH_SPEED = 1.5;     // Slower when crouching
 const JUMP_FORCE = 5;
 const ROTATION_SPEED = 8;
 
@@ -20,8 +21,15 @@ const ACCELERATION = 12;      // m/s² - how fast we reach target speed
 const DECELERATION = 18;      // m/s² - how fast we stop (higher = snappier)
 const AIR_CONTROL = 0.3;      // Reduced control while airborne
 
+// Crouch settings
+const STANDING_HALF_HEIGHT = 0.4;   // Capsule half-height when standing
+const CROUCHING_HALF_HEIGHT = 0.2;  // Capsule half-height when crouching
+const STANDING_Y_OFFSET = 0.7;      // Collider Y offset when standing
+const CROUCHING_Y_OFFSET = 0.5;     // Collider Y offset when crouching (flush with ground)
+
 // Ground detection
 const COYOTE_TIME = 0.1;            // Grace period after leaving ground
+const JUMP_COOLDOWN = 0.3;          // Cooldown between jumps (prevents spam)
 
 // Physics stability - prevents explosions and glitches
 const MAX_VELOCITY = 15;            // Cap horizontal velocity
@@ -86,7 +94,13 @@ export function PhysicsPlayerController({
   // Movement state
   const facingAngle = useRef(0);
   const jumpCooldown = useRef(0);
+  const hasJumped = useRef(false);   // True from jump until fully grounded again
   const lastAnimState = useRef({ isMoving: false, isRunning: false, isGrounded: true });
+
+  // Crouch state for collider adjustment
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const colliderRef = useRef<any>(null);
+  const isCrouchingRef = useRef(false);
 
   // Smooth velocity tracking for acceleration
   const currentSpeed = useRef({ x: 0, z: 0 });
@@ -126,6 +140,22 @@ export function PhysicsPlayerController({
   const pitchAngle = useRef(0.3);
   const isDragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
+
+  // Get collider reference from rigid body for crouch adjustment
+  useEffect(() => {
+    // Small delay to ensure physics world is initialized
+    const timeout = setTimeout(() => {
+      if (rigidBodyRef.current) {
+        const rb = rigidBodyRef.current;
+        // Get the first collider attached to this rigid body
+        if (rb.numColliders() > 0) {
+          colliderRef.current = rb.collider(0);
+        }
+      }
+    }, 100);
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   // Mouse camera orbit
   useEffect(() => {
@@ -258,12 +288,16 @@ export function PhysicsPlayerController({
     if (isCurrentlyGrounded) {
       groundedTime.current = 0;
       wasGrounded.current = true;
+      // Reset hasJumped only when truly grounded AND stable
+      if (hasJumped.current && Math.abs(verticalVelocity) < 0.5) {
+        hasJumped.current = false;
+      }
     } else {
       groundedTime.current += delta;
     }
 
-    // Allow jump during coyote time
-    const canJump = isCurrentlyGrounded || (wasGrounded.current && groundedTime.current < COYOTE_TIME);
+    // Allow jump during coyote time, but ONLY if we haven't already jumped
+    const canJump = !hasJumped.current && (isCurrentlyGrounded || (wasGrounded.current && groundedTime.current < COYOTE_TIME));
     const grounded = isCurrentlyGrounded;
 
     if (jumpCooldown.current > 0) jumpCooldown.current -= delta;
@@ -278,6 +312,9 @@ export function PhysicsPlayerController({
     // Calculate target velocity
     let targetVx = 0, targetVz = 0;
     const hasInput = ix !== 0 || iz !== 0;
+
+    // Crouch state for this frame
+    const wantsToCrouch = keys.crouch && grounded;
 
     if (hasInput) {
       const len = Math.sqrt(ix * ix + iz * iz);
@@ -294,7 +331,14 @@ export function PhysicsPlayerController({
       moveDir.addScaledVector(cameraRight, ix);
       moveDir.normalize();
 
-      const targetSpeed = keys.sprint ? SPRINT_SPEED : WALK_SPEED;
+      // Determine target speed based on state
+      let targetSpeed = WALK_SPEED;
+      if (wantsToCrouch) {
+        targetSpeed = CROUCH_SPEED;  // Slow when crouching
+      } else if (keys.sprint) {
+        targetSpeed = SPRINT_SPEED;
+      }
+
       targetVx = moveDir.x * targetSpeed;
       targetVz = moveDir.z * targetSpeed;
 
@@ -306,28 +350,36 @@ export function PhysicsPlayerController({
       facingAngle.current += diff * Math.min(1, delta * ROTATION_SPEED);
     }
 
-    // === SMOOTH ACCELERATION/DECELERATION ===
-    // Use different rates for speeding up vs slowing down
-    const accelRate = hasInput ? ACCELERATION : DECELERATION;
-    const controlMultiplier = grounded ? 1 : AIR_CONTROL;
-    const effectiveAccel = accelRate * controlMultiplier;
-
-    // Smoothly interpolate current speed toward target
-    const speedDiffX = targetVx - currentSpeed.current.x;
-    const speedDiffZ = targetVz - currentSpeed.current.z;
-    const maxChange = effectiveAccel * delta;
-
-    // Apply acceleration with clamping
-    if (Math.abs(speedDiffX) < maxChange) {
-      currentSpeed.current.x = targetVx;
+    // === SMOOTH ACCELERATION / INSTANT STOP ===
+    // When grounded with no input, stop INSTANTLY (no sliding)
+    // When moving, use smooth acceleration
+    if (!hasInput && grounded) {
+      // INSTANT STOP when grounded with no input - eliminates all sliding
+      currentSpeed.current.x = 0;
+      currentSpeed.current.z = 0;
     } else {
-      currentSpeed.current.x += Math.sign(speedDiffX) * maxChange;
-    }
+      // Use different rates for speeding up vs slowing down
+      const accelRate = hasInput ? ACCELERATION : DECELERATION;
+      const controlMultiplier = grounded ? 1 : AIR_CONTROL;
+      const effectiveAccel = accelRate * controlMultiplier;
 
-    if (Math.abs(speedDiffZ) < maxChange) {
-      currentSpeed.current.z = targetVz;
-    } else {
-      currentSpeed.current.z += Math.sign(speedDiffZ) * maxChange;
+      // Smoothly interpolate current speed toward target
+      const speedDiffX = targetVx - currentSpeed.current.x;
+      const speedDiffZ = targetVz - currentSpeed.current.z;
+      const maxChange = effectiveAccel * delta;
+
+      // Apply acceleration with clamping
+      if (Math.abs(speedDiffX) < maxChange) {
+        currentSpeed.current.x = targetVx;
+      } else {
+        currentSpeed.current.x += Math.sign(speedDiffX) * maxChange;
+      }
+
+      if (Math.abs(speedDiffZ) < maxChange) {
+        currentSpeed.current.z = targetVz;
+      } else {
+        currentSpeed.current.z += Math.sign(speedDiffZ) * maxChange;
+      }
     }
 
     // Apply velocity
@@ -336,10 +388,12 @@ export function PhysicsPlayerController({
     let vz = currentSpeed.current.z;
 
     // === JUMP ===
+    // Only allow jump if: can jump, cooldown expired, jump key pressed
     if (keys.jump && canJump && jumpCooldown.current <= 0) {
       vy = JUMP_FORCE;
-      jumpCooldown.current = 0.25;
-      wasGrounded.current = false; // Consume coyote time
+      jumpCooldown.current = JUMP_COOLDOWN;
+      hasJumped.current = true;     // Mark as jumped - prevents air jumping
+      wasGrounded.current = false;  // Consume coyote time
       groundedTime.current = COYOTE_TIME + 0.1; // Prevent immediate re-jump
     }
 
@@ -385,6 +439,25 @@ export function PhysicsPlayerController({
     }
 
     rb.setLinvel({ x: vx, y: vy, z: vz }, true);
+
+    // === CROUCH COLLIDER ADJUSTMENT ===
+    // Adjust collider position to stay flush with ground when crouching
+    if (colliderRef.current && wantsToCrouch !== isCrouchingRef.current) {
+      const collider = colliderRef.current;
+      const newY = wantsToCrouch ? CROUCHING_Y_OFFSET : STANDING_Y_OFFSET;
+
+      // Adjust collider's local position within the rigid body
+      collider.setTranslationWrtParent({ x: 0, y: newY, z: 0 });
+
+      // Also adjust the collider shape if possible (half-height)
+      // Note: This requires creating a new shape in Rapier
+      const newHalfHeight = wantsToCrouch ? CROUCHING_HALF_HEIGHT : STANDING_HALF_HEIGHT;
+      const radius = 0.3; // Keep same radius
+      const newShape = new rapier.Capsule(newHalfHeight, radius);
+      collider.setShape(newShape);
+
+      isCrouchingRef.current = wantsToCrouch;
+    }
 
     if (groupRef.current) {
       groupRef.current.rotation.y = facingAngle.current;
