@@ -41,7 +41,7 @@ const BUILT_IN_COMMANDS: Record<string, { description: string; handler: (args: s
   },
   pos: {
     description: 'Show current player position',
-    handler: (_, addLog) => {
+    handler: (_args, _addLog) => {
       const event = new CustomEvent('devConsole:getPos');
       window.dispatchEvent(event);
     },
