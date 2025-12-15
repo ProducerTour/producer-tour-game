@@ -158,8 +158,11 @@ export function MixamoAnimatedAvatar({
           if (!track.name.endsWith('.quaternion')) {
             return false;
           }
-          // Keep Hips rotation - needed for proper poses (especially weapon holding)
-          // Only Hips.position causes drift, and that's already filtered above
+          // FILTER OUT Hips rotation - Mixamo has different reference pose than RPM
+          // which causes the character to flip onto their back
+          if (track.name.startsWith('Hips.')) {
+            return false;
+          }
           return true;
         }
 
