@@ -13,6 +13,11 @@ export interface AnimationConfig {
   mixamo?: boolean;       // True if this is a Mixamo animation (needs scale track filtering)
 }
 
+// Use local path in dev, R2 CDN in production
+const ANIM_BASE = import.meta.env.DEV
+  ? '/animations'
+  : `${import.meta.env.VITE_ASSETS_URL || ''}/animations`;
+
 /**
  * All animation configurations in one place.
  *
@@ -24,46 +29,46 @@ export interface AnimationConfig {
  */
 export const ANIMATION_CONFIG: Record<string, AnimationConfig> = {
   // Core locomotion (RPM native - not Mixamo)
-  idle: { url: '/animations/idle.glb', loop: true, fadeTime: 0.15 },
-  idleVar1: { url: '/animations/idle_var1.glb', loop: true, fadeTime: 0.15, fallback: 'idle' },
-  idleVar2: { url: '/animations/idle_var2.glb', loop: true, fadeTime: 0.15, fallback: 'idle' },
-  walking: { url: '/animations/walking.glb', loop: true, fadeTime: 0.15 },
-  running: { url: '/animations/running.glb', loop: true, fadeTime: 0.15 },
+  idle: { url: `${ANIM_BASE}/idle.glb`, loop: true, fadeTime: 0.15 },
+  idleVar1: { url: `${ANIM_BASE}/idle_var1.glb`, loop: true, fadeTime: 0.15, fallback: 'idle' },
+  idleVar2: { url: `${ANIM_BASE}/idle_var2.glb`, loop: true, fadeTime: 0.15, fallback: 'idle' },
+  walking: { url: `${ANIM_BASE}/walking.glb`, loop: true, fadeTime: 0.15 },
+  running: { url: `${ANIM_BASE}/running.glb`, loop: true, fadeTime: 0.15 },
 
   // Jumps (one-shot, RPM native)
-  jump: { url: '/animations/jump.glb', loop: false, fadeTime: 0.1, clamp: true },
-  jumpJog: { url: '/animations/jump_jog.glb', loop: false, fadeTime: 0.1, clamp: true },
-  jumpRun: { url: '/animations/jump_run.glb', loop: false, fadeTime: 0.1, clamp: true },
+  jump: { url: `${ANIM_BASE}/jump.glb`, loop: false, fadeTime: 0.1, clamp: true },
+  jumpJog: { url: `${ANIM_BASE}/jump_jog.glb`, loop: false, fadeTime: 0.1, clamp: true },
+  jumpRun: { url: `${ANIM_BASE}/jump_run.glb`, loop: false, fadeTime: 0.1, clamp: true },
 
   // Dances (RPM native)
-  dance1: { url: '/animations/dance1.glb', loop: true, fadeTime: 0.3 },
-  dance2: { url: '/animations/dance2.glb', loop: true, fadeTime: 0.3 },
-  dance3: { url: '/animations/dance3.glb', loop: true, fadeTime: 0.3 },
+  dance1: { url: `${ANIM_BASE}/dance1.glb`, loop: true, fadeTime: 0.3 },
+  dance2: { url: `${ANIM_BASE}/dance2.glb`, loop: true, fadeTime: 0.3 },
+  dance3: { url: `${ANIM_BASE}/dance3.glb`, loop: true, fadeTime: 0.3 },
 
   // Crouch base (Mixamo)
-  crouchIdle: { url: '/animations/crouch_idle.glb', loop: true, fadeTime: 0.15, fallback: 'crouchWalk', mixamo: true },
-  crouchWalk: { url: '/animations/crouch_walk.glb', loop: true, fadeTime: 0.15, mixamo: true },
-  crouchStrafeLeft: { url: '/animations/crouch_strafe_left.glb', loop: true, fadeTime: 0.15, fallback: 'crouchWalk', mixamo: true },
-  crouchStrafeRight: { url: '/animations/crouch_strafe_right.glb', loop: true, fadeTime: 0.15, fallback: 'crouchWalk', mixamo: true },
+  crouchIdle: { url: `${ANIM_BASE}/crouch_idle.glb`, loop: true, fadeTime: 0.15, fallback: 'crouchWalk', mixamo: true },
+  crouchWalk: { url: `${ANIM_BASE}/crouch_walk.glb`, loop: true, fadeTime: 0.15, mixamo: true },
+  crouchStrafeLeft: { url: `${ANIM_BASE}/crouch_strafe_left.glb`, loop: true, fadeTime: 0.15, fallback: 'crouchWalk', mixamo: true },
+  crouchStrafeRight: { url: `${ANIM_BASE}/crouch_strafe_right.glb`, loop: true, fadeTime: 0.15, fallback: 'crouchWalk', mixamo: true },
 
   // Crouch transitions (Mixamo, one-shot)
-  standToCrouch: { url: '/animations/stand_to_crouch.glb', loop: false, fadeTime: 0.15, clamp: true, mixamo: true },
-  crouchToStand: { url: '/animations/crouch_to_stand.glb', loop: false, fadeTime: 0.15, clamp: true, mixamo: true },
-  crouchToSprint: { url: '/animations/crouch_to_sprint.glb', loop: false, fadeTime: 0.15, clamp: true, mixamo: true },
+  standToCrouch: { url: `${ANIM_BASE}/stand_to_crouch.glb`, loop: false, fadeTime: 0.15, clamp: true, mixamo: true },
+  crouchToStand: { url: `${ANIM_BASE}/crouch_to_stand.glb`, loop: false, fadeTime: 0.15, clamp: true, mixamo: true },
+  crouchToSprint: { url: `${ANIM_BASE}/crouch_to_sprint.glb`, loop: false, fadeTime: 0.15, clamp: true, mixamo: true },
 
   // Crouch + weapon (Mixamo)
-  crouchRifleIdle: { url: '/animations/crouch_rifle_idle.glb', loop: true, fadeTime: 0.15, fallback: 'crouchIdle', mixamo: true },
-  crouchRifleWalk: { url: '/animations/crouch_rifle_walk.glb', loop: true, fadeTime: 0.15, fallback: 'crouchWalk', mixamo: true },
-  crouchPistolIdle: { url: '/animations/crouch_pistol_idle.glb', loop: true, fadeTime: 0.15, fallback: 'crouchIdle', mixamo: true },
-  crouchPistolWalk: { url: '/animations/crouch_pistol_walk.glb', loop: true, fadeTime: 0.15, fallback: 'crouchWalk', mixamo: true },
+  crouchRifleIdle: { url: `${ANIM_BASE}/crouch_rifle_idle.glb`, loop: true, fadeTime: 0.15, fallback: 'crouchIdle', mixamo: true },
+  crouchRifleWalk: { url: `${ANIM_BASE}/crouch_rifle_walk.glb`, loop: true, fadeTime: 0.15, fallback: 'crouchWalk', mixamo: true },
+  crouchPistolIdle: { url: `${ANIM_BASE}/crouch_pistol_idle.glb`, loop: true, fadeTime: 0.15, fallback: 'crouchIdle', mixamo: true },
+  crouchPistolWalk: { url: `${ANIM_BASE}/crouch_pistol_walk.glb`, loop: true, fadeTime: 0.15, fallback: 'crouchWalk', mixamo: true },
 
-  // Weapon standing (Mixamo, with cache bust query param)
-  rifleIdle: { url: '/animations/rifle_idle.glb?v=2', loop: true, fadeTime: 0.15, fallback: 'idle', mixamo: true },
-  rifleWalk: { url: '/animations/rifle_walk.glb?v=2', loop: true, fadeTime: 0.15, fallback: 'walking', mixamo: true },
-  rifleRun: { url: '/animations/rifle_run.glb?v=2', loop: true, fadeTime: 0.15, fallback: 'running', mixamo: true },
-  pistolIdle: { url: '/animations/pistol_idle.glb?v=2', loop: true, fadeTime: 0.15, fallback: 'idle', mixamo: true },
-  pistolWalk: { url: '/animations/pistol_walk.glb?v=2', loop: true, fadeTime: 0.15, fallback: 'walking', mixamo: true },
-  pistolRun: { url: '/animations/pistol_run.glb?v=2', loop: true, fadeTime: 0.15, fallback: 'running', mixamo: true },
+  // Weapon standing (Mixamo)
+  rifleIdle: { url: `${ANIM_BASE}/rifle_idle.glb`, loop: true, fadeTime: 0.15, fallback: 'idle', mixamo: true },
+  rifleWalk: { url: `${ANIM_BASE}/rifle_walk.glb`, loop: true, fadeTime: 0.15, fallback: 'walking', mixamo: true },
+  rifleRun: { url: `${ANIM_BASE}/rifle_run.glb`, loop: true, fadeTime: 0.15, fallback: 'running', mixamo: true },
+  pistolIdle: { url: `${ANIM_BASE}/pistol_idle.glb`, loop: true, fadeTime: 0.15, fallback: 'idle', mixamo: true },
+  pistolWalk: { url: `${ANIM_BASE}/pistol_walk.glb`, loop: true, fadeTime: 0.15, fallback: 'walking', mixamo: true },
+  pistolRun: { url: `${ANIM_BASE}/pistol_run.glb`, loop: true, fadeTime: 0.15, fallback: 'running', mixamo: true },
 } as const;
 
 /** Animation name type for type safety */
