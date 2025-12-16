@@ -67,7 +67,6 @@ export function MixamoAnimatedAvatar({
 }: MixamoAnimatedAvatarProps) {
   const group = useRef<THREE.Group>(null);
   const avatarRef = useRef<THREE.Group>(null);
-  const groundOffset = useRef(0);
   const leftFootRef = useRef<THREE.Bone | null>(null);
   const rightFootRef = useRef<THREE.Bone | null>(null);
   const { scene } = useGLTF(url);

@@ -35,7 +35,7 @@ export function usePlayMultiplayer({
   avatarUrl,
 }: UsePlayMultiplayerProps = {}): UsePlayMultiplayerReturn {
   const { socket, isConnected } = useSocket();
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
   const { color, displayName } = usePlayerStore();
 
   const [otherPlayers, setOtherPlayers] = useState<Player3D[]>([]);
