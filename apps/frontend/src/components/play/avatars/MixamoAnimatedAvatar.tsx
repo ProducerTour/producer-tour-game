@@ -111,6 +111,11 @@ export function MixamoAnimatedAvatar({
   const crouchPistolIdleGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.pistolIdle : ANIMATIONS.idle);
   const crouchPistolWalkGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.pistolWalk : ANIMATIONS.walking);
 
+  // Rifle jump animations
+  const rifleJumpUpGltf = useGLTF(ANIMATIONS.rifleJumpUp);
+  const rifleJumpLoopGltf = useGLTF(ANIMATIONS.rifleJumpLoop);
+  const rifleJumpDownGltf = useGLTF(ANIMATIONS.rifleJumpDown);
+
   // Clone scene for this instance and find foot bones
   const clonedScene = useMemo(() => {
     const clone = SkeletonUtils.clone(scene);
@@ -151,6 +156,7 @@ export function MixamoAnimatedAvatar({
     'standToCrouch', 'crouchToStand', 'crouchToSprint',
     'crouchRifleIdle', 'crouchRifleWalk', 'crouchRifleStrafeLeft', 'crouchRifleStrafeRight',
     'crouchPistolIdle', 'crouchPistolWalk',
+    'rifleJumpUp', 'rifleJumpLoop', 'rifleJumpDown',
   ];
 
   // Correction quaternion for Mixamo→RPM Hips rotation (90° around X-axis)
@@ -304,6 +310,11 @@ export function MixamoAnimatedAvatar({
       addAnim(crouchPistolWalkGltf, 'crouchPistolWalk');
     }
 
+    // Rifle jump animations
+    addAnim(rifleJumpUpGltf, 'rifleJumpUp');
+    addAnim(rifleJumpLoopGltf, 'rifleJumpLoop');
+    addAnim(rifleJumpDownGltf, 'rifleJumpDown');
+
     return anims;
   }, [
     idleGltf.animations, idleVar1Gltf.animations, idleVar2Gltf.animations,
@@ -318,6 +329,7 @@ export function MixamoAnimatedAvatar({
     crouchRifleIdleGltf.animations, crouchRifleWalkGltf.animations,
     crouchRifleStrafeLeftGltf.animations, crouchRifleStrafeRightGltf.animations,
     crouchPistolIdleGltf.animations, crouchPistolWalkGltf.animations,
+    rifleJumpUpGltf.animations, rifleJumpLoopGltf.animations, rifleJumpDownGltf.animations,
   ]);
 
   // Setup animations with the cloned scene

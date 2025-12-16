@@ -70,6 +70,11 @@ export const ANIMATION_CONFIG: Record<string, AnimationConfig> = {
   pistolIdle: { url: anim('pistol_idle.glb'), loop: true, fadeTime: 0.15, fallback: 'idle', mixamo: true },
   pistolWalk: { url: anim('pistol_walk.glb'), loop: true, fadeTime: 0.15, fallback: 'walking', mixamo: true },
   pistolRun: { url: anim('pistol_run.glb'), loop: true, fadeTime: 0.15, fallback: 'running', mixamo: true },
+
+  // Rifle jump (Mixamo, 3-part jump: up, loop, down)
+  rifleJumpUp: { url: anim('rifle_jump_up.glb'), loop: false, fadeTime: 0.1, clamp: true, mixamo: true },
+  rifleJumpLoop: { url: anim('rifle_jump_loop.glb'), loop: true, fadeTime: 0.1, mixamo: true },
+  rifleJumpDown: { url: anim('rifle_jump_down.glb'), loop: false, fadeTime: 0.1, clamp: true, mixamo: true },
 } as const;
 
 /** Animation name type for type safety */

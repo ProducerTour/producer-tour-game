@@ -41,7 +41,11 @@ export type AnimState =
   | 'crouchRifleStrafeLeft'
   | 'crouchRifleStrafeRight'
   | 'crouchPistolIdle'
-  | 'crouchPistolWalk';
+  | 'crouchPistolWalk'
+  // Rifle jump states
+  | 'rifleJumpUp'
+  | 'rifleJumpLoop'
+  | 'rifleJumpDown';
 
 export type WeaponType = 'none' | 'rifle' | 'pistol';
 
@@ -80,15 +84,48 @@ const WEAPON_STANDING_STATES: AnimState[] = [
   'rifleIdle', 'rifleWalk', 'rifleRun',
   'pistolIdle', 'pistolWalk', 'pistolRun',
 ];
-const TRANSITION_STATES: AnimState[] = ['standToCrouch', 'crouchToStand', 'crouchToSprint', 'land'];
+const TRANSITION_STATES: AnimState[] = ['standToCrouch', 'crouchToStand', 'crouchToSprint', 'land', 'rifleJumpUp', 'rifleJumpDown'];
 
 // Define all state transitions with priorities
 const TRANSITIONS: Transition[] = [
   // ===== HIGHEST PRIORITY: Air states =====
+  // Rifle jump (higher priority than regular jump when holding rifle)
+  {
+    from: '*',
+    to: 'rifleJumpUp',
+    condition: (i) => i.isJumping && !i.isGrounded && i.weapon === 'rifle',
+    priority: 101,
+    cooldown: 200,
+  },
+  {
+    from: ['rifleJumpUp', 'rifleJumpLoop'],
+    to: 'rifleJumpDown',
+    condition: (i, time) => i.isGrounded && time > 100,
+    priority: 91,
+  },
+  {
+    from: 'rifleJumpDown',
+    to: 'rifleIdle',
+    condition: (i, time) => time > 300 && !i.isMoving,
+    priority: 86,
+  },
+  {
+    from: 'rifleJumpDown',
+    to: 'rifleWalk',
+    condition: (i, time) => time > 200 && i.isMoving && !i.isRunning,
+    priority: 86,
+  },
+  {
+    from: 'rifleJumpDown',
+    to: 'rifleRun',
+    condition: (i, time) => time > 150 && i.isMoving && i.isRunning,
+    priority: 86,
+  },
+  // Regular jump (no weapon)
   {
     from: '*',
     to: 'jump',
-    condition: (i) => i.isJumping && !i.isGrounded,
+    condition: (i) => i.isJumping && !i.isGrounded && i.weapon !== 'rifle',
     priority: 100,
     cooldown: 200,
   },
@@ -384,6 +421,9 @@ const STATE_TO_ACTION: Record<AnimState, string> = {
   crouchRifleStrafeRight: 'crouchRifleStrafeRight',
   crouchPistolIdle: 'crouchPistolIdle',
   crouchPistolWalk: 'crouchPistolWalk',
+  rifleJumpUp: 'rifleJumpUp',
+  rifleJumpLoop: 'rifleJumpLoop',
+  rifleJumpDown: 'rifleJumpDown',
 };
 
 // Fallbacks for missing animations
@@ -408,6 +448,9 @@ const FALLBACKS: Partial<Record<AnimState, AnimState[]>> = {
   pistolIdle: ['idle'],
   pistolWalk: ['walk'],
   pistolRun: ['run'],
+  rifleJumpUp: ['jump'],
+  rifleJumpLoop: ['jump', 'fall'],
+  rifleJumpDown: ['land', 'idle'],
 };
 
 export interface AnimationStateMachineResult {
@@ -449,6 +492,15 @@ const ONE_SHOT_NEXT_STATE: Partial<Record<AnimState, (input: AnimationInput) => 
     // Jump animation finished - transition based on grounded state
     if (!i.isGrounded) return 'fall';
     return i.isMoving ? (i.isRunning ? 'run' : 'walk') : 'idle';
+  },
+  rifleJumpUp: (i) => {
+    // Rifle jump up finished - go to loop if still in air, otherwise land
+    if (!i.isGrounded) return 'rifleJumpLoop';
+    return 'rifleJumpDown';
+  },
+  rifleJumpDown: (i) => {
+    // Rifle landing finished - return to appropriate rifle state
+    return i.isMoving ? (i.isRunning ? 'rifleRun' : 'rifleWalk') : 'rifleIdle';
   },
 };
 
