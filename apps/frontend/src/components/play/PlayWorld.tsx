@@ -27,9 +27,7 @@ import { AnimatedAvatar, MixamoAnimatedAvatar, PlaceholderAvatar } from './avata
 import { ZoneMarker, CyberpunkGround } from './world';
 
 import { Gamepad2, Music, Briefcase, Users, Mic2 } from 'lucide-react';
-
-// Assets URL (Cloudflare R2 CDN)
-const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
+import { ASSETS_BASE } from '../../config/assetPaths';
 
 // Flag to use Mixamo animations vs procedural
 const USE_MIXAMO_ANIMATIONS = true;
@@ -424,26 +422,26 @@ function BasketballCourtModel({ posX, posY, posZ, rotY, scale }: {
   scale: number;
 }) {
   // Load the court FBX (textures will 404 but we'll reassign them)
-  const court = useFBX(`${ASSETS_URL}/models/basketball-court/Court.fbx`);
+  const court = useFBX(`${ASSETS_BASE}/models/basketball-court/Court.fbx`);
 
   // Load all textures from R2 CDN
   const textures = useTexture({
-    court: `${ASSETS_URL}/models/basketball-court/textures/court.png`,
-    floor1: `${ASSETS_URL}/models/basketball-court/textures/floor1.png`,
-    floor2: `${ASSETS_URL}/models/basketball-court/textures/floor2.png`,
-    hoop1: `${ASSETS_URL}/models/basketball-court/textures/hoop1.png`,
-    hoop2: `${ASSETS_URL}/models/basketball-court/textures/hoop2.png`,
-    hoop3: `${ASSETS_URL}/models/basketball-court/textures/hoop3.png`,
-    hoop4: `${ASSETS_URL}/models/basketball-court/textures/hoop4.png`,
-    hoop5: `${ASSETS_URL}/models/basketball-court/textures/hoop5.png`,
-    fence1: `${ASSETS_URL}/models/basketball-court/textures/fence1.png`,
-    fence2: `${ASSETS_URL}/models/basketball-court/textures/fence2.png`,
-    fence1Alpha: `${ASSETS_URL}/models/basketball-court/textures/fence1_alpha.png`,
-    metalfence: `${ASSETS_URL}/models/basketball-court/textures/metalfence.png`,
-    building1: `${ASSETS_URL}/models/basketball-court/textures/building1.png`,
-    building2: `${ASSETS_URL}/models/basketball-court/textures/building2.png`,
-    window1: `${ASSETS_URL}/models/basketball-court/textures/window1.png`,
-    window2: `${ASSETS_URL}/models/basketball-court/textures/window2.png`,
+    court: `${ASSETS_BASE}/models/basketball-court/textures/court.png`,
+    floor1: `${ASSETS_BASE}/models/basketball-court/textures/floor1.png`,
+    floor2: `${ASSETS_BASE}/models/basketball-court/textures/floor2.png`,
+    hoop1: `${ASSETS_BASE}/models/basketball-court/textures/hoop1.png`,
+    hoop2: `${ASSETS_BASE}/models/basketball-court/textures/hoop2.png`,
+    hoop3: `${ASSETS_BASE}/models/basketball-court/textures/hoop3.png`,
+    hoop4: `${ASSETS_BASE}/models/basketball-court/textures/hoop4.png`,
+    hoop5: `${ASSETS_BASE}/models/basketball-court/textures/hoop5.png`,
+    fence1: `${ASSETS_BASE}/models/basketball-court/textures/fence1.png`,
+    fence2: `${ASSETS_BASE}/models/basketball-court/textures/fence2.png`,
+    fence1Alpha: `${ASSETS_BASE}/models/basketball-court/textures/fence1_alpha.png`,
+    metalfence: `${ASSETS_BASE}/models/basketball-court/textures/metalfence.png`,
+    building1: `${ASSETS_BASE}/models/basketball-court/textures/building1.png`,
+    building2: `${ASSETS_BASE}/models/basketball-court/textures/building2.png`,
+    window1: `${ASSETS_BASE}/models/basketball-court/textures/window1.png`,
+    window2: `${ASSETS_BASE}/models/basketball-court/textures/window2.png`,
   });
 
   // Track if we've already processed the model
@@ -565,11 +563,6 @@ function BasketballCourt() {
   const rotY = 0;
   const scale = 0.01;
 
-  // Skip if no ASSETS_URL configured
-  if (!ASSETS_URL) {
-    return null;
-  }
-
   return (
     <RigidBody type="fixed" colliders={false} position={[posX, posY, posZ]}>
       {/* Court visual model */}
@@ -606,6 +599,12 @@ function BasketballCourt() {
       {/* Hoop poles - cylindrical colliders approximated as thin boxes */}
       <CuboidCollider args={[0.15, 2, 0.15]} position={[-12, 2, 0]} />
       <CuboidCollider args={[0.15, 2, 0.15]} position={[12, 2, 0]} />
+
+      {/* Floor collider - the actual walkable surface */}
+      <CuboidCollider
+        args={[COURT_BOUNDS.width, 0.1, COURT_BOUNDS.depth]}
+        position={[0, -0.1, 0]}
+      />
     </RigidBody>
   );
 }
@@ -656,10 +655,10 @@ function MonkeyNPC({ position }: { position: [number, number, number] }) {
   });
 
   // Load the monkey GLB model from R2 CDN
-  const gltf = useGLTF(`${ASSETS_URL}/models/Monkey/Monkey.glb`);
+  const gltf = useGLTF(`${ASSETS_BASE}/models/Monkey/Monkey.glb`);
 
   // Load the diffuse texture (only used if model doesn't have embedded textures)
-  const diffuseTexture = useTexture(`${ASSETS_URL}/models/Monkey/Textures_B3/Monkey_B3_diffuse_1k.jpg`);
+  const diffuseTexture = useTexture(`${ASSETS_BASE}/models/Monkey/Textures_B3/Monkey_B3_diffuse_1k.jpg`);
 
   // Check if model has embedded textures
   const hasEmbeddedTextures = useMemo(() => {
@@ -940,7 +939,7 @@ function MonkeyNPC({ position }: { position: [number, number, number] }) {
 }
 
 // Preload monkey model
-useGLTF.preload(`${ASSETS_URL}/models/Monkey/Monkey.glb`);
+useGLTF.preload(`${ASSETS_BASE}/models/Monkey/Monkey.glb`);
 
 // Player info for console display
 export interface PlayerInfo {
@@ -1100,7 +1099,7 @@ export function PlayWorld({
 
           {/* Physics Player Controller with animation state */}
           <PhysicsPlayerController onPositionChange={handlePositionChange}>
-            {({ isMoving, isRunning, isJumping, isDancing, isCrouching, isStrafingLeft, isStrafingRight }) => (
+            {({ isMoving, isRunning, isGrounded, isJumping, isDancing, isCrouching, isStrafingLeft, isStrafingRight, velocityY }) => (
               <Suspense fallback={<PlaceholderAvatar isMoving={false} />}>
                 {avatarUrl ? (
                   USE_MIXAMO_ANIMATIONS ? (
@@ -1111,11 +1110,13 @@ export function PlayWorld({
                         url={avatarUrl}
                         isMoving={isMoving}
                         isRunning={isRunning}
+                        isGrounded={isGrounded}
                         isJumping={isJumping}
                         isDancing={isDancing}
                         isCrouching={isCrouching}
                         isStrafingLeft={isStrafingLeft}
                         isStrafingRight={isStrafingRight}
+                        velocityY={velocityY}
                         weaponType={weaponType}
                       />
                     </AnimationErrorBoundary>

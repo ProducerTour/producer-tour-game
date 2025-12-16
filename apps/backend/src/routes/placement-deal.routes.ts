@@ -282,11 +282,11 @@ router.post('/:id/create-billing-invoice', authenticate, requireAdmin, async (re
     }
     const invoiceNumber = `${prefix}${nextSequence.toString().padStart(4, '0')}`;
 
-    // Calculate commission (20% for FEE type invoices)
+    // Calculate commission (20% for FEE type invoices) - no rounding, preserve full precision
     const amount = parseFloat(grossAmount);
     const commissionRate = 20;
-    const commissionAmount = Math.round((amount * commissionRate / 100) * 100) / 100;
-    const netAmount = Math.round((amount - commissionAmount) * 100) / 100;
+    const commissionAmount = (amount * commissionRate) / 100;
+    const netAmount = amount - commissionAmount;
 
     // Create invoice linked to placement deal
     const invoice = await prisma.invoice.create({

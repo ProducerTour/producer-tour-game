@@ -24,8 +24,8 @@ function normalizeIPI(ipi: string): string {
     .replace(/^0+/, '');       // Remove leading zeros
 }
 
-// Configure Decimal.js for high precision
-Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
+// Configure Decimal.js for high precision - no rounding during calculations
+Decimal.set({ precision: 20 });
 
 export interface WriterShare {
   userId: string;
@@ -198,15 +198,15 @@ export function calculateWriterShares(
       publisherIpiNumber: credit.publisherIpiNumber || credit.user?.publisherIpiNumber || null,
       proAffiliation: credit.pro || credit.user?.writerProAffiliation || credit.user?.producer?.proAffiliation || null,
       originalSplitPercent: originalSplit.toNumber(),
-      relativeSplitPercent: Number(relativeSplit.toFixed(6)),  // 6 decimal precision
-      revenueAmount: Number(revenue.toFixed(6))                // 6 decimal precision
+      relativeSplitPercent: relativeSplit.toNumber(),  // Full precision, no rounding
+      revenueAmount: revenue.toNumber()                // Full precision, no rounding
     });
   }
 
   return {
     shares,
-    totalEligibleSplitPercent: Number(totalEligibleSplit.toFixed(2)),
-    totalDistributedRevenue: Number(totalDistributed.toFixed(6)),
+    totalEligibleSplitPercent: totalEligibleSplit.toNumber(),  // Full precision, no rounding
+    totalDistributedRevenue: totalDistributed.toNumber(),      // Full precision, no rounding
     excludedCredits
   };
 }

@@ -43,14 +43,8 @@ export function usePlayMultiplayer({
   const [isInRoom, setIsInRoom] = useState(false);
   const [username, setLocalUsername] = useState(() => displayName || user?.firstName || '');
 
-  // Debug: Log auth state
-  console.log('[Play Multiplayer] Auth state:', {
-    hasUser: !!user,
-    hasToken: !!token,
-    socketExists: !!socket,
-    isConnected,
-    userId: user?.id?.slice(0, 8) + '...',
-  });
+  // Debug: Log auth state (only when values change, not every render)
+  // Uncomment for debugging: useEffect(() => { console.log('[Play Multiplayer] Auth state:', { hasUser: !!user, hasToken: !!token, socketExists: !!socket, isConnected }); }, [user, token, socket, isConnected]);
 
   const lastPositionUpdate = useRef(0);
   const positionUpdateInterval = 50; // 20 updates per second

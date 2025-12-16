@@ -63,15 +63,11 @@ import {
   Camera,
   Settings
 } from 'lucide-react';
+import { ASSETS_BASE, IS_DEV } from '../../config/assetPaths';
 
-// ============================================================================
-// ASSETS URL (Cloudflare R2 CDN)
-// ============================================================================
-const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
-
-// Log ASSETS_URL at module load for debugging
+// Log asset config at module load for debugging
 if (typeof window !== 'undefined') {
-  console.log('[Structure3D] ASSETS_URL:', ASSETS_URL || '(NOT SET - models will fail to load!)');
+  console.log('[Structure3D] Assets:', IS_DEV ? 'LOCAL (public/)' : `CDN (${ASSETS_BASE})`);
 }
 
 // ============================================================================
@@ -104,8 +100,8 @@ export class ModelErrorBoundary extends Component<ModelErrorBoundaryProps, Model
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error(`[ModelErrorBoundary] Failed to load ${this.props.modelName}:`, error);
     console.error('Error info:', errorInfo);
-    console.error('ASSETS_URL:', ASSETS_URL);
-    console.error('Check: 1) VITE_ASSETS_URL env var set? 2) CORS enabled on R2? 3) Files exist?');
+    console.error('Assets mode:', IS_DEV ? 'LOCAL' : `CDN (${ASSETS_BASE})`);
+    console.error('Check: 1) File exists in public/ (dev) or R2 (prod)? 2) CORS enabled? 3) Path correct?');
   }
 
   render() {
@@ -1286,10 +1282,10 @@ const complianceOrbiterYOffsets: Record<string, number> = {
 // UNAF FBX Ship component - loads modular FBX parts from R2 CDN
 function UNAFShip() {
   // Load all the FBX parts from R2 CDN
-  const front = useFBX(`${ASSETS_URL}/models/Front_01.FBX`);
-  const cockpit = useFBX(`${ASSETS_URL}/models/Cockpit_01.FBX`);
-  const back = useFBX(`${ASSETS_URL}/models/Back_01.FBX`);
-  const wing = useFBX(`${ASSETS_URL}/models/Wing_01.FBX`);
+  const front = useFBX(`${ASSETS_BASE}/models/Front_01.FBX`);
+  const cockpit = useFBX(`${ASSETS_BASE}/models/Cockpit_01.FBX`);
+  const back = useFBX(`${ASSETS_BASE}/models/Back_01.FBX`);
+  const wing = useFBX(`${ASSETS_BASE}/models/Wing_01.FBX`);
 
   // Clone and apply custom colored materials
   const parts = useMemo(() => {
@@ -1367,10 +1363,10 @@ function MonkeyShip() {
   const [, getKeys] = useKeyboardControls();
 
   // Load the monkey GLB model from R2 CDN (compressed from 93MB FBX to 3.8MB GLB)
-  const gltf = useGLTF(`${ASSETS_URL}/models/Monkey/Monkey.glb`);
+  const gltf = useGLTF(`${ASSETS_BASE}/models/Monkey/Monkey.glb`);
 
   // Load optimized web textures from R2 CDN
-  const diffuseTexture = useTexture(`${ASSETS_URL}/models/Monkey/Textures_B3/Monkey_B3_diffuse_1k.jpg`);
+  const diffuseTexture = useTexture(`${ASSETS_BASE}/models/Monkey/Textures_B3/Monkey_B3_diffuse_1k.jpg`);
 
   // Clone model properly and set up animations
   const { model, scale, centerOffset, animations } = useMemo(() => {
@@ -1591,10 +1587,10 @@ function MonkeyShip() {
 // Exported for use in Holdings interior
 export function OtherPlayerUNAFShip({ color }: { color: string }) {
   // Load all the FBX parts from R2 CDN
-  const front = useFBX(`${ASSETS_URL}/models/Front_01.FBX`);
-  const cockpit = useFBX(`${ASSETS_URL}/models/Cockpit_01.FBX`);
-  const back = useFBX(`${ASSETS_URL}/models/Back_01.FBX`);
-  const wing = useFBX(`${ASSETS_URL}/models/Wing_01.FBX`);
+  const front = useFBX(`${ASSETS_BASE}/models/Front_01.FBX`);
+  const cockpit = useFBX(`${ASSETS_BASE}/models/Cockpit_01.FBX`);
+  const back = useFBX(`${ASSETS_BASE}/models/Back_01.FBX`);
+  const wing = useFBX(`${ASSETS_BASE}/models/Wing_01.FBX`);
 
   // Clone and apply colored materials based on player's color
   const parts = useMemo(() => {
@@ -1653,8 +1649,8 @@ export function OtherPlayerMonkeyShip({ color }: { color: string }) {
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
 
   // Load the monkey GLB model from R2 CDN
-  const gltf = useGLTF(`${ASSETS_URL}/models/Monkey/Monkey.glb`);
-  const diffuseTexture = useTexture(`${ASSETS_URL}/models/Monkey/Textures_B3/Monkey_B3_diffuse_1k.jpg`);
+  const gltf = useGLTF(`${ASSETS_BASE}/models/Monkey/Monkey.glb`);
+  const diffuseTexture = useTexture(`${ASSETS_BASE}/models/Monkey/Textures_B3/Monkey_B3_diffuse_1k.jpg`);
 
   // Clone model properly
   const { model, scale, centerOffset, animations } = useMemo(() => {

@@ -330,9 +330,8 @@ router.get(
         for (const writer of writerMap.values()) {
           writer.songCount = writer.uniqueSongs.size;
           delete writer.uniqueSongs;
-          writer.grossRevenue = smartRound(writer.grossRevenue);
-          writer.commissionAmount = smartRound(writer.commissionAmount);
-          writer.netRevenue = smartRound(writer.grossRevenue - writer.commissionAmount);
+          // No rounding - preserve full precision
+          writer.netRevenue = writer.grossRevenue - writer.commissionAmount;
         }
 
         return {
@@ -1314,12 +1313,10 @@ router.post(
         return rounded2;
       };
 
-      // Finalize writer totals
+      // Finalize writer totals - no rounding, preserve full precision
       for (const writer of writerTotals.values()) {
         writer.songCount = writer.uniqueSongs.size;
-        writer.grossRevenue = smartRound(writer.grossRevenue);
-        writer.commissionAmount = smartRound(writer.commissionAmount);
-        writer.netRevenue = smartRound(writer.netRevenue);
+        // Values already calculated with full precision, no rounding needed
       }
 
       // Build CSV
@@ -1348,16 +1345,16 @@ router.post(
         ].join(','));
       }
 
-      // Add empty row and grand totals
+      // Add empty row and grand totals - no rounding, show full precision
       rows.push('');
       rows.push([
         '"GRAND TOTAL"',
         '',
         statements.length.toString(),
         '',
-        `$${smartRound(grandTotalGross).toFixed(2)}`,
-        `$${smartRound(grandTotalCommission).toFixed(2)}`,
-        `$${smartRound(grandTotalNet).toFixed(2)}`
+        `$${grandTotalGross}`,
+        `$${grandTotalCommission}`,
+        `$${grandTotalNet}`
       ].join(','));
 
       // Add header info
@@ -1491,9 +1488,8 @@ router.get(
       for (const writer of writerMap.values()) {
         writer.songCount = writer.uniqueSongs.size;
         delete writer.uniqueSongs;
-        writer.grossRevenue = smartRound(writer.grossRevenue);
-        writer.commissionAmount = smartRound(writer.commissionAmount);
-        writer.netRevenue = smartRound(writer.grossRevenue - writer.commissionAmount);
+        // No rounding - preserve full precision
+        writer.netRevenue = writer.grossRevenue - writer.commissionAmount;
       }
 
       const summary = {
@@ -1811,8 +1807,9 @@ router.post(
       setImmediate(async () => {
         const notifications = Array.from(writerMap.values()).map(writer => {
           const songCount = writer.uniqueSongs.size;
-          const grossRevenue = Math.round(writer.grossRevenue * 100) / 100;
-          const commissionAmount = Math.round(writer.commissionAmount * 100) / 100;
+          // No rounding - preserve full precision
+          const grossRevenue = writer.grossRevenue;
+          const commissionAmount = writer.commissionAmount;
           const netPayment = grossRevenue - commissionAmount;
           const commissionRate = commissionRates.get(writer.userId) || 0;
 
@@ -2174,9 +2171,8 @@ router.get(
       for (const writer of writerMap.values()) {
         writer.songCount = writer.uniqueSongs.size;
         delete writer.uniqueSongs;
-        writer.grossRevenue = smartRound(writer.grossRevenue);
-        writer.commissionAmount = smartRound(writer.commissionAmount);
-        writer.netRevenue = smartRound(writer.grossRevenue - writer.commissionAmount);
+        // No rounding - preserve full precision
+        writer.netRevenue = writer.grossRevenue - writer.commissionAmount;
 
         exportRows.push({
           statementId: statement.id,
@@ -2305,9 +2301,8 @@ router.get(
       for (const writer of writerMap.values()) {
         writer.songCount = writer.uniqueSongs.size;
         delete writer.uniqueSongs;
-        writer.grossRevenue = smartRound(writer.grossRevenue);
-        writer.commissionAmount = smartRound(writer.commissionAmount);
-        writer.netRevenue = smartRound(writer.grossRevenue - writer.commissionAmount);
+        // No rounding - preserve full precision
+        writer.netRevenue = writer.grossRevenue - writer.commissionAmount;
 
         exportRows.push({
           statementId: statement.id,

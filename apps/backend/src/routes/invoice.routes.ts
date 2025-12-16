@@ -69,8 +69,8 @@ function calculateCommission(type: InvoiceType, grossAmount: number): {
 
   return {
     commissionRate,
-    commissionAmount: Math.round(commissionAmount * 100) / 100, // Round to 2 decimals
-    netAmount: Math.round(netAmount * 100) / 100,
+    commissionAmount, // No rounding - preserve full precision
+    netAmount,
   };
 }
 

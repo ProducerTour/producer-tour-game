@@ -821,7 +821,19 @@ export default function PlayPage() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Game settings - for weapon editor visibility
-  const { showWeaponEditor } = useGameSettings();
+  const { showWeaponEditor, toggleWeaponEditor } = useGameSettings();
+
+  // F1 key to toggle debug panel (Leva)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F1') {
+        e.preventDefault();
+        toggleWeaponEditor();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleWeaponEditor]);
 
   // Socket connection for multiplayer and server version checks
   const { socket, isConnected } = useSocket();
@@ -982,8 +994,18 @@ export default function PlayPage() {
         onRefreshNow={refreshNow}
       />
 
-      {/* Leva controls panel - hidden by default, toggle with /weaponedit command */}
-      <Leva hidden={!showWeaponEditor} collapsed={false} />
+      {/* Leva debug panel - toggle with F1 key or /weaponedit command */}
+      <Leva
+        hidden={!showWeaponEditor}
+        collapsed={false}
+        titleBar={{ drag: true }}
+        theme={{
+          sizes: {
+            rootWidth: '380px',
+            controlWidth: '200px',
+          },
+        }}
+      />
 
       {/* Welcome Modal */}
       <AnimatePresence>

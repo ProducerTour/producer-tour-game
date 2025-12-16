@@ -1,18 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
 
-// Assets URL (Cloudflare R2 CDN)
-export const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
-
-// Animation file paths for Mixamo animations
-export const ANIMATIONS = {
-  idle: '/animations/idle.glb',
-  walking: '/animations/walking.glb',
-  running: '/animations/running.glb',
-} as const;
-
-// Flag to use Mixamo animations vs procedural
-export const USE_MIXAMO_ANIMATIONS = false;
-
 // Movement constants
 export const WALK_SPEED = 2.5;
 export const SPRINT_SPEED = 5;

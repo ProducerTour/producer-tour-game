@@ -54,6 +54,7 @@ export interface AnimationState {
   isStrafingLeft: boolean;
   isStrafingRight: boolean;
   velocity: number;
+  velocityY: number;  // Vertical velocity for fall detection
 }
 
 // Props that will be passed to avatar children (legacy)
@@ -89,10 +90,12 @@ export function PhysicsPlayerController({
     isStrafingLeft: false,
     isStrafingRight: false,
     velocity: 0,
+    velocityY: 0,
   });
 
   // Movement state
-  const facingAngle = useRef(0);
+  // Initialize facing away from camera (camera starts at +Z, so face -Z = PI radians)
+  const facingAngle = useRef(Math.PI);
   const jumpCooldown = useRef(0);
   const hasJumped = useRef(false);   // True from jump until fully grounded again
   const lastAnimState = useRef({ isMoving: false, isRunning: false, isGrounded: true });
@@ -342,7 +345,8 @@ export function PhysicsPlayerController({
       targetVx = moveDir.x * targetSpeed;
       targetVz = moveDir.z * targetSpeed;
 
-      // Update facing direction
+      // GTA-style movement: character ALWAYS faces movement direction
+      // No special crouch behavior - just face where you're going
       const tgt = Math.atan2(moveDir.x, moveDir.z);
       let diff = tgt - facingAngle.current;
       while (diff > Math.PI) diff -= Math.PI * 2;
@@ -469,9 +473,11 @@ export function PhysicsPlayerController({
     const isJumping = !grounded; // Entire airborne phase = jumping animation
     const isDancing = keys.dance && !isMoving && grounded; // Dance only when idle on ground
     const isCrouching = keys.crouch && grounded; // Crouch only when on ground
-    // Strafe detection: moving left/right without forward/backward
-    const isStrafingLeft = keys.left && !keys.forward && !keys.backward;
-    const isStrafingRight = keys.right && !keys.forward && !keys.backward;
+
+    // GTA-style: No strafe animations - character always faces movement direction
+    // Strafe would only be used in aim/combat mode (not implemented yet)
+    const isStrafingLeft = false;
+    const isStrafingRight = false;
     const velocity = Math.sqrt(vx * vx + vz * vz);
 
     const currentAnimState: AnimationState = {
@@ -484,6 +490,7 @@ export function PhysicsPlayerController({
       isStrafingLeft,
       isStrafingRight,
       velocity,
+      velocityY: vy,
     };
 
     if (onPositionChange) {

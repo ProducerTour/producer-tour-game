@@ -4,18 +4,7 @@ import { prisma } from '../lib/prisma';
 
 const router = Router();
 
-/**
- * Smart rounding for currency values
- * Uses 2 decimals normally, but preserves 4 decimals for micro-amounts
- */
-const smartRound = (value: number): number => {
-  const rounded2 = Math.round(value * 100) / 100;
-  // If rounding to 2 decimals gives 0 but value is actually > 0, use 4 decimals
-  if (rounded2 === 0 && value > 0) {
-    return Math.round(value * 10000) / 10000;
-  }
-  return rounded2;
-};
+// No rounding for currency values - preserve full precision
 
 /**
  * GET /api/dashboard/summary
@@ -427,10 +416,10 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
 
     const revenueTimeline = Array.from(monthlyGross.entries()).map(([month, gross]) => ({
       month,
-      revenue: smartRound(gross), // Gross for chart compatibility
-      grossRevenue: smartRound(gross),
-      netRevenue: smartRound(monthlyNet.get(month) || 0),
-      commission: smartRound(monthlyCommission.get(month) || 0)
+      revenue: (gross), // Gross for chart compatibility
+      grossRevenue: (gross),
+      netRevenue: (monthlyNet.get(month) || 0),
+      commission: (monthlyCommission.get(month) || 0)
     }));
 
     // Calculate month-over-month percentage changes
@@ -709,15 +698,15 @@ router.get('/platform-breakdown', authenticate, requireAdmin, async (req: AuthRe
     const breakdown = Array.from(platformMap.entries())
       .map(([platform, data]) => ({
         platform,
-        revenue: smartRound(data.revenue),
-        netRevenue: smartRound(data.netRevenue),
-        commissionAmount: smartRound(data.commissionAmount),
+        revenue: (data.revenue),
+        netRevenue: (data.netRevenue),
+        commissionAmount: (data.commissionAmount),
         count: data.count,
         offerings: Array.from(data.offerings).sort(),
         offeringBreakdown: Array.from(data.offeringRevenue.entries())
           .map(([offering, stats]) => ({
             offering,
-            revenue: smartRound(stats.revenue),
+            revenue: (stats.revenue),
             count: stats.count
           }))
           .sort((a, b) => b.revenue - a.revenue)
@@ -728,14 +717,14 @@ router.get('/platform-breakdown', authenticate, requireAdmin, async (req: AuthRe
     const serviceTypeBreakdown = Array.from(serviceTypeMap.entries())
       .map(([serviceType, data]) => ({
         serviceType,
-        revenue: smartRound(data.revenue),
-        netRevenue: smartRound(data.netRevenue),
+        revenue: (data.revenue),
+        netRevenue: (data.netRevenue),
         count: data.count
       }))
       .sort((a, b) => b.revenue - a.revenue);
 
-    const totalRevenue = smartRound(breakdown.reduce((sum, p) => sum + p.revenue, 0));
-    const totalNetRevenue = smartRound(breakdown.reduce((sum, p) => sum + p.netRevenue, 0));
+    const totalRevenue = (breakdown.reduce((sum, p) => sum + p.revenue, 0));
+    const totalNetRevenue = (breakdown.reduce((sum, p) => sum + p.netRevenue, 0));
 
     res.json({
       platforms: breakdown,
@@ -782,7 +771,7 @@ router.get('/organization-breakdown', authenticate, requireAdmin, async (req: Au
 
     res.json({
       organizations,
-      totalRevenue: smartRound(organizations.reduce((sum, o) => sum + o.revenue, 0)),
+      totalRevenue: (organizations.reduce((sum, o) => sum + o.revenue, 0)),
       totalCount: organizations.reduce((sum, o) => sum + o.count, 0)
     });
   } catch (error) {
@@ -843,13 +832,13 @@ router.get('/territory-breakdown', authenticate, async (req: AuthRequest, res: R
     // Convert to array format for frontend
     const territories = Array.from(territoryMap.entries()).map(([territory, data]) => ({
       territory,
-      revenue: smartRound(data.revenue),
+      revenue: (data.revenue),
       count: data.count
     })).sort((a, b) => b.revenue - a.revenue);
 
     res.json({
       territories,
-      totalRevenue: smartRound(territories.reduce((sum, t) => sum + t.revenue, 0)),
+      totalRevenue: (territories.reduce((sum, t) => sum + t.revenue, 0)),
       totalCount: territories.reduce((sum, t) => sum + t.count, 0)
     });
   } catch (error) {
@@ -1083,17 +1072,17 @@ router.get('/mlc-analytics', authenticate, requireAdmin, async (req: AuthRequest
     const platforms = Array.from(platformMap.entries())
       .map(([name, data]) => ({
         name,
-        revenue: smartRound(data.revenue),
-        netRevenue: smartRound(data.netRevenue),
+        revenue: (data.revenue),
+        netRevenue: (data.netRevenue),
         count: data.count,
-        avgPerItem: smartRound(data.revenue / data.count),
-        margin: smartRound(((data.revenue - data.netRevenue) / data.revenue) * 100),
+        avgPerItem: (data.revenue / data.count),
+        margin: (((data.revenue - data.netRevenue) / data.revenue) * 100),
         serviceTypes: Array.from(data.serviceTypes.entries())
           .map(([type, stats]) => ({
             type,
-            revenue: smartRound(stats.revenue),
+            revenue: (stats.revenue),
             count: stats.count,
-            percentage: smartRound((stats.revenue / data.revenue) * 100)
+            percentage: ((stats.revenue / data.revenue) * 100)
           }))
           .sort((a, b) => b.revenue - a.revenue)
       }))
@@ -1103,11 +1092,11 @@ router.get('/mlc-analytics', authenticate, requireAdmin, async (req: AuthRequest
     const serviceTypes = Array.from(serviceTypeMap.entries())
       .map(([name, data]) => ({
         name,
-        revenue: smartRound(data.revenue),
-        netRevenue: smartRound(data.netRevenue),
+        revenue: (data.revenue),
+        netRevenue: (data.netRevenue),
         count: data.count,
         platformCount: data.platforms.size,
-        avgPerItem: smartRound(data.revenue / data.count)
+        avgPerItem: (data.revenue / data.count)
       }))
       .sort((a, b) => b.revenue - a.revenue);
 
@@ -1115,8 +1104,8 @@ router.get('/mlc-analytics', authenticate, requireAdmin, async (req: AuthRequest
     const timeline = Array.from(monthlyMap.entries())
       .map(([month, data]) => ({
         month,
-        revenue: smartRound(data.revenue),
-        netRevenue: smartRound(data.netRevenue),
+        revenue: (data.revenue),
+        netRevenue: (data.netRevenue),
         count: data.count
       }))
       .sort((a, b) => a.month.localeCompare(b.month));
@@ -1125,8 +1114,8 @@ router.get('/mlc-analytics', authenticate, requireAdmin, async (req: AuthRequest
     const topSongs = Array.from(songMap.entries())
       .map(([title, data]) => ({
         title,
-        revenue: smartRound(data.revenue),
-        netRevenue: smartRound(data.netRevenue),
+        revenue: (data.revenue),
+        netRevenue: (data.netRevenue),
         performances: data.performances,
         platformCount: data.platforms.size,
         serviceTypeCount: data.serviceTypes.size
@@ -1138,8 +1127,8 @@ router.get('/mlc-analytics', authenticate, requireAdmin, async (req: AuthRequest
     const territories = Array.from(territoryMap.entries())
       .map(([territory, data]) => ({
         territory,
-        revenue: smartRound(data.revenue),
-        netRevenue: smartRound(data.netRevenue),
+        revenue: (data.revenue),
+        netRevenue: (data.netRevenue),
         count: data.count
       }))
       .sort((a, b) => b.revenue - a.revenue)
@@ -1149,17 +1138,17 @@ router.get('/mlc-analytics', authenticate, requireAdmin, async (req: AuthRequest
     const useTypes = Array.from(useTypeMap.entries())
       .map(([type, data]) => ({
         type,
-        revenue: smartRound(data.revenue),
+        revenue: (data.revenue),
         count: data.count
       }))
       .sort((a, b) => b.revenue - a.revenue);
 
     // Calculate totals and KPIs
-    const totalRevenue = smartRound(items.reduce((sum, i) => sum + Number(i.revenue), 0));
-    const totalNetRevenue = smartRound(items.reduce((sum, i) => sum + Number(i.netRevenue), 0));
-    const totalCommission = smartRound(items.reduce((sum, i) => sum + Number(i.commissionAmount), 0));
-    const avgRevenuePerItem = smartRound(totalRevenue / items.length);
-    const marginPercentage = smartRound(((totalRevenue - totalNetRevenue) / totalRevenue) * 100);
+    const totalRevenue = (items.reduce((sum, i) => sum + Number(i.revenue), 0));
+    const totalNetRevenue = (items.reduce((sum, i) => sum + Number(i.netRevenue), 0));
+    const totalCommission = (items.reduce((sum, i) => sum + Number(i.commissionAmount), 0));
+    const avgRevenuePerItem = (totalRevenue / items.length);
+    const marginPercentage = (((totalRevenue - totalNetRevenue) / totalRevenue) * 100);
 
     // Statement summary
     const statementSummary = mlcStatements.map(s => ({
@@ -1383,8 +1372,8 @@ router.get('/bmi-analytics', authenticate, requireAdmin, async (req: AuthRequest
     const territories = Array.from(territoryMap.entries())
       .map(([territory, data]) => ({
         territory,
-        revenue: smartRound(data.revenue),
-        netRevenue: smartRound(data.netRevenue),
+        revenue: (data.revenue),
+        netRevenue: (data.netRevenue),
         count: data.count,
         performances: data.performances
       }))
@@ -1394,8 +1383,8 @@ router.get('/bmi-analytics', authenticate, requireAdmin, async (req: AuthRequest
     const countries = Array.from(countryMap.entries())
       .map(([country, data]) => ({
         country,
-        revenue: smartRound(data.revenue),
-        netRevenue: smartRound(data.netRevenue),
+        revenue: (data.revenue),
+        netRevenue: (data.netRevenue),
         count: data.count,
         performances: data.performances
       }))
@@ -1405,11 +1394,11 @@ router.get('/bmi-analytics', authenticate, requireAdmin, async (req: AuthRequest
     const perfSources = Array.from(perfSourceMap.entries())
       .map(([source, data]) => ({
         source,
-        revenue: smartRound(data.revenue),
-        netRevenue: smartRound(data.netRevenue),
+        revenue: (data.revenue),
+        netRevenue: (data.netRevenue),
         count: data.count,
         performances: data.performances,
-        avgPerItem: smartRound(data.revenue / data.count)
+        avgPerItem: (data.revenue / data.count)
       }))
       .sort((a, b) => b.revenue - a.revenue);
 
@@ -1417,8 +1406,8 @@ router.get('/bmi-analytics', authenticate, requireAdmin, async (req: AuthRequest
     const timeline = Array.from(quarterMap.entries())
       .map(([quarter, data]) => ({
         quarter,
-        revenue: smartRound(data.revenue),
-        netRevenue: smartRound(data.netRevenue),
+        revenue: (data.revenue),
+        netRevenue: (data.netRevenue),
         count: data.count,
         performances: data.performances
       }))
@@ -1428,8 +1417,8 @@ router.get('/bmi-analytics', authenticate, requireAdmin, async (req: AuthRequest
     const topSongs = Array.from(songMap.entries())
       .map(([title, data]) => ({
         title,
-        revenue: smartRound(data.revenue),
-        netRevenue: smartRound(data.netRevenue),
+        revenue: (data.revenue),
+        netRevenue: (data.netRevenue),
         performances: data.performances,
         territoryCount: data.territories.size,
         perfSourceCount: data.perfSources.size
@@ -1438,12 +1427,12 @@ router.get('/bmi-analytics', authenticate, requireAdmin, async (req: AuthRequest
       .slice(0, 20);
 
     // Calculate totals and KPIs
-    const totalRevenue = smartRound(items.reduce((sum, i) => sum + Number(i.revenue), 0));
-    const totalNetRevenue = smartRound(items.reduce((sum, i) => sum + Number(i.netRevenue), 0));
-    const totalCommission = smartRound(items.reduce((sum, i) => sum + Number(i.commissionAmount), 0));
+    const totalRevenue = (items.reduce((sum, i) => sum + Number(i.revenue), 0));
+    const totalNetRevenue = (items.reduce((sum, i) => sum + Number(i.netRevenue), 0));
+    const totalCommission = (items.reduce((sum, i) => sum + Number(i.commissionAmount), 0));
     const totalPerformances = items.reduce((sum, i) => sum + Number(i.performances), 0);
-    const avgRevenuePerItem = items.length > 0 ? smartRound(totalRevenue / items.length) : 0;
-    const marginPercentage = totalRevenue > 0 ? smartRound(((totalRevenue - totalNetRevenue) / totalRevenue) * 100) : 0;
+    const avgRevenuePerItem = items.length > 0 ? (totalRevenue / items.length) : 0;
+    const marginPercentage = totalRevenue > 0 ? (((totalRevenue - totalNetRevenue) / totalRevenue) * 100) : 0;
 
     // Statement summary
     const statementSummary = bmiStatements.map(s => {
