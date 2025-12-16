@@ -44,6 +44,8 @@ export interface MixamoAnimatedAvatarProps {
   isCrouching?: boolean;
   isStrafingLeft?: boolean;
   isStrafingRight?: boolean;
+  isAiming?: boolean;
+  isFiring?: boolean;
   velocityY?: number;
   weaponType?: WeaponType;
 }
@@ -62,6 +64,8 @@ export function MixamoAnimatedAvatar({
   isCrouching = false,
   isStrafingLeft = false,
   isStrafingRight = false,
+  isAiming = false,
+  isFiring = false,
   velocityY = 0,
   weaponType = null,
 }: MixamoAnimatedAvatarProps) {
@@ -111,10 +115,22 @@ export function MixamoAnimatedAvatar({
   const crouchPistolIdleGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.pistolIdle : ANIMATIONS.idle);
   const crouchPistolWalkGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.pistolWalk : ANIMATIONS.walking);
 
-  // Rifle jump animations
-  const rifleJumpUpGltf = useGLTF(ANIMATIONS.rifleJumpUp);
-  const rifleJumpLoopGltf = useGLTF(ANIMATIONS.rifleJumpLoop);
-  const rifleJumpDownGltf = useGLTF(ANIMATIONS.rifleJumpDown);
+  // Rifle jump animation
+  const rifleJumpGltf = useGLTF(ANIMATIONS.rifleJump);
+
+  // Rifle firing animations
+  const rifleFireStillGltf = useGLTF(ANIMATIONS.rifleFireStill);
+  const rifleFireWalkGltf = useGLTF(ANIMATIONS.rifleFireWalk);
+  const rifleFireCrouchGltf = useGLTF(ANIMATIONS.rifleFireCrouch);
+
+  // Crouch rifle firing (idle specific)
+  const crouchFireRifleTapGltf = useGLTF(ANIMATIONS.crouchFireRifleTap);
+  const crouchRapidFireRifleGltf = useGLTF(ANIMATIONS.crouchRapidFireRifle);
+
+  // Rifle reload animations
+  const rifleReloadStandGltf = useGLTF(ANIMATIONS.rifleReloadStand);
+  const rifleReloadWalkGltf = useGLTF(ANIMATIONS.rifleReloadWalk);
+  const rifleReloadCrouchGltf = useGLTF(ANIMATIONS.rifleReloadCrouch);
 
   // Clone scene for this instance and find foot bones
   const clonedScene = useMemo(() => {
@@ -156,7 +172,11 @@ export function MixamoAnimatedAvatar({
     'standToCrouch', 'crouchToStand', 'crouchToSprint',
     'crouchRifleIdle', 'crouchRifleWalk', 'crouchRifleStrafeLeft', 'crouchRifleStrafeRight',
     'crouchPistolIdle', 'crouchPistolWalk',
-    'rifleJumpUp', 'rifleJumpLoop', 'rifleJumpDown',
+    'rifleJump',
+    // Firing and reload animations
+    'rifleFireStill', 'rifleFireWalk', 'rifleFireCrouch',
+    'crouchFireRifleTap', 'crouchRapidFireRifle',
+    'rifleReloadStand', 'rifleReloadWalk', 'rifleReloadCrouch',
   ];
 
   // Correction quaternion for Mixamo→RPM Hips rotation (90° around X-axis)
@@ -310,10 +330,22 @@ export function MixamoAnimatedAvatar({
       addAnim(crouchPistolWalkGltf, 'crouchPistolWalk');
     }
 
-    // Rifle jump animations
-    addAnim(rifleJumpUpGltf, 'rifleJumpUp');
-    addAnim(rifleJumpLoopGltf, 'rifleJumpLoop');
-    addAnim(rifleJumpDownGltf, 'rifleJumpDown');
+    // Rifle jump animation
+    addAnim(rifleJumpGltf, 'rifleJump');
+
+    // Rifle firing animations
+    addAnim(rifleFireStillGltf, 'rifleFireStill');
+    addAnim(rifleFireWalkGltf, 'rifleFireWalk');
+    addAnim(rifleFireCrouchGltf, 'rifleFireCrouch');
+
+    // Crouch rifle firing (idle specific)
+    addAnim(crouchFireRifleTapGltf, 'crouchFireRifleTap');
+    addAnim(crouchRapidFireRifleGltf, 'crouchRapidFireRifle');
+
+    // Rifle reload animations
+    addAnim(rifleReloadStandGltf, 'rifleReloadStand');
+    addAnim(rifleReloadWalkGltf, 'rifleReloadWalk');
+    addAnim(rifleReloadCrouchGltf, 'rifleReloadCrouch');
 
     return anims;
   }, [
@@ -329,7 +361,10 @@ export function MixamoAnimatedAvatar({
     crouchRifleIdleGltf.animations, crouchRifleWalkGltf.animations,
     crouchRifleStrafeLeftGltf.animations, crouchRifleStrafeRightGltf.animations,
     crouchPistolIdleGltf.animations, crouchPistolWalkGltf.animations,
-    rifleJumpUpGltf.animations, rifleJumpLoopGltf.animations, rifleJumpDownGltf.animations,
+    rifleJumpGltf.animations,
+    rifleFireStillGltf.animations, rifleFireWalkGltf.animations, rifleFireCrouchGltf.animations,
+    crouchFireRifleTapGltf.animations, crouchRapidFireRifleGltf.animations,
+    rifleReloadStandGltf.animations, rifleReloadWalkGltf.animations, rifleReloadCrouchGltf.animations,
   ]);
 
   // Setup animations with the cloned scene
@@ -338,7 +373,6 @@ export function MixamoAnimatedAvatar({
   // Configure animation properties once on setup
   useEffect(() => {
     if (!actions) return;
-    console.log('🎬 Available animations:', Object.keys(actions));
     configureAllActions(actions);
   }, [actions]);
 
@@ -353,9 +387,11 @@ export function MixamoAnimatedAvatar({
     isDancing,
     isStrafeLeft: isStrafingLeft,
     isStrafeRight: isStrafingRight,
+    isAiming,
+    isFiring,
     weapon: (weaponType ?? 'none') as FSMWeaponType,
     velocityY,
-  }), [isMoving, isRunning, isGrounded, isJumping, isCrouching, isDancing, isStrafingLeft, isStrafingRight, weaponType, velocityY]);
+  }), [isMoving, isRunning, isGrounded, isJumping, isCrouching, isDancing, isStrafingLeft, isStrafingRight, isAiming, isFiring, weaponType, velocityY]);
 
   // Use the FSM for all animation state management
   // The FSM handles transitions, crossfading, one-shot completions, and fallbacks
@@ -392,8 +428,52 @@ export function MixamoAnimatedAvatar({
       rifleRunRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
       rifleRunRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
     }, { collapsed: true }),
+    'Fire Still': folder({
+      rifleFireStillOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+      rifleFireStillOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+      rifleFireStillRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
+      rifleFireStillRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
+      rifleFireStillRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
+    }, { collapsed: true }),
+    'Fire Walk': folder({
+      rifleFireWalkOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+      rifleFireWalkOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+      rifleFireWalkRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
+      rifleFireWalkRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
+      rifleFireWalkRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
+    }, { collapsed: true }),
+    'Fire Crouch': folder({
+      rifleFireCrouchOffset: { value: -0.28, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+      rifleFireCrouchOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+      rifleFireCrouchRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
+      rifleFireCrouchRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
+      rifleFireCrouchRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
+    }, { collapsed: true }),
+    'Fire Crouch Idle': folder({
+      crouchRapidFireOffset: { value: -0.5, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+      crouchRapidFireOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+      crouchRapidFireRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
+      crouchRapidFireRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
+      crouchRapidFireRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
+    }, { collapsed: true }),
+    'Fire Crouch Tap': folder({
+      crouchFireTapOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+      crouchFireTapOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+      crouchFireTapRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
+      crouchFireTapRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
+      crouchFireTapRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
+    }, { collapsed: true }),
   });
-  const { rifleIdleOffset, rifleIdleOffsetX, rifleIdleRotY, rifleWalkOffset, rifleWalkOffsetX, rifleWalkRotY, rifleRunOffset, rifleRunOffsetX, rifleRunRotX, rifleRunRotY, rifleRunRotZ } = rifleControls;
+  const {
+    rifleIdleOffset, rifleIdleOffsetX, rifleIdleRotY,
+    rifleWalkOffset, rifleWalkOffsetX, rifleWalkRotY,
+    rifleRunOffset, rifleRunOffsetX, rifleRunRotX, rifleRunRotY, rifleRunRotZ,
+    rifleFireStillOffset, rifleFireStillOffsetX, rifleFireStillRotX, rifleFireStillRotY, rifleFireStillRotZ,
+    rifleFireWalkOffset, rifleFireWalkOffsetX, rifleFireWalkRotX, rifleFireWalkRotY, rifleFireWalkRotZ,
+    rifleFireCrouchOffset, rifleFireCrouchOffsetX, rifleFireCrouchRotX, rifleFireCrouchRotY, rifleFireCrouchRotZ,
+    crouchRapidFireOffset, crouchRapidFireOffsetX, crouchRapidFireRotX, crouchRapidFireRotY, crouchRapidFireRotZ,
+    crouchFireTapOffset, crouchFireTapOffsetX, crouchFireTapRotX, crouchFireTapRotY, crouchFireTapRotZ,
+  } = rifleControls;
 
   const pistolControls = useControls('Pistol Anim', {
     'Idle': folder({
@@ -458,11 +538,11 @@ export function MixamoAnimatedAvatar({
       targetOffsetY = transitionOffset;
     }
     // Rifle states
-    else if (currentState === 'rifleIdle') {
+    else if (currentState === 'rifleIdle' || currentState === 'rifleAimIdle') {
       targetOffsetY = rifleIdleOffset;
       targetOffsetX = rifleIdleOffsetX;
       targetRotY = rifleIdleRotY;
-    } else if (currentState === 'rifleWalk') {
+    } else if (currentState === 'rifleWalk' || currentState === 'rifleAimWalk') {
       targetOffsetY = rifleWalkOffset;
       targetOffsetX = rifleWalkOffsetX;
       targetRotY = rifleWalkRotY;
@@ -472,6 +552,40 @@ export function MixamoAnimatedAvatar({
       targetRotX = rifleRunRotX;
       targetRotY = rifleRunRotY;
       targetRotZ = rifleRunRotZ;
+    }
+    // Rifle firing states
+    else if (currentState === 'rifleFireStill') {
+      targetOffsetY = rifleFireStillOffset;
+      targetOffsetX = rifleFireStillOffsetX;
+      targetRotX = rifleFireStillRotX;
+      targetRotY = rifleFireStillRotY;
+      targetRotZ = rifleFireStillRotZ;
+    } else if (currentState === 'rifleFireWalk') {
+      targetOffsetY = rifleFireWalkOffset;
+      targetOffsetX = rifleFireWalkOffsetX;
+      targetRotX = rifleFireWalkRotX;
+      targetRotY = rifleFireWalkRotY;
+      targetRotZ = rifleFireWalkRotZ;
+    } else if (currentState === 'rifleFireCrouch') {
+      targetOffsetY = rifleFireCrouchOffset;
+      targetOffsetX = rifleFireCrouchOffsetX;
+      targetRotX = rifleFireCrouchRotX;
+      targetRotY = rifleFireCrouchRotY;
+      targetRotZ = rifleFireCrouchRotZ;
+    }
+    // Crouch idle fire states
+    else if (currentState === 'crouchRapidFireRifle') {
+      targetOffsetY = crouchRapidFireOffset;
+      targetOffsetX = crouchRapidFireOffsetX;
+      targetRotX = crouchRapidFireRotX;
+      targetRotY = crouchRapidFireRotY;
+      targetRotZ = crouchRapidFireRotZ;
+    } else if (currentState === 'crouchFireRifleTap') {
+      targetOffsetY = crouchFireTapOffset;
+      targetOffsetX = crouchFireTapOffsetX;
+      targetRotX = crouchFireTapRotX;
+      targetRotY = crouchFireTapRotY;
+      targetRotZ = crouchFireTapRotZ;
     }
     // Pistol states
     else if (currentState === 'pistolIdle') {
@@ -517,6 +631,7 @@ export function MixamoAnimatedAvatar({
         <WeaponAttachment
           weaponType={weaponType}
           avatarRef={avatarRef}
+          currentAnimState={currentState}
         />
       )}
     </group>

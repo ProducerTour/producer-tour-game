@@ -28,6 +28,11 @@ interface CombatState {
   isInCombat: boolean;
   lastDamageTime: number;
 
+  // Aiming state
+  isAiming: boolean;
+  isFiring: boolean;
+  aimStartTime: number;
+
   // Weapon state
   currentWeapon: 'none' | 'rifle' | 'pistol';
   ammo: Record<string, number>;
@@ -47,6 +52,8 @@ interface CombatState {
   heal: (amount: number) => void;
 
   setWeapon: (weapon: 'none' | 'rifle' | 'pistol') => void;
+  setAiming: (isAiming: boolean) => void;
+  setFiring: (isFiring: boolean) => void;
   fire: () => boolean; // Returns true if weapon fired
   reload: () => void;
 
@@ -98,6 +105,10 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   isInCombat: false,
   lastDamageTime: 0,
 
+  isAiming: false,
+  isFiring: false,
+  aimStartTime: 0,
+
   currentWeapon: 'none',
   ammo: {
     rifle: 30,
@@ -143,6 +154,13 @@ export const useCombatStore = create<CombatState>((set, get) => ({
 
   // Weapon actions
   setWeapon: (weapon) => set({ currentWeapon: weapon }),
+
+  setAiming: (isAiming) => set({
+    isAiming,
+    aimStartTime: isAiming ? Date.now() : 0,
+  }),
+
+  setFiring: (isFiring) => set({ isFiring }),
 
   fire: () => {
     const state = get();
@@ -262,6 +280,9 @@ export const useCombatStore = create<CombatState>((set, get) => ({
     playerHealth: 100,
     isInCombat: false,
     lastDamageTime: 0,
+    isAiming: false,
+    isFiring: false,
+    aimStartTime: 0,
     ammo: { rifle: 30, pistol: 12 },
     isReloading: false,
     lastFireTime: 0,

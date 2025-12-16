@@ -142,27 +142,75 @@ export function WorldHealthBar({ target, offset = [0, 2, 0] }: WorldHealthBarPro
 
 // Crosshair for aiming
 export function Crosshair() {
-  const { currentWeapon, isReloading } = useCombatStore();
+  const { currentWeapon, isReloading, isAiming, isFiring } = useCombatStore();
 
   if (currentWeapon === 'none') return null;
 
+  // Different crosshair sizes based on state
+  // Aiming = tight crosshair, Hip-fire = wider crosshair
+  const spread = isAiming ? 3 : 6;  // Distance from center to cross lines
+  const lineLength = isAiming ? 3 : 2;  // Length of cross lines
+  const dotSize = isAiming ? 'w-1 h-1' : 'w-1.5 h-1.5';
+  const lineWidth = isAiming ? 'w-0.5' : 'w-[3px]';
+  const lineHeight = isAiming ? 'h-0.5' : 'h-[3px]';
+
+  // Color feedback
+  const color = isFiring ? 'bg-red-400' : isAiming ? 'bg-white' : 'bg-white/70';
+  const shadowColor = isFiring ? 'shadow-red-500/50' : 'shadow-white/50';
+
   return (
     <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
-      <div className={`relative ${isReloading ? 'opacity-50' : 'opacity-100'} transition-opacity`}>
-        {/* Center dot */}
-        <div className="w-1.5 h-1.5 bg-white rounded-full shadow-lg" />
+      <div
+        className={`relative transition-all duration-100 ${isReloading ? 'opacity-50' : 'opacity-100'}`}
+        style={{ transform: isFiring ? 'scale(1.2)' : 'scale(1)' }}
+      >
+        {/* Center dot - only show when aiming */}
+        {isAiming && (
+          <div className={`${dotSize} ${color} rounded-full shadow-lg ${shadowColor}`} />
+        )}
 
-        {/* Cross lines */}
+        {/* Cross lines with dynamic spread */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
           {/* Top */}
-          <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-0.5 h-2 bg-white/80" />
+          <div
+            className={`absolute left-1/2 -translate-x-1/2 ${lineWidth} ${color} transition-all duration-100`}
+            style={{
+              top: `-${spread + lineLength}px`,
+              height: `${lineLength * 4}px`
+            }}
+          />
           {/* Bottom */}
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-0.5 h-2 bg-white/80" />
+          <div
+            className={`absolute left-1/2 -translate-x-1/2 ${lineWidth} ${color} transition-all duration-100`}
+            style={{
+              top: `${spread}px`,
+              height: `${lineLength * 4}px`
+            }}
+          />
           {/* Left */}
-          <div className="absolute top-1/2 -left-4 -translate-y-1/2 w-2 h-0.5 bg-white/80" />
+          <div
+            className={`absolute top-1/2 -translate-y-1/2 ${lineHeight} ${color} transition-all duration-100`}
+            style={{
+              left: `-${spread + lineLength}px`,
+              width: `${lineLength * 4}px`
+            }}
+          />
           {/* Right */}
-          <div className="absolute top-1/2 left-2 -translate-y-1/2 w-2 h-0.5 bg-white/80" />
+          <div
+            className={`absolute top-1/2 -translate-y-1/2 ${lineHeight} ${color} transition-all duration-100`}
+            style={{
+              left: `${spread}px`,
+              width: `${lineLength * 4}px`
+            }}
+          />
         </div>
+
+        {/* Aim mode indicator */}
+        {isAiming && (
+          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs text-white/60 font-mono">
+            ADS
+          </div>
+        )}
       </div>
     </div>
   );

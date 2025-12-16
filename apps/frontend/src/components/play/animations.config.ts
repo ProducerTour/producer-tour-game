@@ -35,9 +35,9 @@ export const ANIMATION_CONFIG: Record<string, AnimationConfig> = {
   running: { url: anim('running.glb'), loop: true, fadeTime: 0.15 },
 
   // Jumps (one-shot, RPM native)
-  jump: { url: anim('jump.glb'), loop: false, fadeTime: 0.1, clamp: true },
-  jumpJog: { url: anim('jump_jog.glb'), loop: false, fadeTime: 0.1, clamp: true },
-  jumpRun: { url: anim('jump_run.glb'), loop: false, fadeTime: 0.1, clamp: true },
+  jump: { url: anim('jump.glb'), loop: false, fadeTime: 0.2, clamp: true },
+  jumpJog: { url: anim('jump_jog.glb'), loop: false, fadeTime: 0.2, clamp: true },
+  jumpRun: { url: anim('jump_run.glb'), loop: false, fadeTime: 0.2, clamp: true },
 
   // Dances (RPM native)
   dance1: { url: anim('dance1.glb'), loop: true, fadeTime: 0.3 },
@@ -64,17 +64,34 @@ export const ANIMATION_CONFIG: Record<string, AnimationConfig> = {
   crouchPistolWalk: { url: anim('crouch_pistol_walk.glb'), loop: true, fadeTime: 0.15, fallback: 'crouchWalk', mixamo: true },
 
   // Weapon standing (Mixamo)
-  rifleIdle: { url: anim('rifle_idle.glb'), loop: true, fadeTime: 0.15, fallback: 'idle', mixamo: true },
-  rifleWalk: { url: anim('rifle_walk.glb'), loop: true, fadeTime: 0.15, fallback: 'walking', mixamo: true },
-  rifleRun: { url: anim('rifle_run.glb'), loop: true, fadeTime: 0.15, fallback: 'running', mixamo: true },
+  rifleIdle: { url: anim('rifle_idle.glb'), loop: true, fadeTime: 0.2, fallback: 'idle', mixamo: true },
+  rifleWalk: { url: anim('rifle_walk.glb'), loop: true, fadeTime: 0.2, fallback: 'walking', mixamo: true },
+  rifleRun: { url: anim('rifle_run.glb'), loop: true, fadeTime: 0.2, fallback: 'running', mixamo: true },
   pistolIdle: { url: anim('pistol_idle.glb'), loop: true, fadeTime: 0.15, fallback: 'idle', mixamo: true },
   pistolWalk: { url: anim('pistol_walk.glb'), loop: true, fadeTime: 0.15, fallback: 'walking', mixamo: true },
   pistolRun: { url: anim('pistol_run.glb'), loop: true, fadeTime: 0.15, fallback: 'running', mixamo: true },
 
-  // Rifle jump (Mixamo, 3-part jump: up, loop, down)
-  rifleJumpUp: { url: anim('rifle_jump_up.glb'), loop: false, fadeTime: 0.1, clamp: true, mixamo: true },
-  rifleJumpLoop: { url: anim('rifle_jump_loop.glb'), loop: true, fadeTime: 0.1, mixamo: true },
-  rifleJumpDown: { url: anim('rifle_jump_down.glb'), loop: false, fadeTime: 0.1, clamp: true, mixamo: true },
+  // Rifle jump (Mixamo, single animation)
+  rifleJump: { url: anim('rifle_jump.glb'), loop: false, fadeTime: 0.25, clamp: true, mixamo: true },
+
+  // Rifle firing (Mixamo, looping for continuous fire)
+  rifleFireStill: { url: anim('firing_rifle_still.glb'), loop: true, fadeTime: 0.1, clamp: false, mixamo: true },
+  rifleFireWalk: { url: anim('firing_rifle_walk.glb'), loop: true, fadeTime: 0.1, clamp: false, mixamo: true },
+  rifleFireCrouch: { url: anim('firing_rifle_crouch.glb'), loop: true, fadeTime: 0.1, clamp: false, mixamo: true },
+
+  // Crouch rifle firing - idle specific (Mixamo)
+  crouchFireRifleTap: { url: anim('crouch_fire_rifle_tap.glb'), loop: false, fadeTime: 0.1, clamp: false, mixamo: true },
+  crouchRapidFireRifle: { url: anim('crouch_rapid_fire_rifle.glb'), loop: true, fadeTime: 0.1, clamp: false, mixamo: true },
+
+  // Rifle transitions (Mixamo)
+  rifleStandToKneel: { url: anim('rifle_stand_to_kneel.glb'), loop: false, fadeTime: 0.15, clamp: true, mixamo: true },
+  rifleCrouchBackward: { url: anim('rifle_crouch_backward_walk.glb'), loop: true, fadeTime: 0.15, mixamo: true },
+
+  // Rifle reloading (Mixamo)
+  rifleReloadStand: { url: anim('rifle_reload_stand.glb'), loop: false, fadeTime: 0.2, clamp: false, mixamo: true },
+  rifleReloadWalk: { url: anim('rifle_reload_walk.glb'), loop: false, fadeTime: 0.2, clamp: false, mixamo: true },
+  rifleReloadRun: { url: anim('rifle_reload_run.glb'), loop: false, fadeTime: 0.2, clamp: false, mixamo: true },
+  rifleReloadCrouch: { url: anim('rifle_reload_crouch.glb'), loop: false, fadeTime: 0.2, clamp: false, mixamo: true },
 } as const;
 
 /** Animation name type for type safety */

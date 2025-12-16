@@ -10,6 +10,8 @@ export interface KeyState {
   dance: boolean;
   toggleWeapon: boolean;
   crouch: boolean;
+  aim: boolean;     // Right mouse button held
+  fire: boolean;    // Left mouse button pressed
 }
 
 // Input buffer for responsive combat
@@ -42,6 +44,8 @@ export function useKeyboardControls(): KeyboardControlsResult {
     dance: false,
     toggleWeapon: false,
     crouch: false,
+    aim: false,
+    fire: false,
   });
 
   // Input buffer for combat/action inputs
@@ -165,15 +169,50 @@ export function useKeyboardControls(): KeyboardControlsResult {
     }
   }, []);
 
+  // Mouse handlers for aim (right-click) and fire (left-click)
+  const handleMouseDown = useCallback((e: MouseEvent) => {
+    // Right-click = aim
+    if (e.button === 2) {
+      e.preventDefault();
+      setKeys((k) => ({ ...k, aim: true }));
+    }
+    // Left-click = fire
+    if (e.button === 0) {
+      setKeys((k) => ({ ...k, fire: true }));
+    }
+  }, []);
+
+  const handleMouseUp = useCallback((e: MouseEvent) => {
+    // Right-click release = stop aiming
+    if (e.button === 2) {
+      setKeys((k) => ({ ...k, aim: false }));
+    }
+    // Left-click release = stop firing
+    if (e.button === 0) {
+      setKeys((k) => ({ ...k, fire: false }));
+    }
+  }, []);
+
+  // Prevent context menu on right-click
+  const handleContextMenu = useCallback((e: MouseEvent) => {
+    e.preventDefault();
+  }, []);
+
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('contextmenu', handleContextMenu);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [handleKeyDown, handleKeyUp]);
+  }, [handleKeyDown, handleKeyUp, handleMouseDown, handleMouseUp, handleContextMenu]);
 
   // Return keys with buffer functions
   return {

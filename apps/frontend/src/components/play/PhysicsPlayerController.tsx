@@ -8,6 +8,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { RigidBody, CapsuleCollider, useRapier, type RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
 import { useKeyboardControls } from './hooks/useKeyboardControls';
+import { useCombatStore } from './combat/useCombatStore';
 
 // Movement constants - tuned for smooth motion
 const WALK_SPEED = 2.5;
@@ -29,7 +30,7 @@ const CROUCHING_Y_OFFSET = 0.5;     // Collider Y offset when crouching (flush w
 
 // Ground detection
 const COYOTE_TIME = 0.1;            // Grace period after leaving ground
-const JUMP_COOLDOWN = 0.3;          // Cooldown between jumps (prevents spam)
+const JUMP_COOLDOWN = 0.35;         // Cooldown between jumps (prevents spam)
 
 // Physics stability - prevents explosions and glitches
 const MAX_VELOCITY = 15;            // Cap horizontal velocity
@@ -39,6 +40,13 @@ const MIN_GROUND_Y = -5;            // Minimum Y position (fall recovery thresho
 // Camera collision
 const CAMERA_COLLISION_OFFSET = 0.3;  // Pull camera in front of walls
 const MIN_CAMERA_DISTANCE = 1.5;      // Minimum distance from player
+
+// Aim mode camera parameters (GTA-style over-the-shoulder)
+const AIM_CAMERA_DISTANCE = 2.5;      // Closer to player when aiming
+const AIM_CAMERA_OFFSET_X = 0.6;      // Offset right for over-shoulder view
+const AIM_CAMERA_OFFSET_Y = 1.7;      // Height offset when aiming
+const AIM_SPEED_MULTIPLIER = 0.5;     // Move 50% slower when aiming
+const CAMERA_TRANSITION_SPEED = 8;    // How fast camera transitions to/from aim mode
 
 // Spawn position - on the basketball court
 const SPAWN_POSITION: [number, number, number] = [30, 1, -20];
@@ -53,6 +61,8 @@ export interface AnimationState {
   isCrouching: boolean;
   isStrafingLeft: boolean;
   isStrafingRight: boolean;
+  isAiming: boolean;
+  isFiring: boolean;
   velocity: number;
   velocityY: number;  // Vertical velocity for fall detection
 }
@@ -79,6 +89,13 @@ export function PhysicsPlayerController({
   const { camera, gl, scene } = useThree();
   const { rapier, world } = useRapier();
 
+  // Combat store for aim/fire state
+  const { currentWeapon, isAiming, setAiming, isFiring, setFiring, fire } = useCombatStore();
+
+  // Minimum fire animation duration (semi-auto feel, prevents spam)
+  const MIN_FIRE_DURATION = 200; // ms
+  const lastFireStart = useRef<number>(0);
+
   // Animation state (React state for children)
   const [animState, setAnimState] = useState<AnimationState>({
     isMoving: false,
@@ -89,6 +106,8 @@ export function PhysicsPlayerController({
     isCrouching: false,
     isStrafingLeft: false,
     isStrafingRight: false,
+    isAiming: false,
+    isFiring: false,
     velocity: 0,
     velocityY: 0,
   });
@@ -111,6 +130,9 @@ export function PhysicsPlayerController({
   // Ground detection state
   const groundedTime = useRef(0);        // Time since last grounded
   const wasGrounded = useRef(true);      // Previous frame grounded state
+
+  // Aim mode camera transition (0 = normal, 1 = fully aimed)
+  const aimTransition = useRef(0);
 
   // Reusable vectors to avoid GC pressure
   const vectors = useMemo(() => ({
@@ -160,15 +182,27 @@ export function PhysicsPlayerController({
     return () => clearTimeout(timeout);
   }, []);
 
-  // Mouse camera orbit
+  // Mouse camera orbit - modified for aim mode
   useEffect(() => {
     const canvas = gl.domElement;
     const sensitivity = 0.003;
+    const aimSensitivity = 0.002; // Slightly slower when aiming
 
     const onMouseDown = (e: MouseEvent) => {
-      if (e.button === 0 || e.button === 2) {
-        isDragging.current = true;
-        lastMouse.current = { x: e.clientX, y: e.clientY };
+      // Left-click (button 0) - orbit camera (or fire when aiming, handled in useKeyboardControls)
+      // Right-click (button 2) - aim (handled in useKeyboardControls) or orbit if no weapon
+      if (e.button === 0) {
+        // Only orbit with left-click if NOT aiming
+        if (!isAiming) {
+          isDragging.current = true;
+          lastMouse.current = { x: e.clientX, y: e.clientY };
+        }
+      } else if (e.button === 2) {
+        // Right-click: orbit only if no weapon equipped
+        if (currentWeapon === 'none') {
+          isDragging.current = true;
+          lastMouse.current = { x: e.clientX, y: e.clientY };
+        }
       }
     };
 
@@ -177,6 +211,16 @@ export function PhysicsPlayerController({
     };
 
     const onMouseMove = (e: MouseEvent) => {
+      // When aiming, mouse ALWAYS controls camera look (even without dragging)
+      if (isAiming) {
+        const sens = aimSensitivity;
+        orbitAngle.current -= (e.clientX - lastMouse.current.x) * sens;
+        pitchAngle.current = Math.max(-0.2, Math.min(1.2, pitchAngle.current + (e.clientY - lastMouse.current.y) * sens));
+        lastMouse.current = { x: e.clientX, y: e.clientY };
+        return;
+      }
+
+      // Normal orbit when dragging
       if (!isDragging.current) return;
       orbitAngle.current -= (e.clientX - lastMouse.current.x) * sensitivity;
       pitchAngle.current = Math.max(-0.2, Math.min(1.2, pitchAngle.current + (e.clientY - lastMouse.current.y) * sensitivity));
@@ -198,7 +242,42 @@ export function PhysicsPlayerController({
       canvas.removeEventListener('contextmenu', onContextMenu);
       window.removeEventListener('mouseup', onMouseUp);
     };
-  }, [gl]);
+  }, [gl, isAiming, currentWeapon]);
+
+  // Sync aim/fire keys with combat store
+  useEffect(() => {
+    // Only aim if we have a weapon equipped
+    const shouldAim = keys.aim && currentWeapon !== 'none';
+    if (shouldAim !== isAiming) {
+      setAiming(shouldAim);
+    }
+  }, [keys.aim, currentWeapon, isAiming, setAiming]);
+
+  // Track firing state for animation with minimum duration (prevents spam clicking)
+  useEffect(() => {
+    const shouldFire = keys.fire && currentWeapon !== 'none';
+
+    if (shouldFire && !isFiring) {
+      // Starting to fire - record start time
+      lastFireStart.current = Date.now();
+      setFiring(true);
+    } else if (!shouldFire && isFiring) {
+      // Trying to stop firing - check if minimum duration has passed
+      const elapsed = Date.now() - lastFireStart.current;
+      if (elapsed >= MIN_FIRE_DURATION) {
+        setFiring(false);
+      } else {
+        // Wait for minimum duration before stopping
+        const remaining = MIN_FIRE_DURATION - elapsed;
+        setTimeout(() => {
+          // Only stop if still not pressing fire
+          if (!keys.fire) {
+            setFiring(false);
+          }
+        }, remaining);
+      }
+    }
+  }, [keys.fire, currentWeapon, isFiring, setFiring]);
 
   useFrame((_, delta) => {
     const rb = rigidBodyRef.current;
@@ -210,16 +289,44 @@ export function PhysicsPlayerController({
       position.set(t.x, t.y, t.z);
     }
 
+    // Continuous fire while holding button (fire() handles rate limiting)
+    if (isFiring && currentWeapon !== 'none') {
+      fire();
+    }
+
+    // === AIM CAMERA TRANSITION ===
+    // Smoothly interpolate between normal and aim camera
+    const targetAimT = isAiming ? 1 : 0;
+    aimTransition.current += (targetAimT - aimTransition.current) * Math.min(1, CAMERA_TRANSITION_SPEED * delta);
+    const aimT = aimTransition.current;
+
     // Camera - smoother interpolation
-    const maxDist = 5;
+    // Normal camera: distance 5, centered behind player
+    // Aim camera: distance 2.5, offset right (over-the-shoulder)
+    const normalDist = 5;
+    const aimDist = AIM_CAMERA_DISTANCE;
+    const maxDist = normalDist + (aimDist - normalDist) * aimT;
+
     const hDist = maxDist * Math.cos(pitchAngle.current);
-    const vOff = maxDist * Math.sin(pitchAngle.current) + 1.5;
+    const normalVOff = normalDist * Math.sin(pitchAngle.current) + 1.5;
+    const aimVOff = AIM_CAMERA_OFFSET_Y;
+    const vOff = normalVOff + (aimVOff - normalVOff) * aimT;
+
+    // Horizontal offset for over-the-shoulder (only when aiming)
+    const shoulderOffsetX = AIM_CAMERA_OFFSET_X * aimT;
+
+    // Calculate camera right direction for shoulder offset
+    const camRight = new THREE.Vector3(
+      Math.cos(orbitAngle.current),
+      0,
+      -Math.sin(orbitAngle.current)
+    );
 
     // Calculate desired camera position
     desiredCameraPos.set(
-      position.x + Math.sin(orbitAngle.current) * hDist,
+      position.x + Math.sin(orbitAngle.current) * hDist + camRight.x * shoulderOffsetX,
       position.y + vOff,
-      position.z + Math.cos(orbitAngle.current) * hDist
+      position.z + Math.cos(orbitAngle.current) * hDist + camRight.z * shoulderOffsetX
     );
 
     // Camera collision - raycast from player head toward desired camera position
@@ -291,8 +398,9 @@ export function PhysicsPlayerController({
     if (isCurrentlyGrounded) {
       groundedTime.current = 0;
       wasGrounded.current = true;
-      // Reset hasJumped only when truly grounded AND stable
-      if (hasJumped.current && Math.abs(verticalVelocity) < 0.5) {
+      // Reset hasJumped only when truly grounded AND stable AND cooldown expired
+      // This prevents flickering ground detection from allowing rapid jumps
+      if (hasJumped.current && Math.abs(verticalVelocity) < 0.5 && jumpCooldown.current <= 0) {
         hasJumped.current = false;
       }
     } else {
@@ -319,39 +427,58 @@ export function PhysicsPlayerController({
     // Crouch state for this frame
     const wantsToCrouch = keys.crouch && grounded;
 
-    if (hasInput) {
-      const len = Math.sqrt(ix * ix + iz * iz);
-      ix /= len;
-      iz /= len;
+    if (hasInput || isAiming) {
+      // When aiming, character faces camera direction
+      // Otherwise, normalize input for diagonal movement
+      if (hasInput) {
+        const len = Math.sqrt(ix * ix + iz * iz);
+        ix /= len;
+        iz /= len;
+      }
 
       camera.getWorldDirection(cameraDir);
       cameraDir.y = 0;
       cameraDir.normalize();
       cameraRight.crossVectors(cameraDir, up).normalize();
 
-      moveDir.set(0, 0, 0);
-      moveDir.addScaledVector(cameraDir, -iz);
-      moveDir.addScaledVector(cameraRight, ix);
-      moveDir.normalize();
+      if (hasInput) {
+        moveDir.set(0, 0, 0);
+        moveDir.addScaledVector(cameraDir, -iz);
+        moveDir.addScaledVector(cameraRight, ix);
+        moveDir.normalize();
 
-      // Determine target speed based on state
-      let targetSpeed = WALK_SPEED;
-      if (wantsToCrouch) {
-        targetSpeed = CROUCH_SPEED;  // Slow when crouching
-      } else if (keys.sprint) {
-        targetSpeed = SPRINT_SPEED;
+        // Determine target speed based on state
+        // Can't sprint while aiming OR firing (shooting forces walk speed)
+        let targetSpeed = WALK_SPEED;
+        if (wantsToCrouch) {
+          targetSpeed = CROUCH_SPEED;  // Slow when crouching
+        } else if (keys.sprint && !isAiming && !isFiring) {
+          targetSpeed = SPRINT_SPEED;  // No sprinting while aiming or firing
+        }
+
+        // Slow down when aiming
+        if (isAiming) {
+          targetSpeed *= AIM_SPEED_MULTIPLIER;
+        }
+
+        targetVx = moveDir.x * targetSpeed;
+        targetVz = moveDir.z * targetSpeed;
       }
 
-      targetVx = moveDir.x * targetSpeed;
-      targetVz = moveDir.z * targetSpeed;
-
-      // GTA-style movement: character ALWAYS faces movement direction
-      // No special crouch behavior - just face where you're going
-      const tgt = Math.atan2(moveDir.x, moveDir.z);
-      let diff = tgt - facingAngle.current;
-      while (diff > Math.PI) diff -= Math.PI * 2;
-      while (diff < -Math.PI) diff += Math.PI * 2;
-      facingAngle.current += diff * Math.min(1, delta * ROTATION_SPEED);
+      // === CHARACTER ROTATION ===
+      if (isAiming) {
+        // When aiming: character faces camera direction (instant snap)
+        // Camera direction points INTO the screen, so we use cameraDir
+        const tgt = Math.atan2(-cameraDir.x, -cameraDir.z);
+        facingAngle.current = tgt;
+      } else if (hasInput) {
+        // GTA-style movement: character ALWAYS faces movement direction
+        const tgt = Math.atan2(moveDir.x, moveDir.z);
+        let diff = tgt - facingAngle.current;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        facingAngle.current += diff * Math.min(1, delta * ROTATION_SPEED);
+      }
     }
 
     // === SMOOTH ACCELERATION / INSTANT STOP ===
@@ -469,15 +596,15 @@ export function PhysicsPlayerController({
 
     // Compute animation state
     const isMoving = hasInput;
-    const isRunning = isMoving && keys.sprint;
+    const isRunning = isMoving && keys.sprint && !isAiming && !isFiring; // Can't run while firing
     const isJumping = !grounded; // Entire airborne phase = jumping animation
-    const isDancing = keys.dance && !isMoving && grounded; // Dance only when idle on ground
+    const isDancing = keys.dance && !isMoving && grounded && !isAiming; // Dance only when idle on ground, not aiming
     const isCrouching = keys.crouch && grounded; // Crouch only when on ground
 
-    // GTA-style: No strafe animations - character always faces movement direction
-    // Strafe would only be used in aim/combat mode (not implemented yet)
-    const isStrafingLeft = false;
-    const isStrafingRight = false;
+    // Strafe detection - only when aiming (GTA-style)
+    // When aiming, character faces camera so left/right keys = strafing
+    const isStrafingLeft = isAiming && keys.left && !keys.right;
+    const isStrafingRight = isAiming && keys.right && !keys.left;
     const velocity = Math.sqrt(vx * vx + vz * vz);
 
     const currentAnimState: AnimationState = {
@@ -489,6 +616,8 @@ export function PhysicsPlayerController({
       isCrouching,
       isStrafingLeft,
       isStrafingRight,
+      isAiming,
+      isFiring,
       velocity,
       velocityY: vy,
     };
@@ -507,9 +636,11 @@ export function PhysicsPlayerController({
       (lastAnimState.current as { isDancing?: boolean }).isDancing !== isDancing ||
       (lastAnimState.current as { isCrouching?: boolean }).isCrouching !== isCrouching ||
       (lastAnimState.current as { isStrafingLeft?: boolean }).isStrafingLeft !== isStrafingLeft ||
-      (lastAnimState.current as { isStrafingRight?: boolean }).isStrafingRight !== isStrafingRight
+      (lastAnimState.current as { isStrafingRight?: boolean }).isStrafingRight !== isStrafingRight ||
+      (lastAnimState.current as { isAiming?: boolean }).isAiming !== isAiming ||
+      (lastAnimState.current as { isFiring?: boolean }).isFiring !== isFiring
     ) {
-      lastAnimState.current = { isMoving, isRunning, isGrounded: grounded, isJumping, isDancing, isCrouching, isStrafingLeft, isStrafingRight } as typeof lastAnimState.current;
+      lastAnimState.current = { isMoving, isRunning, isGrounded: grounded, isJumping, isDancing, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring } as typeof lastAnimState.current;
       setAnimState(currentAnimState);
     }
   });

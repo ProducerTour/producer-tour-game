@@ -42,10 +42,21 @@ export type AnimState =
   | 'crouchRifleStrafeRight'
   | 'crouchPistolIdle'
   | 'crouchPistolWalk'
-  // Rifle jump states
-  | 'rifleJumpUp'
-  | 'rifleJumpLoop'
-  | 'rifleJumpDown';
+  // Rifle jump state
+  | 'rifleJump'
+  // Rifle aiming/firing states
+  | 'rifleAimIdle'
+  | 'rifleAimWalk'
+  | 'rifleFireStill'
+  | 'rifleFireWalk'
+  | 'rifleFireCrouch'
+  // Crouch rifle firing (idle specific)
+  | 'crouchFireRifleTap'
+  | 'crouchRapidFireRifle'
+  // Rifle reload states
+  | 'rifleReloadStand'
+  | 'rifleReloadWalk'
+  | 'rifleReloadCrouch';
 
 export type WeaponType = 'none' | 'rifle' | 'pistol';
 
@@ -58,6 +69,9 @@ export interface AnimationInput {
   isDancing: boolean;
   isStrafeLeft: boolean;
   isStrafeRight: boolean;
+  isAiming: boolean;
+  isFiring: boolean;
+  isReloading?: boolean;
   weapon: WeaponType;
   velocityY?: number;
 }
@@ -84,80 +98,245 @@ const WEAPON_STANDING_STATES: AnimState[] = [
   'rifleIdle', 'rifleWalk', 'rifleRun',
   'pistolIdle', 'pistolWalk', 'pistolRun',
 ];
-const TRANSITION_STATES: AnimState[] = ['standToCrouch', 'crouchToStand', 'crouchToSprint', 'land', 'rifleJumpDown'];
+const RIFLE_AIM_STATES: AnimState[] = [
+  'rifleAimIdle', 'rifleAimWalk',
+];
+const RIFLE_FIRE_STATES: AnimState[] = [
+  'rifleFireStill', 'rifleFireWalk', 'rifleFireCrouch',
+  'crouchFireRifleTap', 'crouchRapidFireRifle',
+];
+// Reload states (for future use when reload animation is implemented)
+// const RIFLE_RELOAD_STATES: AnimState[] = [
+//   'rifleReloadStand', 'rifleReloadWalk', 'rifleReloadCrouch',
+// ];
+const TRANSITION_STATES: AnimState[] = ['standToCrouch', 'crouchToStand', 'crouchToSprint'];
 
 // Define all state transitions with priorities
 const TRANSITIONS: Transition[] = [
   // ===== HIGHEST PRIORITY: Air states =====
-  // Rifle jump (higher priority than regular jump when holding rifle)
+  // Rifle jump - from rifle states when in air
   {
-    from: '*',
-    to: 'rifleJumpUp',
-    condition: (i) => i.isJumping && !i.isGrounded && i.weapon === 'rifle',
+    from: ['rifleIdle', 'rifleWalk', 'rifleRun'],
+    to: 'rifleJump',
+    condition: (i) => i.isJumping,
     priority: 101,
-    cooldown: 200,
+  },
+  // Landing from rifle jump - go straight to rifle state
+  {
+    from: 'rifleJump',
+    to: 'rifleRun',
+    condition: (i, time) => i.isGrounded && i.isMoving && i.isRunning && time > 150,
+    priority: 92,
   },
   {
-    from: ['rifleJumpUp', 'rifleJumpLoop'],
-    to: 'rifleJumpDown',
-    condition: (i, time) => i.isGrounded && time > 50,
+    from: 'rifleJump',
+    to: 'rifleWalk',
+    condition: (i, time) => i.isGrounded && i.isMoving && !i.isRunning && time > 150,
+    priority: 92,
+  },
+  {
+    from: 'rifleJump',
+    to: 'rifleIdle',
+    condition: (i, time) => i.isGrounded && !i.isMoving && time > 200,
+    priority: 92,
+  },
+  // Regular jump (no weapon or pistol) - only when in air
+  // Only trigger if NOT rifle (rifle has its own jump animation)
+  {
+    from: ['idle', 'walk', 'run', 'pistolIdle', 'pistolWalk', 'pistolRun'],
+    to: 'jump',
+    condition: (i) => i.isJumping && i.weapon !== 'rifle',
+    priority: 100,
+  },
+  // Fall - from grounded states when falling (walked off edge)
+  {
+    from: ['idle', 'walk', 'run', 'rifleIdle', 'rifleWalk', 'rifleRun', 'pistolIdle', 'pistolWalk', 'pistolRun'],
+    to: 'fall',
+    condition: (i) => !i.isGrounded && (i.velocityY ?? 0) < -2,
+    priority: 95,
+  },
+  // Landing while moving - go directly to locomotion (skip awkward 'land' state)
+  {
+    from: ['jump', 'fall'],
+    to: 'run',
+    condition: (i, time) => i.isGrounded && i.isMoving && i.isRunning && time > 100,
     priority: 91,
   },
   {
-    from: 'rifleJumpDown',
-    to: 'rifleIdle',
-    condition: (i, time) => time > 150 && !i.isMoving,
-    priority: 86,
+    from: ['jump', 'fall'],
+    to: 'walk',
+    condition: (i, time) => i.isGrounded && i.isMoving && !i.isRunning && time > 100,
+    priority: 91,
   },
-  {
-    from: 'rifleJumpDown',
-    to: 'rifleWalk',
-    condition: (i, time) => time > 100 && i.isMoving && !i.isRunning,
-    priority: 86,
-  },
-  {
-    from: 'rifleJumpDown',
-    to: 'rifleRun',
-    condition: (i, time) => time > 80 && i.isMoving && i.isRunning,
-    priority: 86,
-  },
-  // Regular jump (no weapon)
-  {
-    from: '*',
-    to: 'jump',
-    condition: (i) => i.isJumping && !i.isGrounded && i.weapon !== 'rifle',
-    priority: 100,
-    cooldown: 200,
-  },
-  {
-    from: '*',
-    to: 'fall',
-    condition: (i) => !i.isGrounded && (i.velocityY ?? 0) < -2 && !i.isJumping,
-    priority: 95,
-  },
+  // Landing while stationary - brief land state then idle
   {
     from: ['jump', 'fall'],
-    to: 'land',
-    condition: (i, time) => i.isGrounded && time > 100,
+    to: 'idle',
+    condition: (i, time) => i.isGrounded && !i.isMoving && time > 150,
     priority: 90,
   },
+
+  // ===== RIFLE FIRING (high priority) =====
+  // Firing works both with hip-fire and ADS
   {
-    from: 'land',
-    to: 'idle',
-    condition: (i, time) => time > 300 && !i.isMoving && !i.isCrouching,
+    from: ['rifleAimIdle', 'rifleIdle'],
+    to: 'rifleFireStill',
+    condition: (i) => i.isFiring && !i.isMoving && !i.isCrouching && i.weapon === 'rifle',
+    priority: 88,
+  },
+  {
+    from: ['rifleAimWalk', 'rifleWalk', 'rifleRun'],
+    to: 'rifleFireWalk',
+    condition: (i) => i.isFiring && i.isMoving && !i.isCrouching && i.weapon === 'rifle',
+    priority: 88,
+  },
+  // Crouch fire - idle uses dedicated idle fire anim, moving uses walk fire anim
+  {
+    from: 'crouchRifleIdle',
+    to: 'crouchRapidFireRifle',
+    condition: (i) => i.isFiring && i.isCrouching && !i.isMoving && i.weapon === 'rifle',
+    priority: 89,
+  },
+  {
+    from: ['crouchRifleWalk', 'crouchRifleStrafeLeft', 'crouchRifleStrafeRight'],
+    to: 'rifleFireCrouch',
+    condition: (i) => i.isFiring && i.isCrouching && i.isMoving && i.weapon === 'rifle',
+    priority: 88,
+  },
+  // Fire animation exit - only when player STOPS firing (releases button)
+  // Standing fire exit
+  {
+    from: 'rifleFireStill',
+    to: 'rifleAimIdle',
+    condition: (i) => !i.isFiring && i.isAiming && !i.isMoving,
+    priority: 87,
+  },
+  {
+    from: 'rifleFireStill',
+    to: 'rifleAimWalk',
+    condition: (i) => !i.isFiring && i.isAiming && i.isMoving,
+    priority: 87,
+  },
+  {
+    from: 'rifleFireStill',
+    to: 'rifleIdle',
+    condition: (i) => !i.isFiring && !i.isAiming && !i.isMoving,
+    priority: 86,
+  },
+  {
+    from: 'rifleFireStill',
+    to: 'rifleWalk',
+    condition: (i) => !i.isFiring && !i.isAiming && i.isMoving && !i.isRunning,
+    priority: 86,
+  },
+  {
+    from: 'rifleFireStill',
+    to: 'rifleRun',
+    condition: (i) => !i.isFiring && !i.isAiming && i.isMoving && i.isRunning,
+    priority: 86,
+  },
+  // Walking fire exit
+  {
+    from: 'rifleFireWalk',
+    to: 'rifleAimWalk',
+    condition: (i) => !i.isFiring && i.isAiming && i.isMoving,
+    priority: 87,
+  },
+  {
+    from: 'rifleFireWalk',
+    to: 'rifleAimIdle',
+    condition: (i) => !i.isFiring && i.isAiming && !i.isMoving,
+    priority: 87,
+  },
+  {
+    from: 'rifleFireWalk',
+    to: 'rifleWalk',
+    condition: (i) => !i.isFiring && !i.isAiming && i.isMoving && !i.isRunning,
+    priority: 86,
+  },
+  {
+    from: 'rifleFireWalk',
+    to: 'rifleRun',
+    condition: (i) => !i.isFiring && !i.isAiming && i.isMoving && i.isRunning,
+    priority: 86,
+  },
+  {
+    from: 'rifleFireWalk',
+    to: 'rifleIdle',
+    condition: (i) => !i.isFiring && !i.isAiming && !i.isMoving,
+    priority: 86,
+  },
+  // Crouch fire exit (moving crouch fire)
+  {
+    from: 'rifleFireCrouch',
+    to: 'crouchRifleIdle',
+    condition: (i) => !i.isFiring && !i.isMoving,
+    priority: 87,
+  },
+  {
+    from: 'rifleFireCrouch',
+    to: 'crouchRifleWalk',
+    condition: (i) => !i.isFiring && i.isMoving,
+    priority: 87,
+  },
+  // Crouch idle fire exit (crouchRapidFireRifle)
+  {
+    from: 'crouchRapidFireRifle',
+    to: 'crouchRifleIdle',
+    condition: (i) => !i.isFiring && !i.isMoving,
+    priority: 87,
+  },
+  {
+    from: 'crouchRapidFireRifle',
+    to: 'crouchRifleWalk',
+    condition: (i) => !i.isFiring && i.isMoving,
+    priority: 87,
+  },
+
+  // Aiming transitions (enter aim mode)
+  {
+    from: ['rifleIdle', 'rifleWalk', 'rifleRun'],
+    to: 'rifleAimIdle',
+    condition: (i) => i.isAiming && !i.isMoving && !i.isCrouching && i.weapon === 'rifle',
     priority: 85,
   },
   {
-    from: 'land',
-    to: 'walk',
-    condition: (i, time) => time > 200 && i.isMoving && !i.isRunning && !i.isCrouching,
+    from: ['rifleIdle', 'rifleWalk', 'rifleRun'],
+    to: 'rifleAimWalk',
+    condition: (i) => i.isAiming && i.isMoving && !i.isCrouching && i.weapon === 'rifle',
     priority: 85,
   },
+  // Aim walk <-> aim idle
   {
-    from: 'land',
-    to: 'run',
-    condition: (i, time) => time > 150 && i.isMoving && i.isRunning && !i.isCrouching,
-    priority: 85,
+    from: 'rifleAimIdle',
+    to: 'rifleAimWalk',
+    condition: (i) => i.isAiming && i.isMoving,
+    priority: 84,
+  },
+  {
+    from: 'rifleAimWalk',
+    to: 'rifleAimIdle',
+    condition: (i) => i.isAiming && !i.isMoving,
+    priority: 84,
+  },
+  // Exit aim mode (stop aiming)
+  {
+    from: [...RIFLE_AIM_STATES, ...RIFLE_FIRE_STATES],
+    to: 'rifleIdle',
+    condition: (i) => !i.isAiming && !i.isMoving && !i.isCrouching && i.weapon === 'rifle',
+    priority: 83,
+  },
+  {
+    from: [...RIFLE_AIM_STATES, ...RIFLE_FIRE_STATES],
+    to: 'rifleWalk',
+    condition: (i) => !i.isAiming && i.isMoving && !i.isRunning && !i.isCrouching && i.weapon === 'rifle',
+    priority: 83,
+  },
+  {
+    from: [...RIFLE_AIM_STATES, ...RIFLE_FIRE_STATES],
+    to: 'rifleRun',
+    condition: (i) => !i.isAiming && i.isMoving && i.isRunning && !i.isCrouching && i.weapon === 'rifle',
+    priority: 83,
   },
 
   // ===== DANCE (high priority, only when grounded and idle) =====
@@ -421,9 +600,20 @@ const STATE_TO_ACTION: Record<AnimState, string> = {
   crouchRifleStrafeRight: 'crouchRifleStrafeRight',
   crouchPistolIdle: 'crouchPistolIdle',
   crouchPistolWalk: 'crouchPistolWalk',
-  rifleJumpUp: 'rifleJumpUp',
-  rifleJumpLoop: 'rifleJumpLoop',
-  rifleJumpDown: 'rifleJumpDown',
+  rifleJump: 'rifleJump',
+  // Rifle aiming/firing (use existing idle animations as base for aim)
+  rifleAimIdle: 'rifleIdle',  // Use rifleIdle as aim pose
+  rifleAimWalk: 'rifleWalk',  // Use rifleWalk while aim-walking
+  rifleFireStill: 'rifleFireStill',
+  rifleFireWalk: 'rifleFireWalk',
+  rifleFireCrouch: 'rifleFireCrouch',
+  // Crouch rifle firing (idle specific)
+  crouchFireRifleTap: 'crouchFireRifleTap',
+  crouchRapidFireRifle: 'crouchRapidFireRifle',
+  // Rifle reload
+  rifleReloadStand: 'rifleReloadStand',
+  rifleReloadWalk: 'rifleReloadWalk',
+  rifleReloadCrouch: 'rifleReloadCrouch',
 };
 
 // Fallbacks for missing animations
@@ -448,9 +638,20 @@ const FALLBACKS: Partial<Record<AnimState, AnimState[]>> = {
   pistolIdle: ['idle'],
   pistolWalk: ['walk'],
   pistolRun: ['run'],
-  rifleJumpUp: ['jump'],
-  rifleJumpLoop: ['jump', 'fall'],
-  rifleJumpDown: ['land', 'idle'],
+  rifleJump: ['jump'],
+  // Rifle aiming/firing fallbacks
+  rifleAimIdle: ['rifleIdle', 'idle'],
+  rifleAimWalk: ['rifleWalk', 'walk'],
+  rifleFireStill: ['rifleIdle'],
+  rifleFireWalk: ['rifleWalk'],
+  rifleFireCrouch: ['crouchRifleIdle'],
+  // Crouch rifle firing (idle specific) fallbacks
+  crouchFireRifleTap: ['crouchRapidFireRifle', 'rifleFireCrouch', 'crouchRifleIdle'],
+  crouchRapidFireRifle: ['rifleFireCrouch', 'crouchRifleIdle'],
+  // Rifle reload fallbacks
+  rifleReloadStand: ['rifleIdle'],
+  rifleReloadWalk: ['rifleWalk'],
+  rifleReloadCrouch: ['crouchRifleIdle'],
 };
 
 export interface AnimationStateMachineResult {
@@ -483,24 +684,12 @@ const ONE_SHOT_NEXT_STATE: Partial<Record<AnimState, (input: AnimationInput) => 
     if (i.weapon === 'pistol') return 'pistolRun';
     return 'run';
   },
-  land: (i) => {
-    if (i.weapon === 'rifle') return i.isMoving ? (i.isRunning ? 'rifleRun' : 'rifleWalk') : 'rifleIdle';
-    if (i.weapon === 'pistol') return i.isMoving ? (i.isRunning ? 'pistolRun' : 'pistolWalk') : 'pistolIdle';
-    return i.isMoving ? (i.isRunning ? 'run' : 'walk') : 'idle';
-  },
+  // Jump/rifleJump landings are handled by FSM directly for smoother blending
+  // Only handle the "animation finished while still in air" case here
   jump: (i) => {
-    // Jump animation finished - transition based on grounded state
     if (!i.isGrounded) return 'fall';
+    // If grounded, let FSM handle the transition with proper timing
     return i.isMoving ? (i.isRunning ? 'run' : 'walk') : 'idle';
-  },
-  rifleJumpUp: (i) => {
-    // Rifle jump up finished - go to loop if still in air, otherwise land
-    if (!i.isGrounded) return 'rifleJumpLoop';
-    return 'rifleJumpDown';
-  },
-  rifleJumpDown: (i) => {
-    // Rifle landing finished - return to appropriate rifle state
-    return i.isMoving ? (i.isRunning ? 'rifleRun' : 'rifleWalk') : 'rifleIdle';
   },
 };
 
@@ -657,9 +846,6 @@ export function useAnimationStateMachine(
   useEffect(() => {
     const timeSinceTransition = Date.now() - lastTransitionTime.current;
 
-    // Debug: only log when weapon changes
-    // console.log(`🎮 FSM check: state=${currentState.current}, weapon=${input.weapon}, moving=${input.isMoving}, running=${input.isRunning}`);
-
     // Don't interrupt one-shot transition animations too quickly
     if (TRANSITION_STATES.includes(currentState.current) && timeSinceTransition < 150) {
       return;
@@ -681,10 +867,8 @@ export function useAnimationStateMachine(
 
       // Check condition
       if (transition.condition(input, timeSinceTransition)) {
-        // console.log(`🎯 Transition match: ${currentState.current} → ${transition.to} (priority ${transition.priority})`);
         const success = transitionTo(transition.to, transition);
         if (success) {
-          // console.log(`✅ Transition success`);
           break;
         }
       }
@@ -698,6 +882,9 @@ export function useAnimationStateMachine(
     input.isDancing,
     input.isStrafeLeft,
     input.isStrafeRight,
+    input.isAiming,
+    input.isFiring,
+    input.isReloading,
     input.weapon,
     input.velocityY,
     sortedTransitions,

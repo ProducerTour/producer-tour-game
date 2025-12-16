@@ -19,6 +19,7 @@ import { VFXManager } from './vfx/VFXManager';
 import { NPCManager } from './npc/NPCManager';
 import { createPatrolNPC, createNPC } from './npc/useNPCStore';
 import { useKeyboardControls } from './hooks/useKeyboardControls';
+import { useCombatStore } from './combat/useCombatStore';
 
 // Import extracted avatar components
 import { AnimatedAvatar, MixamoAnimatedAvatar, PlaceholderAvatar } from './avatars';
@@ -964,6 +965,7 @@ export function PlayWorld({
   const playerRotation = useRef(new THREE.Euler());
   const [physicsDebug, setPhysicsDebug] = useState(false);
   const [weaponType, setWeaponType] = useState<WeaponType>(null);
+  const setStoreWeapon = useCombatStore((s) => s.setWeapon);
 
   // Weapon toggle (Q key) - cycles: none -> pistol -> rifle -> none
   useEffect(() => {
@@ -980,6 +982,12 @@ export function PlayWorld({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Sync weapon state with combat store (for aim/fire/crosshair)
+  useEffect(() => {
+    const storeWeapon = weaponType === null ? 'none' : weaponType;
+    setStoreWeapon(storeWeapon);
+  }, [weaponType, setStoreWeapon]);
 
   // Physics debug toggle (F3 key)
   useEffect(() => {
@@ -1099,7 +1107,7 @@ export function PlayWorld({
 
           {/* Physics Player Controller with animation state */}
           <PhysicsPlayerController onPositionChange={handlePositionChange}>
-            {({ isMoving, isRunning, isGrounded, isJumping, isDancing, isCrouching, isStrafingLeft, isStrafingRight, velocityY }) => (
+            {({ isMoving, isRunning, isGrounded, isJumping, isDancing, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring, velocityY }) => (
               <Suspense fallback={<PlaceholderAvatar isMoving={false} />}>
                 {avatarUrl ? (
                   USE_MIXAMO_ANIMATIONS ? (
@@ -1116,6 +1124,8 @@ export function PlayWorld({
                         isCrouching={isCrouching}
                         isStrafingLeft={isStrafingLeft}
                         isStrafingRight={isStrafingRight}
+                        isAiming={isAiming}
+                        isFiring={isFiring}
                         velocityY={velocityY}
                         weaponType={weaponType}
                       />
