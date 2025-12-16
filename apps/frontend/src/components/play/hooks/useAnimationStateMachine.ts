@@ -84,7 +84,7 @@ const WEAPON_STANDING_STATES: AnimState[] = [
   'rifleIdle', 'rifleWalk', 'rifleRun',
   'pistolIdle', 'pistolWalk', 'pistolRun',
 ];
-const TRANSITION_STATES: AnimState[] = ['standToCrouch', 'crouchToStand', 'crouchToSprint', 'land', 'rifleJumpUp', 'rifleJumpDown'];
+const TRANSITION_STATES: AnimState[] = ['standToCrouch', 'crouchToStand', 'crouchToSprint', 'land', 'rifleJumpDown'];
 
 // Define all state transitions with priorities
 const TRANSITIONS: Transition[] = [
@@ -100,25 +100,25 @@ const TRANSITIONS: Transition[] = [
   {
     from: ['rifleJumpUp', 'rifleJumpLoop'],
     to: 'rifleJumpDown',
-    condition: (i, time) => i.isGrounded && time > 100,
+    condition: (i, time) => i.isGrounded && time > 50,
     priority: 91,
   },
   {
     from: 'rifleJumpDown',
     to: 'rifleIdle',
-    condition: (i, time) => time > 300 && !i.isMoving,
+    condition: (i, time) => time > 150 && !i.isMoving,
     priority: 86,
   },
   {
     from: 'rifleJumpDown',
     to: 'rifleWalk',
-    condition: (i, time) => time > 200 && i.isMoving && !i.isRunning,
+    condition: (i, time) => time > 100 && i.isMoving && !i.isRunning,
     priority: 86,
   },
   {
     from: 'rifleJumpDown',
     to: 'rifleRun',
-    condition: (i, time) => time > 150 && i.isMoving && i.isRunning,
+    condition: (i, time) => time > 80 && i.isMoving && i.isRunning,
     priority: 86,
   },
   // Regular jump (no weapon)
