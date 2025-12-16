@@ -38,6 +38,8 @@ export type AnimState =
   // Weapon states (crouching)
   | 'crouchRifleIdle'
   | 'crouchRifleWalk'
+  | 'crouchRifleStrafeLeft'
+  | 'crouchRifleStrafeRight'
   | 'crouchPistolIdle'
   | 'crouchPistolWalk';
 
@@ -70,7 +72,8 @@ interface Transition {
 const CROUCH_STATES: AnimState[] = [
   'crouchIdle', 'crouchWalk', 'crouchStrafeLeft', 'crouchStrafeRight',
   'standToCrouch', 'crouchToStand', 'crouchToSprint',
-  'crouchRifleIdle', 'crouchRifleWalk', 'crouchPistolIdle', 'crouchPistolWalk',
+  'crouchRifleIdle', 'crouchRifleWalk', 'crouchRifleStrafeLeft', 'crouchRifleStrafeRight',
+  'crouchPistolIdle', 'crouchPistolWalk',
 ];
 const DANCE_STATES: AnimState[] = ['dance1', 'dance2', 'dance3'];
 const WEAPON_STANDING_STATES: AnimState[] = [
@@ -179,28 +182,41 @@ const TRANSITIONS: Transition[] = [
   },
 
   // ===== CROUCH + WEAPON STATES =====
+  // Note: Don't include standToCrouch in 'from' - let the one-shot animation complete first
   // Rifle crouching
   {
-    from: ['crouchIdle', 'crouchWalk', 'standToCrouch'],
+    from: ['crouchIdle', 'crouchWalk', 'crouchRifleWalk', 'crouchRifleStrafeLeft', 'crouchRifleStrafeRight'],
     to: 'crouchRifleIdle',
     condition: (i) => i.isCrouching && i.weapon === 'rifle' && !i.isMoving,
     priority: 65,
   },
   {
-    from: ['crouchIdle', 'crouchWalk', 'crouchRifleIdle', 'standToCrouch'],
+    from: ['crouchIdle', 'crouchWalk', 'crouchRifleIdle', 'crouchRifleStrafeLeft', 'crouchRifleStrafeRight'],
     to: 'crouchRifleWalk',
-    condition: (i) => i.isCrouching && i.weapon === 'rifle' && i.isMoving,
+    condition: (i) => i.isCrouching && i.weapon === 'rifle' && i.isMoving && !i.isStrafeLeft && !i.isStrafeRight,
     priority: 65,
+  },
+  {
+    from: ['crouchRifleIdle', 'crouchRifleWalk', 'crouchRifleStrafeRight'],
+    to: 'crouchRifleStrafeLeft',
+    condition: (i) => i.isCrouching && i.weapon === 'rifle' && i.isStrafeLeft,
+    priority: 66,
+  },
+  {
+    from: ['crouchRifleIdle', 'crouchRifleWalk', 'crouchRifleStrafeLeft'],
+    to: 'crouchRifleStrafeRight',
+    condition: (i) => i.isCrouching && i.weapon === 'rifle' && i.isStrafeRight,
+    priority: 66,
   },
   // Pistol crouching
   {
-    from: ['crouchIdle', 'crouchWalk', 'standToCrouch'],
+    from: ['crouchIdle', 'crouchWalk'],
     to: 'crouchPistolIdle',
     condition: (i) => i.isCrouching && i.weapon === 'pistol' && !i.isMoving,
     priority: 65,
   },
   {
-    from: ['crouchIdle', 'crouchWalk', 'crouchPistolIdle', 'standToCrouch'],
+    from: ['crouchIdle', 'crouchWalk', 'crouchPistolIdle'],
     to: 'crouchPistolWalk',
     condition: (i) => i.isCrouching && i.weapon === 'pistol' && i.isMoving,
     priority: 65,
@@ -213,15 +229,16 @@ const TRANSITIONS: Transition[] = [
     priority: 64,
   },
   {
-    from: ['crouchRifleWalk', 'crouchPistolWalk'],
+    from: ['crouchRifleWalk', 'crouchRifleStrafeLeft', 'crouchRifleStrafeRight', 'crouchPistolWalk'],
     to: 'crouchWalk',
     condition: (i) => i.isCrouching && i.weapon === 'none' && i.isMoving,
     priority: 64,
   },
 
   // ===== CROUCH MOVEMENT (no weapon) =====
+  // Note: Don't include standToCrouch - let one-shot animation complete first
   {
-    from: ['crouchIdle', 'standToCrouch'],
+    from: 'crouchIdle',
     to: 'crouchWalk',
     condition: (i) => i.isCrouching && i.isMoving && i.weapon === 'none' && !i.isStrafeLeft && !i.isStrafeRight,
     priority: 60,
@@ -246,40 +263,40 @@ const TRANSITIONS: Transition[] = [
   },
 
   // ===== WEAPON STATES (standing) =====
-  // Rifle
+  // Rifle - includes transitions within rifle states (run->walk->idle)
   {
-    from: ['idle', 'walk', 'run', 'pistolIdle', 'pistolWalk', 'pistolRun'],
+    from: ['idle', 'walk', 'run', 'rifleWalk', 'rifleRun', 'pistolIdle', 'pistolWalk', 'pistolRun'],
     to: 'rifleIdle',
     condition: (i) => !i.isCrouching && i.weapon === 'rifle' && !i.isMoving,
     priority: 50,
   },
   {
-    from: ['idle', 'walk', 'run', 'rifleIdle', 'pistolWalk'],
+    from: ['idle', 'walk', 'run', 'rifleIdle', 'rifleRun', 'pistolIdle', 'pistolWalk', 'pistolRun'],
     to: 'rifleWalk',
     condition: (i) => !i.isCrouching && i.weapon === 'rifle' && i.isMoving && !i.isRunning,
     priority: 50,
   },
   {
-    from: ['idle', 'walk', 'run', 'rifleIdle', 'rifleWalk', 'pistolRun'],
+    from: ['idle', 'walk', 'run', 'rifleIdle', 'rifleWalk', 'pistolIdle', 'pistolWalk', 'pistolRun'],
     to: 'rifleRun',
     condition: (i) => !i.isCrouching && i.weapon === 'rifle' && i.isMoving && i.isRunning,
     priority: 50,
   },
-  // Pistol
+  // Pistol - includes transitions within pistol states (run->walk->idle)
   {
-    from: ['idle', 'walk', 'run', 'rifleIdle', 'rifleWalk', 'rifleRun'],
+    from: ['idle', 'walk', 'run', 'pistolWalk', 'pistolRun', 'rifleIdle', 'rifleWalk', 'rifleRun'],
     to: 'pistolIdle',
     condition: (i) => !i.isCrouching && i.weapon === 'pistol' && !i.isMoving,
     priority: 50,
   },
   {
-    from: ['idle', 'walk', 'run', 'pistolIdle', 'rifleWalk'],
+    from: ['idle', 'walk', 'run', 'pistolIdle', 'pistolRun', 'rifleIdle', 'rifleWalk', 'rifleRun'],
     to: 'pistolWalk',
     condition: (i) => !i.isCrouching && i.weapon === 'pistol' && i.isMoving && !i.isRunning,
     priority: 50,
   },
   {
-    from: ['idle', 'walk', 'run', 'pistolIdle', 'pistolWalk', 'rifleRun'],
+    from: ['idle', 'walk', 'run', 'pistolIdle', 'pistolWalk', 'rifleIdle', 'rifleWalk', 'rifleRun'],
     to: 'pistolRun',
     condition: (i) => !i.isCrouching && i.weapon === 'pistol' && i.isMoving && i.isRunning,
     priority: 50,
@@ -363,6 +380,8 @@ const STATE_TO_ACTION: Record<AnimState, string> = {
   pistolRun: 'pistolRun',
   crouchRifleIdle: 'crouchRifleIdle',
   crouchRifleWalk: 'crouchRifleWalk',
+  crouchRifleStrafeLeft: 'crouchRifleStrafeLeft',
+  crouchRifleStrafeRight: 'crouchRifleStrafeRight',
   crouchPistolIdle: 'crouchPistolIdle',
   crouchPistolWalk: 'crouchPistolWalk',
 };
@@ -379,6 +398,8 @@ const FALLBACKS: Partial<Record<AnimState, AnimState[]>> = {
   crouchToSprint: ['run'],
   crouchRifleIdle: ['crouchIdle', 'rifleIdle'],
   crouchRifleWalk: ['crouchWalk', 'rifleWalk'],
+  crouchRifleStrafeLeft: ['crouchRifleWalk', 'crouchStrafeLeft'],
+  crouchRifleStrafeRight: ['crouchRifleWalk', 'crouchStrafeRight'],
   crouchPistolIdle: ['crouchIdle', 'pistolIdle'],
   crouchPistolWalk: ['crouchWalk', 'pistolWalk'],
   rifleIdle: ['idle'],
@@ -400,7 +421,12 @@ export interface AnimationStateMachineResult {
 // These functions determine the next state based on current input
 const ONE_SHOT_NEXT_STATE: Partial<Record<AnimState, (input: AnimationInput) => AnimState>> = {
   standToCrouch: (i) => {
-    if (i.weapon === 'rifle') return i.isMoving ? 'crouchRifleWalk' : 'crouchRifleIdle';
+    if (i.weapon === 'rifle') {
+      if (!i.isMoving) return 'crouchRifleIdle';
+      if (i.isStrafeLeft) return 'crouchRifleStrafeLeft';
+      if (i.isStrafeRight) return 'crouchRifleStrafeRight';
+      return 'crouchRifleWalk';
+    }
     if (i.weapon === 'pistol') return i.isMoving ? 'crouchPistolWalk' : 'crouchPistolIdle';
     return i.isMoving ? 'crouchWalk' : 'crouchIdle';
   },
@@ -579,6 +605,9 @@ export function useAnimationStateMachine(
   useEffect(() => {
     const timeSinceTransition = Date.now() - lastTransitionTime.current;
 
+    // Debug: only log when weapon changes
+    // console.log(`🎮 FSM check: state=${currentState.current}, weapon=${input.weapon}, moving=${input.isMoving}, running=${input.isRunning}`);
+
     // Don't interrupt one-shot transition animations too quickly
     if (TRANSITION_STATES.includes(currentState.current) && timeSinceTransition < 150) {
       return;
@@ -600,8 +629,12 @@ export function useAnimationStateMachine(
 
       // Check condition
       if (transition.condition(input, timeSinceTransition)) {
+        // console.log(`🎯 Transition match: ${currentState.current} → ${transition.to} (priority ${transition.priority})`);
         const success = transitionTo(transition.to, transition);
-        if (success) break;
+        if (success) {
+          // console.log(`✅ Transition success`);
+          break;
+        }
       }
     }
   }, [
