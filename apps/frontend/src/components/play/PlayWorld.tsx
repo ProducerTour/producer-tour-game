@@ -49,28 +49,32 @@ const ROTATION_SPEED = 10;
 
 // HDRI Skybox component - loads equirectangular images (.hdr, .exr, .jpg, .png)
 // Download free HDRIs from: polyhaven.com/hdris/skies or ambientcg.com
+// Use JPG for best performance (~1-3MB vs 70-100MB for EXR/HDR)
 function HDRISkybox({
   file,
   intensity = 1.0,
+  blur = 0,
 }: {
   file: string;
   intensity?: number;
+  blur?: number;
 }) {
   const { gl } = useThree();
 
   // Apply intensity via tone mapping exposure
   useEffect(() => {
     gl.toneMappingExposure = intensity;
-    console.log(`🌤️ HDRI Skybox: ${file}, intensity=${intensity}`);
-  }, [intensity, gl, file]);
+    console.log(`🌤️ HDRI Skybox: ${file}, intensity=${intensity}, blur=${blur}`);
+  }, [intensity, gl, file, blur]);
 
-  // Use drei's Environment component which properly handles HDR/EXR files
-  // It sets both scene.background and scene.environment automatically
+  // Use drei's Environment component - handles HDR/EXR/JPG automatically
+  // Sets both scene.background and scene.environment for reflections
   return (
     <Environment
       files={`/skybox/${file}`}
       background
-      backgroundIntensity={intensity}
+      backgroundBlurriness={blur}
+      environmentIntensity={intensity}
     />
   );
 }
@@ -1192,33 +1196,39 @@ export function PlayWorld({
   const cityMapControls = useControls('🗺️ World', {
     'Skybox': folder({
       skyboxType: {
-        value: 'stars' as SkyboxPreset,
+        value: 'hdri' as SkyboxPreset,
         options: SKYBOX_PRESETS as unknown as SkyboxPreset[],
         label: 'Type',
       },
-      // HDRI skybox controls (for 'hdri' type)
-      // Download free HDRIs from: polyhaven.com/hdris/skies or ambientcg.com
-      // Place .hdr or .jpg files in public/skybox/ folder
-      hdriFile: {
-        value: 'kloppenheim_02_puresky_4k.exr',
-        options: [
-          'kloppenheim_02_puresky_4k.exr',  // Clear blue sky
-          'qwantani_noon_puresky_4k.exr',   // Noon sky
-          'goegap_road_4k.exr',             // Road/landscape
-        ],
-        label: 'HDRI File',
-      },
-      hdriIntensity: { value: 1.0, min: 0.1, max: 3, step: 0.1, label: 'HDRI Intensity' },
-      hdriRotation: { value: 0, min: 0, max: 360, step: 5, label: 'HDRI Rotation°' },
-      // Procedural sky controls (for sunset/dawn/night)
-      sunPosition: { value: { x: 100, y: 20, z: 100 }, label: 'Sun Position' },
-      turbidity: { value: 10, min: 0, max: 20, step: 0.5, label: 'Turbidity' },
-      rayleigh: { value: 2, min: 0, max: 4, step: 0.1, label: 'Rayleigh' },
-      mieCoefficient: { value: 0.005, min: 0, max: 0.1, step: 0.001, label: 'Mie Coeff' },
-      mieDirectionalG: { value: 0.8, min: 0, max: 1, step: 0.05, label: 'Mie Dir G' },
-      // Stars controls
-      starsCount: { value: 5000, min: 1000, max: 20000, step: 1000, label: 'Stars Count' },
-      starsFactor: { value: 4, min: 1, max: 10, step: 0.5, label: 'Stars Size' },
+      // HDRI settings (polyhaven.com/hdris/skies)
+      'HDRI': folder({
+        hdriFile: {
+          value: 'hilly_terrain_4k.jpg',
+          options: [
+            'hilly_terrain_4k.jpg',           // Hilly terrain (default)
+            'kloppenheim_02_puresky_4k.jpg',  // Clear blue sky
+            'kloppenheim_03_puresky_4k.jpg',  // Blue sky variant
+            'qwantani_noon_puresky_4k.jpg',   // Noon sky
+            'goegap_road_4k.jpg',             // Road/landscape
+          ],
+          label: 'File',
+        },
+        hdriIntensity: { value: 1.0, min: 0.1, max: 3, step: 0.1, label: 'Intensity' },
+        hdriBlur: { value: 0, min: 0, max: 1, step: 0.05, label: 'Blur' },
+      }, { collapsed: true }),
+      // Procedural sky (sunset/dawn/night)
+      'Procedural': folder({
+        sunPosition: { value: { x: 100, y: 20, z: 100 }, label: 'Sun Position' },
+        turbidity: { value: 10, min: 0, max: 20, step: 0.5, label: 'Turbidity' },
+        rayleigh: { value: 2, min: 0, max: 4, step: 0.1, label: 'Rayleigh' },
+        mieCoefficient: { value: 0.005, min: 0, max: 0.1, step: 0.001, label: 'Mie Coeff' },
+        mieDirectionalG: { value: 0.8, min: 0, max: 1, step: 0.05, label: 'Mie Dir G' },
+      }, { collapsed: true }),
+      // Stars (for 'stars' type)
+      'Stars': folder({
+        starsCount: { value: 5000, min: 1000, max: 20000, step: 1000, label: 'Count' },
+        starsFactor: { value: 4, min: 1, max: 10, step: 0.5, label: 'Size' },
+      }, { collapsed: true }),
     }, { collapsed: true }),
     'View Distance': folder({
       fogEnabled: { value: true, label: 'Enable Fog' },
@@ -1404,6 +1414,7 @@ export function PlayWorld({
           <HDRISkybox
             file={cityMapControls.hdriFile}
             intensity={cityMapControls.hdriIntensity}
+            blur={cityMapControls.hdriBlur}
           />
         </Suspense>
       )}
