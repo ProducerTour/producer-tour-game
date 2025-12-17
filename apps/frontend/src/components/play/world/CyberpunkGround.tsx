@@ -2,15 +2,17 @@ import { useMemo, useEffect } from 'react';
 import { Grid, useTexture } from '@react-three/drei';
 import { useControls, folder } from 'leva';
 import * as THREE from 'three';
+import { getTexturePath } from '../../../config/assetPaths';
 
 // PBR texture sets - supports ambientCG naming convention
 // Expected naming: {name}_Color.png, {name}_NormalGL.png, {name}_Roughness.png, {name}_AmbientOcclusion.png
+// Note: These textures must be uploaded to CDN for production use
 const PBR_TEXTURE_SETS = {
   procedural: null, // Use procedural texture
-  grass: '/textures/ground/Grass004_1K-PNG', // ambientCG grass
-  concrete: '/textures/ground/Concrete', // ambientCG concrete
-  asphalt: '/textures/ground/Asphalt', // ambientCG asphalt
-  cobblestone: '/textures/ground/Cobblestone', // ambientCG cobblestone
+  grass: getTexturePath('ground/Grass004_1K-PNG'), // ambientCG grass
+  concrete: getTexturePath('ground/Concrete'), // ambientCG concrete
+  asphalt: getTexturePath('ground/Asphalt'), // ambientCG asphalt
+  cobblestone: getTexturePath('ground/Cobblestone'), // ambientCG cobblestone
 } as const;
 
 type TextureSetKey = keyof typeof PBR_TEXTURE_SETS;

@@ -64,6 +64,22 @@ export function getTexturePath(path: string): string {
 }
 
 /**
+ * Get the full path for a skybox file
+ * @param filename - Skybox filename (e.g., 'hilly_terrain_4k.jpg')
+ */
+export function getSkyboxPath(filename: string): string {
+  return `${ASSETS_BASE}/skybox/${filename}`;
+}
+
+/**
+ * Get the full path for an audio file
+ * @param path - Audio path relative to /audio/ (e.g., 'sfx/weapons/ak47/AK-47_fire.wav')
+ */
+export function getAudioPath(path: string): string {
+  return `${ASSETS_BASE}/audio/${path}`;
+}
+
+/**
  * Get the full path for any asset
  * @param path - Asset path starting with / (e.g., '/models/foo.glb')
  */

@@ -36,7 +36,7 @@ import { ZoneMarker, CyberpunkGround } from './world';
 import { NeoTokyoMap } from './maps';
 
 import { Gamepad2, Music, Briefcase, Users, Mic2 } from 'lucide-react';
-import { ASSETS_BASE } from '../../config/assetPaths';
+import { ASSETS_BASE, getSkyboxPath } from '../../config/assetPaths';
 
 // Flag to use Mixamo animations vs procedural
 const USE_MIXAMO_ANIMATIONS = true;
@@ -71,7 +71,7 @@ function HDRISkybox({
   // Sets both scene.background and scene.environment for reflections
   return (
     <Environment
-      files={`/skybox/${file}`}
+      files={getSkyboxPath(file)}
       background
       backgroundBlurriness={blur}
       environmentIntensity={intensity}

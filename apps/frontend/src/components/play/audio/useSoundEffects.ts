@@ -5,50 +5,51 @@
 
 import { useRef, useCallback, useEffect } from 'react';
 import { useSoundStore, type SoundCategory } from './useSoundStore';
+import { getAudioPath } from '../../../config/assetPaths';
 
-// Sound effect definitions
+// Sound effect definitions - use getAudioPath for CDN support
 export const SFX = {
   // UI
-  uiClick: '/audio/sfx/ui_click.mp3',
-  uiHover: '/audio/sfx/ui_hover.mp3',
-  uiOpen: '/audio/sfx/ui_open.mp3',
-  uiClose: '/audio/sfx/ui_close.mp3',
+  uiClick: getAudioPath('sfx/ui_click.mp3'),
+  uiHover: getAudioPath('sfx/ui_hover.mp3'),
+  uiOpen: getAudioPath('sfx/ui_open.mp3'),
+  uiClose: getAudioPath('sfx/ui_close.mp3'),
 
   // Player
-  footstepConcrete1: '/audio/sfx/footstep_concrete_1.mp3',
-  footstepConcrete2: '/audio/sfx/footstep_concrete_2.mp3',
-  footstepConcrete3: '/audio/sfx/footstep_concrete_3.mp3',
-  footstepGrass1: '/audio/sfx/footstep_grass_1.mp3',
-  footstepGrass2: '/audio/sfx/footstep_grass_2.mp3',
-  footstepMetal1: '/audio/sfx/footstep_metal_1.mp3',
-  footstepMetal2: '/audio/sfx/footstep_metal_2.mp3',
-  jump: '/audio/sfx/jump.mp3',
-  land: '/audio/sfx/land.mp3',
-  dash: '/audio/sfx/dash.mp3',
+  footstepConcrete1: getAudioPath('sfx/footstep_concrete_1.mp3'),
+  footstepConcrete2: getAudioPath('sfx/footstep_concrete_2.mp3'),
+  footstepConcrete3: getAudioPath('sfx/footstep_concrete_3.mp3'),
+  footstepGrass1: getAudioPath('sfx/footstep_grass_1.mp3'),
+  footstepGrass2: getAudioPath('sfx/footstep_grass_2.mp3'),
+  footstepMetal1: getAudioPath('sfx/footstep_metal_1.mp3'),
+  footstepMetal2: getAudioPath('sfx/footstep_metal_2.mp3'),
+  jump: getAudioPath('sfx/jump.mp3'),
+  land: getAudioPath('sfx/land.mp3'),
+  dash: getAudioPath('sfx/dash.mp3'),
 
   // Combat - Generic (fallbacks)
-  rifleShot: '/audio/sfx/rifle_shot.mp3',
-  pistolShot: '/audio/sfx/pistol_shot.mp3',
-  reload: '/audio/sfx/reload.mp3',
-  hitMarker: '/audio/sfx/hit_marker.mp3',
-  criticalHit: '/audio/sfx/critical_hit.mp3',
-  emptyClip: '/audio/sfx/empty_clip.mp3',
+  rifleShot: getAudioPath('sfx/rifle_shot.mp3'),
+  pistolShot: getAudioPath('sfx/pistol_shot.mp3'),
+  reload: getAudioPath('sfx/reload.mp3'),
+  hitMarker: getAudioPath('sfx/hit_marker.mp3'),
+  criticalHit: getAudioPath('sfx/critical_hit.mp3'),
+  emptyClip: getAudioPath('sfx/empty_clip.mp3'),
 
   // Combat - AK-47 specific
-  ak47Fire: '/audio/sfx/weapons/ak47/AK-47_fire.wav',
-  ak47FireTail: '/audio/sfx/weapons/ak47/AK-47_fire_tail.wav',
-  ak47Reload: '/audio/sfx/weapons/ak47/AK-47_reload.wav',
-  ak47Empty: '/audio/sfx/weapons/ak47/AK-47_empty.wav',
+  ak47Fire: getAudioPath('sfx/weapons/ak47/AK-47_fire.wav'),
+  ak47FireTail: getAudioPath('sfx/weapons/ak47/AK-47_fire_tail.wav'),
+  ak47Reload: getAudioPath('sfx/weapons/ak47/AK-47_reload.wav'),
+  ak47Empty: getAudioPath('sfx/weapons/ak47/AK-47_empty.wav'),
 
   // Quest
-  questAccept: '/audio/sfx/quest_accept.mp3',
-  questComplete: '/audio/sfx/quest_complete.mp3',
-  objectiveComplete: '/audio/sfx/objective_complete.mp3',
+  questAccept: getAudioPath('sfx/quest_accept.mp3'),
+  questComplete: getAudioPath('sfx/quest_complete.mp3'),
+  objectiveComplete: getAudioPath('sfx/objective_complete.mp3'),
 
   // Interaction
-  pickup: '/audio/sfx/pickup.mp3',
-  doorOpen: '/audio/sfx/door_open.mp3',
-  doorClose: '/audio/sfx/door_close.mp3',
+  pickup: getAudioPath('sfx/pickup.mp3'),
+  doorOpen: getAudioPath('sfx/door_open.mp3'),
+  doorClose: getAudioPath('sfx/door_close.mp3'),
 } as const;
 
 export type SFXName = keyof typeof SFX;

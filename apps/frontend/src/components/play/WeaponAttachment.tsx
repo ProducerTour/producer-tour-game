@@ -130,7 +130,7 @@ export function WeaponAttachment({
   const pistolGltf = useGLTF(WEAPONS.pistol);
 
   // Load muzzle flash model
-  const muzzleFlashGltf = useGLTF('/models/effects/machine_gun_muzzle_flash_test_effect.glb');
+  const muzzleFlashGltf = useGLTF(getModelPath('effects/machine_gun_muzzle_flash_test_effect.glb'));
 
   // Store calculated barrel tip for reference
   const calculatedBarrelTip = useRef<THREE.Vector3 | null>(null);
@@ -597,6 +597,6 @@ export function WeaponAttachment({
 // Preload weapons and effects
 useGLTF.preload(WEAPONS.rifle);
 useGLTF.preload(WEAPONS.pistol);
-useGLTF.preload('/models/effects/machine_gun_muzzle_flash_test_effect.glb');
+useGLTF.preload(getModelPath('effects/machine_gun_muzzle_flash_test_effect.glb'));
 
 export default WeaponAttachment;
