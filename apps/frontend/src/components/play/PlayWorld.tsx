@@ -6,6 +6,8 @@ import {
   useTexture,
   ContactShadows,
   Stars,
+  Sky,
+  Environment,
 } from '@react-three/drei';
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import * as THREE from 'three';
@@ -20,12 +22,18 @@ import { NPCManager } from './npc/NPCManager';
 import { createPatrolNPC, createNPC } from './npc/useNPCStore';
 import { useKeyboardControls } from './hooks/useKeyboardControls';
 import { useCombatStore } from './combat/useCombatStore';
+import { useCombatSounds } from './audio';
+import { useKeybindsStore } from './settings';
+import { useControls, folder } from 'leva';
 
 // Import extracted avatar components
 import { AnimatedAvatar, MixamoAnimatedAvatar, PlaceholderAvatar } from './avatars';
 
 // Import extracted world components
 import { ZoneMarker, CyberpunkGround } from './world';
+
+// Import maps
+import { NeoTokyoMap } from './maps';
 
 import { Gamepad2, Music, Briefcase, Users, Mic2 } from 'lucide-react';
 import { ASSETS_BASE } from '../../config/assetPaths';
@@ -39,6 +47,35 @@ const SPRINT_SPEED = 5;
 const ROTATION_SPEED = 10;
 
 
+// HDRI Skybox component - loads equirectangular images (.hdr, .exr, .jpg, .png)
+// Download free HDRIs from: polyhaven.com/hdris/skies or ambientcg.com
+function HDRISkybox({
+  file,
+  intensity = 1.0,
+}: {
+  file: string;
+  intensity?: number;
+}) {
+  const { gl } = useThree();
+
+  // Apply intensity via tone mapping exposure
+  useEffect(() => {
+    gl.toneMappingExposure = intensity;
+    console.log(`🌤️ HDRI Skybox: ${file}, intensity=${intensity}`);
+  }, [intensity, gl, file]);
+
+  // Use drei's Environment component which properly handles HDR/EXR files
+  // It sets both scene.background and scene.environment automatically
+  return (
+    <Environment
+      files={`/skybox/${file}`}
+      background
+      backgroundIntensity={intensity}
+    />
+  );
+}
+
+
 // Third-person camera with mouse look
 function ThirdPersonCamera({
   target
@@ -49,27 +86,154 @@ function ThirdPersonCamera({
   const smoothPosition = useRef(new THREE.Vector3(0, 4, 10));
   const initialized = useRef(false);
 
+  // Get aiming state and weapon from combat store
+  const isAiming = useCombatStore((s) => s.isAiming);
+  const currentWeapon = useCombatStore((s) => s.currentWeapon);
+  const hasWeapon = currentWeapon !== 'none';
+
   // Camera orbit angles (controlled by mouse)
   const orbitAngle = useRef(0); // Horizontal rotation (yaw)
   const pitchAngle = useRef(0.3); // Vertical angle (pitch) - start slightly above
 
+  // For weapon-equipped mode: track offset from character's back
+  const lookOffset = useRef(0); // How far camera has rotated from "behind character"
+  const isFreeLooking = useRef(false); // Currently in free look mode (Alt/Cmd held)
+  const freeLookResetSpeed = 5; // Speed to return camera behind character
+
   // Mouse tracking
   const isDragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
+  const isPointerLocked = useRef(false);
+  const isModifierHeld = useRef(false); // Alt or Cmd key for camera control
+
+  // Leva controls for camera
+  const cameraControls = useControls('Camera', {
+    'Normal': folder({
+      distance: { value: 6, min: 2, max: 12, step: 0.5 },
+      heightOffset: { value: 1.5, min: 0, max: 4, step: 0.1 },
+      lookAtHeight: { value: 1.6, min: 0.5, max: 2.5, step: 0.1 },
+      fov: { value: 75, min: 40, max: 120, step: 1 },
+    }, { collapsed: true }),
+    'Aiming': folder({
+      aimDistance: { value: 3.5, min: 1.5, max: 8, step: 0.25 },
+      aimShoulderOffset: { value: 0.8, min: -1.5, max: 1.5, step: 0.1 },
+      aimHeightOffset: { value: 1.2, min: 0, max: 3, step: 0.1 },
+      aimLookAtHeight: { value: 1.5, min: 0.5, max: 2.5, step: 0.1 },
+      aimTransitionSpeed: { value: 10, min: 2, max: 20, step: 1 },
+      aimFov: { value: 50, min: 25, max: 90, step: 1 },
+    }, { collapsed: false }),
+  });
+
+  // Track current FOV for smooth interpolation
+  const currentFov = useRef(75);
 
   // Camera settings
-  const distance = 6;
   const minPitch = -0.2; // Don't go too far below
   const maxPitch = 1.2; // Don't go too far above
   const sensitivity = 0.003;
 
-  // Set up mouse event listeners
+  // Get keybinds from store
+  const { isAction } = useKeybindsStore();
+
+  // Handle pointer lock and fullscreen when weapon is equipped
+  useEffect(() => {
+    const canvas = gl.domElement;
+
+    const handlePointerLockChange = () => {
+      isPointerLocked.current = document.pointerLockElement === canvas;
+      if (isPointerLocked.current) {
+        canvas.style.cursor = 'none';
+      } else {
+        canvas.style.cursor = hasWeapon ? 'crosshair' : 'grab';
+      }
+    };
+
+    // Request pointer lock on click when weapon is equipped (but not when holding free-look key)
+    const handleClick = () => {
+      if (hasWeapon && !isPointerLocked.current && !isModifierHeld.current) {
+        canvas.requestPointerLock?.();
+      }
+    };
+
+    // Handle keybinds for free-look and fullscreen
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if typing in an input
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Free-look key (configurable via keybinds menu)
+      if (isAction('freeLook', e.code)) {
+        e.preventDefault();
+        isModifierHeld.current = true;
+        isFreeLooking.current = true;
+        // Exit pointer lock when free-looking
+        if (isPointerLocked.current) {
+          document.exitPointerLock?.();
+        }
+        canvas.style.cursor = 'grab';
+      }
+
+      // Fullscreen toggle (configurable via keybinds menu)
+      if (isAction('fullscreen', e.code)) {
+        e.preventDefault();
+        if (document.fullscreenElement) {
+          document.exitFullscreen?.();
+        } else {
+          // Request fullscreen on the canvas parent (usually the R3F container)
+          const container = canvas.parentElement?.parentElement || canvas;
+          container.requestFullscreen?.();
+        }
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      // Free-look key released - exit free-look
+      if (isAction('freeLook', e.code)) {
+        e.preventDefault();
+        isModifierHeld.current = false;
+        isFreeLooking.current = false;
+        if (hasWeapon && !isPointerLocked.current) {
+          canvas.style.cursor = 'crosshair';
+        }
+      }
+    };
+
+    document.addEventListener('pointerlockchange', handlePointerLockChange);
+    canvas.addEventListener('click', handleClick);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    // Exit pointer lock when weapon is unequipped
+    if (!hasWeapon && isPointerLocked.current) {
+      document.exitPointerLock?.();
+    }
+
+    // Update cursor based on weapon state
+    if (!isPointerLocked.current) {
+      canvas.style.cursor = hasWeapon ? 'crosshair' : 'grab';
+    }
+
+    return () => {
+      document.removeEventListener('pointerlockchange', handlePointerLockChange);
+      canvas.removeEventListener('click', handleClick);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [hasWeapon, gl, isAction]);
+
+  // Set up mouse event listeners for camera control
   useEffect(() => {
     const canvas = gl.domElement;
 
     const handleMouseDown = (e: MouseEvent) => {
-      // Only start drag on left click or right click
-      if (e.button === 0 || e.button === 2) {
+      if (isPointerLocked.current) return;
+
+      // Left or right click drag when:
+      // - No weapon equipped, OR
+      // - Weapon equipped but holding Alt/Cmd modifier
+      const canDrag = !hasWeapon || isModifierHeld.current;
+      if ((e.button === 0 || e.button === 2) && canDrag) {
         isDragging.current = true;
         lastMouse.current = { x: e.clientX, y: e.clientY };
         canvas.style.cursor = 'grabbing';
@@ -77,29 +241,49 @@ function ThirdPersonCamera({
     };
 
     const handleMouseUp = () => {
+      if (isPointerLocked.current) return;
       isDragging.current = false;
-      canvas.style.cursor = 'grab';
+      // Restore appropriate cursor
+      if (isModifierHeld.current) {
+        canvas.style.cursor = 'grab';
+      } else {
+        canvas.style.cursor = hasWeapon ? 'crosshair' : 'grab';
+      }
     };
 
     const handleMouseMove = (e: MouseEvent) => {
+      // Pointer lock mode - use movementX/Y for smooth FPS-style control
+      if (isPointerLocked.current) {
+        orbitAngle.current -= e.movementX * sensitivity;
+        pitchAngle.current += e.movementY * sensitivity;
+        pitchAngle.current = Math.max(minPitch, Math.min(maxPitch, pitchAngle.current));
+        return;
+      }
+
+      // Drag mode - use delta from last position
       if (!isDragging.current) return;
 
       const deltaX = e.clientX - lastMouse.current.x;
       const deltaY = e.clientY - lastMouse.current.y;
 
-      // Update orbit angles
-      orbitAngle.current -= deltaX * sensitivity;
-      pitchAngle.current += deltaY * sensitivity;
+      // When free looking with weapon equipped, update lookOffset instead of orbitAngle directly
+      if (hasWeapon && isFreeLooking.current) {
+        lookOffset.current -= deltaX * sensitivity;
+        // Clamp look offset to prevent looking too far around (roughly 120 degrees each way)
+        lookOffset.current = Math.max(-2.1, Math.min(2.1, lookOffset.current));
+      } else {
+        orbitAngle.current -= deltaX * sensitivity;
+      }
 
-      // Clamp pitch
+      pitchAngle.current += deltaY * sensitivity;
       pitchAngle.current = Math.max(minPitch, Math.min(maxPitch, pitchAngle.current));
 
       lastMouse.current = { x: e.clientX, y: e.clientY };
     };
 
     const handleMouseLeave = () => {
+      if (isPointerLocked.current) return;
       isDragging.current = false;
-      canvas.style.cursor = 'grab';
     };
 
     // Prevent context menu on right-click
@@ -107,7 +291,7 @@ function ThirdPersonCamera({
       e.preventDefault();
     };
 
-    canvas.style.cursor = 'grab';
+    canvas.style.cursor = hasWeapon ? 'crosshair' : 'grab';
     canvas.addEventListener('mousedown', handleMouseDown);
     canvas.addEventListener('mouseup', handleMouseUp);
     canvas.addEventListener('mousemove', handleMouseMove);
@@ -121,22 +305,57 @@ function ThirdPersonCamera({
       canvas.removeEventListener('mouseleave', handleMouseLeave);
       canvas.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [gl]);
+  }, [gl, hasWeapon]);
 
   useFrame((_, delta) => {
     if (!target.current) return;
 
     const playerPos = target.current.position;
-    const lookAtHeight = 1.6; // Look at chest/head level (avatar is ~1.8m tall)
+    const playerRotY = target.current.rotation.y;
+
+    // When weapon equipped, camera follows behind character
+    if (hasWeapon) {
+      // Smoothly reset lookOffset when not free looking
+      if (!isFreeLooking.current && Math.abs(lookOffset.current) > 0.001) {
+        lookOffset.current *= Math.exp(-freeLookResetSpeed * delta);
+        if (Math.abs(lookOffset.current) < 0.001) lookOffset.current = 0;
+      }
+
+      // Camera should be behind the character (character's back)
+      // Player rotation Y of 0 means facing +Z, so camera at angle PI is behind
+      // We add PI to put camera behind, then add lookOffset for free look
+      const behindAngle = playerRotY + Math.PI + lookOffset.current;
+
+      // Smoothly interpolate orbitAngle to the behind angle
+      let angleDiff = behindAngle - orbitAngle.current;
+      // Normalize angle difference to [-PI, PI]
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+      // Faster follow when not free looking, slower when free looking to feel natural
+      const followSpeed = isFreeLooking.current ? 3 : 10;
+      orbitAngle.current += angleDiff * Math.min(1, followSpeed * delta);
+    }
+
+    // Select camera settings based on aiming state
+    const currentDistance = isAiming ? cameraControls.aimDistance : cameraControls.distance;
+    const currentHeightOffset = isAiming ? cameraControls.aimHeightOffset : cameraControls.heightOffset;
+    const currentLookAtHeight = isAiming ? cameraControls.aimLookAtHeight : cameraControls.lookAtHeight;
+    const shoulderOffset = isAiming ? cameraControls.aimShoulderOffset : 0;
+    const lerpSpeed = isAiming ? cameraControls.aimTransitionSpeed : 12;
 
     // Calculate camera position based on orbit angles
-    const horizontalDist = distance * Math.cos(pitchAngle.current);
-    const verticalOffset = distance * Math.sin(pitchAngle.current) + 1.5;
+    const horizontalDist = currentDistance * Math.cos(pitchAngle.current);
+    const verticalOffset = currentDistance * Math.sin(pitchAngle.current) + currentHeightOffset;
+
+    // Calculate shoulder offset direction (perpendicular to camera direction)
+    const shoulderX = Math.cos(orbitAngle.current) * shoulderOffset;
+    const shoulderZ = -Math.sin(orbitAngle.current) * shoulderOffset;
 
     const desiredPos = new THREE.Vector3(
-      playerPos.x + Math.sin(orbitAngle.current) * horizontalDist,
+      playerPos.x + Math.sin(orbitAngle.current) * horizontalDist + shoulderX,
       playerPos.y + verticalOffset,
-      playerPos.z + Math.cos(orbitAngle.current) * horizontalDist
+      playerPos.z + Math.cos(orbitAngle.current) * horizontalDist + shoulderZ
     );
 
     // Initialize on first frame
@@ -147,14 +366,30 @@ function ThirdPersonCamera({
     }
 
     // Smooth camera movement
-    const lerpSpeed = 12;
     smoothPosition.current.lerp(desiredPos, 1 - Math.exp(-lerpSpeed * delta));
 
     // Apply camera position
     camera.position.copy(smoothPosition.current);
 
-    // Always look at player
-    camera.lookAt(playerPos.x, playerPos.y + lookAtHeight, playerPos.z);
+    // Always look at player (with shoulder offset for aiming)
+    camera.lookAt(
+      playerPos.x + shoulderX * 0.5,
+      playerPos.y + currentLookAtHeight,
+      playerPos.z + shoulderZ * 0.5
+    );
+
+    // Smoothly interpolate FOV between normal and aim FOV
+    const targetFov = isAiming ? cameraControls.aimFov : cameraControls.fov;
+    currentFov.current += (targetFov - currentFov.current) * Math.min(1, lerpSpeed * delta);
+
+    // Apply FOV to camera (only PerspectiveCamera has fov)
+    if ((camera as THREE.PerspectiveCamera).isPerspectiveCamera) {
+      const perspCamera = camera as THREE.PerspectiveCamera;
+      if (Math.abs(perspCamera.fov - currentFov.current) > 0.01) {
+        perspCamera.fov = currentFov.current;
+        perspCamera.updateProjectionMatrix();
+      }
+    }
   });
 
   return null;
@@ -575,28 +810,6 @@ function BasketballCourt() {
         scale={scale}
       />
 
-      {/* Fence colliders - invisible walls around the court */}
-      {/* North fence */}
-      <CuboidCollider
-        args={[COURT_BOUNDS.width, COURT_BOUNDS.fenceHeight, COURT_BOUNDS.fenceThickness]}
-        position={[0, COURT_BOUNDS.fenceHeight, -COURT_BOUNDS.depth]}
-      />
-      {/* South fence */}
-      <CuboidCollider
-        args={[COURT_BOUNDS.width, COURT_BOUNDS.fenceHeight, COURT_BOUNDS.fenceThickness]}
-        position={[0, COURT_BOUNDS.fenceHeight, COURT_BOUNDS.depth]}
-      />
-      {/* East fence */}
-      <CuboidCollider
-        args={[COURT_BOUNDS.fenceThickness, COURT_BOUNDS.fenceHeight, COURT_BOUNDS.depth]}
-        position={[COURT_BOUNDS.width, COURT_BOUNDS.fenceHeight, 0]}
-      />
-      {/* West fence */}
-      <CuboidCollider
-        args={[COURT_BOUNDS.fenceThickness, COURT_BOUNDS.fenceHeight, COURT_BOUNDS.depth]}
-        position={[-COURT_BOUNDS.width, COURT_BOUNDS.fenceHeight, 0]}
-      />
-
       {/* Hoop poles - cylindrical colliders approximated as thin boxes */}
       <CuboidCollider args={[0.15, 2, 0.15]} position={[-12, 2, 0]} />
       <CuboidCollider args={[0.15, 2, 0.15]} position={[12, 2, 0]} />
@@ -939,8 +1152,8 @@ function MonkeyNPC({ position }: { position: [number, number, number] }) {
   );
 }
 
-// Preload monkey model
-useGLTF.preload(`${ASSETS_BASE}/models/Monkey/Monkey.glb`);
+// Preload monkey model - disabled due to CDN issues
+// useGLTF.preload(`${ASSETS_BASE}/models/Monkey/Monkey.glb`);
 
 // Player info for console display
 export interface PlayerInfo {
@@ -966,6 +1179,64 @@ export function PlayWorld({
   const [physicsDebug, setPhysicsDebug] = useState(false);
   const [weaponType, setWeaponType] = useState<WeaponType>(null);
   const setStoreWeapon = useCombatStore((s) => s.setWeapon);
+
+  // Initialize combat sounds (plays weapon SFX on fire/reload)
+  useCombatSounds({ enabled: true, volume: 1.0 });
+
+  // Skybox/environment presets
+  // 'hdri' uses custom equirectangular images from /skybox/ folder
+  const SKYBOX_PRESETS = ['none', 'stars', 'sunset', 'night', 'dawn', 'hdri', 'warehouse', 'forest', 'city'] as const;
+  type SkyboxPreset = typeof SKYBOX_PRESETS[number];
+
+  // Leva controls for world/map editing - MAIN WORKSPACE
+  const cityMapControls = useControls('🗺️ World', {
+    'Skybox': folder({
+      skyboxType: {
+        value: 'stars' as SkyboxPreset,
+        options: SKYBOX_PRESETS as unknown as SkyboxPreset[],
+        label: 'Type',
+      },
+      // HDRI skybox controls (for 'hdri' type)
+      // Download free HDRIs from: polyhaven.com/hdris/skies or ambientcg.com
+      // Place .hdr or .jpg files in public/skybox/ folder
+      hdriFile: {
+        value: 'kloppenheim_02_puresky_4k.exr',
+        options: [
+          'kloppenheim_02_puresky_4k.exr',  // Clear blue sky
+          'qwantani_noon_puresky_4k.exr',   // Noon sky
+          'goegap_road_4k.exr',             // Road/landscape
+        ],
+        label: 'HDRI File',
+      },
+      hdriIntensity: { value: 1.0, min: 0.1, max: 3, step: 0.1, label: 'HDRI Intensity' },
+      hdriRotation: { value: 0, min: 0, max: 360, step: 5, label: 'HDRI Rotation°' },
+      // Procedural sky controls (for sunset/dawn/night)
+      sunPosition: { value: { x: 100, y: 20, z: 100 }, label: 'Sun Position' },
+      turbidity: { value: 10, min: 0, max: 20, step: 0.5, label: 'Turbidity' },
+      rayleigh: { value: 2, min: 0, max: 4, step: 0.1, label: 'Rayleigh' },
+      mieCoefficient: { value: 0.005, min: 0, max: 0.1, step: 0.001, label: 'Mie Coeff' },
+      mieDirectionalG: { value: 0.8, min: 0, max: 1, step: 0.05, label: 'Mie Dir G' },
+      // Stars controls
+      starsCount: { value: 5000, min: 1000, max: 20000, step: 1000, label: 'Stars Count' },
+      starsFactor: { value: 4, min: 1, max: 10, step: 0.5, label: 'Stars Size' },
+    }, { collapsed: true }),
+    'View Distance': folder({
+      fogEnabled: { value: true, label: 'Enable Fog' },
+      fogNear: { value: 50, min: 10, max: 200, step: 10, label: 'Fog Near' },
+      fogFar: { value: 300, min: 50, max: 1000, step: 25, label: 'Fog Far' },
+      fogColor: { value: '#0a0a0f', label: 'Fog Color' },
+      starsRadius: { value: 200, min: 50, max: 500, step: 25, label: 'Stars Radius' },
+    }, { collapsed: true }),
+    'City': folder({
+      enabled: { value: true, label: 'Show City' },
+      posX: { value: 0, min: -500, max: 500, step: 5 },
+      posY: { value: 0, min: -50, max: 50, step: 1 },
+      posZ: { value: 80, min: -500, max: 500, step: 5, label: 'Distance (Z)' },
+      scale: { value: 0.01, min: 0.001, max: 0.1, step: 0.001, label: 'Scale (0.01=100m buildings)' },
+      enableColliders: { value: true, label: 'Building Colliders' },
+      useHull: { value: true, label: 'Hull (fast) vs Trimesh' },
+    }, { collapsed: false }),
+  }, { collapsed: false });
 
   // Weapon toggle (Q key) - cycles: none -> pistol -> rifle -> none
   useEffect(() => {
@@ -1081,10 +1352,71 @@ export function PlayWorld({
       <pointLight position={[0, 5, 5]} intensity={0.5} color="#8b5cf6" distance={20} />
       <hemisphereLight args={['#8b5cf6', '#0a0a0f', 0.3]} />
 
-      {/* Environment */}
-      <fog attach="fog" args={['#0a0a0f', 30, 120]} />
-      <color attach="background" args={['#0a0a0f']} />
-      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+      {/* Environment - fog/view distance controlled via Leva */}
+      {cityMapControls.fogEnabled && (
+        <fog attach="fog" args={[cityMapControls.fogColor, cityMapControls.fogNear, cityMapControls.fogFar]} />
+      )}
+
+      {/* Skybox rendering based on type */}
+      {cityMapControls.skyboxType === 'none' && (
+        <color attach="background" args={[cityMapControls.fogColor]} />
+      )}
+
+      {cityMapControls.skyboxType === 'stars' && (
+        <>
+          <color attach="background" args={[cityMapControls.fogColor]} />
+          <Stars
+            radius={cityMapControls.starsRadius}
+            depth={cityMapControls.starsRadius / 2}
+            count={cityMapControls.starsCount}
+            factor={cityMapControls.starsFactor}
+            saturation={0}
+            fade
+            speed={1}
+          />
+        </>
+      )}
+
+      {(cityMapControls.skyboxType === 'sunset' ||
+        cityMapControls.skyboxType === 'dawn' ||
+        cityMapControls.skyboxType === 'night') && (
+        <Sky
+          distance={450000}
+          sunPosition={[
+            cityMapControls.sunPosition.x,
+            cityMapControls.skyboxType === 'night' ? -10 :
+            cityMapControls.skyboxType === 'dawn' ? 5 :
+            cityMapControls.sunPosition.y,
+            cityMapControls.sunPosition.z
+          ]}
+          turbidity={cityMapControls.skyboxType === 'night' ? 20 : cityMapControls.turbidity}
+          rayleigh={cityMapControls.skyboxType === 'night' ? 0 : cityMapControls.rayleigh}
+          mieCoefficient={cityMapControls.mieCoefficient}
+          mieDirectionalG={cityMapControls.mieDirectionalG}
+          inclination={0.5}
+          azimuth={0.25}
+        />
+      )}
+
+      {/* Custom HDRI skybox - equirectangular images */}
+      {cityMapControls.skyboxType === 'hdri' && (
+        <Suspense fallback={<color attach="background" args={['#87CEEB']} />}>
+          <HDRISkybox
+            file={cityMapControls.hdriFile}
+            intensity={cityMapControls.hdriIntensity}
+          />
+        </Suspense>
+      )}
+
+      {/* HDR Environment presets */}
+      {(cityMapControls.skyboxType === 'warehouse' ||
+        cityMapControls.skyboxType === 'forest' ||
+        cityMapControls.skyboxType === 'city') && (
+        <Environment
+          preset={cityMapControls.skyboxType as 'warehouse' | 'forest' | 'city'}
+          background
+        />
+      )}
 
       {/* Physics World - Suspense needed for Rapier WASM loading */}
       {/* Press F3 to toggle debug visualization */}
@@ -1105,9 +1437,21 @@ export function PlayWorld({
             <MonkeyNPC position={[32, 0.01, -18]} />
           </Suspense>
 
+          {/* NeoTokyo City Map */}
+          {cityMapControls.enabled && (
+            <Suspense fallback={null}>
+              <NeoTokyoMap
+                position={[cityMapControls.posX, cityMapControls.posY, cityMapControls.posZ]}
+                scale={cityMapControls.scale}
+                enableBuildingColliders={cityMapControls.enableColliders}
+                useHullColliders={cityMapControls.useHull}
+              />
+            </Suspense>
+          )}
+
           {/* Physics Player Controller with animation state */}
           <PhysicsPlayerController onPositionChange={handlePositionChange}>
-            {({ isMoving, isRunning, isGrounded, isJumping, isDancing, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring, velocityY }) => (
+            {({ isMoving, isRunning, isGrounded, isJumping, isDancing, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring, velocityY, aimPitch }) => (
               <Suspense fallback={<PlaceholderAvatar isMoving={false} />}>
                 {avatarUrl ? (
                   USE_MIXAMO_ANIMATIONS ? (
@@ -1128,6 +1472,7 @@ export function PlayWorld({
                         isFiring={isFiring}
                         velocityY={velocityY}
                         weaponType={weaponType}
+                        aimPitch={aimPitch}
                       />
                     </AnimationErrorBoundary>
                   ) : (

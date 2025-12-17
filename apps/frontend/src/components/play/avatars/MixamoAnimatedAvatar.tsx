@@ -48,6 +48,7 @@ export interface MixamoAnimatedAvatarProps {
   isFiring?: boolean;
   velocityY?: number;
   weaponType?: WeaponType;
+  aimPitch?: number;  // Camera pitch for upper body aiming (radians)
 }
 
 /**
@@ -68,11 +69,13 @@ export function MixamoAnimatedAvatar({
   isFiring = false,
   velocityY = 0,
   weaponType = null,
+  aimPitch = 0,
 }: MixamoAnimatedAvatarProps) {
   const group = useRef<THREE.Group>(null);
   const avatarRef = useRef<THREE.Group>(null);
   const leftFootRef = useRef<THREE.Bone | null>(null);
   const rightFootRef = useRef<THREE.Bone | null>(null);
+  const spineRef = useRef<THREE.Bone | null>(null);  // For upper body aiming
   const { scene } = useGLTF(url);
 
   // Load animation files
@@ -140,13 +143,22 @@ export function MixamoAnimatedAvatar({
         child.castShadow = true;
         child.receiveShadow = true;
       }
-      // Find foot bones for ground tracking
+      // Find foot bones for ground tracking and spine for aiming
       if ((child as THREE.Bone).isBone) {
         const boneName = child.name.toLowerCase();
         if (boneName.includes('leftfoot') || boneName === 'left_foot') {
           leftFootRef.current = child as THREE.Bone;
         } else if (boneName.includes('rightfoot') || boneName === 'right_foot') {
           rightFootRef.current = child as THREE.Bone;
+        }
+        // Find spine bone for upper body aiming - use Spine2 (upper spine) for best results
+        // Spine2 gives more visible upper body tilt when aiming
+        if (child.name === 'Spine2' || child.name === 'spine2' || child.name === 'Spine1' || child.name === 'spine1') {
+          // Prefer Spine2 over Spine1 for more visible effect
+          if (child.name === 'Spine2' || child.name === 'spine2' || !spineRef.current) {
+            spineRef.current = child as THREE.Bone;
+            console.log('🎯 Found spine bone for aiming:', child.name);
+          }
         }
       }
     });
@@ -401,70 +413,93 @@ export function MixamoAnimatedAvatar({
     // Uncomment for debugging: (from, to) => console.log(`🎭 Animation: ${from ?? 'none'} → ${to}`)
   );
 
-  // Crouch offset - moves avatar down when crouching to match visual posture
-  const { crouchIdleOffset, crouchWalkOffset, transitionOffset, lerpSpeed } = useControls('Crouch Settings', {
-    crouchIdleOffset: { value: -0.52, min: -0.6, max: 0, step: 0.01, label: 'Crouch Idle Offset' },
-    crouchWalkOffset: { value: -0.14, min: -0.6, max: 0, step: 0.01, label: 'Crouch Walk Offset' },
-    transitionOffset: { value: -0.24, min: -0.5, max: 0, step: 0.01, label: 'Transition Offset' },
-    lerpSpeed: { value: 8, min: 1, max: 20, step: 0.5, label: 'Lerp Speed' },
-  });
+  // Consolidated animation controls in single panel with folders
+  const animControls = useControls('🎭 Animation', {
+    'Crouch': folder({
+      crouchIdleOffset: { value: -0.52, min: -0.6, max: 0, step: 0.01, label: 'Idle Offset Y' },
+      crouchWalkOffset: { value: -0.14, min: -0.6, max: 0, step: 0.01, label: 'Walk Offset Y' },
+      transitionOffset: { value: -0.24, min: -0.5, max: 0, step: 0.01, label: 'Transition Offset' },
+      lerpSpeed: { value: 8, min: 1, max: 20, step: 0.5, label: 'Lerp Speed' },
+      aimTiltMultiplier: { value: 0.15, min: 0, max: 0.5, step: 0.01, label: 'Aim Tilt Amount' },
+    }, { collapsed: true }),
+    'Rifle': folder({
+      'Idle': folder({
+        rifleIdleOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Y' },
+        rifleIdleOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'X' },
+        rifleIdleRotY: { value: -45, min: -45, max: 45, step: 1, label: 'Rot°' },
+      }, { collapsed: true }),
+      'Walk': folder({
+        rifleWalkOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Y' },
+        rifleWalkOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'X' },
+        rifleWalkRotY: { value: -45, min: -45, max: 45, step: 1, label: 'Rot°' },
+      }, { collapsed: true }),
+      'Run': folder({
+        rifleRunOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+        rifleRunOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+        rifleRunRotX: { value: 18, min: -45, max: 45, step: 1, label: 'Rot X°' },
+        rifleRunRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
+        rifleRunRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
+      }, { collapsed: true }),
+      'Fire Still': folder({
+        rifleFireStillOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+        rifleFireStillOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+        rifleFireStillRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
+        rifleFireStillRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
+        rifleFireStillRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
+      }, { collapsed: true }),
+      'Fire Walk': folder({
+        rifleFireWalkOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+        rifleFireWalkOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+        rifleFireWalkRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
+        rifleFireWalkRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
+        rifleFireWalkRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
+      }, { collapsed: true }),
+      'Fire Crouch': folder({
+        rifleFireCrouchOffset: { value: -0.28, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+        rifleFireCrouchOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+        rifleFireCrouchRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
+        rifleFireCrouchRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
+        rifleFireCrouchRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
+      }, { collapsed: true }),
+      'Fire Crouch Idle': folder({
+        crouchRapidFireOffset: { value: -0.5, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+        crouchRapidFireOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+        crouchRapidFireRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
+        crouchRapidFireRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
+        crouchRapidFireRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
+      }, { collapsed: true }),
+      'Fire Crouch Tap': folder({
+        crouchFireTapOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+        crouchFireTapOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+        crouchFireTapRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
+        crouchFireTapRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
+        crouchFireTapRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
+      }, { collapsed: true }),
+    }, { collapsed: true }),
+    'Pistol': folder({
+      'Idle': folder({
+        pistolIdleOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Y' },
+        pistolIdleOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'X' },
+        pistolIdleRotY: { value: -45, min: -45, max: 45, step: 1, label: 'Rot°' },
+      }, { collapsed: true }),
+      'Walk': folder({
+        pistolWalkOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Y' },
+        pistolWalkOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'X' },
+        pistolWalkRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot°' },
+      }, { collapsed: true }),
+      'Run': folder({
+        pistolRunOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+        pistolRunOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+        pistolRunRotX: { value: 12, min: -45, max: 45, step: 1, label: 'Rot X°' },
+        pistolRunRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
+        pistolRunRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
+      }, { collapsed: true }),
+    }, { collapsed: true }),
+  }, { collapsed: true });
 
-  // Weapon animation offsets (Y = vertical, X = horizontal, Rot = rotation in degrees)
-  const rifleControls = useControls('Rifle Anim', {
-    'Idle': folder({
-      rifleIdleOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Y' },
-      rifleIdleOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'X' },
-      rifleIdleRotY: { value: -45, min: -45, max: 45, step: 1, label: 'Rot°' },
-    }, { collapsed: true }),
-    'Walk': folder({
-      rifleWalkOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Y' },
-      rifleWalkOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'X' },
-      rifleWalkRotY: { value: -45, min: -45, max: 45, step: 1, label: 'Rot°' },
-    }, { collapsed: true }),
-    'Run': folder({
-      rifleRunOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
-      rifleRunOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
-      rifleRunRotX: { value: 18, min: -45, max: 45, step: 1, label: 'Rot X°' },
-      rifleRunRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
-      rifleRunRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
-    }, { collapsed: true }),
-    'Fire Still': folder({
-      rifleFireStillOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
-      rifleFireStillOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
-      rifleFireStillRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
-      rifleFireStillRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
-      rifleFireStillRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
-    }, { collapsed: true }),
-    'Fire Walk': folder({
-      rifleFireWalkOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
-      rifleFireWalkOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
-      rifleFireWalkRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
-      rifleFireWalkRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
-      rifleFireWalkRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
-    }, { collapsed: true }),
-    'Fire Crouch': folder({
-      rifleFireCrouchOffset: { value: -0.28, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
-      rifleFireCrouchOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
-      rifleFireCrouchRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
-      rifleFireCrouchRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
-      rifleFireCrouchRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
-    }, { collapsed: true }),
-    'Fire Crouch Idle': folder({
-      crouchRapidFireOffset: { value: -0.5, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
-      crouchRapidFireOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
-      crouchRapidFireRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
-      crouchRapidFireRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
-      crouchRapidFireRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
-    }, { collapsed: true }),
-    'Fire Crouch Tap': folder({
-      crouchFireTapOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
-      crouchFireTapOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
-      crouchFireTapRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
-      crouchFireTapRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
-      crouchFireTapRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
-    }, { collapsed: true }),
-  });
+  // Extract values with compatibility mappings
   const {
+    crouchIdleOffset, crouchWalkOffset, transitionOffset, lerpSpeed, aimTiltMultiplier,
     rifleIdleOffset, rifleIdleOffsetX, rifleIdleRotY,
     rifleWalkOffset, rifleWalkOffsetX, rifleWalkRotY,
     rifleRunOffset, rifleRunOffsetX, rifleRunRotX, rifleRunRotY, rifleRunRotZ,
@@ -473,32 +508,10 @@ export function MixamoAnimatedAvatar({
     rifleFireCrouchOffset, rifleFireCrouchOffsetX, rifleFireCrouchRotX, rifleFireCrouchRotY, rifleFireCrouchRotZ,
     crouchRapidFireOffset, crouchRapidFireOffsetX, crouchRapidFireRotX, crouchRapidFireRotY, crouchRapidFireRotZ,
     crouchFireTapOffset, crouchFireTapOffsetX, crouchFireTapRotX, crouchFireTapRotY, crouchFireTapRotZ,
-  } = rifleControls;
-
-  const pistolControls = useControls('Pistol Anim', {
-    'Idle': folder({
-      pistolIdleOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Y' },
-      pistolIdleOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'X' },
-      pistolIdleRotY: { value: -45, min: -45, max: 45, step: 1, label: 'Rot°' },
-    }, { collapsed: true }),
-    'Walk': folder({
-      pistolWalkOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Y' },
-      pistolWalkOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'X' },
-      pistolWalkRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot°' },
-    }, { collapsed: true }),
-    'Run': folder({
-      pistolRunOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
-      pistolRunOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
-      pistolRunRotX: { value: 12, min: -45, max: 45, step: 1, label: 'Rot X°' },
-      pistolRunRotY: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Y°' },
-      pistolRunRotZ: { value: 0, min: -45, max: 45, step: 1, label: 'Rot Z°' },
-    }, { collapsed: true }),
-  });
-  const {
     pistolIdleOffset, pistolIdleOffsetX, pistolIdleRotY,
     pistolWalkOffset, pistolWalkOffsetX, pistolWalkRotY,
-    pistolRunOffset, pistolRunOffsetX, pistolRunRotX, pistolRunRotY, pistolRunRotZ
-  } = pistolControls;
+    pistolRunOffset, pistolRunOffsetX, pistolRunRotX, pistolRunRotY, pistolRunRotZ,
+  } = animControls;
 
   // Crouch idle states
   const CROUCH_IDLE_STATES = [
@@ -620,6 +633,30 @@ export function MixamoAnimatedAvatar({
     avatarRef.current.rotation.x = (currentRotX.current * Math.PI) / 180;
     avatarRef.current.rotation.y = (currentRotY.current * Math.PI) / 180;
     avatarRef.current.rotation.z = (currentRotZ.current * Math.PI) / 180;
+
+  });
+
+  // Upper body aiming - Apply subtle X rotation to avatar group when aiming
+  // This is simpler than bone manipulation and doesn't conflict with animation mixer
+  const currentAimTilt = useRef(0);
+
+  useFrame((_, delta) => {
+    if (!avatarRef.current) return;
+
+    // Target tilt: only when aiming with weapon
+    // Positive aimPitch = looking down, negative = looking up
+    // Negative X rotation = tilt forward, positive = tilt backward
+    // aimTiltMultiplier is adjustable via Leva for subtle effect tuning
+    const targetTilt = isAiming && weaponType ? -aimPitch * aimTiltMultiplier : 0;
+
+    // Smooth interpolation
+    const t = 1 - Math.exp(-8 * delta);
+    currentAimTilt.current += (targetTilt - currentAimTilt.current) * t;
+
+    // Apply to avatar group's X rotation (adds to existing rotation from offset system)
+    // Convert current degrees to radians, add aim tilt, then set
+    const baseRotX = (currentRotX.current * Math.PI) / 180;
+    avatarRef.current.rotation.x = baseRotX + currentAimTilt.current;
   });
 
   return (

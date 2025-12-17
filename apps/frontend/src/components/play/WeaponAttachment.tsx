@@ -2,6 +2,7 @@
  * Weapon Attachment System
  * Attaches weapon models directly to character hand bones
  * Uses Leva controls for live adjustment
+ * Includes muzzle flash effect (sprite + point light)
  */
 
 import { useEffect, useRef } from 'react';
@@ -10,6 +11,7 @@ import { useGLTF } from '@react-three/drei';
 import { useControls, folder, button } from 'leva';
 import * as THREE from 'three';
 import { getModelPath } from '../../config/assetPaths';
+import { useCombatStore } from './combat/useCombatStore';
 
 // Weapon model paths
 export const WEAPONS = {
@@ -85,6 +87,25 @@ function findBone(root: THREE.Object3D, names: string[], debug = false): THREE.B
 // Convert degrees to radians
 const DEG_TO_RAD = Math.PI / 180;
 
+// Calculate barrel tip from weapon bounding box
+// Returns the position in local weapon space where the muzzle should be
+function getBarrelTipFromBoundingBox(weaponScene: THREE.Object3D): THREE.Vector3 {
+  const box = new THREE.Box3().setFromObject(weaponScene);
+  const size = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  box.getSize(size);
+  box.getCenter(center);
+
+  // For an AK-47 style rifle, the barrel extends along the longest axis
+  // Based on typical weapon orientation, the barrel tip is at max Y
+  // We'll use the bounding box to find the furthest point
+  return new THREE.Vector3(
+    center.x,           // Center X
+    box.max.y,          // Barrel tip at max Y (along barrel)
+    center.z            // Center Z
+  );
+}
+
 export function WeaponAttachment({
   weaponType,
   avatarRef,
@@ -95,141 +116,149 @@ export function WeaponAttachment({
   const attachedToBone = useRef<THREE.Bone | null>(null);
   const weaponMeshRef = useRef<THREE.Object3D | null>(null);
 
+  // Muzzle flash refs
+  const muzzleFlashRef = useRef<THREE.Group | null>(null);
+  const muzzleFlashLight = useRef<THREE.PointLight | null>(null);
+  const muzzleFlashModel = useRef<THREE.Object3D | null>(null);
+  const lastFireTime = useRef(0);
+
+  // Get firing state from combat store
+  const isFiring = useCombatStore((state) => state.isFiring);
+
   // Load weapon models
   const rifleGltf = useGLTF(WEAPONS.rifle);
   const pistolGltf = useGLTF(WEAPONS.pistol);
 
-  // Leva controls for rifle (saved config)
-  const rifleControls = useControls('Rifle', {
-    position: folder({
-      posX: { value: 0.01, min: -0.5, max: 0.5, step: 0.01 },
-      posY: { value: 0.23, min: -0.5, max: 0.5, step: 0.01 },
-      posZ: { value: 0.03, min: -0.5, max: 0.5, step: 0.01 },
-    }),
-    rotation: folder({
-      rotX: { value: 89, min: -180, max: 180, step: 1 },
-      rotY: { value: -144, min: -180, max: 180, step: 1 },
-      rotZ: { value: 85, min: -180, max: 180, step: 1 },
-    }),
-    scale: { value: 1.1, min: 0.1, max: 3, step: 0.1 },
-  });
+  // Load muzzle flash model
+  const muzzleFlashGltf = useGLTF('/models/effects/machine_gun_muzzle_flash_test_effect.glb');
 
-  // Rifle firing offset controls (applied on top of base position)
-  const rifleFireControls = useControls('Rifle Fire Offset', {
-    'Fire Still': folder({
+  // Store calculated barrel tip for reference
+  const calculatedBarrelTip = useRef<THREE.Vector3 | null>(null);
+
+  // === ALL WEAPON CONTROLS IN ONE PANEL ===
+  // Consolidated for cleaner Leva workspace
+  const weaponControls = useControls('🔫 Weapons', {
+    // Rifle base position/rotation
+    'Rifle': folder({
+      riflePosX: { value: 0.01, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+      riflePosY: { value: 0.23, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+      riflePosZ: { value: 0.03, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Z' },
+      rifleRotX: { value: 89, min: -180, max: 180, step: 1, label: 'Rot X' },
+      rifleRotY: { value: -144, min: -180, max: 180, step: 1, label: 'Rot Y' },
+      rifleRotZ: { value: 85, min: -180, max: 180, step: 1, label: 'Rot Z' },
+      rifleScale: { value: 1.1, min: 0.1, max: 3, step: 0.1, label: 'Scale' },
+    }, { collapsed: true }),
+
+    // Pistol base position/rotation
+    'Pistol': folder({
+      pistolPosX: { value: 0.03, min: -0.5, max: 0.5, step: 0.01, label: 'Pos X' },
+      pistolPosY: { value: 0.08, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Y' },
+      pistolPosZ: { value: 0.03, min: -0.5, max: 0.5, step: 0.01, label: 'Pos Z' },
+      pistolRotX: { value: 20, min: -180, max: 180, step: 1, label: 'Rot X' },
+      pistolRotY: { value: 0, min: -180, max: 180, step: 1, label: 'Rot Y' },
+      pistolRotZ: { value: -90, min: -180, max: 180, step: 1, label: 'Rot Z' },
+      pistolScale: { value: 1.8, min: 0.1, max: 3, step: 0.1, label: 'Scale' },
+    }, { collapsed: true }),
+
+    // Muzzle Flash
+    'Muzzle Flash': folder({
+      rifleMuzzleX: { value: 0.0, min: -0.5, max: 0.5, step: 0.005, label: 'Rifle X' },
+      rifleMuzzleY: { value: 0.0, min: -0.5, max: 0.5, step: 0.005, label: 'Rifle Y' },
+      rifleMuzzleZ: { value: 0.435, min: -0.5, max: 0.5, step: 0.005, label: 'Rifle Z' },
+      pistolMuzzleX: { value: 0.0, min: -0.3, max: 0.3, step: 0.005, label: 'Pistol X' },
+      pistolMuzzleY: { value: 0.0, min: -0.3, max: 0.3, step: 0.005, label: 'Pistol Y' },
+      pistolMuzzleZ: { value: 0.0, min: -0.3, max: 0.3, step: 0.005, label: 'Pistol Z' },
+      flashScale: { value: 0.003, min: 0.001, max: 0.05, step: 0.001 },
+      flashRotX: { value: -90, min: -180, max: 180, step: 5 },
+      flashRotY: { value: 0, min: -180, max: 180, step: 5 },
+      flashRotZ: { value: 0, min: -180, max: 180, step: 5 },
+      lightIntensity: { value: 2, min: 0, max: 10, step: 0.5 },
+      lightDistance: { value: 2, min: 0.5, max: 5, step: 0.5 },
+      flashDuration: { value: 50, min: 20, max: 150, step: 10 },
+    }, { collapsed: true }),
+
+    // Fire offsets (for animation tuning)
+    'Fire Offsets': folder({
       fireStillPosX: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
       fireStillPosY: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
       fireStillPosZ: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      fireStillRotX: { value: 0, min: -45, max: 45, step: 1 },
       fireStillRotY: { value: -28, min: -45, max: 45, step: 1 },
-      fireStillRotZ: { value: 0, min: -45, max: 45, step: 1 },
-    }, { collapsed: true }),
-    'Fire Walk': folder({
-      fireWalkPosX: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      fireWalkPosY: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
       fireWalkPosZ: { value: 0.02, min: -0.3, max: 0.3, step: 0.01 },
-      fireWalkRotX: { value: 0, min: -45, max: 45, step: 1 },
       fireWalkRotY: { value: -30, min: -45, max: 45, step: 1 },
-      fireWalkRotZ: { value: 0, min: -45, max: 45, step: 1 },
-    }, { collapsed: true }),
-    'Fire Crouch': folder({
       fireCrouchPosX: { value: 0.03, min: -0.3, max: 0.3, step: 0.01 },
-      fireCrouchPosY: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      fireCrouchPosZ: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      fireCrouchRotX: { value: 0, min: -45, max: 45, step: 1 },
       fireCrouchRotY: { value: -29, min: -45, max: 45, step: 1 },
-      fireCrouchRotZ: { value: 0, min: -45, max: 45, step: 1 },
     }, { collapsed: true }),
-    'Fire Crouch Idle': folder({
-      fireCrouchIdlePosX: { value: 0.03, min: -0.3, max: 0.3, step: 0.01 },
-      fireCrouchIdlePosY: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      fireCrouchIdlePosZ: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      fireCrouchIdleRotX: { value: 0, min: -45, max: 45, step: 1 },
-      fireCrouchIdleRotY: { value: -28, min: -45, max: 45, step: 1 },
-      fireCrouchIdleRotZ: { value: 0, min: -45, max: 45, step: 1 },
-    }, { collapsed: true }),
-    'Fire Crouch Tap': folder({
-      fireCrouchTapPosX: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      fireCrouchTapPosY: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      fireCrouchTapPosZ: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      fireCrouchTapRotX: { value: 0, min: -45, max: 45, step: 1 },
-      fireCrouchTapRotY: { value: 0, min: -45, max: 45, step: 1 },
-      fireCrouchTapRotZ: { value: 0, min: -45, max: 45, step: 1 },
-    }, { collapsed: true }),
-  });
 
-  // Rifle crouch offset controls (applied on top of base position)
-  const rifleCrouchControls = useControls('Rifle Crouch Offset', {
-    'Crouch Idle': folder({
+    // Crouch offsets
+    'Crouch Offsets': folder({
       crouchIdlePosX: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
       crouchIdlePosY: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
       crouchIdlePosZ: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      crouchIdleRotX: { value: 0, min: -45, max: 45, step: 1 },
-      crouchIdleRotY: { value: 0, min: -45, max: 45, step: 1 },
-      crouchIdleRotZ: { value: 0, min: -45, max: 45, step: 1 },
-    }, { collapsed: true }),
-    'Crouch Walk': folder({
       crouchWalkPosX: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
       crouchWalkPosY: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
       crouchWalkPosZ: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      crouchWalkRotX: { value: 0, min: -45, max: 45, step: 1 },
-      crouchWalkRotY: { value: 0, min: -45, max: 45, step: 1 },
-      crouchWalkRotZ: { value: 0, min: -45, max: 45, step: 1 },
     }, { collapsed: true }),
-    'Crouch Strafe Left': folder({
-      crouchStrafeLeftPosX: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      crouchStrafeLeftPosY: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      crouchStrafeLeftPosZ: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      crouchStrafeLeftRotX: { value: 0, min: -45, max: 45, step: 1 },
-      crouchStrafeLeftRotY: { value: 0, min: -45, max: 45, step: 1 },
-      crouchStrafeLeftRotZ: { value: 0, min: -45, max: 45, step: 1 },
-    }, { collapsed: true }),
-    'Crouch Strafe Right': folder({
-      crouchStrafeRightPosX: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      crouchStrafeRightPosY: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      crouchStrafeRightPosZ: { value: 0, min: -0.3, max: 0.3, step: 0.01 },
-      crouchStrafeRightRotX: { value: 0, min: -45, max: 45, step: 1 },
-      crouchStrafeRightRotY: { value: 0, min: -45, max: 45, step: 1 },
-      crouchStrafeRightRotZ: { value: 0, min: -45, max: 45, step: 1 },
-    }, { collapsed: true }),
-  });
 
-  // Leva controls for pistol (saved config)
-  const pistolControls = useControls('Pistol', {
-    position: folder({
-      posX: { value: 0.03, min: -0.5, max: 0.5, step: 0.01 },
-      posY: { value: 0.08, min: -0.5, max: 0.5, step: 0.01 },
-      posZ: { value: 0.03, min: -0.5, max: 0.5, step: 0.01 },
-    }),
-    rotation: folder({
-      rotX: { value: 20, min: -180, max: 180, step: 1 },
-      rotY: { value: 0, min: -180, max: 180, step: 1 },
-      rotZ: { value: -90, min: -180, max: 180, step: 1 },
-    }),
-    scale: { value: 1.8, min: 0.1, max: 3, step: 0.1 },
-  });
+    // Debug & Utils
+    'Utils': folder({
+      'Log Barrel': button(() => {
+        if (calculatedBarrelTip.current) {
+          const tip = calculatedBarrelTip.current;
+          console.log('🎯 Barrel tip:', { x: tip.x.toFixed(4), y: tip.y.toFixed(4), z: tip.z.toFixed(4) });
+        } else {
+          console.log('🎯 No barrel tip - equip a weapon first');
+        }
+      }),
+      'Copy Config': button(() => {
+        const config = JSON.stringify({
+          rifle: { pos: [weaponControls.riflePosX, weaponControls.riflePosY, weaponControls.riflePosZ], rot: [weaponControls.rifleRotX, weaponControls.rifleRotY, weaponControls.rifleRotZ], scale: weaponControls.rifleScale },
+          pistol: { pos: [weaponControls.pistolPosX, weaponControls.pistolPosY, weaponControls.pistolPosZ], rot: [weaponControls.pistolRotX, weaponControls.pistolRotY, weaponControls.pistolRotZ], scale: weaponControls.pistolScale },
+        }, null, 2);
+        navigator.clipboard.writeText(config);
+        console.log('📋 Config copied!', config);
+      }),
+    }, { collapsed: true }),
+  }, { collapsed: true });
 
-  // Copy config button
-  useControls('Weapons', {
-    'Copy Config': button(() => {
-      const config = `// Weapon Configs - paste into WeaponAttachment.tsx
-const WEAPON_CONFIGS = {
-  rifle: {
-    position: new THREE.Vector3(${rifleControls.posX}, ${rifleControls.posY}, ${rifleControls.posZ}),
-    rotation: new THREE.Euler(${(rifleControls.rotX * DEG_TO_RAD).toFixed(4)}, ${(rifleControls.rotY * DEG_TO_RAD).toFixed(4)}, ${(rifleControls.rotZ * DEG_TO_RAD).toFixed(4)}),
-    scale: ${rifleControls.scale},
-  },
-  pistol: {
-    position: new THREE.Vector3(${pistolControls.posX}, ${pistolControls.posY}, ${pistolControls.posZ}),
-    rotation: new THREE.Euler(${(pistolControls.rotX * DEG_TO_RAD).toFixed(4)}, ${(pistolControls.rotY * DEG_TO_RAD).toFixed(4)}, ${(pistolControls.rotZ * DEG_TO_RAD).toFixed(4)}),
-    scale: ${pistolControls.scale},
-  },
-};`;
-      navigator.clipboard.writeText(config);
-      console.log('📋 Weapon config copied to clipboard!');
-      console.log(config);
-    }),
-  });
+  // Map controls to old variable names for compatibility
+  const rifleControls = {
+    posX: weaponControls.riflePosX, posY: weaponControls.riflePosY, posZ: weaponControls.riflePosZ,
+    rotX: weaponControls.rifleRotX, rotY: weaponControls.rifleRotY, rotZ: weaponControls.rifleRotZ,
+    scale: weaponControls.rifleScale,
+  };
+  const pistolControls = {
+    posX: weaponControls.pistolPosX, posY: weaponControls.pistolPosY, posZ: weaponControls.pistolPosZ,
+    rotX: weaponControls.pistolRotX, rotY: weaponControls.pistolRotY, rotZ: weaponControls.pistolRotZ,
+    scale: weaponControls.pistolScale,
+  };
+  const muzzleFlashControls = {
+    rifleMuzzleX: weaponControls.rifleMuzzleX, rifleMuzzleY: weaponControls.rifleMuzzleY, rifleMuzzleZ: weaponControls.rifleMuzzleZ,
+    pistolMuzzleX: weaponControls.pistolMuzzleX, pistolMuzzleY: weaponControls.pistolMuzzleY, pistolMuzzleZ: weaponControls.pistolMuzzleZ,
+    flashScale: weaponControls.flashScale, flashRotX: weaponControls.flashRotX, flashRotY: weaponControls.flashRotY, flashRotZ: weaponControls.flashRotZ,
+    lightIntensity: weaponControls.lightIntensity, lightDistance: weaponControls.lightDistance, flashDuration: weaponControls.flashDuration,
+  };
+  const rifleFireControls = {
+    fireStillPosX: weaponControls.fireStillPosX, fireStillPosY: weaponControls.fireStillPosY, fireStillPosZ: weaponControls.fireStillPosZ,
+    fireStillRotX: 0, fireStillRotY: weaponControls.fireStillRotY, fireStillRotZ: 0,
+    fireWalkPosX: 0, fireWalkPosY: 0, fireWalkPosZ: weaponControls.fireWalkPosZ,
+    fireWalkRotX: 0, fireWalkRotY: weaponControls.fireWalkRotY, fireWalkRotZ: 0,
+    fireCrouchPosX: weaponControls.fireCrouchPosX, fireCrouchPosY: 0, fireCrouchPosZ: 0,
+    fireCrouchRotX: 0, fireCrouchRotY: weaponControls.fireCrouchRotY, fireCrouchRotZ: 0,
+    fireCrouchIdlePosX: weaponControls.fireCrouchPosX, fireCrouchIdlePosY: 0, fireCrouchIdlePosZ: 0,
+    fireCrouchIdleRotX: 0, fireCrouchIdleRotY: -28, fireCrouchIdleRotZ: 0,
+    fireCrouchTapPosX: 0, fireCrouchTapPosY: 0, fireCrouchTapPosZ: 0,
+    fireCrouchTapRotX: 0, fireCrouchTapRotY: 0, fireCrouchTapRotZ: 0,
+  };
+  const rifleCrouchControls = {
+    crouchIdlePosX: weaponControls.crouchIdlePosX, crouchIdlePosY: weaponControls.crouchIdlePosY, crouchIdlePosZ: weaponControls.crouchIdlePosZ,
+    crouchIdleRotX: 0, crouchIdleRotY: 0, crouchIdleRotZ: 0,
+    crouchWalkPosX: weaponControls.crouchWalkPosX, crouchWalkPosY: weaponControls.crouchWalkPosY, crouchWalkPosZ: weaponControls.crouchWalkPosZ,
+    crouchWalkRotX: 0, crouchWalkRotY: 0, crouchWalkRotZ: 0,
+    crouchStrafeLeftPosX: 0, crouchStrafeLeftPosY: 0, crouchStrafeLeftPosZ: 0,
+    crouchStrafeLeftRotX: 0, crouchStrafeLeftRotY: 0, crouchStrafeLeftRotZ: 0,
+    crouchStrafeRightPosX: 0, crouchStrafeRightPosY: 0, crouchStrafeRightPosZ: 0,
+    crouchStrafeRightRotX: 0, crouchStrafeRightRotY: 0, crouchStrafeRightRotZ: 0,
+  };
 
   // Track if we've attached this weapon type
   const attachedWeaponType = useRef<WeaponType>(null);
@@ -244,6 +273,10 @@ const WEAPON_CONFIGS = {
         attachedWeapon.current = null;
         attachedToBone.current = null;
         weaponMeshRef.current = null;
+        // Clean up muzzle flash refs
+        muzzleFlashRef.current = null;
+        muzzleFlashLight.current = null;
+        muzzleFlashModel.current = null;
         console.log('🔫 Weapon detached');
       }
       attachedWeaponType.current = weaponType;
@@ -340,6 +373,64 @@ const WEAPON_CONFIGS = {
         rotZ * DEG_TO_RAD
       );
       weaponMeshRef.current.scale.setScalar(controls.scale);
+
+      // Update muzzle flash visibility and position
+      if (muzzleFlashRef.current) {
+        const now = Date.now();
+
+        // Show flash when firing (with random flicker for realism)
+        if (isFiring) {
+          // Flash visible with random scale variation
+          muzzleFlashRef.current.visible = true;
+          lastFireTime.current = now;
+
+          // Randomize model scale for flicker effect
+          const flickerScale = muzzleFlashControls.flashScale * (0.8 + Math.random() * 0.4);
+          if (muzzleFlashModel.current) {
+            muzzleFlashModel.current.scale.setScalar(flickerScale);
+          }
+
+          // Randomize light intensity
+          if (muzzleFlashLight.current) {
+            muzzleFlashLight.current.intensity = muzzleFlashControls.lightIntensity * (0.7 + Math.random() * 0.6);
+          }
+
+          // Random Z rotation for variety (around barrel axis)
+          muzzleFlashRef.current.rotation.z = muzzleFlashControls.flashRotZ * DEG_TO_RAD + Math.random() * Math.PI * 2;
+        } else {
+          // Hide after flash duration
+          if (now - lastFireTime.current > muzzleFlashControls.flashDuration) {
+            muzzleFlashRef.current.visible = false;
+          }
+        }
+
+        // Update muzzle flash position from Leva controls + calculated barrel tip
+        const basePosition = calculatedBarrelTip.current?.clone() || new THREE.Vector3();
+        const muzzleOffset = weaponType === 'rifle'
+          ? new THREE.Vector3(
+              muzzleFlashControls.rifleMuzzleX,
+              muzzleFlashControls.rifleMuzzleY,
+              muzzleFlashControls.rifleMuzzleZ
+            )
+          : new THREE.Vector3(
+              muzzleFlashControls.pistolMuzzleX,
+              muzzleFlashControls.pistolMuzzleY,
+              muzzleFlashControls.pistolMuzzleZ
+            );
+        muzzleFlashRef.current.position.copy(basePosition.add(muzzleOffset));
+
+        // Update model rotation from Leva (X and Y only, Z is randomized)
+        if (muzzleFlashModel.current) {
+          muzzleFlashModel.current.rotation.x = muzzleFlashControls.flashRotX * DEG_TO_RAD;
+          muzzleFlashModel.current.rotation.y = muzzleFlashControls.flashRotY * DEG_TO_RAD;
+        }
+
+        // Update effect settings from Leva
+        if (muzzleFlashLight.current) {
+          muzzleFlashLight.current.distance = muzzleFlashControls.lightDistance;
+        }
+      }
+
       return;
     }
 
@@ -393,8 +484,90 @@ const WEAPON_CONFIGS = {
     // Store reference for live updates
     weaponMeshRef.current = weaponClone;
 
+    // Calculate barrel tip position from bounding box BEFORE applying transforms
+    // This gives us the barrel position in the weapon's local untransformed space
+    const barrelTip = getBarrelTipFromBoundingBox(gltf.scene);
+    calculatedBarrelTip.current = barrelTip;
+
+    // Log barrel info for debugging - helps tune muzzle flash position
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    console.log(`🔫 ${weaponType} bounding box:`, {
+      min: { x: box.min.x.toFixed(3), y: box.min.y.toFixed(3), z: box.min.z.toFixed(3) },
+      max: { x: box.max.x.toFixed(3), y: box.max.y.toFixed(3), z: box.max.z.toFixed(3) },
+      size: { x: size.x.toFixed(3), y: size.y.toFixed(3), z: size.z.toFixed(3) },
+      barrelTip: { x: barrelTip.x.toFixed(3), y: barrelTip.y.toFixed(3), z: barrelTip.z.toFixed(3) },
+    });
+
     // Add weapon to container
     weaponContainer.add(weaponClone);
+
+    // Create muzzle flash group
+    const muzzleFlashGroup = new THREE.Group();
+    muzzleFlashGroup.name = 'MuzzleFlash';
+
+    // Clone the muzzle flash GLB model
+    const flashModelClone = muzzleFlashGltf.scene.clone(true);
+    flashModelClone.scale.setScalar(muzzleFlashControls.flashScale);
+    flashModelClone.rotation.set(
+      muzzleFlashControls.flashRotX * DEG_TO_RAD,
+      muzzleFlashControls.flashRotY * DEG_TO_RAD,
+      muzzleFlashControls.flashRotZ * DEG_TO_RAD
+    );
+
+    // Make materials emissive/additive for glow effect
+    flashModelClone.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        if (mesh.material) {
+          const mat = mesh.material as THREE.MeshStandardMaterial;
+          // Increase emissive intensity for better glow
+          if (mat.emissive) {
+            mat.emissiveIntensity = 2;
+          }
+          // Enable transparency
+          mat.transparent = true;
+          mat.depthWrite = false;
+        }
+      }
+    });
+
+    muzzleFlashGroup.add(flashModelClone);
+    muzzleFlashModel.current = flashModelClone;
+
+    // Create point light for scene illumination
+    const light = new THREE.PointLight(
+      0xffaa00,
+      muzzleFlashControls.lightIntensity,
+      muzzleFlashControls.lightDistance
+    );
+    light.castShadow = false; // Shadows would be expensive
+    muzzleFlashGroup.add(light);
+    muzzleFlashLight.current = light;
+
+    // Position muzzle flash at barrel tip
+    // Use calculated barrel tip as base, plus manual Leva offsets for fine-tuning
+    const basePosition = barrelTip.clone();
+    const muzzleOffset = weaponType === 'rifle'
+      ? new THREE.Vector3(
+          muzzleFlashControls.rifleMuzzleX,
+          muzzleFlashControls.rifleMuzzleY,
+          muzzleFlashControls.rifleMuzzleZ
+        )
+      : new THREE.Vector3(
+          muzzleFlashControls.pistolMuzzleX,
+          muzzleFlashControls.pistolMuzzleY,
+          muzzleFlashControls.pistolMuzzleZ
+        );
+    muzzleFlashGroup.position.copy(basePosition.add(muzzleOffset));
+
+    // Start hidden
+    muzzleFlashGroup.visible = false;
+
+    // Add to weapon clone (so it inherits weapon transforms)
+    weaponClone.add(muzzleFlashGroup);
+    muzzleFlashRef.current = muzzleFlashGroup;
 
     // Attach container to hand bone
     handBone.add(weaponContainer);
@@ -403,7 +576,7 @@ const WEAPON_CONFIGS = {
     attachedWeapon.current = weaponContainer;
     attachedToBone.current = handBone;
 
-    console.log('🔫 Weapon attached to hand!', weaponType);
+    console.log('🔫 Weapon attached with muzzle flash!', weaponType);
   });
 
   // Cleanup on unmount
@@ -421,8 +594,9 @@ const WEAPON_CONFIGS = {
   return null;
 }
 
-// Preload weapons
+// Preload weapons and effects
 useGLTF.preload(WEAPONS.rifle);
 useGLTF.preload(WEAPONS.pistol);
+useGLTF.preload('/models/effects/machine_gun_muzzle_flash_test_effect.glb');
 
 export default WeaponAttachment;

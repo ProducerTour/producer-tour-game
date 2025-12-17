@@ -2,10 +2,8 @@ import { useMemo, useRef } from 'react';
 import { useFBX } from '@react-three/drei';
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import * as THREE from 'three';
-import { getModelPath } from '../../../config/assetPaths';
-
-// NeoTokyo FBX model path (uses local in dev, CDN in production)
-const NEOTOKYO_FBX_URL = getModelPath('neotokyo/kb3d_neocity-native.fbx');
+// NeoTokyo FBX model path - always load locally (90MB, not on CDN)
+const NEOTOKYO_FBX_URL = '/models/neotokyo/kb3d_neocity-native.fbx';
 
 // Procedural material colors for NeoTokyo (no textures)
 // Based on KitBash3D material naming conventions

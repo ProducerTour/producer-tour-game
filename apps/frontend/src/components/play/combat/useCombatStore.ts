@@ -4,6 +4,7 @@
  */
 
 import { create } from 'zustand';
+import { useDevStore } from '../debug/useDevStore';
 
 export interface DamageNumber {
   id: string;
@@ -128,6 +129,11 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   }),
 
   takeDamage: (amount) => {
+    // Check god mode - if enabled, ignore damage
+    if (useDevStore.getState().godMode) {
+      return;
+    }
+
     const state = get();
     const newHealth = Math.max(0, state.playerHealth - amount);
     set({
@@ -174,17 +180,20 @@ export const useCombatStore = create<CombatState>((set, get) => ({
     // Check fire rate
     if (now - lastFireTime < config.fireRate) return false;
 
-    // Check ammo
+    // Check unlimited ammo mode
+    const hasUnlimitedAmmo = useDevStore.getState().unlimitedAmmo;
+
+    // Check ammo (skip if unlimited)
     const currentAmmo = ammo[currentWeapon] || 0;
-    if (currentAmmo <= 0) {
+    if (currentAmmo <= 0 && !hasUnlimitedAmmo) {
       // Auto reload
       get().reload();
       return false;
     }
 
-    // Fire!
+    // Fire! (don't decrease ammo if unlimited)
     set({
-      ammo: { ...ammo, [currentWeapon]: currentAmmo - 1 },
+      ammo: hasUnlimitedAmmo ? ammo : { ...ammo, [currentWeapon]: currentAmmo - 1 },
       lastFireTime: now,
       isInCombat: true,
     });

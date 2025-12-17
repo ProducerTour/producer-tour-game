@@ -7,8 +7,10 @@ import { useRef, useMemo, useEffect, useState, type ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { RigidBody, CapsuleCollider, useRapier, type RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
+import { useControls, folder } from 'leva';
 import { useKeyboardControls } from './hooks/useKeyboardControls';
 import { useCombatStore } from './combat/useCombatStore';
+import { useDevStore } from './debug/useDevStore';
 
 // Movement constants - tuned for smooth motion
 const WALK_SPEED = 2.5;
@@ -41,12 +43,12 @@ const MIN_GROUND_Y = -5;            // Minimum Y position (fall recovery thresho
 const CAMERA_COLLISION_OFFSET = 0.3;  // Pull camera in front of walls
 const MIN_CAMERA_DISTANCE = 1.5;      // Minimum distance from player
 
-// Aim mode camera parameters (GTA-style over-the-shoulder)
-const AIM_CAMERA_DISTANCE = 2.5;      // Closer to player when aiming
-const AIM_CAMERA_OFFSET_X = 0.6;      // Offset right for over-shoulder view
-const AIM_CAMERA_OFFSET_Y = 1.7;      // Height offset when aiming
+// Aim mode movement parameter
 const AIM_SPEED_MULTIPLIER = 0.5;     // Move 50% slower when aiming
-const CAMERA_TRANSITION_SPEED = 8;    // How fast camera transitions to/from aim mode
+
+// Noclip mode (flying through walls)
+const NOCLIP_SPEED = 10;              // Base fly speed
+const NOCLIP_FAST_MULTIPLIER = 3;     // Speed when holding sprint
 
 // Spawn position - on the basketball court
 const SPAWN_POSITION: [number, number, number] = [30, 1, -20];
@@ -65,6 +67,7 @@ export interface AnimationState {
   isFiring: boolean;
   velocity: number;
   velocityY: number;  // Vertical velocity for fall detection
+  aimPitch: number;   // Camera pitch for upper body aiming (radians)
 }
 
 // Props that will be passed to avatar children (legacy)
@@ -92,6 +95,30 @@ export function PhysicsPlayerController({
   // Combat store for aim/fire state
   const { currentWeapon, isAiming, setAiming, isFiring, setFiring, fire } = useCombatStore();
 
+  // Dev store for noclip and speed multiplier
+  const { noclip, speedMultiplier } = useDevStore();
+
+  // Leva controls for camera
+  const cameraControls = useControls('🎥 Camera', {
+    'Normal': folder({
+      distance: { value: 3, min: 2, max: 12, step: 0.5 },
+      heightOffset: { value: 1.2, min: 0, max: 4, step: 0.1 },
+      shoulderOffset: { value: 0.8, min: -2, max: 2, step: 0.1 },
+      fov: { value: 75, min: 40, max: 120, step: 1 },
+    }, { collapsed: true }),
+    'Aiming': folder({
+      previewAim: { value: false, label: '👁 Preview Aim' },
+      aimDistance: { value: 2.5, min: 1.5, max: 6, step: 0.25 },
+      aimShoulderOffset: { value: 1, min: -2, max: 2, step: 0.1 },
+      aimHeightOffset: { value: 1.7, min: 0.5, max: 3, step: 0.1 },
+      aimFov: { value: 55, min: 25, max: 90, step: 1 },
+      aimTransitionSpeed: { value: 8, min: 2, max: 20, step: 1 },
+    }, { collapsed: true }),
+  }, { collapsed: true });
+
+  // Track current FOV for smooth interpolation
+  const currentFov = useRef(75);
+
   // Minimum fire animation duration (semi-auto feel, prevents spam)
   const MIN_FIRE_DURATION = 200; // ms
   const lastFireStart = useRef<number>(0);
@@ -110,6 +137,7 @@ export function PhysicsPlayerController({
     isFiring: false,
     velocity: 0,
     velocityY: 0,
+    aimPitch: 0,
   });
 
   // Movement state
@@ -165,6 +193,7 @@ export function PhysicsPlayerController({
   const pitchAngle = useRef(0.3);
   const isDragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
+  const isPointerLocked = useRef(false);
 
   // Get collider reference from rigid body for crouch adjustment
   useEffect(() => {
@@ -182,18 +211,29 @@ export function PhysicsPlayerController({
     return () => clearTimeout(timeout);
   }, []);
 
-  // Mouse camera orbit - modified for aim mode
+  // Mouse camera orbit with pointer lock when weapon equipped
   useEffect(() => {
     const canvas = gl.domElement;
     const sensitivity = 0.003;
     const aimSensitivity = 0.002; // Slightly slower when aiming
+    const pointerLockSensitivity = 0.002; // Sensitivity for pointer lock mode
+
+    // Handle pointer lock changes
+    const onPointerLockChange = () => {
+      isPointerLocked.current = document.pointerLockElement === canvas;
+      if (isPointerLocked.current) {
+        canvas.style.cursor = 'none';
+      } else {
+        canvas.style.cursor = currentWeapon !== 'none' ? 'crosshair' : 'grab';
+      }
+    };
 
     const onMouseDown = (e: MouseEvent) => {
       // Left-click (button 0) - orbit camera (or fire when aiming, handled in useKeyboardControls)
       // Right-click (button 2) - aim (handled in useKeyboardControls) or orbit if no weapon
       if (e.button === 0) {
-        // Only orbit with left-click if NOT aiming
-        if (!isAiming) {
+        // Only orbit with left-click if NOT aiming and no weapon
+        if (!isAiming && currentWeapon === 'none') {
           isDragging.current = true;
           lastMouse.current = { x: e.clientX, y: e.clientY };
         }
@@ -211,24 +251,49 @@ export function PhysicsPlayerController({
     };
 
     const onMouseMove = (e: MouseEvent) => {
-      // When aiming, mouse ALWAYS controls camera look (even without dragging)
+      // Pointer lock mode - use movementX/Y for smooth FPS-style camera
+      if (isPointerLocked.current) {
+        const sens = isAiming ? aimSensitivity : pointerLockSensitivity;
+        orbitAngle.current -= e.movementX * sens;
+        // Pitch range: -0.6 (look up ~34°) to 1.2 (look down ~69°)
+        pitchAngle.current = Math.max(-0.6, Math.min(1.2, pitchAngle.current + e.movementY * sens));
+        return;
+      }
+
+      // When aiming without pointer lock, mouse ALWAYS controls camera look
       if (isAiming) {
         const sens = aimSensitivity;
         orbitAngle.current -= (e.clientX - lastMouse.current.x) * sens;
-        pitchAngle.current = Math.max(-0.2, Math.min(1.2, pitchAngle.current + (e.clientY - lastMouse.current.y) * sens));
+        // Pitch range: -0.6 (look up ~34°) to 1.2 (look down ~69°)
+        pitchAngle.current = Math.max(-0.6, Math.min(1.2, pitchAngle.current + (e.clientY - lastMouse.current.y) * sens));
         lastMouse.current = { x: e.clientX, y: e.clientY };
         return;
       }
 
-      // Normal orbit when dragging
+      // Normal orbit when dragging (no weapon)
       if (!isDragging.current) return;
       orbitAngle.current -= (e.clientX - lastMouse.current.x) * sensitivity;
-      pitchAngle.current = Math.max(-0.2, Math.min(1.2, pitchAngle.current + (e.clientY - lastMouse.current.y) * sensitivity));
+      // Pitch range: -0.6 (look up ~34°) to 1.2 (look down ~69°)
+      pitchAngle.current = Math.max(-0.6, Math.min(1.2, pitchAngle.current + (e.clientY - lastMouse.current.y) * sensitivity));
       lastMouse.current = { x: e.clientX, y: e.clientY };
     };
 
     const onContextMenu = (e: Event) => e.preventDefault();
 
+    // Update cursor based on weapon state
+    canvas.style.cursor = currentWeapon !== 'none' ? 'crosshair' : 'grab';
+
+    // Automatically request pointer lock when weapon is equipped
+    if (currentWeapon !== 'none' && !isPointerLocked.current) {
+      canvas.requestPointerLock?.();
+    }
+
+    // Exit pointer lock when weapon is unequipped
+    if (currentWeapon === 'none' && isPointerLocked.current) {
+      document.exitPointerLock?.();
+    }
+
+    document.addEventListener('pointerlockchange', onPointerLockChange);
     canvas.addEventListener('mousedown', onMouseDown);
     canvas.addEventListener('mouseup', onMouseUp);
     canvas.addEventListener('mousemove', onMouseMove);
@@ -236,6 +301,7 @@ export function PhysicsPlayerController({
     window.addEventListener('mouseup', onMouseUp);
 
     return () => {
+      document.removeEventListener('pointerlockchange', onPointerLockChange);
       canvas.removeEventListener('mousedown', onMouseDown);
       canvas.removeEventListener('mouseup', onMouseUp);
       canvas.removeEventListener('mousemove', onMouseMove);
@@ -296,24 +362,30 @@ export function PhysicsPlayerController({
 
     // === AIM CAMERA TRANSITION ===
     // Smoothly interpolate between normal and aim camera
-    const targetAimT = isAiming ? 1 : 0;
-    aimTransition.current += (targetAimT - aimTransition.current) * Math.min(1, CAMERA_TRANSITION_SPEED * delta);
+    // Use preview toggle OR actual aiming state
+    const effectiveAiming = cameraControls.previewAim || isAiming;
+    const targetAimT = effectiveAiming ? 1 : 0;
+    const transitionSpeed = cameraControls.aimTransitionSpeed;
+    aimTransition.current += (targetAimT - aimTransition.current) * Math.min(1, transitionSpeed * delta);
     const aimT = aimTransition.current;
 
-    // Camera - smoother interpolation
-    // Normal camera: distance 5, centered behind player
-    // Aim camera: distance 2.5, offset right (over-the-shoulder)
-    const normalDist = 5;
-    const aimDist = AIM_CAMERA_DISTANCE;
+    // Camera - smoother interpolation using Leva controls
+    // Normal camera: configurable distance, centered behind player
+    // Aim camera: configurable distance, offset right (over-the-shoulder)
+    const normalDist = cameraControls.distance;
+    const aimDist = cameraControls.aimDistance;
     const maxDist = normalDist + (aimDist - normalDist) * aimT;
 
     const hDist = maxDist * Math.cos(pitchAngle.current);
-    const normalVOff = normalDist * Math.sin(pitchAngle.current) + 1.5;
-    const aimVOff = AIM_CAMERA_OFFSET_Y;
+    const normalVOff = normalDist * Math.sin(pitchAngle.current) + cameraControls.heightOffset;
+    // Aim camera also responds to pitch so you can look up/down while aiming
+    const aimVOff = aimDist * Math.sin(pitchAngle.current) + cameraControls.aimHeightOffset;
     const vOff = normalVOff + (aimVOff - normalVOff) * aimT;
 
-    // Horizontal offset for over-the-shoulder (only when aiming)
-    const shoulderOffsetX = AIM_CAMERA_OFFSET_X * aimT;
+    // Horizontal offset for over-the-shoulder - interpolate from normal to aim
+    const normalShoulder = cameraControls.shoulderOffset;
+    const aimShoulder = cameraControls.aimShoulderOffset;
+    const shoulderOffsetX = normalShoulder + (aimShoulder - normalShoulder) * aimT;
 
     // Calculate camera right direction for shoulder offset
     const camRight = new THREE.Vector3(
@@ -364,13 +436,144 @@ export function PhysicsPlayerController({
     const lookSmoothFactor = Math.min(1, 12 * delta);
 
     smoothCameraPos.current.lerp(desiredCameraPos, cameraSmoothFactor);
-    desiredLookTarget.set(position.x, position.y + 1, position.z);
+
+    // Calculate look target in front of player based on pitch
+    // Negative pitch = looking up = look target higher
+    // Positive pitch = looking down = look target lower
+    // Use sin instead of tan for bounded, smoother offset values
+    const lookDistance = 15; // How far ahead to project the look target
+    const camForwardX = -Math.sin(orbitAngle.current);
+    const camForwardZ = -Math.cos(orbitAngle.current);
+    const lookHeightOffset = -Math.sin(pitchAngle.current) * lookDistance;
+
+    desiredLookTarget.set(
+      position.x + camForwardX * lookDistance + camRight.x * shoulderOffsetX,
+      position.y + 1.5 + lookHeightOffset,
+      position.z + camForwardZ * lookDistance + camRight.z * shoulderOffsetX
+    );
     smoothLookTarget.current.lerp(desiredLookTarget, lookSmoothFactor);
 
     camera.position.copy(smoothCameraPos.current);
     camera.lookAt(smoothLookTarget.current);
 
+    // === FOV INTERPOLATION ===
+    // Smoothly transition FOV between normal and aim values
+    const targetFov = effectiveAiming ? cameraControls.aimFov : cameraControls.fov;
+    currentFov.current += (targetFov - currentFov.current) * Math.min(1, transitionSpeed * delta);
+
+    // Apply FOV to camera (only PerspectiveCamera has fov)
+    if ((camera as THREE.PerspectiveCamera).isPerspectiveCamera) {
+      const perspCamera = camera as THREE.PerspectiveCamera;
+      if (Math.abs(perspCamera.fov - currentFov.current) > 0.01) {
+        perspCamera.fov = currentFov.current;
+        perspCamera.updateProjectionMatrix();
+      }
+    }
+
     if (!rb) return;
+
+    // === NOCLIP MODE (Flying through walls) ===
+    if (noclip) {
+      // In noclip mode, disable physics and fly freely
+      rb.setGravityScale(0, true);
+
+      // Calculate movement direction based on camera
+      camera.getWorldDirection(cameraDir);
+      cameraRight.crossVectors(cameraDir, up).normalize();
+
+      // Get input
+      let moveX = 0, moveY = 0, moveZ = 0;
+      if (keys.forward) {
+        moveX += cameraDir.x;
+        moveY += cameraDir.y;
+        moveZ += cameraDir.z;
+      }
+      if (keys.backward) {
+        moveX -= cameraDir.x;
+        moveY -= cameraDir.y;
+        moveZ -= cameraDir.z;
+      }
+      if (keys.left) {
+        moveX -= cameraRight.x;
+        moveZ -= cameraRight.z;
+      }
+      if (keys.right) {
+        moveX += cameraRight.x;
+        moveZ += cameraRight.z;
+      }
+      if (keys.jump) {
+        moveY += 1; // Go up with Space
+      }
+      if (keys.crouch) {
+        moveY -= 1; // Go down with Ctrl/C
+      }
+
+      // Normalize if moving diagonally
+      const moveLen = Math.sqrt(moveX * moveX + moveY * moveY + moveZ * moveZ);
+      if (moveLen > 0) {
+        moveX /= moveLen;
+        moveY /= moveLen;
+        moveZ /= moveLen;
+      }
+
+      // Calculate speed
+      let flySpeed = NOCLIP_SPEED * speedMultiplier;
+      if (keys.sprint) {
+        flySpeed *= NOCLIP_FAST_MULTIPLIER;
+      }
+
+      // Apply movement directly to position (bypassing physics)
+      const currentPos = rb.translation();
+      rb.setTranslation({
+        x: currentPos.x + moveX * flySpeed * delta,
+        y: currentPos.y + moveY * flySpeed * delta,
+        z: currentPos.z + moveZ * flySpeed * delta,
+      }, true);
+
+      // Zero out velocity to prevent drift
+      rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+
+      // Update position for camera/callbacks
+      const t = rb.translation();
+      position.set(t.x, t.y, t.z);
+
+      // Rotate character to face camera direction (horizontal only)
+      if (moveLen > 0) {
+        facingAngle.current = Math.atan2(cameraDir.x, cameraDir.z);
+      }
+
+      if (groupRef.current) {
+        groupRef.current.rotation.y = facingAngle.current;
+      }
+
+      // Update animation state for noclip (flying idle)
+      const noclipAnimState: AnimationState = {
+        isMoving: moveLen > 0,
+        isRunning: false,
+        isGrounded: false,
+        isJumping: true, // Shows floating animation
+        isDancing: false,
+        isCrouching: false,
+        isStrafingLeft: false,
+        isStrafingRight: false,
+        isAiming: false,
+        isFiring: false,
+        velocity: moveLen > 0 ? flySpeed : 0,
+        velocityY: moveY * flySpeed,
+        aimPitch: pitchAngle.current,
+      };
+
+      if (onPositionChange) {
+        rotation.set(0, facingAngle.current, 0);
+        onPositionChange(position.clone(), rotation.clone(), noclipAnimState);
+      }
+
+      setAnimState(noclipAnimState);
+      return; // Skip normal physics
+    } else {
+      // Restore gravity when exiting noclip
+      rb.setGravityScale(1.2, true);
+    }
 
     const linvel = rb.linvel();
 
@@ -461,15 +664,17 @@ export function PhysicsPlayerController({
           targetSpeed *= AIM_SPEED_MULTIPLIER;
         }
 
+        // Apply dev speed multiplier
+        targetSpeed *= speedMultiplier;
+
         targetVx = moveDir.x * targetSpeed;
         targetVz = moveDir.z * targetSpeed;
       }
 
       // === CHARACTER ROTATION ===
       if (isAiming) {
-        // When aiming: character faces camera direction (instant snap)
-        // Camera direction points INTO the screen, so we use cameraDir
-        const tgt = Math.atan2(-cameraDir.x, -cameraDir.z);
+        // When aiming: character faces same direction camera is looking (into scene)
+        const tgt = Math.atan2(cameraDir.x, cameraDir.z);
         facingAngle.current = tgt;
       } else if (hasInput) {
         // GTA-style movement: character ALWAYS faces movement direction
@@ -620,6 +825,7 @@ export function PhysicsPlayerController({
       isFiring,
       velocity,
       velocityY: vy,
+      aimPitch: pitchAngle.current,
     };
 
     if (onPositionChange) {

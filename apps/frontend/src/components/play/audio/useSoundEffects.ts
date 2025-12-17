@@ -26,13 +26,19 @@ export const SFX = {
   land: '/audio/sfx/land.mp3',
   dash: '/audio/sfx/dash.mp3',
 
-  // Combat
+  // Combat - Generic (fallbacks)
   rifleShot: '/audio/sfx/rifle_shot.mp3',
   pistolShot: '/audio/sfx/pistol_shot.mp3',
   reload: '/audio/sfx/reload.mp3',
   hitMarker: '/audio/sfx/hit_marker.mp3',
   criticalHit: '/audio/sfx/critical_hit.mp3',
   emptyClip: '/audio/sfx/empty_clip.mp3',
+
+  // Combat - AK-47 specific
+  ak47Fire: '/audio/sfx/weapons/ak47/AK-47_fire.wav',
+  ak47FireTail: '/audio/sfx/weapons/ak47/AK-47_fire_tail.wav',
+  ak47Reload: '/audio/sfx/weapons/ak47/AK-47_reload.wav',
+  ak47Empty: '/audio/sfx/weapons/ak47/AK-47_empty.wav',
 
   // Quest
   questAccept: '/audio/sfx/quest_accept.mp3',

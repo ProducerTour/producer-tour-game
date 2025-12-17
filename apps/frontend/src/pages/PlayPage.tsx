@@ -27,10 +27,11 @@ import { Leva } from 'leva';
 import { PlayWorld, type PlayerInfo } from '../components/play/PlayWorld';
 import { AvatarCreator } from '../components/play/AvatarCreator';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
-import { PlayerHealthBar, AmmoDisplay, Crosshair } from '../components/play/combat/HealthBar';
+import { PlayerHealthBar, AmmoDisplay, Crosshair } from '../components/play/hud';
 import { QuestTracker } from '../components/play/quest/QuestTracker';
-import { DevConsole } from '../components/play/debug';
+import { DevConsole, DevPanel } from '../components/play/debug';
 import { UpdateOverlay } from '../components/play/UpdateOverlay';
+import { KeybindsMenu } from '../components/play/settings';
 import { userApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import { useGameSettings, SHADOW_MAP_SIZES } from '../store/gameSettings.store';
@@ -411,6 +412,7 @@ function SettingsPanel({ onBack }: { onBack: () => void }) {
   } = useGameSettings();
 
   const [activeTab, setActiveTab] = useState<'graphics' | 'audio' | 'controls'>('graphics');
+  const [showKeybinds, setShowKeybinds] = useState(false);
 
   const tabs = [
     { id: 'graphics' as const, label: 'Graphics', icon: '🎮' },
@@ -631,6 +633,17 @@ function SettingsPanel({ onBack }: { onBack: () => void }) {
 
               {activeTab === 'controls' && (
                 <>
+                  {/* Customize Keybinds Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowKeybinds(true)}
+                    className="w-full py-3 px-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 mb-4"
+                  >
+                    <Gamepad2 className="w-5 h-5" />
+                    Customize Keybinds
+                  </motion.button>
+
                   {/* Mouse Sensitivity */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -669,27 +682,32 @@ function SettingsPanel({ onBack }: { onBack: () => void }) {
                     </button>
                   </div>
 
-                  {/* Controls reference */}
+                  {/* Quick reference - non-editable info */}
                   <div className="mt-4 p-4 bg-white/5 rounded-xl space-y-2">
-                    <h3 className="text-white/70 text-sm font-medium mb-3">Controls</h3>
-                    {[
-                      { keys: 'WASD', action: 'Move' },
-                      { keys: 'Shift', action: 'Sprint' },
-                      { keys: 'Space', action: 'Jump' },
-                      { keys: 'C', action: 'Crouch' },
-                      { keys: 'E', action: 'Dance' },
-                      { keys: 'Q', action: 'Toggle Weapon' },
-                      { keys: 'Mouse', action: 'Look Around' },
-                      { keys: 'ESC', action: 'Pause' },
-                    ].map(({ keys, action }) => (
-                      <div key={keys} className="flex items-center justify-between text-xs">
-                        <span className="text-white/40">{action}</span>
-                        <span className="px-2 py-0.5 bg-white/10 rounded text-white/60 font-mono">
-                          {keys}
-                        </span>
-                      </div>
-                    ))}
+                    <h3 className="text-white/70 text-sm font-medium mb-3">Quick Reference</h3>
+                    <p className="text-white/30 text-xs">Click "Customize Keybinds" above to change these controls</p>
+                    <div className="flex items-center justify-between text-xs mt-2">
+                      <span className="text-white/40">Aim</span>
+                      <span className="px-2 py-0.5 bg-white/10 rounded text-white/60 font-mono">
+                        Right Click
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-white/40">Fire</span>
+                      <span className="px-2 py-0.5 bg-white/10 rounded text-white/60 font-mono">
+                        Left Click
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-white/40">Pause</span>
+                      <span className="px-2 py-0.5 bg-white/10 rounded text-white/60 font-mono">
+                        ESC
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Keybinds Menu */}
+                  <KeybindsMenu isOpen={showKeybinds} onClose={() => setShowKeybinds(false)} />
                 </>
               )}
             </div>
@@ -820,20 +838,23 @@ export default function PlayPage() {
   const { user } = useAuthStore();
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Admin check for debug panel access
+  const isAdmin = user?.role === 'ADMIN';
+
   // Game settings - for weapon editor visibility
   const { showWeaponEditor, toggleWeaponEditor } = useGameSettings();
 
-  // F1 key to toggle debug panel (Leva)
+  // F1 key to toggle debug panel (Leva) - admin only
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F1') {
+      if (e.key === 'F1' && isAdmin) {
         e.preventDefault();
         toggleWeaponEditor();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleWeaponEditor]);
+  }, [toggleWeaponEditor, isAdmin]);
 
   // Socket connection for multiplayer and server version checks
   const { socket, isConnected } = useSocket();
@@ -994,9 +1015,9 @@ export default function PlayPage() {
         onRefreshNow={refreshNow}
       />
 
-      {/* Leva debug panel - toggle with F1 key or /weaponedit command */}
+      {/* Leva debug panel - admin only, toggle with F1 key or /weaponedit command */}
       <Leva
-        hidden={!showWeaponEditor}
+        hidden={!isAdmin || !showWeaponEditor}
         collapsed={false}
         titleBar={{ drag: true }}
         theme={{
@@ -1236,11 +1257,12 @@ export default function PlayPage() {
       {/* Game HUD Overlays */}
       <PlayerHealthBar />
       <AmmoDisplay />
-      <Crosshair />
       <QuestTracker />
+      <Crosshair />
 
-      {/* Dev Console - Toggle with ` key */}
+      {/* Dev Tools */}
       <DevConsole onlinePlayers={onlinePlayers} />
+      <DevPanel />
     </div>
   );
 }

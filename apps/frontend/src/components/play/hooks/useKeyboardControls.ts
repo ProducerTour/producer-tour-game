@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useKeybindsStore } from '../settings';
 
 export interface KeyState {
   forward: boolean;
@@ -48,6 +49,9 @@ export function useKeyboardControls(): KeyboardControlsResult {
     fire: false,
   });
 
+  // Get keybinds check function from store
+  const isAction = useKeybindsStore((state) => state.isAction);
+
   // Input buffer for combat/action inputs
   const inputBuffer = useRef<BufferedInput[]>([]);
 
@@ -91,83 +95,77 @@ export function useKeyboardControls(): KeyboardControlsResult {
       return;
     }
 
-    // Game keys - prevent default browser behavior
-    const gameKeys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyE', 'KeyQ', 'KeyC', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'ShiftLeft', 'ShiftRight'];
-    if (gameKeys.includes(e.code)) {
-      e.preventDefault();
-    }
+    const code = e.code;
 
-    switch (e.code) {
-      case 'KeyW':
-      case 'ArrowUp':
-        setKeys((k) => ({ ...k, forward: true }));
-        break;
-      case 'KeyS':
-      case 'ArrowDown':
-        setKeys((k) => ({ ...k, backward: true }));
-        break;
-      case 'KeyA':
-      case 'ArrowLeft':
-        setKeys((k) => ({ ...k, left: true }));
-        break;
-      case 'KeyD':
-      case 'ArrowRight':
-        setKeys((k) => ({ ...k, right: true }));
-        break;
-      case 'ShiftLeft':
-      case 'ShiftRight':
-        setKeys((k) => ({ ...k, sprint: true }));
-        break;
-      case 'Space':
-        setKeys((k) => ({ ...k, jump: true }));
-        break;
-      case 'KeyE':
-        setKeys((k) => ({ ...k, dance: true }));
-        break;
-      case 'KeyQ':
-        setKeys((k) => ({ ...k, toggleWeapon: true }));
-        break;
-      case 'KeyC':
-        // Toggle crouch on press (not hold)
-        setKeys((k) => ({ ...k, crouch: !k.crouch }));
-        break;
+    // Check each action against customizable keybinds
+    if (isAction('moveForward', code)) {
+      e.preventDefault();
+      setKeys((k) => ({ ...k, forward: true }));
     }
-  }, []);
+    if (isAction('moveBackward', code)) {
+      e.preventDefault();
+      setKeys((k) => ({ ...k, backward: true }));
+    }
+    if (isAction('moveLeft', code)) {
+      e.preventDefault();
+      setKeys((k) => ({ ...k, left: true }));
+    }
+    if (isAction('moveRight', code)) {
+      e.preventDefault();
+      setKeys((k) => ({ ...k, right: true }));
+    }
+    if (isAction('sprint', code)) {
+      e.preventDefault();
+      setKeys((k) => ({ ...k, sprint: true }));
+    }
+    if (isAction('jump', code)) {
+      e.preventDefault();
+      setKeys((k) => ({ ...k, jump: true }));
+    }
+    if (isAction('dance', code)) {
+      e.preventDefault();
+      setKeys((k) => ({ ...k, dance: true }));
+    }
+    if (isAction('toggleWeapon', code)) {
+      e.preventDefault();
+      setKeys((k) => ({ ...k, toggleWeapon: true }));
+    }
+    if (isAction('crouch', code)) {
+      e.preventDefault();
+      // Toggle crouch on press (not hold)
+      setKeys((k) => ({ ...k, crouch: !k.crouch }));
+    }
+  }, [isAction]);
 
   const handleKeyUp = useCallback((e: KeyboardEvent) => {
-    switch (e.code) {
-      case 'KeyW':
-      case 'ArrowUp':
-        setKeys((k) => ({ ...k, forward: false }));
-        break;
-      case 'KeyS':
-      case 'ArrowDown':
-        setKeys((k) => ({ ...k, backward: false }));
-        break;
-      case 'KeyA':
-      case 'ArrowLeft':
-        setKeys((k) => ({ ...k, left: false }));
-        break;
-      case 'KeyD':
-      case 'ArrowRight':
-        setKeys((k) => ({ ...k, right: false }));
-        break;
-      case 'ShiftLeft':
-      case 'ShiftRight':
-        setKeys((k) => ({ ...k, sprint: false }));
-        break;
-      case 'Space':
-        setKeys((k) => ({ ...k, jump: false }));
-        break;
-      case 'KeyE':
-        setKeys((k) => ({ ...k, dance: false }));
-        break;
-      case 'KeyQ':
-        setKeys((k) => ({ ...k, toggleWeapon: false }));
-        break;
-      // KeyC (crouch) is a toggle, no action on keyup
+    const code = e.code;
+
+    if (isAction('moveForward', code)) {
+      setKeys((k) => ({ ...k, forward: false }));
     }
-  }, []);
+    if (isAction('moveBackward', code)) {
+      setKeys((k) => ({ ...k, backward: false }));
+    }
+    if (isAction('moveLeft', code)) {
+      setKeys((k) => ({ ...k, left: false }));
+    }
+    if (isAction('moveRight', code)) {
+      setKeys((k) => ({ ...k, right: false }));
+    }
+    if (isAction('sprint', code)) {
+      setKeys((k) => ({ ...k, sprint: false }));
+    }
+    if (isAction('jump', code)) {
+      setKeys((k) => ({ ...k, jump: false }));
+    }
+    if (isAction('dance', code)) {
+      setKeys((k) => ({ ...k, dance: false }));
+    }
+    if (isAction('toggleWeapon', code)) {
+      setKeys((k) => ({ ...k, toggleWeapon: false }));
+    }
+    // Crouch is a toggle, no action on keyup
+  }, [isAction]);
 
   // Mouse handlers for aim (right-click) and fire (left-click)
   const handleMouseDown = useCallback((e: MouseEvent) => {
