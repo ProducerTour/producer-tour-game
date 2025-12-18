@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, Music, Clock, Plus, X,
   ChevronDown, Search, Users, Calendar, DollarSign, Percent, FileText, Trash2,
-  Upload, Download, AlertCircle, FileSpreadsheet, Edit3
+  Upload, Download, AlertCircle, FileSpreadsheet, Edit3, ArrowUpDown, ArrowUp, ArrowDown,
+  FileDown, Check
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { workRegistrationApi, PendingSubmission } from '@/lib/workRegistrationApi';
@@ -12,6 +13,27 @@ import { SubmissionStatusBadge } from '@/components/SubmissionStatusBadge';
 import { SpotifyTrackLookup } from '@/components/SpotifyTrackLookup';
 import { CollaboratorForm, Collaborator } from '@/components/CollaboratorForm';
 import { audiodbApi } from '@/lib/audiodbApi';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/DropdownMenu';
+import { Checkbox } from '@/components/ui/Checkbox';
+
+// Sort options type
+type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc' | 'artist-asc' | 'artist-desc';
+
+const sortLabels: Record<SortOption, string> = {
+  'date-desc': 'Date (Newest)',
+  'date-asc': 'Date (Oldest)',
+  'title-asc': 'Title (A-Z)',
+  'title-desc': 'Title (Z-A)',
+  'artist-asc': 'Artist (A-Z)',
+  'artist-desc': 'Artist (Z-A)',
+};
 
 // Helper function to map database role values to CollaboratorForm role values
 const mapRoleToDisplayRole = (dbRole: string): string => {
@@ -85,32 +107,64 @@ export default function ManagePlacements() {
     notes: '',
   });
 
+  // Sorting State
+  const [sortOption, setSortOption] = useState<SortOption>('date-desc');
+
+  // Selection State
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     loadApprovedPlacements();
   }, []);
 
+  // Sort function
+  const sortPlacements = useCallback((placementsToSort: PendingSubmission[], sort: SortOption): PendingSubmission[] => {
+    return [...placementsToSort].sort((a, b) => {
+      switch (sort) {
+        case 'date-desc':
+          return new Date(b.reviewedAt || b.createdAt || 0).getTime() - new Date(a.reviewedAt || a.createdAt || 0).getTime();
+        case 'date-asc':
+          return new Date(a.reviewedAt || a.createdAt || 0).getTime() - new Date(b.reviewedAt || b.createdAt || 0).getTime();
+        case 'title-asc':
+          return a.title.localeCompare(b.title);
+        case 'title-desc':
+          return b.title.localeCompare(a.title);
+        case 'artist-asc':
+          return a.artist.localeCompare(b.artist);
+        case 'artist-desc':
+          return b.artist.localeCompare(a.artist);
+        default:
+          return 0;
+      }
+    });
+  }, []);
+
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredPlacements(placements);
-    } else {
+    let result = placements;
+
+    // Apply search filter
+    if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
-      setFilteredPlacements(
-        placements.filter(
-          (p) =>
-            p.title.toLowerCase().includes(query) ||
-            p.artist.toLowerCase().includes(query) ||
-            p.caseNumber?.toLowerCase().includes(query) ||
-            p.user?.firstName?.toLowerCase().includes(query) ||
-            p.user?.lastName?.toLowerCase().includes(query) ||
-            p.credits?.some(
-              (c: any) =>
-                c.firstName?.toLowerCase().includes(query) ||
-                c.lastName?.toLowerCase().includes(query)
-            )
-        )
+      result = result.filter(
+        (p) =>
+          p.title.toLowerCase().includes(query) ||
+          p.artist.toLowerCase().includes(query) ||
+          p.caseNumber?.toLowerCase().includes(query) ||
+          p.user?.firstName?.toLowerCase().includes(query) ||
+          p.user?.lastName?.toLowerCase().includes(query) ||
+          p.credits?.some(
+            (c: any) =>
+              c.firstName?.toLowerCase().includes(query) ||
+              c.lastName?.toLowerCase().includes(query)
+          )
       );
     }
-  }, [searchQuery, placements]);
+
+    // Apply sorting
+    result = sortPlacements(result, sortOption);
+
+    setFilteredPlacements(result);
+  }, [searchQuery, placements, sortOption, sortPlacements]);
 
   // Auto-fetch Spotify artwork for placements missing album art
   // Uses a ref to track processed IDs so we don't re-fetch on every render
@@ -748,6 +802,377 @@ export default function ManagePlacements() {
     }
   };
 
+  // Selection handlers
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredPlacements.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredPlacements.map(p => p.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const isAllSelected = filteredPlacements.length > 0 && selectedIds.size === filteredPlacements.length;
+  const isSomeSelected = selectedIds.size > 0 && selectedIds.size < filteredPlacements.length;
+
+  // Clear selection when filtered placements change
+  useEffect(() => {
+    // Only clear selections that are no longer in filtered results
+    const filteredIds = new Set(filteredPlacements.map(p => p.id));
+    const newSelected = new Set([...selectedIds].filter(id => filteredIds.has(id)));
+    if (newSelected.size !== selectedIds.size) {
+      setSelectedIds(newSelected);
+    }
+  }, [filteredPlacements]);
+
+  // Get selected placements
+  const selectedPlacements = useMemo(() => {
+    return filteredPlacements.filter(p => selectedIds.has(p.id));
+  }, [filteredPlacements, selectedIds]);
+
+  // Generate PDF for selected placements
+  const generatePDF = () => {
+    if (selectedPlacements.length === 0) {
+      toast.error('Please select at least one placement to export');
+      return;
+    }
+
+    // Create printable HTML content
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Placements Export - Producer Tour</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 40px;
+            color: #1a1a1a;
+            background: #fff;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e5e5e5;
+          }
+          .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+          }
+          .header p {
+            color: #666;
+            font-size: 14px;
+          }
+          .placement {
+            margin-bottom: 32px;
+            padding: 24px;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            page-break-inside: avoid;
+          }
+          .placement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #f0f0f0;
+          }
+          .placement-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1a1a1a;
+          }
+          .placement-artist {
+            font-size: 16px;
+            color: #666;
+            margin-top: 4px;
+          }
+          .case-number {
+            background: #10b981;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+          }
+          .section {
+            margin-top: 16px;
+          }
+          .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+          }
+          .info-item {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 4px;
+          }
+          .info-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+          }
+          .info-value {
+            font-size: 14px;
+            color: #1a1a1a;
+          }
+          .writers-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+          }
+          .writers-table th {
+            background: #f5f5f5;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            border-bottom: 1px solid #e5e5e5;
+          }
+          .writers-table td {
+            padding: 10px 12px;
+            font-size: 13px;
+            border-bottom: 1px solid #f0f0f0;
+          }
+          .writers-table tr:last-child td {
+            border-bottom: none;
+          }
+          .split {
+            font-weight: 600;
+            color: #10b981;
+          }
+          .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e5e5;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+          }
+          @media print {
+            body { padding: 20px; }
+            .placement { break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Placements Export</h1>
+          <p>Generated on ${new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })} | ${selectedPlacements.length} placement${selectedPlacements.length !== 1 ? 's' : ''}</p>
+        </div>
+
+        ${selectedPlacements.map(placement => `
+          <div class="placement">
+            <div class="placement-header">
+              <div>
+                <div class="placement-title">${placement.title}</div>
+                <div class="placement-artist">${placement.artist}</div>
+              </div>
+              ${placement.caseNumber ? `<span class="case-number">${placement.caseNumber}</span>` : ''}
+            </div>
+
+            <div class="section">
+              <div class="section-title">Song Information</div>
+              <div class="info-grid">
+                ${placement.albumName ? `
+                  <div class="info-item">
+                    <div class="info-label">Album</div>
+                    <div class="info-value">${placement.albumName}</div>
+                  </div>
+                ` : ''}
+                ${placement.isrc ? `
+                  <div class="info-item">
+                    <div class="info-label">ISRC</div>
+                    <div class="info-value">${placement.isrc}</div>
+                  </div>
+                ` : ''}
+                ${placement.genre ? `
+                  <div class="info-item">
+                    <div class="info-label">Genre</div>
+                    <div class="info-value">${placement.genre}</div>
+                  </div>
+                ` : ''}
+                ${placement.releaseYear ? `
+                  <div class="info-item">
+                    <div class="info-label">Release Year</div>
+                    <div class="info-value">${placement.releaseYear}</div>
+                  </div>
+                ` : ''}
+                ${placement.label ? `
+                  <div class="info-item">
+                    <div class="info-label">Label</div>
+                    <div class="info-value">${placement.label}</div>
+                  </div>
+                ` : ''}
+                ${placement.reviewedAt ? `
+                  <div class="info-item">
+                    <div class="info-label">Approved Date</div>
+                    <div class="info-value">${formatDate(placement.reviewedAt)}</div>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+
+            ${placement.credits && placement.credits.length > 0 ? `
+              <div class="section">
+                <div class="section-title">Writers & Collaborators</div>
+                <table class="writers-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Role</th>
+                      <th>PRO</th>
+                      <th>IPI</th>
+                      <th>Split</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${placement.credits.map((credit: any) => `
+                      <tr>
+                        <td>${credit.firstName} ${credit.lastName}</td>
+                        <td>${credit.role}</td>
+                        <td>${credit.pro || '-'}</td>
+                        <td>${credit.ipiNumber || '-'}</td>
+                        <td class="split">${credit.splitPercentage}%</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : ''}
+
+            ${placement.notes ? `
+              <div class="section">
+                <div class="section-title">Notes</div>
+                <div class="info-item">
+                  <div class="info-value">${placement.notes}</div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+
+        <div class="footer">
+          Producer Tour - Placements Management System
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Open in new window for printing
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      // Auto-trigger print dialog after content loads
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 250);
+      };
+      toast.success(`Opened ${selectedPlacements.length} placement${selectedPlacements.length !== 1 ? 's' : ''} for printing/PDF`);
+    } else {
+      toast.error('Please allow popups to export PDF');
+    }
+  };
+
+  // Export selected placements as CSV (same format as bulk template)
+  const exportSelectedAsCSV = () => {
+    if (selectedPlacements.length === 0) {
+      toast.error('Please select at least one placement to export');
+      return;
+    }
+
+    const rows: string[][] = [];
+
+    // Add headers
+    rows.push(csvTemplateHeaders);
+
+    // Add data rows
+    selectedPlacements.forEach(placement => {
+      const row: string[] = [
+        placement.title || '',
+        placement.artist || '',
+        placement.albumName || '',
+        placement.isrc || '',
+        placement.genre || '',
+        placement.releaseYear || '',
+        placement.label || '',
+      ];
+
+      // Add up to 6 writers
+      for (let i = 0; i < 6; i++) {
+        const credit = placement.credits?.[i];
+        if (credit) {
+          row.push(
+            credit.firstName || '',
+            credit.lastName || '',
+            credit.role || '',
+            String(credit.splitPercentage || ''),
+            credit.pro || '',
+            credit.ipiNumber || ''
+          );
+        } else {
+          row.push('', '', '', '', '', '');
+        }
+      }
+
+      row.push(placement.notes || '');
+      rows.push(row);
+    });
+
+    // Convert to CSV string
+    const csvContent = rows.map(row =>
+      row.map(cell => {
+        // Escape quotes and wrap in quotes if contains comma, quote, or newline
+        const escaped = String(cell).replace(/"/g, '""');
+        return /[,"\n\r]/.test(escaped) ? `"${escaped}"` : escaped;
+      }).join(',')
+    ).join('\n');
+
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `placements_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast.success(`Exported ${selectedPlacements.length} placement${selectedPlacements.length !== 1 ? 's' : ''} to CSV`);
+  };
+
   // Stats
   const totalPlacements = placements.length;
   const approvedCount = placements.filter(p => p.status === 'APPROVED').length;
@@ -767,11 +1192,76 @@ export default function ManagePlacements() {
           <p className="text-theme-foreground-muted mt-1">View and manage approved work registrations</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Sort Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-theme-foreground font-medium flex items-center gap-2 transition-colors rounded-lg border border-white/10">
+                <ArrowUpDown className="w-4 h-4" />
+                {sortLabels[sortOption]}
+                <ChevronDown className="w-4 h-4 opacity-50" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Sort By</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setSortOption('date-desc')}
+                className={sortOption === 'date-desc' ? 'bg-white/10' : ''}
+              >
+                <ArrowDown className="w-4 h-4 mr-2" />
+                Date (Newest)
+                {sortOption === 'date-desc' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setSortOption('date-asc')}
+                className={sortOption === 'date-asc' ? 'bg-white/10' : ''}
+              >
+                <ArrowUp className="w-4 h-4 mr-2" />
+                Date (Oldest)
+                {sortOption === 'date-asc' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setSortOption('title-asc')}
+                className={sortOption === 'title-asc' ? 'bg-white/10' : ''}
+              >
+                <ArrowUp className="w-4 h-4 mr-2" />
+                Title (A-Z)
+                {sortOption === 'title-asc' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setSortOption('title-desc')}
+                className={sortOption === 'title-desc' ? 'bg-white/10' : ''}
+              >
+                <ArrowDown className="w-4 h-4 mr-2" />
+                Title (Z-A)
+                {sortOption === 'title-desc' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setSortOption('artist-asc')}
+                className={sortOption === 'artist-asc' ? 'bg-white/10' : ''}
+              >
+                <ArrowUp className="w-4 h-4 mr-2" />
+                Artist (A-Z)
+                {sortOption === 'artist-asc' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setSortOption('artist-desc')}
+                className={sortOption === 'artist-desc' ? 'bg-white/10' : ''}
+              >
+                <ArrowDown className="w-4 h-4 mr-2" />
+                Artist (Z-A)
+                {sortOption === 'artist-desc' && <Check className="w-4 h-4 ml-auto text-blue-400" />}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {/* Bulk Import Button */}
           <button
             onClick={() => setShowBulkModal(true)}
-            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-theme-foreground font-medium flex items-center gap-2 transition-colors"
+            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-theme-foreground font-medium flex items-center gap-2 transition-colors rounded-lg border border-white/10"
           >
             <Upload className="w-5 h-5" />
             Bulk Import
@@ -780,7 +1270,7 @@ export default function ManagePlacements() {
           {/* Add Placement Button */}
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2.5 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium flex items-center gap-2 transition-colors"
+            className="px-4 py-2.5 bg-theme-primary hover:bg-theme-primary-hover text-black font-medium flex items-center gap-2 transition-colors rounded-lg"
           >
             <Plus className="w-5 h-5" />
             Add Placement
@@ -794,9 +1284,70 @@ export default function ManagePlacements() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by title, artist, case #, or writer..."
-              className="w-full pl-10 pr-4 py-3 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+              className="w-full pl-10 pr-4 py-3 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors rounded-lg"
             />
           </div>
+        </div>
+      </div>
+
+      {/* Selection Controls Bar */}
+      <div className="flex items-center justify-between mb-4 p-4 bg-white/[0.04] border border-white/[0.08] rounded-lg">
+        <div className="flex items-center gap-4">
+          {/* Select All Checkbox */}
+          <div className="flex items-center gap-3">
+            <Checkbox
+              checked={isAllSelected}
+              onCheckedChange={toggleSelectAll}
+              className={`h-5 w-5 border-white/30 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 ${isSomeSelected ? 'data-[state=unchecked]:bg-blue-500/30' : ''}`}
+            />
+            <span className="text-theme-foreground text-sm font-medium">
+              {selectedIds.size === 0
+                ? 'Select All'
+                : `${selectedIds.size} selected`}
+            </span>
+          </div>
+
+          {/* Clear Selection */}
+          {selectedIds.size > 0 && (
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-sm text-theme-foreground-muted hover:text-theme-foreground transition-colors"
+            >
+              Clear selection
+            </button>
+          )}
+        </div>
+
+        {/* Export Actions */}
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                disabled={selectedIds.size === 0}
+                className={`px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium flex items-center gap-2 transition-all rounded-lg shadow-lg shadow-blue-600/20 ${
+                  selectedIds.size === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                <FileDown className="w-4 h-4" />
+                Export ({selectedIds.size})
+                <ChevronDown className="w-4 h-4 opacity-70" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Export Options</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={generatePDF}>
+                <FileText className="w-4 h-4 mr-2" />
+                Export as PDF
+                <span className="ml-auto text-xs text-gray-500">Print ready</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportSelectedAsCSV}>
+                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                Export as CSV
+                <span className="ml-auto text-xs text-gray-500">Bulk format</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -885,19 +1436,39 @@ export default function ManagePlacements() {
           {filteredPlacements.map((placement, index) => (
             <motion.div
               key={placement.id}
-              className="relative overflow-hidden bg-theme-card border border-theme-border hover:border-theme-border-hover transition-all duration-300"
+              className={`relative overflow-hidden bg-theme-card border transition-all duration-300 rounded-lg ${
+                selectedIds.has(placement.id)
+                  ? 'border-blue-500/50 ring-1 ring-blue-500/20'
+                  : 'border-theme-border hover:border-theme-border-hover'
+              }`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ delay: index * 0.05 }}
             >
-              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+              <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r ${
+                selectedIds.has(placement.id)
+                  ? 'from-blue-500 via-blue-400 to-transparent'
+                  : 'from-theme-primary via-theme-primary-50 to-transparent'
+              }`} />
               {/* Main Content */}
               <div
                 className="p-6 cursor-pointer hover:bg-black/30 transition-colors"
                 onClick={() => toggleExpand(placement.id)}
               >
                 <div className="flex items-start gap-6">
+                  {/* Selection Checkbox */}
+                  <div
+                    className="flex-shrink-0 pt-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={selectedIds.has(placement.id)}
+                      onCheckedChange={() => toggleSelect(placement.id)}
+                      className="h-5 w-5 border-white/30 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                    />
+                  </div>
+
                   {/* Album Art */}
                   <div className="flex-shrink-0">
                     {placement.albumArtUrl ? (
