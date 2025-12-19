@@ -652,7 +652,7 @@ function WriterPlacementsTab() {
         /* Virtualized Grid View */
         <div
           ref={gridParentRef}
-          className="h-[600px] overflow-auto rounded-xl"
+          className="h-[calc(100vh-450px)] min-h-[400px] overflow-auto rounded-xl"
         >
           <div
             style={{
@@ -763,7 +763,7 @@ function WriterPlacementsTab() {
         /* Virtualized List View */
         <div
           ref={listParentRef}
-          className="h-[600px] overflow-auto rounded-xl"
+          className="h-[calc(100vh-450px)] min-h-[400px] overflow-auto rounded-xl"
         >
           <div
             style={{
