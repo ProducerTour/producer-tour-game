@@ -113,6 +113,9 @@ export default function ManagePlacements() {
   // Selection State
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // Virtual scrolling ref
+  const listParentRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     loadApprovedPlacements();
   }, []);
@@ -1430,9 +1433,17 @@ export default function ManagePlacements() {
         </div>
       )}
 
-      {/* Placements List */}
-      <AnimatePresence>
-        <div className="space-y-4">
+      {/* Placements List - Optimized with lazy loading */}
+      <div className="mb-4 text-sm text-theme-foreground-muted">
+        Showing {filteredPlacements.length} of {placements.length} placements
+      </div>
+
+      <div
+        ref={listParentRef}
+        className="space-y-4 max-h-[calc(100vh-400px)] overflow-y-auto pr-2"
+        style={{ contain: 'layout style' }}
+      >
+        <AnimatePresence mode="popLayout">
           {filteredPlacements.map((placement, index) => (
             <motion.div
               key={placement.id}
@@ -1441,10 +1452,15 @@ export default function ManagePlacements() {
                   ? 'border-blue-500/50 ring-1 ring-blue-500/20'
                   : 'border-theme-border hover:border-theme-border-hover'
               }`}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ delay: index * 0.05 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{
+                duration: 0.2,
+                // Only apply stagger for first 20 items to avoid performance issues
+                delay: index < 20 ? index * 0.02 : 0
+              }}
+              layout
             >
               <div className={`absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r ${
                 selectedIds.has(placement.id)
@@ -1469,13 +1485,14 @@ export default function ManagePlacements() {
                     />
                   </div>
 
-                  {/* Album Art */}
+                  {/* Album Art - with lazy loading */}
                   <div className="flex-shrink-0">
                     {placement.albumArtUrl ? (
                       <motion.img
                         src={placement.albumArtUrl}
                         alt={placement.title}
                         className="w-24 h-24 rounded-lg object-cover shadow-xl"
+                        loading="lazy"
                         whileHover={{ scale: 1.05 }}
                         transition={{ type: "spring", stiffness: 300 }}
                       />
@@ -1724,8 +1741,8 @@ export default function ManagePlacements() {
               )}
             </motion.div>
           ))}
-        </div>
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
 
       {/* Add Placement Modal */}
       <AnimatePresence>

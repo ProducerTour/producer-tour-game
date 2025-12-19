@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import toast from 'react-hot-toast';
 import { dashboardApi, statementApi, documentApi, userApi, payoutApi, placementApi, getAuthToken } from '../lib/api';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import ImpersonationBanner from '../components/ImpersonationBanner';
@@ -458,11 +459,15 @@ function PlacementsSection() {
   );
 }
 
-// New component: Writer's placements with revenue data
+// New component: Writer's placements with revenue data - with virtual scrolling
 function WriterPlacementsTab() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlacement, setSelectedPlacement] = useState<any>(null);
+
+  // Refs for virtual scrolling
+  const listParentRef = useRef<HTMLDivElement>(null);
+  const gridParentRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['my-placement-credits'],
@@ -480,6 +485,39 @@ function WriterPlacementsTab() {
     p.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.artist?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Virtual list for list view
+  const listVirtualizer = useVirtualizer({
+    count: filteredPlacements.length,
+    getScrollElement: () => listParentRef.current,
+    estimateSize: () => 88, // Approximate height of list item
+    overscan: 5,
+  });
+
+  // Calculate grid columns based on viewport
+  const getGridColumns = useCallback(() => {
+    if (typeof window === 'undefined') return 3;
+    if (window.innerWidth < 768) return 1;
+    if (window.innerWidth < 1024) return 2;
+    return 3;
+  }, []);
+
+  const [gridColumns, setGridColumns] = useState(getGridColumns);
+
+  useEffect(() => {
+    const handleResize = () => setGridColumns(getGridColumns());
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [getGridColumns]);
+
+  // Virtual grid - calculate rows
+  const gridRows = Math.ceil(filteredPlacements.length / gridColumns);
+  const gridVirtualizer = useVirtualizer({
+    count: gridRows,
+    getScrollElement: () => gridParentRef.current,
+    estimateSize: () => 280, // Approximate height of grid row
+    overscan: 2,
+  });
 
   const formatCurrency = (value: number) => {
     return `$${Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -604,151 +642,219 @@ function WriterPlacementsTab() {
         </div>
       </div>
 
-      {/* Placements */}
+      {/* Placements - with Virtual Scrolling */}
       {filteredPlacements.length === 0 ? (
         <div className="text-center py-12 bg-theme-card border border-theme-border rounded-xl">
           <Search className="w-12 h-12 text-theme-foreground-muted mx-auto mb-3 opacity-50" />
           <p className="text-theme-foreground-muted">No placements match your search</p>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredPlacements.map((placement: any) => (
-            <div
-              key={placement.id}
-              className="group bg-theme-card border border-theme-border rounded-xl overflow-hidden hover:border-theme-primary/50 hover:shadow-lg hover:shadow-theme-primary/10 transition-all cursor-pointer"
-              onClick={() => setSelectedPlacement(placement)}
-            >
-              {/* Album Art with overlay */}
-              <div className="relative h-40 bg-gradient-to-br from-theme-card to-theme-background">
-                {placement.albumArtUrl ? (
-                  <img
-                    src={placement.albumArtUrl}
-                    alt={placement.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-20 h-20 rounded-full bg-theme-primary/10 flex items-center justify-center">
-                      <Music className="w-10 h-10 text-theme-primary/50" />
-                    </div>
-                  </div>
-                )}
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                {/* Revenue Badge */}
-                <div className="absolute top-3 right-3 px-3 py-1.5 bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-lg">
-                  {formatCurrency(placement.revenue?.total || 0)}
-                </div>
-                {/* Title overlay on image */}
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <h4 className="font-bold text-white text-lg truncate drop-shadow-lg">{placement.title}</h4>
-                  <p className="text-white/80 text-sm truncate">{placement.artist || 'Unknown Artist'}</p>
-                </div>
-              </div>
+        /* Virtualized Grid View */
+        <div
+          ref={gridParentRef}
+          className="h-[600px] overflow-auto rounded-xl"
+        >
+          <div
+            style={{
+              height: `${gridVirtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {gridVirtualizer.getVirtualItems().map((virtualRow) => {
+              const startIndex = virtualRow.index * gridColumns;
+              const rowPlacements = filteredPlacements.slice(startIndex, startIndex + gridColumns);
 
-              {/* Content */}
-              <div className="p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2.5 py-1 bg-blue-500/10 text-blue-500 text-xs font-semibold rounded-lg border border-blue-500/20">
-                      {placement.userCredit?.splitPercentage || 0}% Split
-                    </span>
-                    {placement.userCredit?.role && (
-                      <span className="px-2.5 py-1 bg-theme-card-hover text-theme-foreground-muted text-xs rounded-lg">
-                        {placement.userCredit.role}
-                      </span>
-                    )}
-                  </div>
-                  <BarChart3 className="w-4 h-4 text-theme-foreground-muted opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
+              return (
+                <div
+                  key={virtualRow.key}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: `${virtualRow.size}px`,
+                    transform: `translateY(${virtualRow.start}px)`,
+                    display: 'grid',
+                    gap: '1rem',
+                    gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
+                  }}
+                  data-grid-cols={gridColumns}
+                >
+                  {rowPlacements.map((placement: any) => (
+                    <div
+                      key={placement.id}
+                      className="group bg-theme-card border border-theme-border rounded-xl overflow-hidden hover:border-theme-primary/50 hover:shadow-lg hover:shadow-theme-primary/10 transition-all cursor-pointer"
+                      onClick={() => setSelectedPlacement(placement)}
+                    >
+                      {/* Album Art with overlay */}
+                      <div className="relative h-40 bg-gradient-to-br from-theme-card to-theme-background">
+                        {placement.albumArtUrl ? (
+                          <img
+                            src={placement.albumArtUrl}
+                            alt={placement.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-20 h-20 rounded-full bg-theme-primary/10 flex items-center justify-center">
+                              <Music className="w-10 h-10 text-theme-primary/50" />
+                            </div>
+                          </div>
+                        )}
+                        {/* Gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                        {/* Revenue Badge */}
+                        <div className="absolute top-3 right-3 px-3 py-1.5 bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-lg">
+                          {formatCurrency(placement.revenue?.total || 0)}
+                        </div>
+                        {/* Title overlay on image */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <h4 className="font-bold text-white text-lg truncate drop-shadow-lg">{placement.title}</h4>
+                          <p className="text-white/80 text-sm truncate">{placement.artist || 'Unknown Artist'}</p>
+                        </div>
+                      </div>
 
-                {/* Quick stats */}
-                {(placement.topTerritories?.length > 0 || placement.recentPeriods?.length > 0) && (
-                  <div className="mt-3 pt-3 border-t border-theme-border">
-                    <div className="flex items-center justify-between text-xs">
-                      {placement.topTerritories?.[0] && (
-                        <div className="flex items-center gap-1.5 text-theme-foreground-muted">
-                          <MapPin className="w-3 h-3" />
-                          <span>{placement.topTerritories[0].territory}</span>
+                      {/* Content */}
+                      <div className="p-4">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2.5 py-1 bg-blue-500/10 text-blue-500 text-xs font-semibold rounded-lg border border-blue-500/20">
+                              {placement.userCredit?.splitPercentage || 0}% Split
+                            </span>
+                            {placement.userCredit?.role && (
+                              <span className="px-2.5 py-1 bg-theme-card-hover text-theme-foreground-muted text-xs rounded-lg">
+                                {placement.userCredit.role}
+                              </span>
+                            )}
+                          </div>
+                          <BarChart3 className="w-4 h-4 text-theme-foreground-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                      )}
-                      {placement.recentPeriods?.[0] && (
-                        <div className="flex items-center gap-1.5 text-emerald-500">
-                          <Calendar className="w-3 h-3" />
-                          <span>{formatPeriod(placement.recentPeriods[0].period)}</span>
-                        </div>
-                      )}
+
+                        {/* Quick stats */}
+                        {(placement.topTerritories?.length > 0 || placement.recentPeriods?.length > 0) && (
+                          <div className="mt-3 pt-3 border-t border-theme-border">
+                            <div className="flex items-center justify-between text-xs">
+                              {placement.topTerritories?.[0] && (
+                                <div className="flex items-center gap-1.5 text-theme-foreground-muted">
+                                  <MapPin className="w-3 h-3" />
+                                  <span>{placement.topTerritories[0].territory}</span>
+                                </div>
+                              )}
+                              {placement.recentPeriods?.[0] && (
+                                <div className="flex items-center gap-1.5 text-emerald-500">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>{formatPeriod(placement.recentPeriods[0].period)}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+                  ))}
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : (
-        /* List View */
-        <div className="space-y-3">
-          {filteredPlacements.map((placement: any) => (
-            <div
-              key={placement.id}
-              className="group bg-theme-card border border-theme-border rounded-xl p-4 hover:border-theme-primary/50 hover:shadow-lg transition-all cursor-pointer"
-              onClick={() => setSelectedPlacement(placement)}
-            >
-              <div className="flex items-center gap-4">
-                {/* Thumbnail */}
-                <div className="w-16 h-16 rounded-xl bg-theme-card-hover flex-shrink-0 overflow-hidden">
-                  {placement.albumArtUrl ? (
-                    <img
-                      src={placement.albumArtUrl}
-                      alt={placement.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Music className="w-7 h-7 text-theme-foreground-muted" />
-                    </div>
-                  )}
-                </div>
+        /* Virtualized List View */
+        <div
+          ref={listParentRef}
+          className="h-[600px] overflow-auto rounded-xl"
+        >
+          <div
+            style={{
+              height: `${listVirtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {listVirtualizer.getVirtualItems().map((virtualRow) => {
+              const placement = filteredPlacements[virtualRow.index];
+              return (
+                <div
+                  key={virtualRow.key}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: `${virtualRow.size}px`,
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                  className="pb-3"
+                >
+                  <div
+                    className="group bg-theme-card border border-theme-border rounded-xl p-4 hover:border-theme-primary/50 hover:shadow-lg transition-all cursor-pointer h-full"
+                    onClick={() => setSelectedPlacement(placement)}
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Thumbnail */}
+                      <div className="w-16 h-16 rounded-xl bg-theme-card-hover flex-shrink-0 overflow-hidden">
+                        {placement.albumArtUrl ? (
+                          <img
+                            src={placement.albumArtUrl}
+                            alt={placement.title}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Music className="w-7 h-7 text-theme-foreground-muted" />
+                          </div>
+                        )}
+                      </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-theme-foreground truncate">{placement.title}</h4>
-                  <p className="text-sm text-theme-foreground-muted truncate">{placement.artist || 'Unknown Artist'}</p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-xs font-medium rounded">
-                      {placement.userCredit?.splitPercentage || 0}%
-                    </span>
-                    {placement.userCredit?.role && (
-                      <span className="text-xs text-theme-foreground-muted">{placement.userCredit.role}</span>
-                    )}
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-theme-foreground truncate">{placement.title}</h4>
+                        <p className="text-sm text-theme-foreground-muted truncate">{placement.artist || 'Unknown Artist'}</p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-xs font-medium rounded">
+                            {placement.userCredit?.splitPercentage || 0}%
+                          </span>
+                          {placement.userCredit?.role && (
+                            <span className="text-xs text-theme-foreground-muted">{placement.userCredit.role}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Revenue & Stats */}
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-xl font-bold text-emerald-500">{formatCurrency(placement.revenue?.total || 0)}</p>
+                        {placement.topTerritories?.[0] && (
+                          <p className="text-xs text-theme-foreground-muted flex items-center justify-end gap-1 mt-1">
+                            <MapPin className="w-3 h-3" />
+                            {placement.topTerritories[0].territory}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Arrow */}
+                      <svg
+                        className="w-5 h-5 text-theme-foreground-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
-
-                {/* Revenue & Stats */}
-                <div className="text-right flex-shrink-0">
-                  <p className="text-xl font-bold text-emerald-500">{formatCurrency(placement.revenue?.total || 0)}</p>
-                  {placement.topTerritories?.[0] && (
-                    <p className="text-xs text-theme-foreground-muted flex items-center justify-end gap-1 mt-1">
-                      <MapPin className="w-3 h-3" />
-                      {placement.topTerritories[0].territory}
-                    </p>
-                  )}
-                </div>
-
-                {/* Arrow */}
-                <svg
-                  className="w-5 h-5 text-theme-foreground-muted opacity-0 group-hover:opacity-100 transition-opacity"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
       )}
+
+      {/* Placement count indicator */}
+      <div className="mt-4 text-center text-sm text-theme-foreground-muted">
+        Showing {filteredPlacements.length} of {placements.length} placements
+      </div>
 
       {/* Placement Analytics Modal */}
       {selectedPlacement && (
