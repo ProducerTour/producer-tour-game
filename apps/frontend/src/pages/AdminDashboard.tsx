@@ -1974,7 +1974,6 @@ function AgreementsSection() {
   const [activeView, setActiveView] = useState<'templates' | 'agreements'>('templates');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [uploadForm, setUploadForm] = useState({ name: '', description: '', file: null as File | null });
   const [sendForm, setSendForm] = useState({ templateId: '', recipientName: '', recipientEmail: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -2190,7 +2189,6 @@ function AgreementsSection() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
-                          setSelectedTemplate(template);
                           setSendForm({ ...sendForm, templateId: template.id });
                           setShowSendModal(true);
                         }}
