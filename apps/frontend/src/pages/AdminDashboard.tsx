@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { dashboardApi, statementApi, userApi, authApi, applicationApi, agreementApi } from '../lib/api';
 import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Users, BarChart3, CheckCircle2, Music, DollarSign, FileText, TrendingUp, Sparkles, Loader2, AlertTriangle, X, Brain, Maximize2, Minimize2, MoreVertical, Eye, Pencil, Trash2, ClipboardList, Mail, Phone, Clock, CheckCircle, XCircle, MessageSquare, ChevronDown, ChevronUp, ExternalLink, FileSignature, Upload, Send, Download } from 'lucide-react';
+import { Users, BarChart3, CheckCircle2, Music, DollarSign, FileText, TrendingUp, Sparkles, Loader2, AlertTriangle, X, Brain, Maximize2, Minimize2, MoreVertical, Eye, Pencil, Trash2, ClipboardList, Mail, Phone, Clock, XCircle, MessageSquare, ChevronDown, ChevronUp, ExternalLink, FileSignature, Upload, Send, Download } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { DashboardHeader } from '../components/DashboardHeader';
 import ToolsHub from '../components/ToolsHub';
