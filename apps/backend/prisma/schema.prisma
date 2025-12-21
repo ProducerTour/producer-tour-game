@@ -176,6 +176,12 @@ model User {
   // Stripe Customer ID for shop purchases
   stripeCustomerId        String? @unique // Stripe Customer ID for checkout sessions
 
+  // Tax Information (for 1099 reporting via Stripe)
+  taxFormType             String?   // "W9" or "W8BEN"
+  taxInfoSubmittedAt      DateTime? // When tax info was submitted
+  taxInfoStatus           String?   // "pending" | "verified" | "needs_update"
+  taxFormLast4            String?   // Last 4 of SSN/EIN for display purposes only
+
   // Password reset fields
   resetToken        String?   @unique // Cryptographically secure token for password reset
   resetTokenExpiry  DateTime? // Expiration time for reset token (1 hour recommended)

@@ -7,6 +7,7 @@ import { Card, Title, Text, Flex, Grid, List, ListItem } from '@tremor/react';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi, statementApi, payoutApi } from '../../lib/api';
 import { WalletCard } from '../WalletCard';
+import { PriorityActionsCard } from './PriorityActionsCard';
 import { TerritoryHeatmap } from '../TerritoryHeatmap';
 import { ChartCard } from '../ChartCard';
 import { NivoPieChart, RechartsRevenueChart } from '../charts';
@@ -95,14 +96,15 @@ export default function WriterOverviewTremor({ onWithdrawClick }: WriterOverview
 
   return (
     <div className="space-y-8">
-      {/* Wallet Card */}
-      <div className="max-w-md">
+      {/* Wallet Card + Priority Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <WalletCard
           balance={walletBalance || { availableBalance: 0, pendingBalance: 0, lifetimeEarnings: 0 }}
           isLoading={balanceLoading}
           onWithdraw={onWithdrawClick}
           userName={userName}
         />
+        <PriorityActionsCard />
       </div>
 
       {/* Charts Section */}

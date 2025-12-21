@@ -499,6 +499,24 @@ export const paymentApi = {
 
   // Get payment history
   getHistory: () => api.get('/payments/history'),
+
+  // Tax Information
+  getTaxStatus: () => api.get('/payments/tax-status'),
+  submitTaxInfo: (data: {
+    formType: 'W9' | 'W8BEN';
+    legalName: string;
+    businessName?: string;
+    taxClassification?: string;
+    address: string;
+    city: string;
+    state?: string;
+    zipCode: string;
+    country: string;
+    ssn?: string;
+    ein?: string;
+    foreignTaxId?: string;
+    countryOfCitizenship?: string;
+  }) => api.post('/payments/tax-info', data),
 };
 
 // Payout API - Writer withdrawals
