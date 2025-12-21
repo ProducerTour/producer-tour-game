@@ -86,7 +86,7 @@ export function PriorityActionsCard({ onStartOnboarding }: PriorityActionsCardPr
 
   if (isLoading) {
     return (
-      <Card className="bg-theme-card border border-theme-border animate-pulse">
+      <Card className="bg-white border border-gray-100 shadow-sm ring-0 rounded-2xl animate-pulse">
         <div className="h-48"></div>
       </Card>
     );
@@ -95,11 +95,11 @@ export function PriorityActionsCard({ onStartOnboarding }: PriorityActionsCardPr
   // State 3: All Complete
   if (stripeComplete && (taxComplete || taxPending)) {
     return (
-      <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/30">
+      <Card className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 shadow-sm ring-0 rounded-2xl">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
             <svg
-              className="w-6 h-6 text-emerald-500"
+              className="w-6 h-6 text-emerald-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -113,13 +113,13 @@ export function PriorityActionsCard({ onStartOnboarding }: PriorityActionsCardPr
             </svg>
           </div>
           <div className="flex-1">
-            <Title className="text-theme-foreground mb-1">Payment Setup Complete</Title>
-            <Text className="text-theme-foreground-secondary mb-4">
+            <Title className="text-gray-900 mb-1">Payment Setup Complete</Title>
+            <Text className="text-gray-500 mb-4">
               You're all set to receive royalty payments!
             </Text>
 
             <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 text-emerald-500">
+              <div className="flex items-center gap-2 text-emerald-600">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
@@ -127,9 +127,9 @@ export function PriorityActionsCard({ onStartOnboarding }: PriorityActionsCardPr
                     clipRule="evenodd"
                   />
                 </svg>
-                <Text className="text-emerald-500">Stripe Connected</Text>
+                <Text className="text-emerald-600 font-medium">Stripe Connected</Text>
               </div>
-              <div className="flex items-center gap-2 text-emerald-500">
+              <div className="flex items-center gap-2 text-emerald-600">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
@@ -137,7 +137,7 @@ export function PriorityActionsCard({ onStartOnboarding }: PriorityActionsCardPr
                     clipRule="evenodd"
                   />
                 </svg>
-                <Text className="text-emerald-500">
+                <Text className="text-emerald-600 font-medium">
                   Tax Info {taxPending ? 'Submitted' : 'Verified'}
                   {taxStatus?.taxFormLast4 && ` (***${taxStatus.taxFormLast4})`}
                 </Text>
@@ -149,7 +149,7 @@ export function PriorityActionsCard({ onStartOnboarding }: PriorityActionsCardPr
               variant="secondary"
               onClick={() => dashboardMutation.mutate()}
               loading={dashboardMutation.isPending}
-              className="bg-theme-card-hover border border-theme-border text-theme-foreground hover:bg-theme-hover"
+              className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
             >
               View Stripe Dashboard
             </Button>
@@ -162,11 +162,11 @@ export function PriorityActionsCard({ onStartOnboarding }: PriorityActionsCardPr
   // State 1: Stripe Not Connected
   if (!stripeComplete) {
     return (
-      <Card className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/30">
+      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 shadow-sm ring-0 rounded-2xl">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
             <svg
-              className="w-6 h-6 text-blue-400"
+              className="w-6 h-6 text-blue-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -180,19 +180,19 @@ export function PriorityActionsCard({ onStartOnboarding }: PriorityActionsCardPr
             </svg>
           </div>
           <div className="flex-1">
-            <Title className="text-theme-foreground mb-1">Complete Payout Setup</Title>
-            <Text className="text-theme-foreground-secondary mb-4">
+            <Title className="text-gray-900 mb-1">Complete Payout Setup</Title>
+            <Text className="text-gray-500 mb-4">
               Connect your bank account to receive royalty payments.
             </Text>
 
             <div className="flex items-center gap-2 mb-4">
-              <div className="flex-1 h-2 bg-theme-card-hover rounded-full overflow-hidden">
+              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-blue-500 transition-all"
                   style={{ width: `${(completedSteps / totalSteps) * 100}%` }}
                 />
               </div>
-              <Text className="text-xs text-theme-foreground-secondary">
+              <Text className="text-xs text-gray-500">
                 {completedSteps}/{totalSteps}
               </Text>
             </div>
@@ -213,11 +213,11 @@ export function PriorityActionsCard({ onStartOnboarding }: PriorityActionsCardPr
   // State 2: Stripe Connected, No Tax Info
   return (
     <>
-      <Card className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30">
+      <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 shadow-sm ring-0 rounded-2xl">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
             <svg
-              className="w-6 h-6 text-amber-400"
+              className="w-6 h-6 text-amber-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -231,13 +231,13 @@ export function PriorityActionsCard({ onStartOnboarding }: PriorityActionsCardPr
             </svg>
           </div>
           <div className="flex-1">
-            <Title className="text-theme-foreground mb-1">Submit Tax Information</Title>
-            <Text className="text-theme-foreground-secondary mb-4">
+            <Title className="text-gray-900 mb-1">Submit Tax Information</Title>
+            <Text className="text-gray-500 mb-4">
               Required for 1099 reporting. Takes about 2 minutes.
             </Text>
 
             <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 text-emerald-500">
+              <div className="flex items-center gap-2 text-emerald-600">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
@@ -245,11 +245,11 @@ export function PriorityActionsCard({ onStartOnboarding }: PriorityActionsCardPr
                     clipRule="evenodd"
                   />
                 </svg>
-                <Text className="text-emerald-500">Stripe Connected</Text>
+                <Text className="text-emerald-600 font-medium">Stripe Connected</Text>
               </div>
-              <div className="flex items-center gap-2 text-theme-foreground-secondary">
+              <div className="flex items-center gap-2 text-gray-500">
                 <div className="w-4 h-4 rounded-full border-2 border-amber-500" />
-                <Text className="text-theme-foreground-secondary">Tax Form (W-9/W-8BEN)</Text>
+                <Text className="text-gray-500">Tax Form (W-9/W-8BEN)</Text>
               </div>
             </div>
 

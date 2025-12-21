@@ -161,10 +161,10 @@ export function TaxInfoModal({ isOpen, onClose, onSuccess }: TaxInfoModalProps) 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl bg-theme-card border-theme-border max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl bg-white border-gray-200 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-theme-foreground">Submit Tax Information</DialogTitle>
-          <DialogDescription className="text-theme-foreground-secondary">
+          <DialogTitle className="text-gray-900">Submit Tax Information</DialogTitle>
+          <DialogDescription className="text-gray-500">
             This information is required for 1099 tax reporting. Your data is securely transmitted
             to Stripe and is not stored on our servers.
           </DialogDescription>
@@ -173,7 +173,7 @@ export function TaxInfoModal({ isOpen, onClose, onSuccess }: TaxInfoModalProps) 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           {/* Form Type Selection */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-theme-foreground">
+            <label className="text-sm font-medium text-gray-900">
               Tax Form Type
             </label>
             <div className="flex gap-4">
@@ -186,7 +186,7 @@ export function TaxInfoModal({ isOpen, onClose, onSuccess }: TaxInfoModalProps) 
                   onChange={() => setFormType('W9')}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="text-theme-foreground">W-9 (US Person)</span>
+                <span className="text-gray-700">W-9 (US Person)</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -197,47 +197,47 @@ export function TaxInfoModal({ isOpen, onClose, onSuccess }: TaxInfoModalProps) 
                   onChange={() => setFormType('W8BEN')}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="text-theme-foreground">W-8BEN (Non-US Person)</span>
+                <span className="text-gray-700">W-8BEN (Non-US Person)</span>
               </label>
             </div>
           </div>
 
           {/* Legal Name */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-theme-foreground">
+            <label className="text-sm font-medium text-gray-900">
               Legal Name <span className="text-red-500">*</span>
             </label>
             <TextInput
               value={legalName}
               onChange={(e) => setLegalName(e.target.value)}
               placeholder="Enter your full legal name"
-              className="bg-theme-card-hover border-theme-border"
+              className="bg-gray-50 border-gray-200"
             />
           </div>
 
           {/* Business Name (optional) */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-theme-foreground">
-              Business Name <span className="text-theme-foreground-secondary">(if different)</span>
+            <label className="text-sm font-medium text-gray-900">
+              Business Name <span className="text-gray-400">(if different)</span>
             </label>
             <TextInput
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
               placeholder="Enter business name if applicable"
-              className="bg-theme-card-hover border-theme-border"
+              className="bg-gray-50 border-gray-200"
             />
           </div>
 
           {/* Tax Classification (W-9 only) */}
           {formType === 'W9' && (
             <div className="space-y-2">
-              <label className="text-sm font-medium text-theme-foreground">
+              <label className="text-sm font-medium text-gray-900">
                 Tax Classification <span className="text-red-500">*</span>
               </label>
               <Select
                 value={taxClassification}
                 onValueChange={setTaxClassification}
-                className="bg-theme-card-hover border-theme-border"
+                className="bg-gray-50 border-gray-200"
               >
                 {TAX_CLASSIFICATIONS.map((tc) => (
                   <SelectItem key={tc.value} value={tc.value}>
@@ -250,41 +250,41 @@ export function TaxInfoModal({ isOpen, onClose, onSuccess }: TaxInfoModalProps) 
 
           {/* Address */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-theme-foreground">
+            <label className="text-sm font-medium text-gray-900">
               Street Address <span className="text-red-500">*</span>
             </label>
             <TextInput
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Enter your street address"
-              className="bg-theme-card-hover border-theme-border"
+              className="bg-gray-50 border-gray-200"
             />
           </div>
 
           {/* City, State/Country, ZIP */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-theme-foreground">
+              <label className="text-sm font-medium text-gray-900">
                 City <span className="text-red-500">*</span>
               </label>
               <TextInput
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="City"
-                className="bg-theme-card-hover border-theme-border"
+                className="bg-gray-50 border-gray-200"
               />
             </div>
 
             {formType === 'W9' ? (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-theme-foreground">
+                <label className="text-sm font-medium text-gray-900">
                   State <span className="text-red-500">*</span>
                 </label>
                 <Select
                   value={state}
                   onValueChange={setState}
                   placeholder="Select state"
-                  className="bg-theme-card-hover border-theme-border"
+                  className="bg-gray-50 border-gray-200"
                 >
                   {US_STATES.map((s) => (
                     <SelectItem key={s} value={s}>
@@ -295,14 +295,14 @@ export function TaxInfoModal({ isOpen, onClose, onSuccess }: TaxInfoModalProps) 
               </div>
             ) : (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-theme-foreground">
+                <label className="text-sm font-medium text-gray-900">
                   Country <span className="text-red-500">*</span>
                 </label>
                 <Select
                   value={country}
                   onValueChange={setCountry}
                   placeholder="Select country"
-                  className="bg-theme-card-hover border-theme-border"
+                  className="bg-gray-50 border-gray-200"
                 >
                   {COUNTRIES.map((c) => (
                     <SelectItem key={c} value={c}>
@@ -316,27 +316,27 @@ export function TaxInfoModal({ isOpen, onClose, onSuccess }: TaxInfoModalProps) 
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-theme-foreground">
+              <label className="text-sm font-medium text-gray-900">
                 ZIP/Postal Code <span className="text-red-500">*</span>
               </label>
               <TextInput
                 value={zipCode}
                 onChange={(e) => setZipCode(e.target.value)}
                 placeholder={formType === 'W9' ? 'ZIP Code' : 'Postal Code'}
-                className="bg-theme-card-hover border-theme-border"
+                className="bg-gray-50 border-gray-200"
               />
             </div>
 
             {formType === 'W8BEN' && (
               <div className="space-y-2">
-                <label className="text-sm font-medium text-theme-foreground">
+                <label className="text-sm font-medium text-gray-900">
                   Country of Citizenship <span className="text-red-500">*</span>
                 </label>
                 <Select
                   value={countryOfCitizenship}
                   onValueChange={setCountryOfCitizenship}
                   placeholder="Select country"
-                  className="bg-theme-card-hover border-theme-border"
+                  className="bg-gray-50 border-gray-200"
                 >
                   {COUNTRIES.map((c) => (
                     <SelectItem key={c} value={c}>
@@ -350,12 +350,12 @@ export function TaxInfoModal({ isOpen, onClose, onSuccess }: TaxInfoModalProps) 
 
           {/* Tax ID Section */}
           {formType === 'W9' ? (
-            <div className="space-y-4 pt-4 border-t border-theme-border">
-              <h4 className="text-sm font-medium text-theme-foreground">Taxpayer Identification</h4>
+            <div className="space-y-4 pt-4 border-t border-gray-200">
+              <h4 className="text-sm font-medium text-gray-900">Taxpayer Identification</h4>
 
               {taxClassification === 'individual' ? (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-theme-foreground">
+                  <label className="text-sm font-medium text-gray-900">
                     Social Security Number (SSN) <span className="text-red-500">*</span>
                   </label>
                   <TextInput
@@ -364,15 +364,15 @@ export function TaxInfoModal({ isOpen, onClose, onSuccess }: TaxInfoModalProps) 
                     onChange={(e) => setSsn(formatSSN(e.target.value))}
                     placeholder="XXX-XX-XXXX"
                     maxLength={11}
-                    className="bg-theme-card-hover border-theme-border"
+                    className="bg-gray-50 border-gray-200"
                   />
-                  <p className="text-xs text-theme-foreground-secondary">
+                  <p className="text-xs text-gray-500">
                     Your SSN is encrypted and securely transmitted to Stripe. We do not store your full SSN.
                   </p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-theme-foreground">
+                  <label className="text-sm font-medium text-gray-900">
                     Employer Identification Number (EIN) <span className="text-red-500">*</span>
                   </label>
                   <TextInput
@@ -380,23 +380,23 @@ export function TaxInfoModal({ isOpen, onClose, onSuccess }: TaxInfoModalProps) 
                     onChange={(e) => setEin(formatEIN(e.target.value))}
                     placeholder="XX-XXXXXXX"
                     maxLength={10}
-                    className="bg-theme-card-hover border-theme-border"
+                    className="bg-gray-50 border-gray-200"
                   />
                 </div>
               )}
             </div>
           ) : (
-            <div className="space-y-4 pt-4 border-t border-theme-border">
-              <h4 className="text-sm font-medium text-theme-foreground">Foreign Tax Identification</h4>
+            <div className="space-y-4 pt-4 border-t border-gray-200">
+              <h4 className="text-sm font-medium text-gray-900">Foreign Tax Identification</h4>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-theme-foreground">
-                  Foreign Tax Identifying Number <span className="text-theme-foreground-secondary">(if any)</span>
+                <label className="text-sm font-medium text-gray-900">
+                  Foreign Tax Identifying Number <span className="text-gray-400">(if any)</span>
                 </label>
                 <TextInput
                   value={foreignTaxId}
                   onChange={(e) => setForeignTaxId(e.target.value)}
                   placeholder="Enter your foreign tax ID"
-                  className="bg-theme-card-hover border-theme-border"
+                  className="bg-gray-50 border-gray-200"
                 />
               </div>
             </div>
@@ -404,14 +404,14 @@ export function TaxInfoModal({ isOpen, onClose, onSuccess }: TaxInfoModalProps) 
 
           {/* Error Message */}
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-              <p className="text-sm text-red-500">{error}</p>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
 
           {/* Certification */}
-          <div className="p-4 bg-theme-card-hover rounded-lg border border-theme-border">
-            <p className="text-xs text-theme-foreground-secondary">
+          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-xs text-gray-500">
               By submitting this form, I certify under penalty of perjury that:
               {formType === 'W9' ? (
                 <>
@@ -435,7 +435,7 @@ export function TaxInfoModal({ isOpen, onClose, onSuccess }: TaxInfoModalProps) 
               type="button"
               variant="secondary"
               onClick={onClose}
-              className="bg-theme-card-hover border border-theme-border text-theme-foreground"
+              className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </Button>
