@@ -1592,6 +1592,9 @@ function ApplicationsSection() {
   const [tierFilter, setTierFilter] = useState<string>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState<{ id: string; notes: string } | null>(null);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
 
   const { data: applicationsData, isLoading } = useQuery({
     queryKey: ['admin-applications', statusFilter, tierFilter],
@@ -1604,6 +1607,16 @@ function ApplicationsSection() {
     },
   });
 
+  // Fetch agreement templates for the approve & send modal
+  const { data: templatesData } = useQuery({
+    queryKey: ['agreement-templates'],
+    queryFn: async () => {
+      const response = await agreementApi.listTemplates();
+      return response.data;
+    },
+  });
+  const templates = templatesData || [];
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => applicationApi.update(id, data),
     onSuccess: () => {
@@ -1613,6 +1626,35 @@ function ApplicationsSection() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to update application');
+    },
+  });
+
+  // Approve and send agreements mutation
+  const approveAndSendMutation = useMutation({
+    mutationFn: async ({ application, templateIds }: { application: any; templateIds: string[] }) => {
+      // Create agreements for each selected template
+      const promises = templateIds.map(templateId =>
+        agreementApi.create({
+          templateId,
+          applicationId: application.id,
+          recipientName: application.name,
+          recipientEmail: application.email,
+        })
+      );
+      await Promise.all(promises);
+      // Update application status to APPROVED
+      await applicationApi.update(application.id, { status: 'APPROVED' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      setShowApproveModal(false);
+      setSelectedApplication(null);
+      setSelectedTemplates([]);
+      toast.success('Application approved and agreement(s) sent!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to approve and send agreements');
     },
   });
 
@@ -1788,9 +1830,12 @@ function ApplicationsSection() {
                         <MessageSquare className="w-4 h-4 mr-2 text-blue-400" />
                         Contacted
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'APPROVED')}>
-                        <CheckCircle className="w-4 h-4 mr-2 text-green-400" />
-                        Approved
+                      <DropdownMenuItem onClick={() => {
+                        setSelectedApplication(app);
+                        setShowApproveModal(true);
+                      }}>
+                        <FileSignature className="w-4 h-4 mr-2 text-green-400" />
+                        Approve & Send Agreement(s)
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'REJECTED')}>
@@ -1962,6 +2007,95 @@ function ApplicationsSection() {
           <ClipboardList className="w-12 h-12 mb-3 text-theme-primary/30" />
           <p className="text-lg">No applications found</p>
           <p className="text-sm">Applications will appear here when submitted</p>
+        </div>
+      )}
+
+      {/* Approve & Send Agreement(s) Modal */}
+      {showApproveModal && selectedApplication && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-theme-card border border-theme-border p-6 w-full max-w-lg mx-4">
+            <h3 className="text-lg font-medium text-theme-foreground mb-4">
+              Approve & Send Agreement(s)
+            </h3>
+
+            {/* Applicant Info Preview */}
+            <div className="bg-theme-background-20 border border-theme-border p-4 mb-4">
+              <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                Sending To
+              </h4>
+              <div className="text-sm">
+                <div className="font-medium text-theme-foreground">{selectedApplication.name}</div>
+                <div className="text-theme-foreground-muted">{selectedApplication.email}</div>
+              </div>
+            </div>
+
+            {/* Template Selection */}
+            <div className="mb-6">
+              <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                Select Agreement Templates
+              </h4>
+              {templates.length > 0 ? (
+                <div className="space-y-2 max-h-48 overflow-y-auto border border-theme-border">
+                  {templates.filter((t: any) => t.status !== 'archived').map((template: any) => (
+                    <label
+                      key={template.id}
+                      className="flex items-center gap-3 p-3 hover:bg-theme-background-20 cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedTemplates.includes(template.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedTemplates([...selectedTemplates, template.id]);
+                          } else {
+                            setSelectedTemplates(selectedTemplates.filter(id => id !== template.id));
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-theme-border text-theme-primary focus:ring-theme-primary"
+                      />
+                      <div>
+                        <span className="text-sm text-theme-foreground">{template.name}</span>
+                        {template.description && (
+                          <p className="text-xs text-theme-foreground-muted">{template.description}</p>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 border border-theme-border text-center text-theme-foreground-muted text-sm">
+                  No agreement templates available. Create templates in the Agreements tab first.
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowApproveModal(false);
+                  setSelectedApplication(null);
+                  setSelectedTemplates([]);
+                }}
+                className="px-4 py-2 text-sm font-medium bg-theme-background-30 text-theme-foreground-secondary hover:bg-theme-background-20 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => approveAndSendMutation.mutate({
+                  application: selectedApplication,
+                  templateIds: selectedTemplates
+                })}
+                disabled={selectedTemplates.length === 0 || approveAndSendMutation.isPending}
+                className="px-4 py-2 text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {approveAndSendMutation.isPending
+                  ? 'Sending...'
+                  : `Approve & Send${selectedTemplates.length > 0 ? ` (${selectedTemplates.length})` : ''}`
+                }
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
