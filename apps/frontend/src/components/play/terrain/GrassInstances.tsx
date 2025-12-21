@@ -267,7 +267,7 @@ export function GrassInstances({
     <instancedMesh
       ref={meshRef}
       args={[geometry, material, matrices.length]}
-      castShadow
+      castShadow={false}  // Grass doesn't cast visible shadows - saves ~50% shadow pass cost
       receiveShadow
       frustumCulled={false}
     />

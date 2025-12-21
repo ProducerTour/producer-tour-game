@@ -67,6 +67,13 @@ export function BulletImpact({ effect }: ParticleEffectProps) {
   const ref = useRef<THREE.Group>(null);
   const particlesRef = useRef<THREE.InstancedMesh>(null);
 
+  // Pre-allocated objects for useFrame (avoid GC pressure)
+  const frameObjects = useRef({
+    matrix: new THREE.Matrix4(),
+    tempVec: new THREE.Vector3(),
+    scaleVec: new THREE.Vector3(),
+  });
+
   const age = Date.now() - effect.createdAt;
   const progress = age / effect.duration;
 
@@ -99,22 +106,24 @@ export function BulletImpact({ effect }: ParticleEffectProps) {
   useFrame((_, delta) => {
     if (!particlesRef.current) return;
 
-    const matrix = new THREE.Matrix4();
+    const { matrix, tempVec, scaleVec } = frameObjects.current;
     const gravity = -9.8;
 
     particles.forEach((p, i) => {
-      // Update position
-      p.position.add(p.velocity.clone().multiplyScalar(delta));
+      // Update position - use tempVec instead of cloning
+      tempVec.copy(p.velocity).multiplyScalar(delta);
+      p.position.add(tempVec);
       p.velocity.y += gravity * delta;
       p.life -= delta * 2;
 
-      // Update instance matrix
+      // Update instance matrix - reuse scaleVec
       matrix.setPosition(
         effect.position.x + p.position.x,
         effect.position.y + p.position.y,
         effect.position.z + p.position.z
       );
-      matrix.scale(new THREE.Vector3(p.size, p.size, p.size));
+      scaleVec.set(p.size, p.size, p.size);
+      matrix.scale(scaleVec);
       particlesRef.current!.setMatrixAt(i, matrix);
     });
 

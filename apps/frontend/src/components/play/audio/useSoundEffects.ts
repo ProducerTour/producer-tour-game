@@ -82,7 +82,10 @@ interface UseSoundEffectsOptions {
 
 export function useSoundEffects(options: UseSoundEffectsOptions = {}) {
   const { poolSize = 4, category = 'sfx' } = options;
-  const { getEffectiveVolume, isInitialized, initialize } = useSoundStore();
+  // Use individual selectors to prevent re-renders on unrelated store changes
+  const getEffectiveVolume = useSoundStore((s) => s.getEffectiveVolume);
+  const isInitialized = useSoundStore((s) => s.isInitialized);
+  const initialize = useSoundStore((s) => s.initialize);
 
   // Sound pool for each sound type
   const pools = useRef<Map<string, SoundPool>>(new Map());

@@ -240,6 +240,9 @@ export function PhysicsPlayerController({
     playerHead: new THREE.Vector3(),
     rayDir: new THREE.Vector3(),
     raycaster: new THREE.Raycaster(),
+    // Additional vectors for frame calculations
+    camRight: new THREE.Vector3(),
+    worldPos: new THREE.Vector3(),
   }), []);
 
   // Camera follow state
@@ -482,8 +485,8 @@ export function PhysicsPlayerController({
     const aimShoulder = cameraControls.aimShoulderOffset;
     const shoulderOffsetX = normalShoulder + (aimShoulder - normalShoulder) * aimT;
 
-    // Calculate camera right direction for shoulder offset
-    const camRight = new THREE.Vector3(
+    // Calculate camera right direction for shoulder offset (reuse pre-allocated vector)
+    const camRight = vectors.camRight.set(
       Math.cos(orbitAngle.current),
       0,
       -Math.sin(orbitAngle.current)
@@ -519,10 +522,9 @@ export function PhysicsPlayerController({
 
         if (obj.type === 'Mesh') {
           const mesh = obj as THREE.Mesh;
-          // Quick distance check using world position
-          const worldPos = new THREE.Vector3();
-          mesh.getWorldPosition(worldPos);
-          if (worldPos.distanceTo(playerHead) < CAMERA_COLLISION_RADIUS) {
+          // Quick distance check using world position (reuse pre-allocated vector)
+          mesh.getWorldPosition(vectors.worldPos);
+          if (vectors.worldPos.distanceTo(playerHead) < CAMERA_COLLISION_RADIUS) {
             nearby.push(mesh);
           }
         }

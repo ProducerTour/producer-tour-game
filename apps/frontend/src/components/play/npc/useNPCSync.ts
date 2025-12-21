@@ -29,7 +29,11 @@ interface UseNPCSyncReturn {
 
 export function useNPCSync({ enabled = true }: UseNPCSyncProps = {}): UseNPCSyncReturn {
   const { socket, isConnected } = useSocket();
-  const { addNPC, updateNPC, getNPC, clearAllNPCs } = useNPCStore();
+  // Use individual selectors to prevent re-renders on unrelated store changes
+  const addNPC = useNPCStore((s) => s.addNPC);
+  const updateNPC = useNPCStore((s) => s.updateNPC);
+  const getNPC = useNPCStore((s) => s.getNPC);
+  const clearAllNPCs = useNPCStore((s) => s.clearAllNPCs);
   const syncedNPCIds = useRef<Set<string>>(new Set());
   const isServerControlled = useRef(false);
 

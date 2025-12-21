@@ -30,7 +30,9 @@ export function NPCManager({
   multiplayerEnabled = false,
   getTerrainHeight,
 }: NPCManagerProps) {
-  const { npcs, addNPCs } = useNPCStore();
+  // Use individual selectors to prevent re-renders on unrelated store changes
+  const npcs = useNPCStore((s) => s.npcs);
+  const addNPCs = useNPCStore((s) => s.addNPCs);
 
   // Sync NPCs with server when multiplayer is enabled
   const { isServerControlled } = useNPCSync({ enabled: multiplayerEnabled });

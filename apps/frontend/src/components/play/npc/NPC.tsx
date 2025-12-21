@@ -125,7 +125,10 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
   const interpolatedPos = useRef({ x: data.position.x, y: data.position.y, z: data.position.z });
   const interpolatedRot = useRef(data.rotation);
 
-  const { updateNPC, setNPCPosition, setNPCState } = useNPCStore();
+  // Use individual selectors to prevent re-renders on unrelated store changes
+  const updateNPC = useNPCStore((s) => s.updateNPC);
+  const setNPCPosition = useNPCStore((s) => s.setNPCPosition);
+  const setNPCState = useNPCStore((s) => s.setNPCState);
 
   // NPC color based on type
   const color = useMemo(() => {

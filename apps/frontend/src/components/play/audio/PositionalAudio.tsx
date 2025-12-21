@@ -32,7 +32,10 @@ export function PositionalAudioSource({
   autoplay = true,
 }: PositionalAudioProps) {
   const audioRef = useRef<THREE.PositionalAudio>(null);
-  const { getEffectiveVolume, isInitialized, initialize } = useSoundStore();
+  // Use individual selectors to prevent re-renders on unrelated store changes
+  const getEffectiveVolume = useSoundStore((s) => s.getEffectiveVolume);
+  const isInitialized = useSoundStore((s) => s.isInitialized);
+  const initialize = useSoundStore((s) => s.initialize);
 
   // Update volume when settings change
   useEffect(() => {
@@ -91,7 +94,19 @@ export function AudioEmitter({
   coneOuterGain = 0,
 }: AudioEmitterProps) {
   const { camera } = useThree();
-  const { getEffectiveVolume, audioContext, isInitialized, initialize } = useSoundStore();
+  // Use individual selectors to prevent re-renders on unrelated store changes
+  const getEffectiveVolume = useSoundStore((s) => s.getEffectiveVolume);
+  const audioContext = useSoundStore((s) => s.audioContext);
+  const isInitialized = useSoundStore((s) => s.isInitialized);
+  const initialize = useSoundStore((s) => s.initialize);
+
+  // Pre-allocated vectors for useFrame (avoid GC pressure)
+  const frameVectors = useRef({
+    forward: new THREE.Vector3(),
+    up: new THREE.Vector3(),
+    temp1: new THREE.Vector3(),
+    temp2: new THREE.Vector3(),
+  });
 
   const audioRef = useRef<{
     source: AudioBufferSourceNode | null;
@@ -229,10 +244,10 @@ export function AudioEmitter({
     }
 
     // Set listener orientation based on camera direction
-    const forward = new THREE.Vector3();
-    const up = new THREE.Vector3();
+    // Reuse pre-allocated vectors to avoid GC pressure
+    const { forward, up, temp1, temp2 } = frameVectors.current;
     camera.getWorldDirection(forward);
-    camera.matrixWorld.extractBasis(new THREE.Vector3(), up, new THREE.Vector3());
+    camera.matrixWorld.extractBasis(temp1, up, temp2);
 
     if (listener.forwardX) {
       listener.forwardX.value = forward.x;

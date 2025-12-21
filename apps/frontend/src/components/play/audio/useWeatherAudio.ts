@@ -37,7 +37,9 @@ interface UseWeatherAudioReturn {
  * setWeather('clear');
  */
 export function useWeatherAudio(): UseWeatherAudioReturn {
-  const { ambientVolume, masterVolume } = useSoundStore();
+  // Use individual selectors to prevent re-renders on unrelated store changes
+  const ambientVolume = useSoundStore((s) => s.ambientVolume);
+  const masterVolume = useSoundStore((s) => s.masterVolume);
 
   const currentWeather = useRef<WeatherType>('clear');
   const audioRef = useRef<HTMLAudioElement | null>(null);

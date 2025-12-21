@@ -57,7 +57,9 @@ export function useBiomeAmbience(
   terrainSeed: number = 12345,
   terrainRadius: number = 5
 ): UseBiomeAmbienceReturn {
-  const { ambientVolume, masterVolume } = useSoundStore();
+  // Use individual selectors to prevent re-renders on unrelated store changes
+  const ambientVolume = useSoundStore((s) => s.ambientVolume);
+  const masterVolume = useSoundStore((s) => s.masterVolume);
 
   // Terrain generator for biome lookups
   const terrainGen = useRef<TerrainGenerator | null>(null);
