@@ -5,11 +5,11 @@
  * 2. Tax info collection (W-9/W-8BEN) for 1099 reporting
  */
 
-import { Card, Text, Button, Title } from '@tremor/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentApi } from '../../lib/api';
 import { useState } from 'react';
 import { TaxInfoModal } from './TaxInfoModal';
+import { CreditCard, FileText, CheckCircle, ExternalLink } from 'lucide-react';
 
 interface PriorityActionsCardProps {
   onStartOnboarding?: () => void;
@@ -79,189 +79,187 @@ export function PriorityActionsCard({ onStartOnboarding }: PriorityActionsCardPr
   const stripeComplete = paymentStatus?.onboardingComplete;
   const taxComplete = taxStatus?.taxFormType && taxStatus?.taxInfoStatus === 'verified';
   const taxPending = taxStatus?.taxFormType && taxStatus?.taxInfoStatus === 'pending';
-
-  // Calculate completion status
-  const completedSteps = (stripeComplete ? 1 : 0) + (taxComplete || taxPending ? 1 : 0);
-  const totalSteps = 2;
+  const taxSubmitted = taxComplete || taxPending;
 
   if (isLoading) {
     return (
-      <Card className="bg-white border border-gray-100 shadow-sm ring-0 rounded-2xl animate-pulse">
-        <div className="h-48"></div>
-      </Card>
+      <div className="space-y-3">
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm animate-pulse">
+          <div className="h-16"></div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm animate-pulse">
+          <div className="h-16"></div>
+        </div>
+      </div>
     );
   }
 
-  // State 3: All Complete
-  if (stripeComplete && (taxComplete || taxPending)) {
+  // All complete state
+  if (stripeComplete && taxSubmitted) {
     return (
-      <Card className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 shadow-sm ring-0 rounded-2xl">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-            <svg
-              className="w-6 h-6 text-emerald-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <Title className="text-gray-900 mb-1">Payment Setup Complete</Title>
-            <Text className="text-gray-500 mb-4">
-              You're all set to receive royalty payments!
-            </Text>
-
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 text-emerald-600">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <Text className="text-emerald-600 font-medium">Stripe Connected</Text>
-              </div>
-              <div className="flex items-center gap-2 text-emerald-600">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <Text className="text-emerald-600 font-medium">
-                  Tax Info {taxPending ? 'Submitted' : 'Verified'}
-                  {taxStatus?.taxFormLast4 && ` (***${taxStatus.taxFormLast4})`}
-                </Text>
-              </div>
+      <div className="space-y-3">
+        {/* Stripe Status */}
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+              <CreditCard className="h-5 w-5 text-emerald-600" />
             </div>
+            <div className="flex-1">
+              <p className="text-gray-500 text-xs">Payout Account</p>
+              <p className="text-lg font-semibold text-gray-900">Stripe Connected</p>
+            </div>
+            <span className="text-[10px] uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full border border-emerald-200">
+              Active
+            </span>
+          </div>
+        </div>
 
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => dashboardMutation.mutate()}
-              loading={dashboardMutation.isPending}
-              className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-            >
+        {/* Tax Status */}
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+              <FileText className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-gray-500 text-xs">Tax Information ({taxStatus?.taxFormType})</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {taxStatus?.taxFormLast4 ? `***-**-${taxStatus.taxFormLast4}` : 'Submitted'}
+              </p>
+            </div>
+            <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-full border ${
+              taxComplete
+                ? 'text-emerald-700 bg-emerald-100 border-emerald-200'
+                : 'text-amber-700 bg-amber-100 border-amber-200'
+            }`}>
+              {taxComplete ? 'Verified' : 'Pending'}
+            </span>
+          </div>
+        </div>
+
+        {/* View Dashboard Button */}
+        <button
+          onClick={() => dashboardMutation.mutate()}
+          disabled={dashboardMutation.isPending}
+          className="w-full py-3 px-4 rounded-xl font-semibold text-sm bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+        >
+          {dashboardMutation.isPending ? (
+            'Opening...'
+          ) : (
+            <>
               View Stripe Dashboard
-            </Button>
-          </div>
-        </div>
-      </Card>
+              <ExternalLink className="h-4 w-4" />
+            </>
+          )}
+        </button>
+      </div>
     );
   }
 
-  // State 1: Stripe Not Connected
-  if (!stripeComplete) {
-    return (
-      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 shadow-sm ring-0 rounded-2xl">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-            <svg
-              className="w-6 h-6 text-blue-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-              />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <Title className="text-gray-900 mb-1">Complete Payout Setup</Title>
-            <Text className="text-gray-500 mb-4">
-              Connect your bank account to receive royalty payments.
-            </Text>
-
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 transition-all"
-                  style={{ width: `${(completedSteps / totalSteps) * 100}%` }}
-                />
-              </div>
-              <Text className="text-xs text-gray-500">
-                {completedSteps}/{totalSteps}
-              </Text>
-            </div>
-
-            <Button
-              onClick={handleStartOnboarding}
-              loading={onboardingMutation.isPending || isRedirecting}
-              className="bg-blue-600 hover:bg-blue-700 text-white border-0"
-            >
-              {hasStripeAccount ? 'Continue Setup' : 'Connect Stripe Account'}
-            </Button>
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
-  // State 2: Stripe Connected, No Tax Info
   return (
     <>
-      <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 shadow-sm ring-0 rounded-2xl">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-            <svg
-              className="w-6 h-6 text-amber-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <Title className="text-gray-900 mb-1">Submit Tax Information</Title>
-            <Text className="text-gray-500 mb-4">
-              Required for 1099 reporting. Takes about 2 minutes.
-            </Text>
-
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 text-emerald-600">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <Text className="text-emerald-600 font-medium">Stripe Connected</Text>
-              </div>
-              <div className="flex items-center gap-2 text-gray-500">
-                <div className="w-4 h-4 rounded-full border-2 border-amber-500" />
-                <Text className="text-gray-500">Tax Form (W-9/W-8BEN)</Text>
-              </div>
+      <div className="space-y-3">
+        {/* Stripe Status Card */}
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              stripeComplete ? 'bg-emerald-100' : 'bg-blue-100'
+            }`}>
+              {stripeComplete ? (
+                <CheckCircle className="h-5 w-5 text-emerald-600" />
+              ) : (
+                <CreditCard className="h-5 w-5 text-blue-600" />
+              )}
             </div>
-
-            <Button
-              onClick={() => setShowTaxModal(true)}
-              className="bg-amber-600 hover:bg-amber-700 text-white border-0"
-            >
-              Submit Tax Info
-            </Button>
+            <div className="flex-1">
+              <p className="text-gray-500 text-xs">Payout Account</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {stripeComplete ? 'Stripe Connected' : 'Connect Stripe'}
+              </p>
+            </div>
+            {stripeComplete ? (
+              <span className="text-[10px] uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full border border-emerald-200">
+                Complete
+              </span>
+            ) : (
+              <span className="text-[10px] uppercase tracking-wider text-blue-700 bg-blue-100 px-2 py-1 rounded-full border border-blue-200">
+                Required
+              </span>
+            )}
           </div>
         </div>
-      </Card>
+
+        {/* Tax Status Card */}
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              taxSubmitted ? 'bg-emerald-100' : stripeComplete ? 'bg-amber-100' : 'bg-gray-100'
+            }`}>
+              {taxSubmitted ? (
+                <CheckCircle className="h-5 w-5 text-emerald-600" />
+              ) : (
+                <FileText className={`h-5 w-5 ${stripeComplete ? 'text-amber-600' : 'text-gray-400'}`} />
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-gray-500 text-xs">Tax Form (W-9/W-8BEN)</p>
+              <p className={`text-lg font-semibold ${stripeComplete ? 'text-gray-900' : 'text-gray-400'}`}>
+                {taxSubmitted ? 'Tax Info Submitted' : 'Submit Tax Info'}
+              </p>
+            </div>
+            {taxSubmitted ? (
+              <span className="text-[10px] uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full border border-emerald-200">
+                Complete
+              </span>
+            ) : stripeComplete ? (
+              <span className="text-[10px] uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-1 rounded-full border border-amber-200">
+                Required
+              </span>
+            ) : (
+              <span className="text-[10px] uppercase tracking-wider text-gray-500 bg-gray-100 px-2 py-1 rounded-full border border-gray-200">
+                Step 2
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Action Button */}
+        {!stripeComplete ? (
+          <button
+            onClick={handleStartOnboarding}
+            disabled={onboardingMutation.isPending || isRedirecting}
+            className={`w-full py-3.5 px-4 rounded-xl font-semibold transition-all text-sm ${
+              onboardingMutation.isPending || isRedirecting
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5'
+            }`}
+          >
+            {onboardingMutation.isPending || isRedirecting
+              ? 'Redirecting to Stripe...'
+              : hasStripeAccount
+              ? 'Continue Stripe Setup'
+              : 'Connect Stripe Account'}
+          </button>
+        ) : !taxSubmitted ? (
+          <button
+            onClick={() => setShowTaxModal(true)}
+            className="w-full py-3.5 px-4 rounded-xl font-semibold transition-all text-sm bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5"
+          >
+            Submit Tax Information
+          </button>
+        ) : null}
+
+        {/* Helper Text */}
+        {!stripeComplete && (
+          <p className="text-xs text-center text-gray-500">
+            Connect your bank account to receive royalty payments
+          </p>
+        )}
+        {stripeComplete && !taxSubmitted && (
+          <p className="text-xs text-center text-gray-500">
+            Required for 1099 reporting • Takes about 2 minutes
+          </p>
+        )}
+      </div>
 
       <TaxInfoModal
         isOpen={showTaxModal}
