@@ -7,6 +7,11 @@ interface WalletBalance {
   pendingBalance: number;
   lifetimeEarnings: number;
   minimumWithdrawalAmount?: number;
+  // Eligibility info from API
+  canWithdraw?: boolean;
+  requiresStripeSetup?: boolean;
+  requiresTaxInfo?: boolean;
+  hasSufficientBalance?: boolean;
 }
 
 interface WalletCardProps {
@@ -31,7 +36,30 @@ export const WalletCard: React.FC<WalletCardProps> = ({
   };
 
   const minimumAmount = balance.minimumWithdrawalAmount || 50;
-  const canWithdraw = balance.availableBalance >= minimumAmount;
+
+  // Use API-provided eligibility if available, otherwise fallback to balance check
+  const canWithdraw = balance.canWithdraw !== undefined
+    ? balance.canWithdraw
+    : balance.availableBalance >= minimumAmount;
+
+  // Determine the specific reason why withdrawal is blocked
+  const getWithdrawBlockReason = (): string | null => {
+    if (balance.requiresStripeSetup) {
+      return 'Complete Stripe setup first';
+    }
+    if (balance.requiresTaxInfo) {
+      return 'Submit tax info first';
+    }
+    if (balance.availableBalance <= 0) {
+      return 'No Balance Available';
+    }
+    if (balance.availableBalance < minimumAmount) {
+      return `Minimum ${formatCurrency(minimumAmount)} Required`;
+    }
+    return null;
+  };
+
+  const blockReason = getWithdrawBlockReason();
 
   return (
     <div className="space-y-4">
@@ -176,14 +204,25 @@ export const WalletCard: React.FC<WalletCardProps> = ({
               : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
           }`}
         >
-          {canWithdraw
-            ? 'Request Withdrawal'
-            : balance.availableBalance > 0
-            ? `Minimum ${formatCurrency(minimumAmount)} Required`
-            : 'No Balance Available'}
+          {canWithdraw ? 'Request Withdrawal' : blockReason}
         </button>
 
-        {!canWithdraw && balance.availableBalance > 0 && (
+        {/* Helper text based on block reason */}
+        {!canWithdraw && balance.requiresStripeSetup && (
+          <p className="text-xs text-center text-amber-600 flex items-center justify-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            Connect your Stripe account to receive payments
+          </p>
+        )}
+
+        {!canWithdraw && !balance.requiresStripeSetup && balance.requiresTaxInfo && (
+          <p className="text-xs text-center text-amber-600 flex items-center justify-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            Tax information required for 1099 reporting
+          </p>
+        )}
+
+        {!canWithdraw && !balance.requiresStripeSetup && !balance.requiresTaxInfo && balance.availableBalance > 0 && balance.availableBalance < minimumAmount && (
           <p className="text-xs text-center text-amber-600 flex items-center justify-center gap-1">
             <AlertCircle className="h-3 w-3" />
             Need {formatCurrency(minimumAmount - balance.availableBalance)} more to withdraw

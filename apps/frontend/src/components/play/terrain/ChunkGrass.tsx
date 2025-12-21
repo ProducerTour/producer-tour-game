@@ -4,7 +4,7 @@
  * When chunk unloads, its grass unloads with it
  */
 
-import { useRef, useMemo, useLayoutEffect } from 'react';
+import React, { useRef, useMemo, useLayoutEffect } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
@@ -130,7 +130,7 @@ type GLTFResult = GLTF & {
   materials: Record<string, THREE.Material>;
 };
 
-export function ChunkGrass({
+export const ChunkGrass = React.memo(function ChunkGrass({
   chunkX,
   chunkZ,
   seed,
@@ -336,6 +336,6 @@ export function ChunkGrass({
       frustumCulled={true}
     />
   );
-}
+});
 
 export default ChunkGrass;

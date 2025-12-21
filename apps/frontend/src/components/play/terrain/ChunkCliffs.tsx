@@ -13,7 +13,7 @@
  * Uses the new TerrainGenerator for consistent height/slope sampling.
  */
 
-import { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
 import type { GLTF } from 'three-stdlib';
@@ -129,7 +129,7 @@ const MAX_INSTANCES_PER_CHUNK = 200;
 // COMPONENT
 // =============================================================================
 
-export function ChunkCliffs({
+export const ChunkCliffs = React.memo(function ChunkCliffs({
   chunkX,
   chunkZ,
   seed,
@@ -438,14 +438,14 @@ export function ChunkCliffs({
       ref={instancedMeshRef}
       args={[geometry, material, Math.min(maxInstances, MAX_INSTANCES_PER_CHUNK)]}
       frustumCulled={true}
-      castShadow
-      receiveShadow
+      castShadow={false}
+      receiveShadow={false}
       name={`chunk-cliffs-${chunkX}-${chunkZ}`}
     />
   );
-}
+});
 
-ChunkCliffs.preload = () => {
+(ChunkCliffs as any).preload = () => {
   useGLTF.preload(CLIFF_MODEL_PATH);
 };
 

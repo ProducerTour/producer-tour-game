@@ -4,7 +4,7 @@
  * Places rocks in sand biomes (small pebbles) and grass biomes (larger boulders)
  */
 
-import { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
 import { RigidBody, CylinderCollider } from '@react-three/rapier';
@@ -16,7 +16,7 @@ import {
   WATER_LEVEL,
 } from '../../../lib/terrain';
 
-const DEBUG_ROCKS = true; // ENABLED for debugging
+const DEBUG_ROCKS = false; // DISABLED for performance
 
 export interface ChunkRocksProps {
   chunkX: number;
@@ -55,7 +55,7 @@ type GLTFResult = GLTF & {
   scene: THREE.Group;
 };
 
-export function ChunkRocks({
+export const ChunkRocks = React.memo(function ChunkRocks({
   chunkX,
   chunkZ,
   seed,
@@ -283,7 +283,8 @@ export function ChunkRocks({
   }, [placements]);
 
   // Separate boulders for physics (visual handled by InstancedMesh)
-  const BOULDER_THRESHOLD = 0.06;
+  // Higher threshold = fewer physics bodies = better FPS
+  const BOULDER_THRESHOLD = 0.15;
   const boulders = useMemo(() =>
     placements.filter(p => p.scale.x >= BOULDER_THRESHOLD),
     [placements]
@@ -301,8 +302,8 @@ export function ChunkRocks({
         ref={instancedMeshRef}
         args={[geometry, material, Math.min(placements.length, 100)]}
         frustumCulled={true}
-        castShadow
-        receiveShadow
+        castShadow={false}
+        receiveShadow={false}
       />
 
       {/* Physics colliders only for large boulders (invisible) */}
@@ -324,9 +325,9 @@ export function ChunkRocks({
       })}
     </group>
   );
-}
+});
 
-ChunkRocks.preload = () => {
+(ChunkRocks as any).preload = () => {
   useGLTF.preload('/models/Rocks/rock_1.glb');
 };
 

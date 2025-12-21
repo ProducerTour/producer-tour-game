@@ -5,7 +5,7 @@
  * Uses Clone for proper material/texture preservation
  */
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
 import { RigidBody, CylinderCollider } from '@react-three/rapier';
@@ -19,7 +19,7 @@ import {
 } from '../../../lib/terrain';
 
 // Debug logging
-const DEBUG_TREES = true; // ENABLED for debugging
+const DEBUG_TREES = false; // DISABLED for performance
 
 export interface ChunkTreesProps {
   /** Chunk X coordinate (grid index, not world position) */
@@ -74,7 +74,7 @@ type GLTFResult = GLTF & {
   scene: THREE.Group;
 };
 
-export function ChunkTrees({
+export const ChunkTrees = React.memo(function ChunkTrees({
   chunkX,
   chunkZ,
   seed,
@@ -370,10 +370,10 @@ export function ChunkTrees({
       })}
     </group>
   );
-}
+});
 
 // Preload the tree model
-ChunkTrees.preload = () => {
+(ChunkTrees as any).preload = () => {
   useGLTF.preload('/models/Foliage/Trees/oak_trees.glb');
 };
 

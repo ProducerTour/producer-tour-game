@@ -168,9 +168,9 @@ export const DEFAULT_WORLD_CONFIG: WorldConfig = {
   rockSizeMultiplier: 1.0,
   rockSizeVariation: 0.4,
 
-  // Cliffs - Density (user-tuned settings)
+  // Cliffs - Density (user-tuned settings, reduced for FPS)
   cliffsEnabled: true,
-  cliffGridDensity: 10,
+  cliffGridDensity: 4,
   cliffMinSpacing: 6,
   cliffRockWeightThreshold: 0.25,
   cliffMinElevation: 18,

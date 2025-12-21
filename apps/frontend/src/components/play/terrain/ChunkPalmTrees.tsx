@@ -4,7 +4,7 @@
  * Places palm trees in sand biomes (beaches, desert edges)
  */
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
 import { SkeletonUtils } from 'three-stdlib';
@@ -17,7 +17,7 @@ import {
   WORLD_PLAY_RADIUS,
 } from '../../../lib/terrain';
 
-const DEBUG_PALM_TREES = true; // ENABLED for debugging
+const DEBUG_PALM_TREES = false; // DISABLED for performance
 
 export interface ChunkPalmTreesProps {
   chunkX: number;
@@ -51,7 +51,7 @@ type GLTFResult = GLTF & {
   scene: THREE.Group;
 };
 
-export function ChunkPalmTrees({
+export const ChunkPalmTrees = React.memo(function ChunkPalmTrees({
   chunkX,
   chunkZ,
   seed,
@@ -269,9 +269,9 @@ export function ChunkPalmTrees({
       ))}
     </group>
   );
-}
+});
 
-ChunkPalmTrees.preload = () => {
+(ChunkPalmTrees as any).preload = () => {
   useGLTF.preload('/models/Foliage/Trees/palm_tree.glb');
 };
 

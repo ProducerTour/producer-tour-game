@@ -8,7 +8,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 // Debug logging - set to true to debug terrain issues
-const DEBUG_TERRAIN = true;
+const DEBUG_TERRAIN = false;
 
 import {
   ChunkManager,

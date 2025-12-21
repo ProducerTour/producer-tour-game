@@ -18,7 +18,7 @@ const approvePayoutSchema = z.object({
 
 /**
  * GET /api/payouts/balance
- * Get current user's wallet balance
+ * Get current user's wallet balance and withdrawal eligibility
  */
 router.get('/balance', authenticate, async (req: AuthRequest, res: Response) => {
   try {
@@ -38,6 +38,10 @@ router.get('/balance', authenticate, async (req: AuthRequest, res: Response) => 
         availableBalance: true,
         pendingBalance: true,
         lifetimeEarnings: true,
+        stripeAccountId: true,
+        stripeOnboardingComplete: true,
+        taxFormType: true,
+        taxInfoStatus: true,
       },
     });
 
@@ -45,11 +49,27 @@ router.get('/balance', authenticate, async (req: AuthRequest, res: Response) => 
       return res.status(404).json({ error: 'User not found' });
     }
 
+    const availableBalance = Number(user.availableBalance);
+    const minimumAmount = Number(settings.minimumWithdrawalAmount);
+
+    // Eligibility checks
+    const hasStripeSetup = !!user.stripeAccountId && user.stripeOnboardingComplete;
+    const hasTaxInfo = !!user.taxFormType && ['verified', 'pending'].includes(user.taxInfoStatus || '');
+    const hasSufficientBalance = availableBalance >= minimumAmount;
+
+    // Can only withdraw if ALL requirements are met
+    const canWithdraw = hasStripeSetup && hasTaxInfo && hasSufficientBalance;
+
     res.json({
-      availableBalance: Number(user.availableBalance),
+      availableBalance,
       pendingBalance: Number(user.pendingBalance),
       lifetimeEarnings: Number(user.lifetimeEarnings),
-      minimumWithdrawalAmount: Number(settings.minimumWithdrawalAmount),
+      minimumWithdrawalAmount: minimumAmount,
+      // Eligibility info
+      canWithdraw,
+      requiresStripeSetup: !hasStripeSetup,
+      requiresTaxInfo: !hasTaxInfo,
+      hasSufficientBalance,
     });
   } catch (error) {
     console.error('Get balance error:', error);
@@ -84,12 +104,14 @@ router.post('/request', authenticate, async (req: AuthRequest, res: Response) =>
       });
     }
 
-    // Get user with Stripe account info (pre-check before transaction)
+    // Get user with Stripe account and tax info (pre-check before transaction)
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         stripeAccountId: true,
         stripeOnboardingComplete: true,
+        taxFormType: true,
+        taxInfoStatus: true,
       },
     });
 
@@ -100,8 +122,17 @@ router.post('/request', authenticate, async (req: AuthRequest, res: Response) =>
     // Check if user has Stripe account connected
     if (!user.stripeAccountId || !user.stripeOnboardingComplete) {
       return res.status(400).json({
-        error: 'Please connect your payment account before requesting a payout',
+        error: 'Please connect your Stripe account before requesting a payout',
         requiresStripeSetup: true,
+      });
+    }
+
+    // Check if user has submitted tax information
+    const hasTaxInfo = !!user.taxFormType && ['verified', 'pending'].includes(user.taxInfoStatus || '');
+    if (!hasTaxInfo) {
+      return res.status(400).json({
+        error: 'Please submit your tax information (W-9/W-8BEN) before requesting a payout',
+        requiresTaxInfo: true,
       });
     }
 
