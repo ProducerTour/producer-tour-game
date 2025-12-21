@@ -71,6 +71,16 @@ enum ApplicationTier {
   PRIORITY_D
 }
 
+enum AgreementStatus {
+  PENDING    // Created but not sent
+  SENT       // Email sent to recipient
+  VIEWED     // Recipient opened the document
+  SIGNED     // Recipient signed
+  COMPLETED  // All parties signed, document finalized
+  CANCELLED  // Agreement cancelled
+  EXPIRED    // Signing link expired
+}
+
 enum OpportunityStatus {
   OPEN
   ON_HOLD
@@ -278,6 +288,9 @@ model User {
   notifications            Notification[]     @relation("NotificationRecipient")
   notificationsSent        Notification[]     @relation("NotificationActor")
 
+  // E-signature agreements
+  agreements               Agreement[]
+
   @@map("users")
 }
 
@@ -467,6 +480,7 @@ model Application {
 
   // Relations
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  agreements Agreement[]
 
   @@index([email])
   @@index([status])
@@ -2902,4 +2916,65 @@ model CorporateUserProgress {
 
   @@index([userId])
   @@map("corporate_user_progress")
+}
+
+// ============================================
+// Firma E-Signature Integration
+// ============================================
+
+model AgreementTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  firmaTemplateId String   @unique  // Firma's template UUID
+  firmaWorkspaceId String? // Firma workspace ID
+  status          String   @default("draft")  // draft, active, archived
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  agreements      Agreement[]
+
+  @@index([status])
+  @@map("agreement_templates")
+}
+
+model Agreement {
+  id                    String          @id @default(cuid())
+  templateId            String
+  applicationId         String?
+  userId                String?
+
+  // Recipient info (denormalized for record-keeping)
+  recipientName         String
+  recipientEmail        String
+
+  // Firma references
+  firmaSigningRequestId String          @unique
+  firmaSigningUrl       String?
+
+  // Status tracking
+  status                AgreementStatus @default(PENDING)
+  sentAt                DateTime?
+  viewedAt              DateTime?
+  signedAt              DateTime?
+  completedAt           DateTime?
+
+  // Signed document
+  signedDocumentUrl     String?
+
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  // Relations
+  template              AgreementTemplate @relation(fields: [templateId], references: [id])
+  application           Application?      @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  user                  User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([templateId])
+  @@index([applicationId])
+  @@index([userId])
+  @@index([status])
+  @@index([firmaSigningRequestId])
+  @@map("agreements")
 }

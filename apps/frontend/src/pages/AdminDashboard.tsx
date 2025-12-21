@@ -3,10 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { dashboardApi, statementApi, userApi, authApi, applicationApi } from '../lib/api';
+import { dashboardApi, statementApi, userApi, authApi, applicationApi, agreementApi } from '../lib/api';
 import type { WriterAssignmentsPayload } from '../lib/api';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Users, BarChart3, CheckCircle2, Music, DollarSign, FileText, TrendingUp, Sparkles, Loader2, AlertTriangle, X, Brain, Maximize2, Minimize2, MoreVertical, Eye, Pencil, Trash2, ClipboardList, Mail, Phone, Clock, CheckCircle, XCircle, MessageSquare, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Users, BarChart3, CheckCircle2, Music, DollarSign, FileText, TrendingUp, Sparkles, Loader2, AlertTriangle, X, Brain, Maximize2, Minimize2, MoreVertical, Eye, Pencil, Trash2, ClipboardList, Mail, Phone, Clock, CheckCircle, XCircle, MessageSquare, ChevronDown, ChevronUp, ExternalLink, FileSignature, Upload, Send, Download } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { DashboardHeader } from '../components/DashboardHeader';
 import ToolsHub from '../components/ToolsHub';
@@ -1521,7 +1521,7 @@ function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
 }
 
 function UsersTab() {
-  const [activeSubTab, setActiveSubTab] = useState<'users' | 'applications'>('users');
+  const [activeSubTab, setActiveSubTab] = useState<'users' | 'applications' | 'agreements'>('users');
 
   return (
     <div className="space-y-6">
@@ -1559,12 +1559,27 @@ function UsersTab() {
             Applications
           </span>
         </button>
+        <button
+          onClick={() => setActiveSubTab('agreements')}
+          className={`px-4 py-2 text-sm font-medium transition-all ${
+            activeSubTab === 'agreements'
+              ? 'bg-theme-card text-theme-foreground shadow-sm border border-theme-border'
+              : 'text-theme-foreground-muted hover:text-theme-foreground'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <FileSignature className="w-4 h-4" />
+            Agreements
+          </span>
+        </button>
       </div>
 
       {activeSubTab === 'users' ? (
         <UsersListSection />
-      ) : (
+      ) : activeSubTab === 'applications' ? (
         <ApplicationsSection />
+      ) : (
+        <AgreementsSection />
       )}
     </div>
   );
@@ -1947,6 +1962,485 @@ function ApplicationsSection() {
           <ClipboardList className="w-12 h-12 mb-3 text-theme-primary/30" />
           <p className="text-lg">No applications found</p>
           <p className="text-sm">Applications will appear here when submitted</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Agreements Section - E-signature management via Firma
+function AgreementsSection() {
+  const queryClient = useQueryClient();
+  const [activeView, setActiveView] = useState<'templates' | 'agreements'>('templates');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [uploadForm, setUploadForm] = useState({ name: '', description: '', file: null as File | null });
+  const [sendForm, setSendForm] = useState({ templateId: '', recipientName: '', recipientEmail: '' });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch templates
+  const { data: templatesData, isLoading: templatesLoading } = useQuery({
+    queryKey: ['agreement-templates'],
+    queryFn: async () => {
+      const response = await agreementApi.listTemplates();
+      return response.data;
+    },
+  });
+
+  // Fetch agreements
+  const { data: agreementsData, isLoading: agreementsLoading } = useQuery({
+    queryKey: ['agreements'],
+    queryFn: async () => {
+      const response = await agreementApi.list();
+      return response.data;
+    },
+  });
+
+  // Create template mutation
+  const createTemplateMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await agreementApi.createTemplate(formData);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreement-templates'] });
+      setShowUploadModal(false);
+      setUploadForm({ name: '', description: '', file: null });
+      toast.success('Template created successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to create template');
+    },
+  });
+
+  // Send agreement mutation
+  const sendAgreementMutation = useMutation({
+    mutationFn: async (data: { templateId: string; recipientName: string; recipientEmail: string }) => {
+      const response = await agreementApi.create(data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      setShowSendModal(false);
+      setSendForm({ templateId: '', recipientName: '', recipientEmail: '' });
+      toast.success('Agreement sent successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to send agreement');
+    },
+  });
+
+  // Delete template mutation
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (id: string) => agreementApi.deleteTemplate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreement-templates'] });
+      toast.success('Template archived');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to archive template');
+    },
+  });
+
+  // Cancel agreement mutation
+  const cancelAgreementMutation = useMutation({
+    mutationFn: (id: string) => agreementApi.cancel(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      toast.success('Agreement cancelled');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to cancel agreement');
+    },
+  });
+
+  // Resend agreement mutation
+  const resendAgreementMutation = useMutation({
+    mutationFn: (id: string) => agreementApi.send(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      toast.success('Agreement resent');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to resend agreement');
+    },
+  });
+
+  const handleUploadTemplate = () => {
+    if (!uploadForm.name || !uploadForm.file) {
+      toast.error('Name and PDF file are required');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('name', uploadForm.name);
+    formData.append('description', uploadForm.description);
+    formData.append('pdf', uploadForm.file);
+    createTemplateMutation.mutate(formData);
+  };
+
+  const handleSendAgreement = () => {
+    if (!sendForm.templateId || !sendForm.recipientName || !sendForm.recipientEmail) {
+      toast.error('All fields are required');
+      return;
+    }
+    sendAgreementMutation.mutate(sendForm);
+  };
+
+  const handleDownload = async (agreementId: string) => {
+    try {
+      const response = await agreementApi.download(agreementId);
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'signed-agreement.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to download agreement');
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusStyles: Record<string, string> = {
+      PENDING: 'bg-gray-100 text-gray-700',
+      SENT: 'bg-blue-100 text-blue-700',
+      VIEWED: 'bg-yellow-100 text-yellow-700',
+      SIGNED: 'bg-green-100 text-green-700',
+      COMPLETED: 'bg-emerald-100 text-emerald-700',
+      CANCELLED: 'bg-red-100 text-red-700',
+      EXPIRED: 'bg-orange-100 text-orange-700',
+    };
+    return (
+      <span className={`px-2 py-1 text-xs font-medium rounded ${statusStyles[status] || 'bg-gray-100 text-gray-700'}`}>
+        {status}
+      </span>
+    );
+  };
+
+  const templates = templatesData || [];
+  const agreements = agreementsData?.agreements || [];
+
+  return (
+    <div className="space-y-6">
+      {/* Sub-navigation */}
+      <div className="flex gap-4 border-b border-theme-border pb-4">
+        <button
+          onClick={() => setActiveView('templates')}
+          className={`px-4 py-2 text-sm font-medium transition-all ${
+            activeView === 'templates'
+              ? 'text-theme-primary border-b-2 border-theme-primary'
+              : 'text-theme-foreground-muted hover:text-theme-foreground'
+          }`}
+        >
+          Templates
+        </button>
+        <button
+          onClick={() => setActiveView('agreements')}
+          className={`px-4 py-2 text-sm font-medium transition-all ${
+            activeView === 'agreements'
+              ? 'text-theme-primary border-b-2 border-theme-primary'
+              : 'text-theme-foreground-muted hover:text-theme-foreground'
+          }`}
+        >
+          Sent Agreements
+        </button>
+      </div>
+
+      {activeView === 'templates' ? (
+        <div className="space-y-4">
+          {/* Header with Upload Button */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-theme-foreground">Agreement Templates</h3>
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              Upload Template
+            </button>
+          </div>
+
+          {/* Templates List */}
+          {templatesLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-theme-primary" />
+            </div>
+          ) : templates.length > 0 ? (
+            <div className="grid gap-4">
+              {templates.map((template: any) => (
+                <div
+                  key={template.id}
+                  className="p-4 bg-theme-card border border-theme-border hover:border-theme-border-strong transition-colors"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium text-theme-foreground">{template.name}</h4>
+                      {template.description && (
+                        <p className="text-sm text-theme-foreground-muted mt-1">{template.description}</p>
+                      )}
+                      <p className="text-xs text-theme-foreground-muted mt-2">
+                        Created: {new Date(template.createdAt).toLocaleDateString()}
+                        {template._count?.agreements > 0 && ` • ${template._count.agreements} agreements sent`}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedTemplate(template);
+                          setSendForm({ ...sendForm, templateId: template.id });
+                          setShowSendModal(true);
+                        }}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover transition-colors"
+                      >
+                        <Send className="w-3 h-3" />
+                        Send
+                      </button>
+                      <button
+                        onClick={() => deleteTemplateMutation.mutate(template.id)}
+                        className="p-1.5 text-red-500 hover:bg-red-50 transition-colors"
+                        title="Archive template"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-theme-foreground-muted">
+              <FileSignature className="w-12 h-12 mb-3 text-theme-primary/30" />
+              <p className="text-lg">No templates yet</p>
+              <p className="text-sm">Upload a PDF to create your first agreement template</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Agreements List */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-theme-foreground">Sent Agreements</h3>
+            <button
+              onClick={() => setShowSendModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover transition-colors"
+            >
+              <Send className="w-4 h-4" />
+              Send New Agreement
+            </button>
+          </div>
+
+          {agreementsLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-theme-primary" />
+            </div>
+          ) : agreements.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-theme-border">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-theme-foreground-muted">Recipient</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-theme-foreground-muted">Template</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-theme-foreground-muted">Status</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-theme-foreground-muted">Sent</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-theme-foreground-muted">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agreements.map((agreement: any) => (
+                    <tr key={agreement.id} className="border-b border-theme-border hover:bg-theme-background-50">
+                      <td className="py-3 px-4">
+                        <div>
+                          <p className="font-medium text-theme-foreground">{agreement.recipientName}</p>
+                          <p className="text-sm text-theme-foreground-muted">{agreement.recipientEmail}</p>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-theme-foreground">{agreement.template?.name || 'Unknown'}</td>
+                      <td className="py-3 px-4">{getStatusBadge(agreement.status)}</td>
+                      <td className="py-3 px-4 text-sm text-theme-foreground-muted">
+                        {agreement.sentAt ? new Date(agreement.sentAt).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex justify-end gap-2">
+                          {(agreement.status === 'COMPLETED' || agreement.status === 'SIGNED') && (
+                            <button
+                              onClick={() => handleDownload(agreement.id)}
+                              className="p-1.5 text-theme-primary hover:bg-theme-primary/10 transition-colors"
+                              title="Download signed document"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          )}
+                          {(agreement.status === 'PENDING' || agreement.status === 'SENT') && (
+                            <>
+                              <button
+                                onClick={() => resendAgreementMutation.mutate(agreement.id)}
+                                className="p-1.5 text-blue-500 hover:bg-blue-50 transition-colors"
+                                title="Resend"
+                              >
+                                <Send className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => cancelAgreementMutation.mutate(agreement.id)}
+                                className="p-1.5 text-red-500 hover:bg-red-50 transition-colors"
+                                title="Cancel"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-theme-foreground-muted">
+              <FileSignature className="w-12 h-12 mb-3 text-theme-primary/30" />
+              <p className="text-lg">No agreements sent</p>
+              <p className="text-sm">Send your first agreement to get started</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Upload Template Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-theme-card border border-theme-border p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-theme-foreground mb-4">Upload Agreement Template</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-foreground-secondary mb-1">
+                  Template Name *
+                </label>
+                <input
+                  type="text"
+                  value={uploadForm.name}
+                  onChange={(e) => setUploadForm({ ...uploadForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
+                  placeholder="e.g., Publishing Admin Agreement"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-theme-foreground-secondary mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={uploadForm.description}
+                  onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus resize-none"
+                  rows={2}
+                  placeholder="Optional description..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-theme-foreground-secondary mb-1">
+                  PDF File *
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setUploadForm({ ...uploadForm, file: e.target.files?.[0] || null })}
+                  className="w-full text-sm text-theme-foreground file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-medium file:bg-theme-primary file:text-theme-primary-foreground hover:file:bg-theme-primary-hover"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleUploadTemplate}
+                disabled={createTemplateMutation.isPending}
+                className="flex-1 px-4 py-2 bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover disabled:opacity-50 transition-colors"
+              >
+                {createTemplateMutation.isPending ? 'Uploading...' : 'Upload Template'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setUploadForm({ name: '', description: '', file: null });
+                }}
+                className="px-4 py-2 border border-theme-border text-theme-foreground hover:bg-theme-background-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Agreement Modal */}
+      {showSendModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-theme-card border border-theme-border p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-theme-foreground mb-4">Send Agreement</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-foreground-secondary mb-1">
+                  Template *
+                </label>
+                <select
+                  value={sendForm.templateId}
+                  onChange={(e) => setSendForm({ ...sendForm, templateId: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
+                >
+                  <option value="">Select a template...</option>
+                  {templates.map((template: any) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-theme-foreground-secondary mb-1">
+                  Recipient Name *
+                </label>
+                <input
+                  type="text"
+                  value={sendForm.recipientName}
+                  onChange={(e) => setSendForm({ ...sendForm, recipientName: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
+                  placeholder="Full name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-theme-foreground-secondary mb-1">
+                  Recipient Email *
+                </label>
+                <input
+                  type="email"
+                  value={sendForm.recipientEmail}
+                  onChange={(e) => setSendForm({ ...sendForm, recipientEmail: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
+                  placeholder="email@example.com"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleSendAgreement}
+                disabled={sendAgreementMutation.isPending}
+                className="flex-1 px-4 py-2 bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover disabled:opacity-50 transition-colors"
+              >
+                {sendAgreementMutation.isPending ? 'Sending...' : 'Send Agreement'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowSendModal(false);
+                  setSendForm({ templateId: '', recipientName: '', recipientEmail: '' });
+                }}
+                className="px-4 py-2 border border-theme-border text-theme-foreground hover:bg-theme-background-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

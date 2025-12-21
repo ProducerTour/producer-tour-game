@@ -88,6 +88,7 @@ router.post('/login', async (req: Request, res: Response) => {
         profileSlug: user.profileSlug,
         writerIpiNumber: user.producer?.writerIpiNumber,
         publisherIpiNumber: user.producer?.publisherIpiNumber,
+        publisherName: user.publisherName,
         producer: user.producer,
       },
     });

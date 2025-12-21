@@ -913,6 +913,18 @@ export default function SettingsPage() {
                       </div>
                     )}
 
+                    {/* Publisher Legal Name - for ALL roles when set */}
+                    {user?.publisherName && (
+                      <div>
+                        <label className="block text-sm font-medium text-theme-foreground-secondary mb-2">
+                          Publisher Legal Name
+                        </label>
+                        <div className="w-full px-4 py-2 bg-theme-card-hover border border-theme-border text-theme-foreground">
+                          {user.publisherName}
+                        </div>
+                      </div>
+                    )}
+
                     {user?.role !== 'ADMIN' && (
                       <div className="bg-theme-primary-10 border border-theme-primary-30 p-4">
                         <div className="flex gap-3">

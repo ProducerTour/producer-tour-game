@@ -1664,6 +1664,18 @@ function ProfileSection() {
                 )}
               </div>
             )}
+
+            {/* Publisher Legal Name - for ALL roles when set */}
+            {user?.publisherName && (
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                  Publisher Legal Name
+                </label>
+                <div className="px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900">
+                  {user.publisherName}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}

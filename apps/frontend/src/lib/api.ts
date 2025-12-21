@@ -277,6 +277,56 @@ export const applicationApi = {
     api.put(`/applications/${id}`, data),
 };
 
+// Agreement/E-Signature API (Firma integration)
+export const agreementApi = {
+  // Templates
+  listTemplates: () =>
+    api.get('/agreements/templates'),
+
+  createTemplate: (formData: FormData) =>
+    api.post('/agreements/templates', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  getTemplate: (id: string) =>
+    api.get(`/agreements/templates/${id}`),
+
+  updateTemplate: (id: string, data: { name?: string; description?: string; status?: string }) =>
+    api.put(`/agreements/templates/${id}`, data),
+
+  deleteTemplate: (id: string) =>
+    api.delete(`/agreements/templates/${id}`),
+
+  getTemplateEditorToken: (id: string) =>
+    api.post(`/agreements/templates/${id}/editor-token`),
+
+  // Agreements
+  list: (params?: { status?: string; templateId?: string; applicationId?: string; limit?: number; offset?: number }) =>
+    api.get('/agreements', { params }),
+
+  create: (data: {
+    templateId: string;
+    recipientName: string;
+    recipientEmail: string;
+    applicationId?: string;
+    userId?: string;
+    sendImmediately?: boolean;
+  }) =>
+    api.post('/agreements', data),
+
+  get: (id: string) =>
+    api.get(`/agreements/${id}`),
+
+  send: (id: string) =>
+    api.post(`/agreements/${id}/send`),
+
+  cancel: (id: string) =>
+    api.post(`/agreements/${id}/cancel`),
+
+  download: (id: string) =>
+    api.get(`/agreements/${id}/download`, { responseType: 'blob' }),
+};
+
 export const toolsApi = {
   publishingSimulator: (data: any) =>
     api.post('/tools/publishing-simulator', data),

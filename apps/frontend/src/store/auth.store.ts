@@ -9,6 +9,7 @@ interface User {
   lastName?: string;
   writerIpiNumber?: string;
   publisherIpiNumber?: string;
+  publisherName?: string;
   canUploadStatements?: boolean;
   profileSlug?: string;
   producer?: any;
