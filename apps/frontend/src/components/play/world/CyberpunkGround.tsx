@@ -2,17 +2,31 @@ import { useMemo, useEffect } from 'react';
 import { Grid, useTexture } from '@react-three/drei';
 import { useControls, folder } from 'leva';
 import * as THREE from 'three';
-import { getTexturePath } from '../../../config/assetPaths';
+
+// Assets URL - load from CDN in production, local in development
+const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || '';
+
+// Check if textures should load from local public/textures/ folder
+// Set VITE_TEXTURES_LOCAL=true in .env to test local texture files
+const TEXTURES_LOCAL = import.meta.env.VITE_TEXTURES_LOCAL === 'true';
+
+// Helper to get texture path with dev/prod switching
+function getLocalTexturePath(path: string): string {
+  // Use local path if VITE_TEXTURES_LOCAL=true, otherwise use CDN if available
+  if (TEXTURES_LOCAL) {
+    return `/textures/${path}`;
+  }
+  return ASSETS_URL ? `${ASSETS_URL}/textures/${path}` : `/textures/${path}`;
+}
 
 // PBR texture sets - supports ambientCG naming convention
 // Expected naming: {name}_Color.png, {name}_NormalGL.png, {name}_Roughness.png, {name}_AmbientOcclusion.png
 // Note: These textures must be uploaded to CDN for production use
 const PBR_TEXTURE_SETS = {
-  procedural: null, // Use procedural texture
-  grass: getTexturePath('ground/Grass004_1K-PNG'), // ambientCG grass
-  concrete: getTexturePath('ground/Concrete'), // ambientCG concrete
-  asphalt: getTexturePath('ground/Asphalt'), // ambientCG asphalt
-  cobblestone: getTexturePath('ground/Cobblestone'), // ambientCG cobblestone
+  procedural: null, // Use procedural texture (dark asphalt)
+  grass: getLocalTexturePath('ground/Grass004_1K-PNG'), // ambientCG grass
+  concrete: getLocalTexturePath('terrain/Concrete011_1K-PNG/Concrete011_1K-PNG'), // ambientCG concrete
+  road: getLocalTexturePath('terrain/Road003_1K-PNG/Road003_1K-PNG'), // ambientCG road (no AO map)
 } as const;
 
 type TextureSetKey = keyof typeof PBR_TEXTURE_SETS;
@@ -119,9 +133,13 @@ export interface CyberpunkGroundProps {
   size?: number;
 }
 
+// Texture sets that have AO maps - others will skip AO loading
+const TEXTURE_SETS_WITH_AO = ['grass', 'concrete'];
+
 // PBR Ground component that loads texture maps
 function PBRGround({
   basePath,
+  textureKey,
   size,
   repeatX,
   repeatY,
@@ -136,6 +154,7 @@ function PBRGround({
   envMapIntensity,
 }: {
   basePath: string;
+  textureKey: string;
   size: number;
   repeatX: number;
   repeatY: number;
@@ -149,13 +168,20 @@ function PBRGround({
   colorTint: string;
   envMapIntensity: number;
 }) {
+  const hasAO = TEXTURE_SETS_WITH_AO.includes(textureKey);
+
   // Load PBR texture maps - ambientCG naming convention
-  const textures = useTexture({
+  // Some textures (like Road003) don't have AO maps
+  const textureConfig: Record<string, string> = {
     map: `${basePath}_Color.png`,
     normalMap: `${basePath}_NormalGL.png`,
     roughnessMap: `${basePath}_Roughness.png`,
-    aoMap: `${basePath}_AmbientOcclusion.png`,
-  });
+  };
+  if (hasAO) {
+    textureConfig.aoMap = `${basePath}_AmbientOcclusion.png`;
+  }
+
+  const textures = useTexture(textureConfig) as Record<string, THREE.Texture>;
 
   // Configure texture repeating, offset, and rotation
   useEffect(() => {
@@ -185,8 +211,8 @@ function PBRGround({
         roughnessMap={textures.roughnessMap}
         roughness={roughnessValue}
         metalness={metalnessValue}
-        aoMap={textures.aoMap}
-        aoMapIntensity={aoIntensity}
+        aoMap={hasAO ? (textures as { aoMap?: THREE.Texture }).aoMap : undefined}
+        aoMapIntensity={hasAO ? aoIntensity : 0}
         color={tintColor}
         envMapIntensity={envMapIntensity}
       />
@@ -199,6 +225,8 @@ export function CyberpunkGround(_props: CyberpunkGroundProps) {
   // Leva controls for ground texture
   const groundControls = useControls('🗺️ World', {
     'Ground': folder({
+      groundVisible: { value: true, label: 'Show Ground' },
+      groundYOffset: { value: 0, min: -20, max: 10, step: 0.5, label: 'Y Offset' },
       textureSet: {
         value: 'procedural' as TextureSetKey,
         options: Object.keys(PBR_TEXTURE_SETS) as TextureSetKey[],
@@ -252,17 +280,25 @@ export function CyberpunkGround(_props: CyberpunkGroundProps) {
   // Parse color tint for procedural
   const proceduralTintColor = useMemo(() => new THREE.Color(groundControls.colorTint), [groundControls.colorTint]);
 
-  const basePath = PBR_TEXTURE_SETS[groundControls.textureSet as TextureSetKey];
+  const textureKey = groundControls.textureSet as TextureSetKey;
+  const basePath = PBR_TEXTURE_SETS[textureKey];
   const usePBR = basePath !== null;
 
   const actualSize = groundControls.groundSize;
+  const yOffset = groundControls.groundYOffset;
+
+  // Don't render if not visible
+  if (!groundControls.groundVisible) {
+    return null;
+  }
 
   return (
-    <>
+    <group position={[0, yOffset, 0]}>
       {/* Ground surface - PBR or procedural */}
       {usePBR ? (
         <PBRGround
           basePath={basePath}
+          textureKey={textureKey}
           size={actualSize}
           repeatX={groundControls.repeatX}
           repeatY={groundControls.repeatY}
@@ -307,6 +343,6 @@ export function CyberpunkGround(_props: CyberpunkGroundProps) {
           infiniteGrid
         />
       )}
-    </>
+    </group>
   );
 }

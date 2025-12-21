@@ -18,6 +18,8 @@ interface NPCManagerProps {
   renderDistance?: number;
   /** Enable multiplayer NPC sync - NPCs will be controlled by server */
   multiplayerEnabled?: boolean;
+  /** Function to get terrain height at x,z position */
+  getTerrainHeight?: (x: number, z: number) => number;
 }
 
 export function NPCManager({
@@ -26,6 +28,7 @@ export function NPCManager({
   initialNPCs,
   renderDistance = 50,
   multiplayerEnabled = false,
+  getTerrainHeight,
 }: NPCManagerProps) {
   const { npcs, addNPCs } = useNPCStore();
 
@@ -45,7 +48,7 @@ export function NPCManager({
       // Optionally clear NPCs on unmount
       // clearAllNPCs();
     };
-  }, [multiplayerEnabled]); // Re-run if multiplayer mode changes
+  }, [multiplayerEnabled, initialNPCs, addNPCs]); // Re-run when NPCs change
 
   // Filter NPCs by render distance
   const visibleNPCs: NPCData[] = [];
@@ -64,6 +67,7 @@ export function NPCManager({
     }
   });
 
+
   return (
     <group name="NPCManager">
       {visibleNPCs.map((npc) => (
@@ -73,6 +77,7 @@ export function NPCManager({
           playerPosition={playerPosition}
           onInteract={onNPCInteract}
           serverControlled={multiplayerEnabled || isServerControlled}
+          getTerrainHeight={getTerrainHeight}
         />
       ))}
     </group>

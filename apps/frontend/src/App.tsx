@@ -1,7 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/auth.store';
 import { ThemeProvider } from './contexts/ThemeContext';
+
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 // Components
 import CommandPalette from './components/CommandPalette';
@@ -74,6 +76,30 @@ function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: 
   return <>{children}</>;
 }
 
+// Global UI components that should be hidden on game pages
+function GlobalUI() {
+  const { user } = useAuthStore();
+  const location = useLocation();
+
+  // Hide chat widget and bug report button on game pages
+  const isGamePage = location.pathname === '/play' || location.pathname === '/city';
+
+  if (isGamePage) return null;
+
+  return (
+    <>
+      {/* Chat Widget - visible when logged in, hidden on game pages */}
+      <ChatWidget />
+
+      {/* Bug Report Button - visible when logged in (beta), hidden on game pages */}
+      {user && <BugReportButton />}
+
+      {/* React Query Devtools - hidden on game pages */}
+      <ReactQueryDevtools initialIsOpen={false} />
+    </>
+  );
+}
+
 function App() {
   const { user } = useAuthStore();
 
@@ -117,11 +143,8 @@ function App() {
       {/* Command Palette - Cmd+K / Ctrl+K */}
       <CommandPalette />
 
-      {/* Chat Widget - visible when logged in */}
-      <ChatWidget />
-
-      {/* Bug Report Button - visible when logged in (beta) */}
-      {user && <BugReportButton />}
+      {/* Chat Widget & Bug Report - hidden on game pages */}
+      <GlobalUI />
 
       {/* Mobile Layout wrapper - provides bottom tab bar on mobile/native */}
       <MobileLayout>

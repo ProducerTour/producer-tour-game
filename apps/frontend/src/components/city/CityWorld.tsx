@@ -1,15 +1,13 @@
 /**
  * CityWorld Component
- * NeoTokyo cyberpunk city using BaseWorld gameplay system
+ * World map with biomes using BaseWorld gameplay system
  */
 
-import { Suspense } from 'react';
 import { Zap, Building2, Store, Landmark, Gamepad2 } from 'lucide-react';
 import * as THREE from 'three';
 
 import { BaseWorld } from '../play/world/BaseWorld';
 import { ZoneMarker } from '../play/world';
-import { NeoTokyoMap } from '../play/maps';
 import type { ZoneConfig } from '../play/types';
 
 // City zones - different areas of the NeoTokyo map
@@ -58,10 +56,10 @@ export interface CityWorldProps {
 }
 
 /**
- * CityWorld - NeoTokyo cyberpunk city map
+ * CityWorld - World map with biomes
  *
  * Uses BaseWorld for core gameplay and adds:
- * - NeoTokyo FBX city model
+ * - World terrain GLB model with biomes
  * - City-specific zone markers
  * - Custom spawn point
  */
@@ -80,11 +78,6 @@ export function CityWorld({
       fog={{ color: '#0a0a0f', near: 50, far: 200 }}
       backgroundColor="#0a0a0f"
     >
-      {/* NeoTokyo City Model - with building colliders for world collision */}
-      <Suspense fallback={null}>
-        <NeoTokyoMap scale={0.01} enableBuildingColliders useHullColliders />
-      </Suspense>
-
       {/* City Zone Markers */}
       {cityZones.map((zone) => (
         <ZoneMarker key={zone.label} {...zone} />

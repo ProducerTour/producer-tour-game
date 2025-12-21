@@ -22,6 +22,9 @@ import {
   type WeaponType as FSMWeaponType,
 } from '../hooks/useAnimationStateMachine';
 
+// Debug logging - set to false to reduce console spam
+const DEBUG_AVATAR = false;
+
 // Animation URLs derived from config
 const ANIMATIONS = Object.fromEntries(
   Object.entries(ANIMATION_CONFIG).map(([name, config]) => [name, config.url])
@@ -40,15 +43,20 @@ export interface MixamoAnimatedAvatarProps {
   isRunning?: boolean;
   isGrounded?: boolean;
   isJumping?: boolean;
+  isFalling?: boolean;    // Uncontrolled fall state
+  isLanding?: boolean;    // Brief landing state
   isDancing?: boolean;
   isCrouching?: boolean;
   isStrafingLeft?: boolean;
   isStrafingRight?: boolean;
   isAiming?: boolean;
   isFiring?: boolean;
+  isDying?: boolean;      // Death animation trigger
   velocityY?: number;
   weaponType?: WeaponType;
   aimPitch?: number;  // Camera pitch for upper body aiming (radians)
+  /** Keep mixamorig: prefix in bone names (for models with Mixamo rig, not RPM) */
+  keepMixamoPrefix?: boolean;
 }
 
 /**
@@ -61,21 +69,27 @@ export function MixamoAnimatedAvatar({
   isRunning = false,
   isGrounded = true,
   isJumping = false,
+  isFalling = false,
+  isLanding = false,
   isDancing = false,
   isCrouching = false,
   isStrafingLeft = false,
   isStrafingRight = false,
   isAiming = false,
   isFiring = false,
+  isDying = false,
   velocityY = 0,
   weaponType = null,
   aimPitch = 0,
+  keepMixamoPrefix = false,
 }: MixamoAnimatedAvatarProps) {
   const group = useRef<THREE.Group>(null);
   const avatarRef = useRef<THREE.Group>(null);
   const leftFootRef = useRef<THREE.Bone | null>(null);
   const rightFootRef = useRef<THREE.Bone | null>(null);
   const spineRef = useRef<THREE.Bone | null>(null);  // For upper body aiming
+  const detectedBonePrefixRef = useRef<'none' | 'mixamorig' | 'mixamorig:'>('none');
+  const detectedBoneSuffixRef = useRef<string>(''); // For _1 suffix detection
   const { scene } = useGLTF(url);
 
   // Load animation files
@@ -135,6 +149,9 @@ export function MixamoAnimatedAvatar({
   const rifleReloadWalkGltf = useGLTF(ANIMATIONS.rifleReloadWalk);
   const rifleReloadCrouchGltf = useGLTF(ANIMATIONS.rifleReloadCrouch);
 
+  // Death animation
+  const deathGltf = useGLTF(ANIMATIONS.death);
+
   // Clone scene for this instance and find foot bones
   const clonedScene = useMemo(() => {
     const clone = SkeletonUtils.clone(scene);
@@ -144,6 +161,7 @@ export function MixamoAnimatedAvatar({
         child.receiveShadow = true;
       }
       // Find foot bones for ground tracking and spine for aiming
+      // Use .includes() for compatibility with both RPM ('LeftFoot') and Mixamo rig ('mixamorig:LeftFoot')
       if ((child as THREE.Bone).isBone) {
         const boneName = child.name.toLowerCase();
         if (boneName.includes('leftfoot') || boneName === 'left_foot') {
@@ -153,26 +171,109 @@ export function MixamoAnimatedAvatar({
         }
         // Find spine bone for upper body aiming - use Spine2 (upper spine) for best results
         // Spine2 gives more visible upper body tilt when aiming
-        if (child.name === 'Spine2' || child.name === 'spine2' || child.name === 'Spine1' || child.name === 'spine1') {
+        // Use .includes() for compatibility with both RPM ('Spine2') and Mixamo rig ('mixamorig:Spine2')
+        if (boneName.includes('spine2') || boneName.includes('spine1')) {
           // Prefer Spine2 over Spine1 for more visible effect
-          if (child.name === 'Spine2' || child.name === 'spine2' || !spineRef.current) {
+          if (boneName.includes('spine2') || !spineRef.current) {
             spineRef.current = child as THREE.Bone;
-            console.log('🎯 Found spine bone for aiming:', child.name);
+            if (DEBUG_AVATAR) console.log('🎯 Found spine bone for aiming:', child.name);
           }
         }
       }
     });
 
-    // Debug: log avatar's actual bone names (only once)
+    // Detect bone naming convention and log bone names
     const bones: string[] = [];
     clone.traverse((child) => {
       if ((child as THREE.Bone).isBone) {
         bones.push(child.name);
       }
     });
+
+    // Auto-detect bone prefix format from model bones
+    // Check for Hips bone naming: 'Hips' (RPM), 'mixamorigHips' (Mixamo no colon), 'mixamorig:Hips' (Mixamo with colon)
+    const hipsBone = bones.find(b => b.toLowerCase().includes('hips'));
+    if (hipsBone) {
+      if (hipsBone.startsWith('mixamorig:')) {
+        detectedBonePrefixRef.current = 'mixamorig:';
+      } else if (hipsBone.startsWith('mixamorig')) {
+        detectedBonePrefixRef.current = 'mixamorig';
+      } else {
+        detectedBonePrefixRef.current = 'none';
+      }
+      if (DEBUG_AVATAR) {
+        console.log(`🔍 Detected bone prefix: "${detectedBonePrefixRef.current}" (from bone: ${hipsBone})`);
+      }
+    }
+
     if (bones.length > 0) {
-      console.log(`🦴 Avatar bones (${bones.length} total):`, bones.slice(0, 10));
-      console.log(`🦶 Foot bones found: L=${leftFootRef.current?.name}, R=${rightFootRef.current?.name}`);
+      if (DEBUG_AVATAR) {
+        console.log(`🦴 Avatar bones (${bones.length} total):`, bones.slice(0, 10));
+        console.log(`🦶 Foot bones found: L=${leftFootRef.current?.name}, R=${rightFootRef.current?.name}`);
+      }
+
+      // Check for duplicate bones (with _1 suffix) and detect which skeleton mesh is bound to
+      const duplicateBones = bones.filter(b => b.includes('_1'));
+      if (duplicateBones.length > 0 && DEBUG_AVATAR) {
+        console.log(`⚠️ Found ${duplicateBones.length} duplicate bones with _1 suffix:`, duplicateBones.slice(0, 5));
+      }
+
+      // Detect which skeleton the mesh is bound to - this is critical for animation binding
+      // First pass: detect skeleton suffix from first skinned mesh
+      const skinnedMeshes: THREE.SkinnedMesh[] = [];
+      clone.traverse((child) => {
+        if ((child as THREE.SkinnedMesh).isSkinnedMesh) {
+          skinnedMeshes.push(child as THREE.SkinnedMesh);
+        }
+      });
+
+      // Find the skeleton suffix from the first mesh (if it has one)
+      let primarySuffix: string | null = null;
+      for (const mesh of skinnedMeshes) {
+        const skeleton = mesh.skeleton;
+        if (skeleton && skeleton.bones.length > 0) {
+          const hipsBoneInSkeleton = skeleton.bones.find(b => b.name.toLowerCase().includes('hips'));
+          if (hipsBoneInSkeleton) {
+            const match = hipsBoneInSkeleton.name.match(/Hips(_\d+)?$/i);
+            if (match) {
+              primarySuffix = match[1] || ''; // '' for no suffix, '_1' for suffix
+              detectedBoneSuffixRef.current = primarySuffix;
+              if (DEBUG_AVATAR) {
+                console.log(`🎯 Primary skeleton suffix: "${primarySuffix || 'none'}" (from: ${hipsBoneInSkeleton.name})`);
+              }
+              break;
+            }
+          }
+        }
+      }
+
+      // Second pass: hide meshes bound to different skeleton (duplicate skeleton issue)
+      let hiddenCount = 0;
+      for (const mesh of skinnedMeshes) {
+        const skeleton = mesh.skeleton;
+        if (skeleton && skeleton.bones.length > 0) {
+          const hipsBoneInSkeleton = skeleton.bones.find(b => b.name.toLowerCase().includes('hips'));
+          if (hipsBoneInSkeleton) {
+            const match = hipsBoneInSkeleton.name.match(/Hips(_\d+)?$/i);
+            const meshSuffix = match ? (match[1] || '') : '';
+
+            // Hide mesh if it's bound to a different skeleton than primary
+            if (primarySuffix !== null && meshSuffix !== primarySuffix) {
+              mesh.visible = false;
+              hiddenCount++;
+              if (DEBUG_AVATAR) {
+                console.log(`🙈 Hiding duplicate mesh "${mesh.name}" (suffix: "${meshSuffix || 'none'}")`);
+              }
+            } else if (DEBUG_AVATAR) {
+              console.log(`🔗 Keeping mesh "${mesh.name}" (suffix: "${meshSuffix || 'none'}")`);
+            }
+          }
+        }
+      }
+
+      if (hiddenCount > 0 && DEBUG_AVATAR) {
+        console.log(`✨ Hidden ${hiddenCount} duplicate meshes bound to wrong skeleton`);
+      }
     }
 
     return clone;
@@ -205,8 +306,14 @@ export function MixamoAnimatedAvatar({
     const isMixamoAnim = clipName ? isMixamoAnimation(clipName) : false;
     const needsHipsRotation = clipName ? PRESERVE_HIPS_ROTATION.includes(clipName) : false;
 
-    if (isMixamoAnim) {
-      console.log(`🔧 Processing ${clipName}: ${newClip.tracks.length} original tracks, preserveHips: ${needsHipsRotation}`);
+    // Use auto-detected prefix, with manual override as fallback
+    const detectedPrefix = detectedBonePrefixRef.current;
+    const detectedSuffix = detectedBoneSuffixRef.current; // e.g., "_1" for duplicate skeletons
+    const usePrefix = keepMixamoPrefix || detectedPrefix === 'mixamorig' || detectedPrefix === 'mixamorig:';
+    const prefixToUse = detectedPrefix !== 'none' ? detectedPrefix : (keepMixamoPrefix ? 'mixamorig' : '');
+
+    if (DEBUG_AVATAR && isMixamoAnim) {
+      console.log(`🔧 Processing ${clipName}: ${newClip.tracks.length} original tracks, preserveHips: ${needsHipsRotation}, detectedPrefix: ${detectedPrefix}, detectedSuffix: ${detectedSuffix}, usePrefix: ${usePrefix}`);
     }
 
     // Process tracks: remap bone names, filter, and apply corrections
@@ -214,14 +321,30 @@ export function MixamoAnimatedAvatar({
       .map(track => {
         let newName = track.name;
 
-        // Remove armature prefix if present
+        // Remove armature prefix if present (e.g., "Armature|Hips.quaternion" -> "Hips.quaternion")
         if (newName.includes('|')) {
           newName = newName.split('|').pop() || newName;
         }
 
-        // Remove mixamorig variants (with colon, without, numbered)
-        newName = newName.replace(/mixamorig\d*:/g, '');
-        newName = newName.replace(/^mixamorig(\d*)([A-Z])/g, '$2');
+        if (usePrefix && prefixToUse) {
+          // For Mixamo-rigged models: ADD the detected prefix (and suffix if detected) to bone names
+          // Animation files have: "Hips.quaternion", model may have: "mixamorigHips" or "mixamorigHips_1"
+          // First remove any existing mixamorig prefix (with or without colon) to normalize
+          newName = newName.replace(/^mixamorig\d*:?/g, '');
+          // Then add the detected prefix and suffix (e.g., "Hips.quaternion" -> "mixamorigHips_1.quaternion")
+          const dotIndex = newName.indexOf('.');
+          if (dotIndex > 0) {
+            const boneName = newName.substring(0, dotIndex);
+            const property = newName.substring(dotIndex);
+            // Add suffix between bone name and property (e.g., "Hips" + "_1" + ".quaternion")
+            newName = `${prefixToUse}${boneName}${detectedSuffix}${property}`;
+          }
+        } else {
+          // For RPM avatars: REMOVE the mixamorig prefix
+          // Animation files may have: "mixamorig:Hips.quaternion", model has: "Hips"
+          newName = newName.replace(/mixamorig\d*:/g, '');
+          newName = newName.replace(/^mixamorig(\d*)([A-Z])/g, '$2');
+        }
 
         if (newName !== track.name) {
           const newTrack = track.clone();
@@ -232,7 +355,9 @@ export function MixamoAnimatedAvatar({
       })
       .map(track => {
         // Apply Hips rotation correction for crouch animations
-        if (needsHipsRotation && track.name === 'Hips.quaternion') {
+        // Use auto-detected prefix and suffix for Hips track name
+        const hipsTrackName = prefixToUse ? `${prefixToUse}Hips${detectedSuffix}.quaternion` : 'Hips.quaternion';
+        if (needsHipsRotation && track.name === hipsTrackName) {
           const newTrack = track.clone();
           const values = newTrack.values;
           const tempQ = new THREE.Quaternion();
@@ -247,12 +372,15 @@ export function MixamoAnimatedAvatar({
             values[i + 3] = tempQ.w;
           }
 
-          console.log(`   🔄 Applied Hips correction for ${clipName}`);
+          if (DEBUG_AVATAR) console.log(`   🔄 Applied Hips correction for ${clipName}`);
           return newTrack;
         }
         return track;
       })
       .filter(track => {
+        // Determine the Hips prefix based on auto-detected or manual setting (includes suffix)
+        const hipsPrefix = prefixToUse ? `${prefixToUse}Hips${detectedSuffix}.` : 'Hips.';
+
         if (isMixamoAnim) {
           // For Mixamo: keep only quaternion (rotation) tracks
           // Remove position and scale tracks to prevent drift/glitching/teleporting
@@ -261,7 +389,7 @@ export function MixamoAnimatedAvatar({
           }
           // For crouch animations, KEEP Hips rotation (now corrected)
           // For other animations, filter it out to prevent flipping
-          if (track.name.startsWith('Hips.')) {
+          if (track.name.startsWith(hipsPrefix)) {
             return needsHipsRotation;
           }
           return true;
@@ -277,8 +405,12 @@ export function MixamoAnimatedAvatar({
         return true;
       });
 
-    if (isMixamoAnim) {
+    if (DEBUG_AVATAR && isMixamoAnim) {
       console.log(`   ✅ Kept ${newClip.tracks.length} tracks after filtering`);
+      // Log first 3 track names to verify transformation
+      if (newClip.tracks.length > 0 && clipName === 'idle') {
+        console.log(`   📋 Sample track names:`, newClip.tracks.slice(0, 3).map(t => t.name));
+      }
     }
 
     return newClip;
@@ -293,7 +425,7 @@ export function MixamoAnimatedAvatar({
         const clip = stripRootMotion(gltf.animations[0], name);
         clip.name = name;
         anims.push(clip);
-      } else {
+      } else if (DEBUG_AVATAR) {
         console.warn(`⚠️ No animation found for ${name}`);
       }
     };
@@ -359,6 +491,9 @@ export function MixamoAnimatedAvatar({
     addAnim(rifleReloadWalkGltf, 'rifleReloadWalk');
     addAnim(rifleReloadCrouchGltf, 'rifleReloadCrouch');
 
+    // Death animation
+    addAnim(deathGltf, 'death');
+
     return anims;
   }, [
     idleGltf.animations, idleVar1Gltf.animations, idleVar2Gltf.animations,
@@ -377,6 +512,8 @@ export function MixamoAnimatedAvatar({
     rifleFireStillGltf.animations, rifleFireWalkGltf.animations, rifleFireCrouchGltf.animations,
     crouchFireRifleTapGltf.animations, crouchRapidFireRifleGltf.animations,
     rifleReloadStandGltf.animations, rifleReloadWalkGltf.animations, rifleReloadCrouchGltf.animations,
+    deathGltf.animations, // Death animation
+    keepMixamoPrefix, // Important: re-process animations when prefix setting changes
   ]);
 
   // Setup animations with the cloned scene
@@ -386,6 +523,16 @@ export function MixamoAnimatedAvatar({
   useEffect(() => {
     if (!actions) return;
     configureAllActions(actions);
+
+    // Debug: Check if idle action exists and what actions are available
+    if (DEBUG_AVATAR) {
+      const actionNames = Object.keys(actions);
+      console.log(`🎬 Available actions (${actionNames.length}):`, actionNames.slice(0, 10));
+      console.log(`🎬 Idle action exists:`, !!actions['idle']);
+      if (actions['idle']) {
+        console.log(`🎬 Idle action clip:`, actions['idle'].getClip()?.name, 'duration:', actions['idle'].getClip()?.duration);
+      }
+    }
   }, [actions]);
 
   // Build FSM input from props
@@ -395,15 +542,18 @@ export function MixamoAnimatedAvatar({
     isRunning,
     isGrounded,
     isJumping,
+    isFalling,
+    isLanding,
     isCrouching,
     isDancing,
     isStrafeLeft: isStrafingLeft,
     isStrafeRight: isStrafingRight,
     isAiming,
     isFiring,
+    isDying,
     weapon: (weaponType ?? 'none') as FSMWeaponType,
     velocityY,
-  }), [isMoving, isRunning, isGrounded, isJumping, isCrouching, isDancing, isStrafingLeft, isStrafingRight, isAiming, isFiring, weaponType, velocityY]);
+  }), [isMoving, isRunning, isGrounded, isJumping, isFalling, isLanding, isCrouching, isDancing, isStrafingLeft, isStrafingRight, isAiming, isFiring, isDying, weaponType, velocityY]);
 
   // Use the FSM for all animation state management
   // The FSM handles transitions, crossfading, one-shot completions, and fallbacks
@@ -662,7 +812,8 @@ export function MixamoAnimatedAvatar({
   return (
     <group ref={group}>
       <group ref={avatarRef}>
-        <primitive object={clonedScene} position={[0, 0, 0]} />
+        {/* Y offset (0.2m) to prevent feet clipping through uneven terrain */}
+        <primitive object={clonedScene} position={[0, 0.2, 0]} />
       </group>
       {weaponType && (
         <WeaponAttachment

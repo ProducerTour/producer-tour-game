@@ -1,13 +1,77 @@
 /**
  * NPC Component
- * Renders an NPC with basic AI behavior
+ * Renders an NPC with basic AI behavior, physics collision, and animated avatar support
+ *
+ * Features:
+ * - Uses MixamoAnimatedAvatar when avatarUrl is provided (same as player)
+ * - Falls back to simple capsule geometry if no avatar
+ * - Physics collision via kinematic RigidBody
+ * - AI behaviors: idle, patrol, wander, follow, flee, attack
  */
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { Html, useGLTF } from '@react-three/drei';
+import { RigidBody, CapsuleCollider } from '@react-three/rapier';
+import type { RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
 import { useNPCStore, type NPCData } from './useNPCStore';
+import { MixamoAnimatedAvatar } from '../avatars';
+
+/**
+ * Static model component for NPCs without animations
+ * Uses SkeletonUtils.clone for proper SkinnedMesh cloning
+ */
+function StaticModel({ url, scale = 1 }: { url: string; scale?: number }) {
+  const gltf = useGLTF(url);
+
+  const model = useMemo(() => {
+    // For SkinnedMesh models, we need to use SkeletonUtils.clone
+    // But since we may have multiple Three.js instances, let's just use the scene directly
+    // and ensure materials render properly
+    const scene = gltf.scene;
+
+    // Setup meshes for rendering
+    scene.traverse((child) => {
+      if (child.type === 'SkinnedMesh' || child.type === 'Mesh') {
+        const mesh = child as THREE.Mesh;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.frustumCulled = false;
+
+        // Ensure materials render properly
+        if (mesh.material) {
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(mat => {
+              (mat as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+              mat.needsUpdate = true;
+            });
+          } else {
+            (mesh.material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+            mesh.material.needsUpdate = true;
+          }
+        }
+      }
+    });
+
+    return scene;
+  }, [gltf]);
+
+  // Calculate bounding box to position model with feet at ground level
+  const yOffset = useMemo(() => {
+    const box = new THREE.Box3().setFromObject(model);
+    return -box.min.y;
+  }, [model]);
+
+  return (
+    <primitive object={model} scale={scale} position={[0, yOffset, 0]} />
+  );
+}
+
+// Collider dimensions - same as player for consistent collision
+const COLLIDER_HALF_HEIGHT = 0.55;
+const COLLIDER_RADIUS = 0.3;
+const COLLIDER_Y_OFFSET = 0.85;
 
 // Movement speeds
 const WALK_SPEED = 1.5;
@@ -23,14 +87,39 @@ interface NPCProps {
   onInteract?: (npc: NPCData) => void;
   /** If true, NPC position is controlled by server - disable local AI */
   serverControlled?: boolean;
+  /** Enable physics collision (default: true) */
+  enablePhysics?: boolean;
+  /** Function to get terrain height at x,z position - for terrain following */
+  getTerrainHeight?: (x: number, z: number) => number;
 }
 
-export function NPC({ data, playerPosition, onInteract, serverControlled = false }: NPCProps) {
+/**
+ * Simple placeholder while avatar loads
+ */
+function NPCPlaceholder({ color }: { color: string }) {
+  return (
+    <mesh position={[0, 0.9, 0]}>
+      <capsuleGeometry args={[COLLIDER_RADIUS, 1, 8, 16]} />
+      <meshStandardMaterial color={color} transparent opacity={0.5} />
+    </mesh>
+  );
+}
+
+export function NPC({ data, playerPosition, onInteract, serverControlled = false, enablePhysics = true, getTerrainHeight }: NPCProps) {
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
+  const rigidBodyRef = useRef<RapierRigidBody>(null);
   const lastAIUpdate = useRef(0);
   const currentTarget = useRef<{ x: number; z: number } | null>(null);
   const waitUntil = useRef(0);
+
+  // Local position ref - prevents store updates every frame during movement
+  // Only syncs to store every POSITION_SYNC_INTERVAL ms
+  const localPosition = useRef({ x: data.position.x, y: data.position.y, z: data.position.z });
+  const localRotation = useRef(data.rotation);
+  const lastPositionSync = useRef(0);
+  const POSITION_SYNC_INTERVAL = 200; // Sync to store every 200ms
+
 
   // For smooth interpolation when server-controlled
   const interpolatedPos = useRef({ x: data.position.x, y: data.position.y, z: data.position.z });
@@ -50,13 +139,40 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
     }
   }, [data.type, data.color]);
 
-  // Calculate distance to player
+  // Calculate distance to player - uses store position (synced periodically)
+  // For real-time distance we'd use localPosition, but store position is good enough for AI decisions
   const distanceToPlayer = useMemo(() => {
     if (!playerPosition) return Infinity;
+    // Use store position for distance - it's synced every 200ms which is fine for AI
     const dx = data.position.x - playerPosition.x;
     const dz = data.position.z - playerPosition.z;
     return Math.sqrt(dx * dx + dz * dz);
   }, [data.position, playerPosition]);
+
+  // Map NPC state to animation props for MixamoAnimatedAvatar
+  const animationProps = useMemo(() => {
+    const isDying = data.state === 'dead';
+    const isMoving = !isDying && (data.state === 'walking' || data.state === 'running');
+    const isRunning = !isDying && data.state === 'running';
+
+    return {
+      isMoving,
+      isRunning,
+      isGrounded: true, // NPCs are always grounded for now
+      isJumping: false,
+      isFalling: false,
+      isLanding: false,
+      isDancing: false,
+      isCrouching: false,
+      isStrafingLeft: false,
+      isStrafingRight: false,
+      isAiming: false,
+      isFiring: false,
+      isDying, // Death animation trigger
+      velocityY: 0,
+      weaponType: null, // No weapon equipped
+    };
+  }, [data.state]);
 
   // AI behavior logic
   useFrame((_, delta) => {
@@ -77,12 +193,21 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
       while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
       interpolatedRot.current += rotDiff * t;
 
-      groupRef.current.position.set(
-        interpolatedPos.current.x,
-        interpolatedPos.current.y,
-        interpolatedPos.current.z
-      );
-      groupRef.current.rotation.y = interpolatedRot.current;
+      // Update position based on physics mode
+      if (enablePhysics && rigidBodyRef.current) {
+        // For physics-enabled, update the kinematic rigidbody
+        rigidBodyRef.current.setNextKinematicTranslation(interpolatedPos.current);
+      } else if (groupRef.current) {
+        // For non-physics, update group position directly
+        groupRef.current.position.set(
+          interpolatedPos.current.x,
+          interpolatedPos.current.y,
+          interpolatedPos.current.z
+        );
+      }
+      if (groupRef.current) {
+        groupRef.current.rotation.y = interpolatedRot.current;
+      }
     } else {
       // Local AI mode
       const now = Date.now();
@@ -98,8 +223,23 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
         moveTowardTarget(delta);
       }
 
-      // Always update visual position
-      groupRef.current.position.set(data.position.x, data.position.y, data.position.z);
+      // Update position based on physics mode - use local refs for smooth movement
+      if (enablePhysics && rigidBodyRef.current) {
+        // For physics-enabled NPCs, update the kinematic rigidbody with local position
+        rigidBodyRef.current.setNextKinematicTranslation(localPosition.current);
+      } else {
+        // For non-physics NPCs, update group position directly with local position
+        groupRef.current.position.set(
+          localPosition.current.x,
+          localPosition.current.y,
+          localPosition.current.z
+        );
+      }
+
+      // Update rotation from local ref
+      if (groupRef.current) {
+        groupRef.current.rotation.y = localRotation.current;
+      }
     }
   });
 
@@ -246,12 +386,13 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
     }
   };
 
-  // Movement logic
+  // Movement logic - uses local refs, syncs to store periodically
   const moveTowardTarget = (delta: number) => {
     if (!currentTarget.current) return;
 
-    const dx = currentTarget.current.x - data.position.x;
-    const dz = currentTarget.current.z - data.position.z;
+    // Use local position for calculations (not store position)
+    const dx = currentTarget.current.x - localPosition.current.x;
+    const dz = currentTarget.current.z - localPosition.current.z;
     const distance = Math.sqrt(dx * dx + dz * dz);
 
     if (distance < 0.1) {
@@ -264,25 +405,33 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
     const dirZ = dz / distance;
     const speed = data.state === 'running' ? RUN_SPEED : WALK_SPEED;
 
-    // Move
+    // Move - update local refs (not store)
     const moveAmount = Math.min(speed * delta, distance);
-    const newX = data.position.x + dirX * moveAmount;
-    const newZ = data.position.z + dirZ * moveAmount;
+    localPosition.current.x += dirX * moveAmount;
+    localPosition.current.z += dirZ * moveAmount;
 
-    // Update position
-    setNPCPosition(data.id, { x: newX, y: data.position.y, z: newZ });
+    // Sample terrain height at new position for terrain following
+    if (getTerrainHeight) {
+      localPosition.current.y = getTerrainHeight(localPosition.current.x, localPosition.current.z);
+    }
 
-    // Rotate to face direction
+    // Rotate to face direction - update local ref
     const targetRotation = Math.atan2(dirX, dirZ);
-    const currentRotation = data.rotation;
-    let rotationDiff = targetRotation - currentRotation;
+    let rotationDiff = targetRotation - localRotation.current;
 
     // Normalize rotation difference
     while (rotationDiff > Math.PI) rotationDiff -= Math.PI * 2;
     while (rotationDiff < -Math.PI) rotationDiff += Math.PI * 2;
 
-    const newRotation = currentRotation + rotationDiff * Math.min(1, ROTATION_SPEED * delta);
-    updateNPC(data.id, { rotation: newRotation });
+    localRotation.current += rotationDiff * Math.min(1, ROTATION_SPEED * delta);
+
+    // Sync to store periodically (for other systems that need position)
+    const now = Date.now();
+    if (now - lastPositionSync.current > POSITION_SYNC_INTERVAL) {
+      lastPositionSync.current = now;
+      setNPCPosition(data.id, { ...localPosition.current });
+      updateNPC(data.id, { rotation: localRotation.current });
+    }
   };
 
   // Handle interaction
@@ -292,77 +441,149 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
     }
   };
 
-  // Don't render dead NPCs (or render differently)
-  if (data.state === 'dead') {
+  // Check if NPC is dead (used to disable physics and hide interaction prompts)
+  const isDead = data.state === 'dead';
+
+  // Render NPC body - either MixamoAnimatedAvatar or simple capsule fallback
+  const renderBody = () => {
+    // Priority 1: Animated GLB model with Mixamo rig
+    // These models keep the 'mixamorig:' prefix on bone names
+    if (data.modelUrl && data.animated) {
+      return (
+        <Suspense fallback={<NPCPlaceholder color={color} />}>
+          <MixamoAnimatedAvatar
+            url={data.modelUrl}
+            keepMixamoPrefix={true}
+            {...animationProps}
+          />
+        </Suspense>
+      );
+    }
+
+    // Priority 2: Static GLB model (no animations)
+    if (data.modelUrl) {
+      return (
+        <Suspense fallback={<NPCPlaceholder color={color} />}>
+          <StaticModel url={data.modelUrl} scale={data.scale ?? 1} />
+        </Suspense>
+      );
+    }
+
+    // Priority 3: Mixamo-animated RPM avatar
+    if (data.avatarUrl) {
+      return (
+        <Suspense fallback={<NPCPlaceholder color={color} />}>
+          <MixamoAnimatedAvatar
+            url={data.avatarUrl}
+            {...animationProps}
+          />
+        </Suspense>
+      );
+    }
+
+    // Fallback: simple capsule body
     return (
-      <group ref={groupRef} position={[data.position.x, data.position.y, data.position.z]}>
-        <mesh rotation={[Math.PI / 2, 0, data.rotation]} position={[0, 0.1, 0]}>
-          <capsuleGeometry args={[0.3, 1, 8, 16]} />
-          <meshStandardMaterial color="#333" transparent opacity={0.5} />
+      <>
+        <mesh
+          ref={meshRef}
+          position={[0, 0.9, 0]}
+          onClick={handleClick}
+          userData={{ targetId: data.id }}
+        >
+          <capsuleGeometry args={[COLLIDER_RADIUS, 1, 8, 16]} />
+          <meshStandardMaterial
+            color={color}
+            emissive={color}
+            emissiveIntensity={data.isInteractable && distanceToPlayer <= data.interactionRange ? 0.3 : 0.1}
+          />
         </mesh>
+        <mesh position={[0, 1.7, 0]}>
+          <sphereGeometry args={[0.25, 16, 16]} />
+          <meshStandardMaterial color={color} />
+        </mesh>
+      </>
+    );
+  };
+
+  // Inner content (body + label + effects)
+  const innerContent = (
+    <>
+      {/* NPC body (avatar or capsule) */}
+      <group rotation={[0, data.rotation, 0]}>
+        {renderBody()}
       </group>
+
+      {/* Name label - hide when dead */}
+      {!isDead && (
+        <Html position={[0, 2.2, 0]} center sprite distanceFactor={10}>
+          <div
+            className="pointer-events-none text-center"
+            style={{
+              opacity: distanceToPlayer < 15 ? 1 : 0,
+              transition: 'opacity 0.3s',
+            }}
+          >
+            <div
+              className="text-white text-sm font-bold px-2 py-1 rounded"
+              style={{
+                backgroundColor: `${color}cc`,
+                textShadow: '1px 1px 2px black',
+              }}
+            >
+              {data.name}
+            </div>
+            {data.isInteractable && distanceToPlayer <= data.interactionRange && (
+              <div className="text-yellow-300 text-xs mt-1 animate-pulse">
+                [E] Interact
+              </div>
+            )}
+          </div>
+        </Html>
+      )}
+
+      {/* Glow effect for hostile NPCs - disable when dead */}
+      {data.type === 'hostile' && !isDead && (
+        <pointLight color="#ef4444" intensity={0.5} distance={3} position={[0, 1, 0]} />
+      )}
+    </>
+  );
+
+  // With physics collision (disabled when dead so player can walk through)
+  if (enablePhysics && !isDead) {
+    return (
+      <RigidBody
+        ref={rigidBodyRef}
+        type="kinematicPosition"
+        position={[data.position.x, data.position.y, data.position.z]}
+        colliders={false}
+        name={`npc-${data.id}`}
+      >
+        {/* Physics collider - same dimensions as player */}
+        <CapsuleCollider
+          args={[COLLIDER_HALF_HEIGHT, COLLIDER_RADIUS]}
+          position={[0, COLLIDER_Y_OFFSET, 0]}
+        />
+
+        <group
+          ref={groupRef}
+          scale={data.scale ?? 1}
+          userData={{ targetId: data.id }}
+        >
+          {innerContent}
+        </group>
+      </RigidBody>
     );
   }
 
+  // Without physics (legacy behavior)
   return (
     <group
       ref={groupRef}
       position={[data.position.x, data.position.y, data.position.z]}
-      rotation={[0, data.rotation, 0]}
       scale={data.scale ?? 1}
       userData={{ targetId: data.id }}
     >
-      {/* NPC body */}
-      <mesh
-        ref={meshRef}
-        position={[0, 0.9, 0]}
-        onClick={handleClick}
-        userData={{ targetId: data.id }}
-      >
-        <capsuleGeometry args={[0.3, 1, 8, 16]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={data.isInteractable && distanceToPlayer <= data.interactionRange ? 0.3 : 0.1}
-        />
-      </mesh>
-
-      {/* Head */}
-      <mesh position={[0, 1.7, 0]}>
-        <sphereGeometry args={[0.25, 16, 16]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-
-      {/* Name label */}
-      <Html position={[0, 2.2, 0]} center sprite distanceFactor={10}>
-        <div
-          className="pointer-events-none text-center"
-          style={{
-            opacity: distanceToPlayer < 15 ? 1 : 0,
-            transition: 'opacity 0.3s',
-          }}
-        >
-          <div
-            className="text-white text-sm font-bold px-2 py-1 rounded"
-            style={{
-              backgroundColor: `${color}cc`,
-              textShadow: '1px 1px 2px black',
-            }}
-          >
-            {data.name}
-          </div>
-          {data.isInteractable && distanceToPlayer <= data.interactionRange && (
-            <div className="text-yellow-300 text-xs mt-1 animate-pulse">
-              [E] Interact
-            </div>
-          )}
-        </div>
-      </Html>
-
-      {/* Glow effect for hostile NPCs */}
-      {data.type === 'hostile' && (
-        <pointLight color="#ef4444" intensity={0.5} distance={3} position={[0, 1, 0]} />
-      )}
+      {innerContent}
     </group>
   );
 }

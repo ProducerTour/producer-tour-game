@@ -92,6 +92,9 @@ export const ANIMATION_CONFIG: Record<string, AnimationConfig> = {
   rifleReloadWalk: { url: anim('rifle_reload_walk.glb'), loop: false, fadeTime: 0.2, clamp: false, mixamo: true },
   rifleReloadRun: { url: anim('rifle_reload_run.glb'), loop: false, fadeTime: 0.2, clamp: false, mixamo: true },
   rifleReloadCrouch: { url: anim('rifle_reload_crouch.glb'), loop: false, fadeTime: 0.2, clamp: false, mixamo: true },
+
+  // Death animations (Mixamo, one-shot)
+  death: { url: anim('death.glb'), loop: false, fadeTime: 0.3, clamp: true, mixamo: true },
 } as const;
 
 /** Animation name type for type safety */

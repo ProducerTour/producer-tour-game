@@ -1,10 +1,13 @@
-import { useRef, useEffect, useMemo, Suspense, useState } from 'react';
+import { useRef, useEffect, useMemo, Suspense, useState, memo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Billboard, Text, useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import type { Player3D } from '../hooks/usePlayMultiplayer';
 import { ANIMATION_CONFIG, isMixamoAnimation } from '../animations.config';
+
+// Debug logging - set to false to reduce console spam
+const DEBUG_OTHER_PLAYERS = false;
 
 // Render distance constants
 const FULL_RENDER_DISTANCE = 30; // Full animated avatar within this range
@@ -170,7 +173,7 @@ function OtherPlayerWeapon({
 
   useEffect(() => {
     if (!parentBone) {
-      console.warn('[OtherPlayerWeapon] No parent bone provided');
+      if (DEBUG_OTHER_PLAYERS) console.warn('[OtherPlayerWeapon] No parent bone provided');
       return;
     }
 
@@ -203,13 +206,10 @@ function OtherPlayerWeapon({
     parentBone.add(container);
     attachedWeapon.current = container;
 
-    console.log('[OtherPlayerWeapon] Weapon attached:', weaponType, 'to bone:', parentBone.name);
-
     // Cleanup on unmount or weapon change
     return () => {
       if (attachedWeapon.current && attachedWeapon.current.parent) {
         attachedWeapon.current.parent.remove(attachedWeapon.current);
-        console.log('[OtherPlayerWeapon] Weapon detached');
       }
       attachedWeapon.current = null;
     };
@@ -282,7 +282,6 @@ function FullAnimatedAvatar({
           for (const name of possibleNames) {
             if (bone.name === name || bone.name.includes(name)) {
               hand = bone;
-              console.log('[OtherPlayer] Found hand bone via skeleton:', bone.name);
               break;
             }
           }
@@ -298,16 +297,11 @@ function FullAnimatedAvatar({
           for (const name of possibleNames) {
             if (child.name === name || child.name.includes(name)) {
               hand = child;
-              console.log('[OtherPlayer] Found hand bone directly:', child.name);
               return;
             }
           }
         }
       });
-    }
-
-    if (!hand) {
-      console.warn('[OtherPlayer] Could not find RightHand bone!');
     }
 
     return hand;
@@ -426,15 +420,6 @@ function FullAnimatedAvatar({
     }
   }, [animationState, actions]);
 
-  // Debug weapon state
-  useEffect(() => {
-    console.log('[OtherPlayer] Weapon state:', {
-      weaponType,
-      hasRightHandBone: !!rightHandBone,
-      shouldShowWeapon: weaponType !== 'none' && !!rightHandBone,
-    });
-  }, [weaponType, rightHandBone]);
-
   return (
     <group ref={group}>
       <primitive object={clonedScene} position={[0, 0, 0]} />
@@ -484,7 +469,8 @@ interface OtherPlayerProps {
   player: Player3D;
 }
 
-function OtherPlayer({ player }: OtherPlayerProps) {
+// Memoized to prevent re-renders when other players update
+const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
   const [lod, setLod] = useState<'full' | 'simple' | 'hidden'>('simple');
@@ -602,7 +588,22 @@ function OtherPlayer({ player }: OtherPlayerProps) {
       </Billboard>
     </group>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison to check if player data actually changed
+  const prev = prevProps.player;
+  const next = nextProps.player;
+  return (
+    prev.id === next.id &&
+    prev.position.x === next.position.x &&
+    prev.position.y === next.position.y &&
+    prev.position.z === next.position.z &&
+    prev.rotation.y === next.rotation.y &&
+    prev.animationState === next.animationState &&
+    prev.weaponType === next.weaponType &&
+    prev.avatarUrl === next.avatarUrl &&
+    prev.color === next.color
+  );
+});
 
 export interface OtherPlayersProps {
   players: Player3D[];

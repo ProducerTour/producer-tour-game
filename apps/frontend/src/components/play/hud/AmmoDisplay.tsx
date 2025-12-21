@@ -6,7 +6,10 @@
 import { useCombatStore } from '../combat/useCombatStore';
 
 export function AmmoDisplay() {
-  const { currentWeapon, ammo, isReloading } = useCombatStore();
+  // Use selectors to prevent re-renders when unrelated state changes
+  const currentWeapon = useCombatStore((s) => s.currentWeapon);
+  const ammo = useCombatStore((s) => s.ammo);
+  const isReloading = useCombatStore((s) => s.isReloading);
 
   if (currentWeapon === 'none') return null;
 

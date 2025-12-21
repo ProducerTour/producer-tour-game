@@ -20,7 +20,10 @@ export function Crosshair({
   fireColor = '#ef4444',
   size = 4,
 }: CrosshairProps) {
-  const { currentWeapon, isReloading, isFiring } = useCombatStore();
+  // Use selectors to prevent re-renders when unrelated state changes
+  const currentWeapon = useCombatStore((s) => s.currentWeapon);
+  const isReloading = useCombatStore((s) => s.isReloading);
+  const isFiring = useCombatStore((s) => s.isFiring);
 
   if (currentWeapon === 'none') return null;
 

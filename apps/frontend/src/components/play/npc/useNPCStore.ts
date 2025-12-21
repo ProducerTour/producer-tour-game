@@ -31,6 +31,19 @@ export interface NPCData {
   health: number;
   maxHealth: number;
 
+  // Combat stats (for hostile NPCs)
+  attackDamage?: number;      // Damage per attack (default: 10)
+  attackCooldown?: number;    // Time between attacks in ms (default: 1500)
+  aggroRange?: number;        // Distance to detect player (default: 15)
+  attackRange?: number;       // Melee attack range (default: 2)
+  lastAttackTime?: number;    // Timestamp of last attack
+  isAggro?: boolean;          // Currently aggro'd on player
+
+  // Respawn configuration
+  respawnTime?: number; // Time in ms to respawn (0 or undefined = no respawn)
+  spawnPosition?: { x: number; y: number; z: number }; // Original spawn point
+  deathTime?: number; // Timestamp when NPC died
+
   // Patrol config
   patrolPoints?: PatrolPoint[];
   currentPatrolIndex?: number;
@@ -41,7 +54,9 @@ export interface NPCData {
   interactionRange: number;
 
   // Visual
-  avatarUrl?: string;
+  avatarUrl?: string;      // Mixamo-animated RPM avatar
+  modelUrl?: string;       // GLB model (static or animated)
+  animated?: boolean;      // If true with modelUrl, use Mixamo animations
   color?: string;
   scale?: number;
 }
@@ -66,6 +81,7 @@ interface NPCStore {
   setNPCState: (id: string, state: NPCState) => void;
   setNPCBehavior: (id: string, behavior: NPCBehavior) => void;
   damageNPC: (id: string, damage: number) => void;
+  respawnNPC: (id: string) => void;
 
   // Interaction
   setSelectedNPC: (id: string | null) => void;
@@ -151,16 +167,42 @@ export const useNPCStore = create<NPCStore>((set, get) => ({
   damageNPC: (id, damage) => {
     const npcs = new Map(get().npcs);
     const npc = npcs.get(id);
-    if (npc) {
+    if (npc && npc.state !== 'dead') {
       const newHealth = Math.max(0, npc.health - damage);
+      const isDead = newHealth <= 0;
+
       npcs.set(id, {
         ...npc,
         health: newHealth,
-        state: newHealth <= 0 ? 'dead' : npc.state,
-        behavior: newHealth <= 0 ? 'idle' : npc.behavior,
+        state: isDead ? 'dead' : npc.state,
+        behavior: isDead ? 'idle' : npc.behavior,
+        deathTime: isDead ? Date.now() : npc.deathTime,
       });
       set({ npcs });
+
+      // Schedule respawn if configured
+      if (isDead && npc.respawnTime && npc.respawnTime > 0) {
+        setTimeout(() => {
+          get().respawnNPC(id);
+        }, npc.respawnTime);
+      }
     }
+  },
+
+  respawnNPC: (id) => {
+    const npcs = new Map(get().npcs);
+    const npc = npcs.get(id);
+    if (!npc) return;
+
+    npcs.set(id, {
+      ...npc,
+      health: npc.maxHealth,
+      state: 'idle',
+      behavior: npc.behavior === 'idle' ? 'wander' : npc.behavior, // Resume behavior
+      position: npc.spawnPosition || npc.position,
+      deathTime: undefined,
+    });
+    set({ npcs });
   },
 
   // Interaction
@@ -229,12 +271,16 @@ export function createNPC(options: Partial<NPCData> & { name: string; position: 
     state: options.state || 'idle',
     health: options.health ?? 100,
     maxHealth: options.maxHealth ?? 100,
+    respawnTime: options.respawnTime,
+    spawnPosition: options.spawnPosition || options.position, // Default to initial position
     patrolPoints: options.patrolPoints,
     currentPatrolIndex: 0,
     dialogueId: options.dialogueId,
     isInteractable: options.isInteractable ?? true,
     interactionRange: options.interactionRange ?? 3,
     avatarUrl: options.avatarUrl,
+    modelUrl: options.modelUrl,
+    animated: options.animated ?? false,
     color: options.color || '#8b5cf6',
     scale: options.scale ?? 1,
   };

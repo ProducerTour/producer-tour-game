@@ -5,16 +5,35 @@
 
 import { useRef, useCallback, useEffect } from 'react';
 import { useSoundEffects, SFX } from './useSoundEffects';
+import { SWIM_STROKE_INTERVAL, SWIM_VOLUME_MULTIPLIER } from './footstepConfig';
 
-export type GroundSurface = 'concrete' | 'grass' | 'metal' | 'wood' | 'water';
+export type GroundSurface =
+  | 'concrete'
+  | 'grass'
+  | 'metal'
+  | 'wood'
+  | 'sand'
+  | 'rock'
+  | 'snow'
+  | 'mud'
+  | 'water';
 
 // Surface-specific footstep sounds
 const FOOTSTEP_SOUNDS: Record<GroundSurface, string[]> = {
+  // Existing surfaces
   concrete: [SFX.footstepConcrete1, SFX.footstepConcrete2, SFX.footstepConcrete3],
   grass: [SFX.footstepGrass1, SFX.footstepGrass2],
   metal: [SFX.footstepMetal1, SFX.footstepMetal2],
-  wood: [SFX.footstepConcrete1, SFX.footstepConcrete2], // Fallback
-  water: [SFX.footstepGrass1, SFX.footstepGrass2], // Fallback
+  wood: [SFX.footstepConcrete1, SFX.footstepConcrete2], // Fallback to concrete
+
+  // Terrain surfaces
+  sand: [SFX.footstepSand1, SFX.footstepSand2],
+  rock: [SFX.footstepRock1, SFX.footstepRock2],
+  snow: [SFX.footstepSnow1, SFX.footstepSnow2],
+  mud: [SFX.footstepMud1, SFX.footstepMud2],
+
+  // Swimming sounds (instead of footsteps)
+  water: [SFX.swimStroke1, SFX.swimStroke2],
 };
 
 // Step intervals based on movement speed
@@ -50,12 +69,17 @@ export function useFootsteps(options: UseFootstepsOptions = {}) {
     surface: 'concrete',
   });
 
-  // Preload footstep sounds
+  // Preload footstep sounds (all surfaces including terrain types)
   useEffect(() => {
     preloadMany([
       ...FOOTSTEP_SOUNDS.concrete,
       ...FOOTSTEP_SOUNDS.grass,
       ...FOOTSTEP_SOUNDS.metal,
+      ...FOOTSTEP_SOUNDS.sand,
+      ...FOOTSTEP_SOUNDS.rock,
+      ...FOOTSTEP_SOUNDS.snow,
+      ...FOOTSTEP_SOUNDS.mud,
+      ...FOOTSTEP_SOUNDS.water,
     ]);
   }, [preloadMany]);
 
@@ -66,7 +90,9 @@ export function useFootsteps(options: UseFootstepsOptions = {}) {
 
   // Get current step interval
   const getStepInterval = useCallback(() => {
-    const { isCrouching, isRunning } = currentState.current;
+    const { isCrouching, isRunning, surface } = currentState.current;
+    // Swimming uses slower stroke interval
+    if (surface === 'water') return SWIM_STROKE_INTERVAL;
     if (isCrouching) return STEP_INTERVALS.crouch;
     if (isRunning) return STEP_INTERVALS.run;
     return STEP_INTERVALS.walk;
@@ -86,7 +112,9 @@ export function useFootsteps(options: UseFootstepsOptions = {}) {
     // Volume variation
     const volumeVariation = 0.8 + Math.random() * 0.4;
     const speedVolume = isRunning ? 1.2 : isCrouching ? 0.6 : 1;
-    const finalVolume = volume * volumeVariation * speedVolume;
+    // Apply swim volume multiplier for water sounds
+    const surfaceVolume = surface === 'water' ? SWIM_VOLUME_MULTIPLIER : 1;
+    const finalVolume = volume * volumeVariation * speedVolume * surfaceVolume;
 
     // Pitch variation (slight randomization)
     const pitchVariation = 0.95 + Math.random() * 0.1;

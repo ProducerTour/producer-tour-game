@@ -80,7 +80,6 @@ export const useSoundStore = create<SoundState>()(
           }
 
           set({ audioContext: ctx, isInitialized: true });
-          console.log('🔊 Audio system initialized');
           return true;
         } catch (error) {
           console.error('Failed to initialize audio:', error);

@@ -1,24 +1,19 @@
 import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { PerformanceMonitor, Stats } from '@react-three/drei';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   Settings,
   User,
-  Map,
-  MessageCircle,
   Users,
   Music,
   Sparkles,
   Volume2,
-  VolumeX,
   Gamepad2,
-  Wallet,
   ChevronRight,
   Zap,
-  Crown,
-  Star,
   Pause,
   Play,
   Save
@@ -27,11 +22,12 @@ import { Leva } from 'leva';
 import { PlayWorld, type PlayerInfo } from '../components/play/PlayWorld';
 import { AvatarCreator } from '../components/play/AvatarCreator';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
-import { PlayerHealthBar, AmmoDisplay, Crosshair } from '../components/play/hud';
-import { QuestTracker } from '../components/play/quest/QuestTracker';
+import { Crosshair } from '../components/play/hud';
+import { GTAMinimap } from '../components/play/ui/GTAMinimap';
 import { DevConsole, DevPanel } from '../components/play/debug';
 import { UpdateOverlay } from '../components/play/UpdateOverlay';
 import { KeybindsMenu } from '../components/play/settings';
+import { WorldMap } from '../components/play/ui/WorldMap';
 import { userApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import { useGameSettings, SHADOW_MAP_SIZES } from '../store/gameSettings.store';
@@ -47,7 +43,6 @@ interface WorldState {
   avatarUrl: string | null;
   settings: {
     isMuted: boolean;
-    showMiniMap: boolean;
   };
   stats: {
     level: number;
@@ -194,94 +189,7 @@ function LoadingScreen() {
   );
 }
 
-// Sandbox-style HUD button
-function HudButton({
-  icon: Icon,
-  label,
-  onClick,
-  badge,
-  active,
-  gradient
-}: {
-  icon: typeof Map;
-  label: string;
-  onClick: () => void;
-  badge?: number;
-  active?: boolean;
-  gradient?: string;
-}) {
-  return (
-    <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      onClick={onClick}
-      className={`
-        relative group p-3 rounded-xl backdrop-blur-xl transition-all duration-300
-        ${active
-          ? 'bg-violet-600/30 border-violet-500/50'
-          : 'bg-black/40 border-white/10 hover:bg-white/10 hover:border-white/20'
-        }
-        border
-      `}
-      title={label}
-    >
-      {gradient ? (
-        <div className={`w-5 h-5 rounded bg-gradient-to-br ${gradient} flex items-center justify-center`}>
-          <Icon className="w-3 h-3 text-white" />
-        </div>
-      ) : (
-        <Icon className={`w-5 h-5 ${active ? 'text-violet-400' : 'text-white/70 group-hover:text-white'}`} />
-      )}
-      {badge && badge > 0 && (
-        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
-          {badge > 9 ? '9+' : badge}
-        </span>
-      )}
-    </motion.button>
-  );
-}
 
-// Mini map with Sandbox styling
-function MiniMap({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="relative">
-      {/* Gradient border effect */}
-      <div className="absolute -inset-[1px] bg-gradient-to-br from-violet-500/50 via-fuchsia-500/50 to-cyan-500/50 rounded-2xl" />
-      <div className="relative w-44 h-44 bg-[#12121a] rounded-2xl p-3 backdrop-blur-xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">World Map</span>
-          <button onClick={onClose} className="text-white/30 hover:text-white text-xs">×</button>
-        </div>
-
-        {/* Map area */}
-        <div className="w-full h-[120px] bg-black/50 rounded-lg relative overflow-hidden">
-          {/* Grid */}
-          <div
-            className="absolute inset-0 opacity-30"
-            style={{
-              backgroundImage: 'linear-gradient(rgba(139,92,246,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.3) 1px, transparent 1px)',
-              backgroundSize: '20px 20px'
-            }}
-          />
-
-          {/* Zone markers */}
-          <div className="absolute top-[20%] right-[25%] w-2.5 h-2.5 rounded-full bg-violet-500 shadow-lg shadow-violet-500/50" />
-          <div className="absolute top-[20%] left-[25%] w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/50" />
-          <div className="absolute top-[15%] left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-amber-500 shadow-lg shadow-amber-500/50" />
-          <div className="absolute bottom-[30%] left-[20%] w-2.5 h-2.5 rounded-full bg-pink-500 shadow-lg shadow-pink-500/50" />
-          <div className="absolute bottom-[30%] right-[20%] w-2.5 h-2.5 rounded-full bg-cyan-500 shadow-lg shadow-cyan-500/50" />
-
-          {/* Player marker */}
-          <div className="absolute bottom-[40%] left-1/2 -translate-x-1/2">
-            <div className="w-3 h-3 rounded-full bg-white shadow-lg shadow-white/50 animate-pulse" />
-            <div className="absolute inset-0 w-3 h-3 rounded-full bg-white/30 animate-ping" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Pause Menu
 function PauseMenu({
@@ -392,6 +300,7 @@ function SettingsPanel({ onBack }: { onBack: () => void }) {
   const {
     shadowQuality,
     renderDistance,
+    fogEnabled,
     fov,
     showFps,
     masterVolume,
@@ -401,6 +310,7 @@ function SettingsPanel({ onBack }: { onBack: () => void }) {
     invertY,
     setShadowQuality,
     setRenderDistance,
+    setFogEnabled,
     setFov,
     setShowFps,
     setMasterVolume,
@@ -511,7 +421,24 @@ function SettingsPanel({ onBack }: { onBack: () => void }) {
                     </div>
                   </div>
 
-                  {/* Render Distance */}
+                  {/* Fog Toggle */}
+                  <div className="flex items-center justify-between">
+                    <label className="text-white/70 text-sm">Distance Fog</label>
+                    <button
+                      onClick={() => setFogEnabled(!fogEnabled)}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${
+                        fogEnabled ? 'bg-violet-600' : 'bg-white/20'
+                      }`}
+                    >
+                      <div
+                        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                          fogEnabled ? 'left-7' : 'left-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Render Distance (controls fog far) */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-white/70 text-sm">Render Distance</label>
@@ -519,12 +446,17 @@ function SettingsPanel({ onBack }: { onBack: () => void }) {
                     </div>
                     <input
                       type="range"
-                      min="30"
-                      max="200"
+                      min="50"
+                      max="400"
+                      step="10"
                       value={renderDistance}
                       onChange={(e) => setRenderDistance(Number(e.target.value))}
                       className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-violet-500"
+                      disabled={!fogEnabled}
                     />
+                    <p className="text-white/40 text-xs">
+                      {fogEnabled ? 'Controls how far you can see before fog appears' : 'Enable fog to adjust render distance'}
+                    </p>
                   </div>
 
                   {/* FOV */}
@@ -718,35 +650,6 @@ function SettingsPanel({ onBack }: { onBack: () => void }) {
   );
 }
 
-// Player stats panel
-function PlayerStats({ level, xp, maxXp }: { level: number; xp: number; maxXp: number }) {
-  return (
-    <div className="flex items-center gap-3">
-      {/* Level badge */}
-      <div className="relative">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-          <span className="text-white font-black text-sm">{level}</span>
-        </div>
-        <Crown className="w-4 h-4 text-yellow-400 absolute -top-1 -right-1" />
-      </div>
-
-      {/* XP bar */}
-      <div className="hidden sm:block">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-white/50 text-xs">Level {level}</span>
-          <span className="text-white/30 text-xs">•</span>
-          <span className="text-violet-400 text-xs font-medium">{xp}/{maxXp} XP</span>
-        </div>
-        <div className="w-32 h-1.5 bg-white/10 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full"
-            style={{ width: `${(xp / maxXp) * 100}%` }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Welcome modal with Sandbox styling
 function WelcomeModal({
@@ -871,9 +774,22 @@ export default function PlayPage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(savedState.current?.avatarUrl || null);
   const [isAvatarCreatorOpen, setIsAvatarCreatorOpen] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [isMuted, setIsMuted] = useState(savedState.current?.settings?.isMuted ?? false);
-  const [showMiniMap, setShowMiniMap] = useState(savedState.current?.settings?.showMiniMap ?? true);
+  // Adaptive DPR - starts at 1.5, scales down on low FPS, up on high FPS
+  const [dpr, setDpr] = useState(1);
+  const [isMuted, _setIsMuted] = useState(savedState.current?.settings?.isMuted ?? false);
+  void _setIsMuted; // Reserved for future use
   const [showSettings, setShowSettings] = useState(false);
+  const [showFps, setShowFps] = useState(false);
+  const [showWorldMap, setShowWorldMap] = useState(false);
+  const [playerRotation, setPlayerRotation] = useState(0); // Y-axis rotation in radians
+  const [terrainSettings, setTerrainSettings] = useState({ seed: 12345, terrainRadius: 4 });
+
+  // Listen for /fps command from DevConsole
+  useEffect(() => {
+    const handleToggleFps = () => setShowFps(prev => !prev);
+    window.addEventListener('devConsole:toggleFps', handleToggleFps);
+    return () => window.removeEventListener('devConsole:toggleFps', handleToggleFps);
+  }, []);
 
   // Skip welcome modal if returning from an interior (sessionStorage flag set on entry)
   const [showWelcome, setShowWelcome] = useState(() => {
@@ -908,10 +824,10 @@ export default function PlayPage() {
   }, [showWelcome, isPaused]);
 
   // Auto-save hook - saves every 5 seconds and on position change
-  const { saveStatus } = useAutoSave({
+  useAutoSave({
     playerPosition: playerCoords,
     avatarUrl,
-    settings: { isMuted, showMiniMap },
+    settings: { isMuted },
     stats: { level: playerStats.level, xp: playerStats.xp },
   }, 5000);
 
@@ -928,6 +844,21 @@ export default function PlayPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showWelcome, isAvatarCreatorOpen]);
+
+  // Handle M key for world map toggle
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'KeyM') {
+        // Don't toggle map if welcome modal, pause, or avatar creator is open
+        if (showWelcome || isPaused || isAvatarCreatorOpen) return;
+        e.preventDefault();
+        setShowWorldMap(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showWelcome, isPaused, isAvatarCreatorOpen]);
 
   // Focus container when modals close to capture keyboard events
   const focusContainer = useCallback(() => {
@@ -1066,188 +997,60 @@ export default function PlayPage() {
         )}
       </AnimatePresence>
 
-      {/* Auto-save indicator */}
-      <AnimatePresence>
-        {saveStatus === 'saving' && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="fixed top-20 right-4 z-50 flex items-center gap-2 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-lg"
+      {/* Avatar Button - Top Right */}
+      {!showWelcome && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="fixed top-4 right-4 z-50"
+        >
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsAvatarCreatorOpen(true)}
+            className={`
+              p-3 rounded-xl backdrop-blur-xl transition-all duration-300
+              ${avatarUrl
+                ? 'bg-violet-600/30 border-violet-500/50'
+                : 'bg-black/40 border-white/10 hover:bg-white/10 hover:border-white/20'
+              }
+              border
+            `}
+            title="Create Avatar"
           >
-            <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-            <span className="text-white/60 text-xs">Saving...</span>
-          </motion.div>
-        )}
-        {saveStatus === 'saved' && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="fixed top-20 right-4 z-50 flex items-center gap-2 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-lg"
-          >
-            <Save className="w-3 h-3 text-emerald-400" />
-            <span className="text-white/60 text-xs">Saved</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Top HUD */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: showWelcome ? 0 : 1, y: showWelcome ? -20 : 0 }}
-        transition={{ delay: 0.3 }}
-        className="absolute top-0 left-0 right-0 z-50"
-      >
-        {/* Gradient top border */}
-        <div className="h-[1px] bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
-
-        <div className="flex items-center justify-between p-4">
-          {/* Left: Back & Stats */}
-          <div className="flex items-center gap-4">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/')}
-              className="p-2.5 rounded-xl bg-black/40 backdrop-blur-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </motion.button>
-
-            <PlayerStats {...playerStats} />
-          </div>
-
-          {/* Center: Logo */}
-          <div className="hidden md:flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center">
-              <Music className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h1 className="text-white font-bold text-sm">PRODUCER TOUR</h1>
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-white/40 text-xs">{onlineCount} online</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Actions */}
-          <div className="flex items-center gap-2">
-            <HudButton
-              icon={Wallet}
-              label="Wallet"
-              onClick={() => {}}
-              gradient="from-amber-500 to-orange-500"
-            />
-            <HudButton
-              icon={User}
-              label="Avatar"
-              onClick={() => setIsAvatarCreatorOpen(true)}
-              active={!!avatarUrl}
-            />
-            <HudButton
-              icon={MessageCircle}
-              label="Chat"
-              onClick={() => {}}
-              badge={3}
-            />
-            <HudButton
-              icon={Settings}
-              label="Settings"
-              onClick={() => {}}
-            />
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Left sidebar - Quick actions */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: showWelcome ? 0 : 1, x: showWelcome ? -20 : 0 }}
-        transition={{ delay: 0.5 }}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-2"
-      >
-        {[
-          { icon: Map, label: 'Map', active: showMiniMap, onClick: () => setShowMiniMap(!showMiniMap) },
-          { icon: Star, label: 'Quests', onClick: () => {} },
-          { icon: Users, label: 'Friends', onClick: () => {} },
-        ].map((item) => (
-          <HudButton
-            key={item.label}
-            icon={item.icon}
-            label={item.label}
-            onClick={item.onClick}
-            active={item.active}
-          />
-        ))}
-      </motion.div>
-
-      {/* Mini map */}
-      <AnimatePresence>
-        {showMiniMap && !showWelcome && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, x: 20 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.9, x: 20 }}
-            className="absolute bottom-4 right-4 z-50"
-          >
-            <MiniMap onClose={() => setShowMiniMap(false)} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Bottom HUD */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: showWelcome ? 0 : 1, y: showWelcome ? 20 : 0 }}
-        transition={{ delay: 0.4 }}
-        className="absolute bottom-0 left-0 right-0 z-50"
-      >
-        <div className="flex items-center justify-between p-4">
-          {/* Sound toggle */}
-          <HudButton
-            icon={isMuted ? VolumeX : Volume2}
-            label={isMuted ? 'Unmute' : 'Mute'}
-            onClick={() => setIsMuted(!isMuted)}
-          />
-
-          {/* Controls hint */}
-          <div className="px-4 py-2 rounded-full bg-black/40 backdrop-blur-xl border border-white/10">
-            <span className="text-white/40 text-xs">
-              <span className="text-white/60 font-medium">WASD</span> move •{' '}
-              <span className="text-white/60 font-medium">Shift</span> sprint •{' '}
-              <span className="text-white/60 font-medium">ESC</span> pause
-            </span>
-          </div>
-
-          {/* Coordinates */}
-          <div className="px-3 py-1.5 rounded-lg bg-black/40 backdrop-blur-xl border border-white/10">
-            <span className="text-white/40 text-xs font-mono">
-              X: {playerCoords.x.toFixed(0)} Y: {playerCoords.y.toFixed(0)} Z: {playerCoords.z.toFixed(0)}
-            </span>
-          </div>
-        </div>
-
-        {/* Gradient bottom border */}
-        <div className="h-[1px] bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
-      </motion.div>
+            <User className={`w-5 h-5 ${avatarUrl ? 'text-violet-400' : 'text-white/70'}`} />
+          </motion.button>
+        </motion.div>
+      )}
 
       {/* 3D Canvas */}
       <ErrorBoundary fallback="fullPage">
         <Suspense fallback={<LoadingScreen />}>
           <Canvas
-            camera={{ position: [0, 8, 20], fov: 50 }}
-            shadows
+            camera={{ position: [0, 8, 20], fov: 50, far: 800 }}
             gl={{
-              antialias: true,
+              antialias: false,
               alpha: false,
-              powerPreference: 'high-performance'
+              powerPreference: 'high-performance',
+              depth: true,
+              stencil: false,
             }}
-            dpr={[1, 2]}
+            dpr={dpr}
           >
+            {/* Auto-adjust quality based on frame rate */}
+            <PerformanceMonitor
+              onIncline={() => setDpr(Math.min(2, dpr + 0.25))}
+              onDecline={() => setDpr(Math.max(0.75, dpr - 0.25))}
+              flipflops={3}
+              onFallback={() => setDpr(1)}
+            />
+            {/* FPS/Performance stats - toggle via settings or /fps command */}
+            {showFps && <Stats />}
             <PlayWorld
               avatarUrl={avatarUrl || undefined}
               onPlayerPositionChange={(pos) => setPlayerCoords({ x: pos.x, y: pos.y, z: pos.z })}
+              onPlayerRotationChange={setPlayerRotation}
+              onTerrainSettingsChange={setTerrainSettings}
               onPlayersChange={setOnlinePlayers}
             />
           </Canvas>
@@ -1255,14 +1058,29 @@ export default function PlayPage() {
       </ErrorBoundary>
 
       {/* Game HUD Overlays */}
-      <PlayerHealthBar />
-      <AmmoDisplay />
-      <QuestTracker />
+      {!showWelcome && (
+        <GTAMinimap
+          playerX={playerCoords.x}
+          playerZ={playerCoords.z}
+          playerRotation={playerRotation}
+        />
+      )}
       <Crosshair />
 
       {/* Dev Tools */}
       <DevConsole onlinePlayers={onlinePlayers} />
       <DevPanel />
+
+      {/* World Map Overlay - Press M to toggle */}
+      <WorldMap
+        isOpen={showWorldMap}
+        onClose={() => setShowWorldMap(false)}
+        playerX={playerCoords.x}
+        playerZ={playerCoords.z}
+        playerRotation={playerRotation}
+        terrainRadius={terrainSettings.terrainRadius}
+        seed={terrainSettings.seed}
+      />
     </div>
   );
 }

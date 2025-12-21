@@ -133,11 +133,19 @@ app.use(express.json({ limit: '10mb' })); // Increased for base64 image uploads
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // File upload middleware
-app.use(fileUpload({
-  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') }, // 10MB default
-  abortOnLimit: true,
-  createParentPath: true,
-}));
+// Skip for routes that use multer (agreement routes use multer for PDF uploads)
+app.use((req, res, next) => {
+  // Skip express-fileupload for agreement template uploads (uses multer)
+  if (req.path.startsWith('/api/agreements/templates') && req.method === 'POST') {
+    return next();
+  }
+
+  fileUpload({
+    limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760') }, // 10MB default
+    abortOnLimit: true,
+    createParentPath: true,
+  })(req, res, next);
+});
 
 // Static file serving for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

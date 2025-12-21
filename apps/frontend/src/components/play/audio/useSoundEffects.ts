@@ -15,7 +15,7 @@ export const SFX = {
   uiOpen: getAudioPath('sfx/ui_open.mp3'),
   uiClose: getAudioPath('sfx/ui_close.mp3'),
 
-  // Player
+  // Player - Footsteps (existing surfaces)
   footstepConcrete1: getAudioPath('sfx/footstep_concrete_1.mp3'),
   footstepConcrete2: getAudioPath('sfx/footstep_concrete_2.mp3'),
   footstepConcrete3: getAudioPath('sfx/footstep_concrete_3.mp3'),
@@ -23,6 +23,22 @@ export const SFX = {
   footstepGrass2: getAudioPath('sfx/footstep_grass_2.mp3'),
   footstepMetal1: getAudioPath('sfx/footstep_metal_1.mp3'),
   footstepMetal2: getAudioPath('sfx/footstep_metal_2.mp3'),
+
+  // Player - Footsteps (terrain surfaces)
+  footstepSand1: getAudioPath('sfx/footstep_sand_1.mp3'),
+  footstepSand2: getAudioPath('sfx/footstep_sand_2.mp3'),
+  footstepRock1: getAudioPath('sfx/footstep_rock_1.mp3'),
+  footstepRock2: getAudioPath('sfx/footstep_rock_2.mp3'),
+  footstepSnow1: getAudioPath('sfx/footstep_snow_1.mp3'),
+  footstepSnow2: getAudioPath('sfx/footstep_snow_2.mp3'),
+  footstepMud1: getAudioPath('sfx/footstep_mud_1.mp3'),
+  footstepMud2: getAudioPath('sfx/footstep_mud_2.mp3'),
+
+  // Player - Swimming
+  swimStroke1: getAudioPath('sfx/swim_stroke_1.mp3'),
+  swimStroke2: getAudioPath('sfx/swim_stroke_2.mp3'),
+
+  // Player - Movement
   jump: getAudioPath('sfx/jump.mp3'),
   land: getAudioPath('sfx/land.mp3'),
   dash: getAudioPath('sfx/dash.mp3'),
@@ -153,7 +169,7 @@ export function useSoundEffects(options: UseSoundEffectsOptions = {}) {
         return audio;
       } catch (error) {
         // Play was prevented (user hasn't interacted yet)
-        console.debug('Sound play prevented:', name);
+        console.warn('🔇 Sound play prevented:', name, error);
         return null;
       }
     },

@@ -4,3 +4,5 @@ export { CyberpunkGround } from './CyberpunkGround';
 export type { CyberpunkGroundProps } from './CyberpunkGround';
 export { BaseWorld } from './BaseWorld';
 export type { BaseWorldProps } from './BaseWorld';
+export { Campfire } from './Campfire';
+export type { CampfireProps } from './Campfire';

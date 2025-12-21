@@ -6,7 +6,8 @@ type ShadowQuality = 'off' | 'low' | 'medium' | 'high';
 interface GameSettingsState {
   // Graphics
   shadowQuality: ShadowQuality;
-  renderDistance: number;
+  renderDistance: number; // Controls fog far distance (meters)
+  fogEnabled: boolean;
   fov: number;
   showFps: boolean;
 
@@ -25,6 +26,7 @@ interface GameSettingsState {
   // Actions - Graphics
   setShadowQuality: (quality: ShadowQuality) => void;
   setRenderDistance: (distance: number) => void;
+  setFogEnabled: (enabled: boolean) => void;
   setFov: (fov: number) => void;
   setShowFps: (show: boolean) => void;
 
@@ -49,7 +51,8 @@ interface GameSettingsState {
 const DEFAULT_SETTINGS = {
   // Graphics
   shadowQuality: 'medium' as ShadowQuality,
-  renderDistance: 100,
+  renderDistance: 150, // Fog far distance in meters
+  fogEnabled: true,
   fov: 75,
   showFps: false,
 
@@ -73,7 +76,8 @@ export const useGameSettings = create<GameSettingsState>()(
 
       // Graphics setters
       setShadowQuality: (quality) => set({ shadowQuality: quality }),
-      setRenderDistance: (distance) => set({ renderDistance: Math.max(10, Math.min(500, distance)) }),
+      setRenderDistance: (distance) => set({ renderDistance: Math.max(50, Math.min(400, distance)) }),
+      setFogEnabled: (enabled) => set({ fogEnabled: enabled }),
       setFov: (fov) => set({ fov: Math.max(30, Math.min(120, fov)) }),
       setShowFps: (show) => set({ showFps: show }),
 
@@ -103,6 +107,7 @@ export const useGameSettings = create<GameSettingsState>()(
       partialize: (state) => ({
         shadowQuality: state.shadowQuality,
         renderDistance: state.renderDistance,
+        fogEnabled: state.fogEnabled,
         fov: state.fov,
         showFps: state.showFps,
         masterVolume: state.masterVolume,

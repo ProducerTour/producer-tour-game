@@ -4,6 +4,9 @@ import { useAuthStore } from '../../../store/auth.store';
 import { usePlayerStore } from '../../../store/player.store';
 import * as THREE from 'three';
 
+// Debug logging - set to false to reduce console spam
+const DEBUG_MULTIPLAYER = false;
+
 export interface Player3D {
   id: string;
   username: string;
@@ -56,7 +59,7 @@ export function usePlayMultiplayer({
     if (enabled && !isInRoom) {
       // Join play room
       const pilotName = username || `Player_${Math.random().toString(36).slice(2, 6)}`;
-      console.log('[Play Multiplayer] Joining play room as:', pilotName);
+      if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Joining play room as:', pilotName);
       socket.emit('3d:join', {
         username: pilotName,
         color,
@@ -66,7 +69,7 @@ export function usePlayMultiplayer({
       setIsInRoom(true);
     } else if (!enabled && isInRoom) {
       // Leave play room
-      console.log('[Play Multiplayer] Leaving play room');
+      if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Leaving play room');
       socket.emit('3d:leave');
       setIsInRoom(false);
       setOtherPlayers([]);
@@ -79,32 +82,29 @@ export function usePlayMultiplayer({
 
     // Receive initial player list when joining
     const handlePlayers = (players: Player3D[]) => {
-      console.log('[Play Multiplayer] Received players list:', players.length, players.map(p => p.username));
+      if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Received players list:', players.length);
       setOtherPlayers(players);
     };
 
     // New player joined
     const handlePlayerJoined = (player: Player3D) => {
-      console.log('[Play Multiplayer] Player joined:', player.username, 'id:', player.id);
+      if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Player joined:', player.username);
       setOtherPlayers((prev) => {
         // Avoid duplicates
         if (prev.find((p) => p.id === player.id)) {
-          console.log('[Play Multiplayer] Duplicate player, ignoring:', player.username);
           return prev;
         }
-        const newList = [...prev, player];
-        console.log('[Play Multiplayer] Updated player list:', newList.length, newList.map(p => p.username));
-        return newList;
+        return [...prev, player];
       });
     };
 
     // Player left
     const handlePlayerLeft = ({ id }: { id: string }) => {
-      console.log('[Play Multiplayer] Player left:', id);
+      if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Player left:', id);
       setOtherPlayers((prev) => prev.filter((p) => p.id !== id));
     };
 
-    // Player moved
+    // Player moved (high frequency - no logging)
     const handlePlayerMoved = (data: {
       id: string;
       position: { x: number; y: number; z: number };
@@ -112,11 +112,6 @@ export function usePlayMultiplayer({
       animationState?: string;
       weaponType?: 'none' | 'rifle' | 'pistol';
     }) => {
-      // Debug: Log weapon changes
-      if (data.weaponType && data.weaponType !== 'none') {
-        console.log('[Play Multiplayer] Player weapon update:', data.id.slice(0, 8), 'weapon:', data.weaponType);
-      }
-
       setOtherPlayers((prev) =>
         prev.map((p) =>
           p.id === data.id
@@ -156,7 +151,7 @@ export function usePlayMultiplayer({
 
     // Player count update
     const handlePlayerCount = (count: number) => {
-      console.log('[Play Multiplayer] Player count:', count);
+      if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Player count:', count);
       setPlayerCount(count);
     };
 
@@ -181,7 +176,7 @@ export function usePlayMultiplayer({
   useEffect(() => {
     return () => {
       if (socket && isInRoom) {
-        console.log('[Play Multiplayer] Cleanup: leaving room');
+        if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Cleanup: leaving room');
         socket.emit('3d:leave');
       }
     };

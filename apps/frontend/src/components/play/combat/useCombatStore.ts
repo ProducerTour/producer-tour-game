@@ -81,7 +81,15 @@ export const WEAPON_CONFIG = {
     range: 100,
     magazineSize: 30,
     reloadTime: 2000,
-    spread: 0.02, // radians
+    spread: 0.02, // radians - base accuracy
+    // Bloom: spread increases during sustained fire
+    bloomPerShot: 0.008, // spread added per shot
+    maxBloom: 0.08, // max spread when fully bloomed
+    bloomDecay: 0.15, // spread recovery per second
+    // Recoil: camera kick on fire
+    recoilPitch: 0.015, // upward kick (radians)
+    recoilYaw: 0.005, // random horizontal kick
+    recoilRecovery: 8, // lerp speed back to center
   },
   pistol: {
     damage: 25,
@@ -92,6 +100,12 @@ export const WEAPON_CONFIG = {
     magazineSize: 12,
     reloadTime: 1500,
     spread: 0.01,
+    bloomPerShot: 0.015,
+    maxBloom: 0.06,
+    bloomDecay: 0.25,
+    recoilPitch: 0.025,
+    recoilYaw: 0.008,
+    recoilRecovery: 10,
   },
 } as const;
 

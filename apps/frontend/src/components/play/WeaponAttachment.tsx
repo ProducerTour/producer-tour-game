@@ -13,6 +13,9 @@ import * as THREE from 'three';
 import { getModelPath } from '../../config/assetPaths';
 import { useCombatStore } from './combat/useCombatStore';
 
+// Debug logging - set to false to reduce console spam
+const DEBUG_WEAPON = false;
+
 // Weapon model paths
 export const WEAPONS = {
   rifle: getModelPath('weapons/ak47fbx_gltf/scene.gltf'),
@@ -77,8 +80,8 @@ function findBone(root: THREE.Object3D, names: string[], debug = false): THREE.B
   });
 
   if (debug && !foundBone) {
-    console.log('🦴 All bones found:', allBones);
-    console.log('🦴 Looking for:', names);
+    if (DEBUG_WEAPON) console.log('🦴 All bones found:', allBones);
+    if (DEBUG_WEAPON) console.log('🦴 Looking for:', names);
   }
 
   return foundBone;
@@ -277,7 +280,7 @@ export function WeaponAttachment({
         muzzleFlashRef.current = null;
         muzzleFlashLight.current = null;
         muzzleFlashModel.current = null;
-        console.log('🔫 Weapon detached');
+        if (DEBUG_WEAPON) console.log('🔫 Weapon detached');
       }
       attachedWeaponType.current = weaponType;
       attemptCount.current = 0;
@@ -447,13 +450,13 @@ export function WeaponAttachment({
     // Find the hand bone (debug on first attempt to show all bones)
     const handBone = findBone(avatarRef.current, RIGHT_HAND_BONE_NAMES, attemptCount.current === 1);
     if (!handBone) {
-      if (attemptCount.current === 1) {
+      if (attemptCount.current === 1 && DEBUG_WEAPON) {
         console.log('🔫 Searching for hand bone...');
       }
       return;
     }
 
-    console.log('🔫 Found hand bone:', handBone.name);
+    if (DEBUG_WEAPON) console.log('🔫 Found hand bone:', handBone.name);
 
     // Create a container group for the weapon
     const weaponContainer = new THREE.Group();
@@ -490,15 +493,17 @@ export function WeaponAttachment({
     calculatedBarrelTip.current = barrelTip;
 
     // Log barrel info for debugging - helps tune muzzle flash position
-    const box = new THREE.Box3().setFromObject(gltf.scene);
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    console.log(`🔫 ${weaponType} bounding box:`, {
-      min: { x: box.min.x.toFixed(3), y: box.min.y.toFixed(3), z: box.min.z.toFixed(3) },
-      max: { x: box.max.x.toFixed(3), y: box.max.y.toFixed(3), z: box.max.z.toFixed(3) },
-      size: { x: size.x.toFixed(3), y: size.y.toFixed(3), z: size.z.toFixed(3) },
-      barrelTip: { x: barrelTip.x.toFixed(3), y: barrelTip.y.toFixed(3), z: barrelTip.z.toFixed(3) },
-    });
+    if (DEBUG_WEAPON) {
+      const box = new THREE.Box3().setFromObject(gltf.scene);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      console.log(`🔫 ${weaponType} bounding box:`, {
+        min: { x: box.min.x.toFixed(3), y: box.min.y.toFixed(3), z: box.min.z.toFixed(3) },
+        max: { x: box.max.x.toFixed(3), y: box.max.y.toFixed(3), z: box.max.z.toFixed(3) },
+        size: { x: size.x.toFixed(3), y: size.y.toFixed(3), z: size.z.toFixed(3) },
+        barrelTip: { x: barrelTip.x.toFixed(3), y: barrelTip.y.toFixed(3), z: barrelTip.z.toFixed(3) },
+      });
+    }
 
     // Add weapon to container
     weaponContainer.add(weaponClone);
@@ -576,7 +581,7 @@ export function WeaponAttachment({
     attachedWeapon.current = weaponContainer;
     attachedToBone.current = handBone;
 
-    console.log('🔫 Weapon attached with muzzle flash!', weaponType);
+    if (DEBUG_WEAPON) console.log('🔫 Weapon attached with muzzle flash!', weaponType);
   });
 
   // Cleanup on unmount
@@ -584,7 +589,7 @@ export function WeaponAttachment({
     return () => {
       if (attachedWeapon.current && attachedToBone.current) {
         attachedToBone.current.remove(attachedWeapon.current);
-        console.log('🔫 Weapon cleanup on unmount');
+        if (DEBUG_WEAPON) console.log('🔫 Weapon cleanup on unmount');
       }
     };
   }, []);

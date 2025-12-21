@@ -56,7 +56,9 @@ export type AnimState =
   // Rifle reload states
   | 'rifleReloadStand'
   | 'rifleReloadWalk'
-  | 'rifleReloadCrouch';
+  | 'rifleReloadCrouch'
+  // Death state
+  | 'dying';
 
 export type WeaponType = 'none' | 'rifle' | 'pistol';
 
@@ -65,6 +67,8 @@ export interface AnimationInput {
   isRunning: boolean;
   isGrounded: boolean;
   isJumping: boolean;
+  isFalling?: boolean;    // NEW: Uncontrolled fall state (walked off edge)
+  isLanding?: boolean;    // NEW: Brief landing state
   isCrouching: boolean;
   isDancing: boolean;
   isStrafeLeft: boolean;
@@ -72,6 +76,7 @@ export interface AnimationInput {
   isAiming: boolean;
   isFiring: boolean;
   isReloading?: boolean;
+  isDying?: boolean;      // Death state - highest priority
   weapon: WeaponType;
   velocityY?: number;
 }
@@ -113,6 +118,14 @@ const TRANSITION_STATES: AnimState[] = ['standToCrouch', 'crouchToStand', 'crouc
 
 // Define all state transitions with priorities
 const TRANSITIONS: Transition[] = [
+  // ===== DEATH (absolute highest priority) =====
+  {
+    from: '*',
+    to: 'dying',
+    condition: (i) => i.isDying === true,
+    priority: 150,
+  },
+
   // ===== HIGHEST PRIORITY: Air states =====
   // Rifle jump - from rifle states when in air
   {
@@ -148,11 +161,12 @@ const TRANSITIONS: Transition[] = [
     condition: (i) => i.isJumping && i.weapon !== 'rifle',
     priority: 100,
   },
-  // Fall - from grounded states when falling (walked off edge)
+  // Fall - from grounded states when TRULY falling (walked off edge)
+  // Now simplified: isFalling is computed by PlayerAirState machine (single source of truth)
   {
     from: ['idle', 'walk', 'run', 'rifleIdle', 'rifleWalk', 'rifleRun', 'pistolIdle', 'pistolWalk', 'pistolRun'],
     to: 'fall',
-    condition: (i) => !i.isGrounded && (i.velocityY ?? 0) < -2,
+    condition: (i) => i.isFalling === true,  // Simple check - state machine handles the logic
     priority: 95,
   },
   // Landing while moving - go directly to locomotion (skip awkward 'land' state)
@@ -614,6 +628,8 @@ const STATE_TO_ACTION: Record<AnimState, string> = {
   rifleReloadStand: 'rifleReloadStand',
   rifleReloadWalk: 'rifleReloadWalk',
   rifleReloadCrouch: 'rifleReloadCrouch',
+  // Death
+  dying: 'death',
 };
 
 // Fallbacks for missing animations
@@ -652,6 +668,8 @@ const FALLBACKS: Partial<Record<AnimState, AnimState[]>> = {
   rifleReloadStand: ['rifleIdle'],
   rifleReloadWalk: ['rifleWalk'],
   rifleReloadCrouch: ['crouchRifleIdle'],
+  // Death fallback (will clamp on idle if no death anim)
+  dying: ['idle'],
 };
 
 export interface AnimationStateMachineResult {
@@ -684,12 +702,21 @@ const ONE_SHOT_NEXT_STATE: Partial<Record<AnimState, (input: AnimationInput) => 
     if (i.weapon === 'pistol') return 'pistolRun';
     return 'run';
   },
-  // Jump/rifleJump landings are handled by FSM directly for smoother blending
-  // Only handle the "animation finished while still in air" case here
+  // Jump/rifleJump landings - simplified with PlayerAirState machine
   jump: (i) => {
-    if (!i.isGrounded) return 'fall';
-    // If grounded, let FSM handle the transition with proper timing
-    return i.isMoving ? (i.isRunning ? 'run' : 'walk') : 'idle';
+    // Still in controlled jump? Stay in jump state
+    if (i.isJumping) return 'jump';
+
+    // Grounded or landing? Go to appropriate locomotion state
+    if (i.isGrounded || i.isLanding) {
+      return i.isMoving ? (i.isRunning ? 'run' : 'walk') : 'idle';
+    }
+
+    // Falling? Transition to fall animation
+    if (i.isFalling) return 'fall';
+
+    // Default: stay in jump (shouldn't happen with new state machine)
+    return 'jump';
   },
 };
 
@@ -818,7 +845,6 @@ export function useAnimationStateMachine(
           // Only handle if this is our current action
           if (e.action === currentAction.current && currentState.current === toState) {
             const nextState = nextStateFn(inputRef.current);
-            console.log(`[AnimSM] One-shot finished: ${toState} → ${nextState}`);
 
             // Small delay to ensure smooth transition
             setTimeout(() => {
@@ -885,6 +911,7 @@ export function useAnimationStateMachine(
     input.isAiming,
     input.isFiring,
     input.isReloading,
+    input.isDying,
     input.weapon,
     input.velocityY,
     sortedTransitions,

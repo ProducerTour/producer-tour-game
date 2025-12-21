@@ -7,6 +7,7 @@ import { useCallback, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useCombatStore, WEAPON_CONFIG } from './useCombatStore';
+import { useNPCStore } from '../npc/useNPCStore';
 
 export interface HitResult {
   hit: boolean;
@@ -27,11 +28,19 @@ interface UseHitDetectionOptions {
   layers?: number;
   // Debug mode - shows raycasts
   debug?: boolean;
+  // Get current spread (base + bloom) - from useRecoil
+  getCurrentSpread?: () => number;
+  // Called after successful fire - for recoil/bloom
+  onFire?: () => void;
 }
 
 export function useHitDetection(options: UseHitDetectionOptions = {}) {
   const { scene, camera } = useThree();
-  const { currentWeapon, fire, damageTarget, targets } = useCombatStore();
+  // Use selectors to prevent re-renders when unrelated state changes
+  const currentWeapon = useCombatStore((s) => s.currentWeapon);
+  const fire = useCombatStore((s) => s.fire);
+  const damageTarget = useCombatStore((s) => s.damageTarget);
+  const targets = useCombatStore((s) => s.targets);
 
   const raycaster = useRef(new THREE.Raycaster());
   const debugLines = useRef<THREE.Line[]>([]);
@@ -79,12 +88,16 @@ export function useHitDetection(options: UseHitDetectionOptions = {}) {
       return { hit: false, isCritical: false, damage: 0 };
     }
 
+    // Trigger recoil/bloom callback
+    options.onFire?.();
+
     // Get camera direction
     const direction = new THREE.Vector3();
     camera.getWorldDirection(direction);
 
-    // Apply weapon spread
-    const spreadDirection = applySpread(direction, config.spread);
+    // Apply weapon spread (use bloom spread if provided, otherwise base spread)
+    const currentSpread = options.getCurrentSpread?.() ?? config.spread;
+    const spreadDirection = applySpread(direction, currentSpread);
 
     // Setup raycaster
     raycaster.current.set(camera.position, spreadDirection);
@@ -169,9 +182,30 @@ export function useHitDetection(options: UseHitDetectionOptions = {}) {
       damage *= config.critMultiplier;
     }
 
-    // Apply damage to target in store
-    if (targetId && targets.has(targetId)) {
-      damageTarget(targetId, Math.round(damage), isCritical);
+    // Apply damage to target
+    if (targetId) {
+      const roundedDamage = Math.round(damage);
+
+      // Check if target is an NPC
+      const { getNPC, damageNPC } = useNPCStore.getState();
+      const npc = getNPC(targetId);
+
+      if (npc) {
+        // Damage NPC via NPC store
+        damageNPC(targetId, roundedDamage);
+
+        // Add floating damage number for NPC
+        useCombatStore.getState().addDamageNumber({
+          id: `dmg_${Date.now()}_${Math.random()}`,
+          value: roundedDamage,
+          position: { x: npc.position.x, y: npc.position.y + 1.5, z: npc.position.z },
+          isCritical,
+          createdAt: Date.now(),
+        });
+      } else if (targets.has(targetId)) {
+        // Damage other targets via combat store (includes damage number)
+        damageTarget(targetId, roundedDamage, isCritical);
+      }
     }
 
     return {
@@ -194,6 +228,8 @@ export function useHitDetection(options: UseHitDetectionOptions = {}) {
     checkCritical,
     options.ignoreObjects,
     options.debug,
+    options.getCurrentSpread,
+    options.onFire,
     targets,
     damageTarget,
   ]);

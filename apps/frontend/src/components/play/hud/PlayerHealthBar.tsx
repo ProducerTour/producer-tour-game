@@ -7,7 +7,10 @@ import { useMemo } from 'react';
 import { useCombatStore } from '../combat/useCombatStore';
 
 export function PlayerHealthBar() {
-  const { playerHealth, playerMaxHealth, isInCombat } = useCombatStore();
+  // Use selectors to prevent re-renders when unrelated state changes
+  const playerHealth = useCombatStore((s) => s.playerHealth);
+  const playerMaxHealth = useCombatStore((s) => s.playerMaxHealth);
+  const isInCombat = useCombatStore((s) => s.isInCombat);
 
   const healthPercent = (playerHealth / playerMaxHealth) * 100;
   const healthColor = useMemo(() => {
