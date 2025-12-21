@@ -35,6 +35,7 @@ export const writerNavigation: NavSection[] = [
     items: [
       { id: 'tour-profile', label: 'My Tour Profile', icon: 'plane', path: '/my-profile' },
       { id: 'overview', label: 'Dashboard', icon: 'dashboard' },
+      { id: 'work-registration', label: 'Work Registration', icon: 'send', path: '/work-registration' },
       { id: 'placements', label: 'My Placements', icon: 'music' },
       { id: 'statements', label: 'My Statements', icon: 'chart' },
       { id: 'documents', label: 'Documents', icon: 'file' },
