@@ -325,6 +325,9 @@ export const agreementApi = {
 
   download: (id: string) =>
     api.get(`/agreements/${id}/download`, { responseType: 'blob' }),
+
+  getEditorToken: (id: string) =>
+    api.post(`/agreements/${id}/editor-token`),
 };
 
 export const toolsApi = {

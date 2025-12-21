@@ -517,6 +517,42 @@ router.get('/:id/download', authenticate, requireAdmin, async (req: AuthRequest,
   }
 });
 
+/**
+ * POST /api/agreements/:id/editor-token
+ * Get JWT token for Firma signing request editor (for previewing before send)
+ */
+router.post('/:id/editor-token', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const agreement = await prisma.agreement.findUnique({
+      where: { id },
+    });
+
+    if (!agreement) {
+      return res.status(404).json({ error: 'Agreement not found' });
+    }
+
+    if (!firmaService.isConfigured()) {
+      return res.status(503).json({ error: 'Firma API is not configured' });
+    }
+
+    const tokenResponse = await firmaService.generateSigningRequestEditorToken(agreement.firmaSigningRequestId);
+
+    res.json({
+      jwt: tokenResponse.jwt,
+      expiresAt: tokenResponse.expires_at,
+      signingRequestId: agreement.firmaSigningRequestId,
+    });
+  } catch (error: any) {
+    console.error('Error generating signing request editor token:', error);
+    res.status(500).json({
+      error: 'Failed to generate editor token',
+      details: error.response?.data || error.message,
+    });
+  }
+});
+
 // ==========================================
 // Webhook Handler
 // ==========================================

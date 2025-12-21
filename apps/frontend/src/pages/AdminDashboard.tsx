@@ -1595,6 +1595,14 @@ function ApplicationsSection() {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
+  // Preview step states
+  const [modalStep, setModalStep] = useState<'select' | 'preview'>('select');
+  const [createdAgreements, setCreatedAgreements] = useState<any[]>([]);
+  const [previewAgreementId, setPreviewAgreementId] = useState<string | null>(null);
+  const [previewJwt, setPreviewJwt] = useState<string | null>(null);
+  const previewEditorRef = useRef<HTMLDivElement>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
   const { data: applicationsData, isLoading } = useQuery({
     queryKey: ['admin-applications', statusFilter, tierFilter],
@@ -1629,34 +1637,139 @@ function ApplicationsSection() {
     },
   });
 
-  // Approve and send agreements mutation
-  const approveAndSendMutation = useMutation({
-    mutationFn: async ({ application, templateIds }: { application: any; templateIds: string[] }) => {
-      // Create agreements for each selected template
-      const promises = templateIds.map(templateId =>
-        agreementApi.create({
+  // Create agreements (without sending) for preview
+  const handleCreateForPreview = async () => {
+    if (!selectedApplication || selectedTemplates.length === 0) return;
+
+    setIsCreating(true);
+    try {
+      const promises = selectedTemplates.map(async templateId => {
+        const response = await agreementApi.create({
           templateId,
-          applicationId: application.id,
-          recipientName: application.name,
-          recipientEmail: application.email,
-        })
-      );
-      await Promise.all(promises);
+          applicationId: selectedApplication.id,
+          recipientName: selectedApplication.name,
+          recipientEmail: selectedApplication.email,
+        });
+        return response.data;
+      });
+      const agreements = await Promise.all(promises);
+      setCreatedAgreements(agreements);
+      setModalStep('preview');
+
+      // Automatically load preview for the first agreement
+      if (agreements.length > 0) {
+        handleLoadPreview(agreements[0].id);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to create agreements');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // Load preview for a specific agreement
+  const handleLoadPreview = async (agreementId: string) => {
+    try {
+      setPreviewAgreementId(agreementId);
+      const response = await agreementApi.getEditorToken(agreementId);
+      setPreviewJwt(response.data.jwt);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to load preview');
+    }
+  };
+
+  // Initialize Firma signing request editor for preview
+  useEffect(() => {
+    if (previewJwt && previewAgreementId && previewEditorRef.current) {
+      // Load Firma's signing request editor script dynamically
+      const existingScript = document.getElementById('firma-signing-editor-script');
+      if (!existingScript) {
+        const script = document.createElement('script');
+        script.id = 'firma-signing-editor-script';
+        script.src = 'https://api.firma.dev/functions/v1/embed-proxy/signing-request-editor.js';
+        script.async = true;
+        document.body.appendChild(script);
+      }
+
+      const initEditor = () => {
+        // @ts-ignore - FirmaSigningRequestEditor is loaded from external script
+        if (window.FirmaSigningRequestEditor && previewEditorRef.current) {
+          previewEditorRef.current.innerHTML = ''; // Clear previous editor
+          // @ts-ignore
+          new window.FirmaSigningRequestEditor({
+            container: previewEditorRef.current,
+            jwt: previewJwt,
+            signingRequestId: previewAgreementId,
+            mode: 'preview', // Read-only preview mode
+            onError: (error: any) => {
+              console.error('Signing request editor error:', error);
+            },
+          });
+        }
+      };
+
+      // Try immediately, or wait for script to load
+      // @ts-ignore
+      if (window.FirmaSigningRequestEditor) {
+        initEditor();
+      } else {
+        const checkInterval = setInterval(() => {
+          // @ts-ignore
+          if (window.FirmaSigningRequestEditor) {
+            clearInterval(checkInterval);
+            initEditor();
+          }
+        }, 100);
+        // Clear interval after 10 seconds
+        setTimeout(() => clearInterval(checkInterval), 10000);
+      }
+    }
+  }, [previewJwt, previewAgreementId]);
+
+  // Send all created agreements and update application status
+  const handleSendAll = async () => {
+    if (createdAgreements.length === 0 || !selectedApplication) return;
+
+    setIsSending(true);
+    try {
+      // Send all agreements
+      await Promise.all(createdAgreements.map(agreement =>
+        agreementApi.send(agreement.id)
+      ));
+
       // Update application status to APPROVED
-      await applicationApi.update(application.id, { status: 'APPROVED' });
-    },
-    onSuccess: () => {
+      await applicationApi.update(selectedApplication.id, { status: 'APPROVED' });
+
       queryClient.invalidateQueries({ queryKey: ['admin-applications'] });
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
+
+      // Reset modal state
       setShowApproveModal(false);
       setSelectedApplication(null);
       setSelectedTemplates([]);
-      toast.success('Application approved and agreement(s) sent!');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to approve and send agreements');
-    },
-  });
+      setModalStep('select');
+      setCreatedAgreements([]);
+      setPreviewAgreementId(null);
+      setPreviewJwt(null);
+
+      toast.success(`Application approved and ${createdAgreements.length} agreement(s) sent!`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to send agreements');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Reset modal state when closing
+  const handleCloseModal = () => {
+    setShowApproveModal(false);
+    setSelectedApplication(null);
+    setSelectedTemplates([]);
+    setModalStep('select');
+    setCreatedAgreements([]);
+    setPreviewAgreementId(null);
+    setPreviewJwt(null);
+  };
 
   const handleStatusChange = (id: string, status: string) => {
     updateMutation.mutate({ id, data: { status } });
@@ -2010,91 +2123,170 @@ function ApplicationsSection() {
         </div>
       )}
 
-      {/* Approve & Send Agreement(s) Modal */}
+      {/* Approve & Send Agreement(s) Modal - Two Step: Select Templates → Preview & Send */}
       {showApproveModal && selectedApplication && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-theme-card border border-theme-border p-6 w-full max-w-lg mx-4">
-            <h3 className="text-lg font-medium text-theme-foreground mb-4">
-              Approve & Send Agreement(s)
-            </h3>
-
-            {/* Applicant Info Preview */}
-            <div className="bg-theme-background-20 border border-theme-border p-4 mb-4">
-              <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
-                Sending To
-              </h4>
-              <div className="text-sm">
-                <div className="font-medium text-theme-foreground">{selectedApplication.name}</div>
-                <div className="text-theme-foreground-muted">{selectedApplication.email}</div>
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className={`bg-theme-card border border-theme-border mx-4 flex flex-col ${
+            modalStep === 'preview' ? 'w-full max-w-6xl h-[90vh]' : 'w-full max-w-lg'
+          }`}>
+            {/* Header */}
+            <div className="flex justify-between items-center p-4 border-b border-theme-border shrink-0">
+              <div>
+                <h3 className="text-lg font-medium text-theme-foreground">
+                  {modalStep === 'select' ? 'Approve & Send Agreement(s)' : 'Preview Agreement'}
+                </h3>
+                <div className="text-sm text-theme-foreground-muted mt-1">
+                  Sending to: <span className="font-medium text-theme-foreground">{selectedApplication.name}</span> ({selectedApplication.email})
+                </div>
               </div>
+              <button
+                onClick={handleCloseModal}
+                className="p-2 text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-background-20 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            {/* Template Selection */}
-            <div className="mb-6">
-              <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
-                Select Agreement Templates
-              </h4>
-              {templates.length > 0 ? (
-                <div className="space-y-2 max-h-48 overflow-y-auto border border-theme-border">
-                  {templates.filter((t: any) => t.status !== 'archived').map((template: any) => (
-                    <label
-                      key={template.id}
-                      className="flex items-center gap-3 p-3 hover:bg-theme-background-20 cursor-pointer transition-colors"
+            {/* Step 1: Template Selection */}
+            {modalStep === 'select' && (
+              <div className="p-6">
+                <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-3">
+                  Select Agreement Templates
+                </h4>
+                {templates.length > 0 ? (
+                  <div className="space-y-2 max-h-64 overflow-y-auto border border-theme-border mb-6">
+                    {templates.filter((t: any) => t.status !== 'archived').map((template: any) => (
+                      <label
+                        key={template.id}
+                        className="flex items-center gap-3 p-3 hover:bg-theme-background-20 cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedTemplates.includes(template.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedTemplates([...selectedTemplates, template.id]);
+                            } else {
+                              setSelectedTemplates(selectedTemplates.filter(id => id !== template.id));
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-theme-border text-theme-primary focus:ring-theme-primary"
+                        />
+                        <div>
+                          <span className="text-sm text-theme-foreground">{template.name}</span>
+                          {template.description && (
+                            <p className="text-xs text-theme-foreground-muted">{template.description}</p>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 border border-theme-border text-center text-theme-foreground-muted text-sm mb-6">
+                    No agreement templates available. Create templates in the Agreements tab first.
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={handleCloseModal}
+                    className="px-4 py-2 text-sm font-medium bg-theme-background-30 text-theme-foreground-secondary hover:bg-theme-background-20 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateForPreview}
+                    disabled={selectedTemplates.length === 0 || isCreating}
+                    className="px-4 py-2 text-sm font-medium bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  >
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-4 h-4" />
+                        Preview ({selectedTemplates.length})
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Preview & Send */}
+            {modalStep === 'preview' && (
+              <>
+                {/* Agreement tabs */}
+                {createdAgreements.length > 1 && (
+                  <div className="flex gap-2 px-4 pt-4 shrink-0 overflow-x-auto">
+                    {createdAgreements.map((agreement, index) => (
+                      <button
+                        key={agreement.id}
+                        onClick={() => handleLoadPreview(agreement.id)}
+                        className={`px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
+                          previewAgreementId === agreement.id
+                            ? 'bg-theme-primary text-theme-primary-foreground'
+                            : 'bg-theme-background-30 text-theme-foreground-secondary hover:bg-theme-background-20'
+                        }`}
+                      >
+                        Agreement {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Preview Editor Container */}
+                <div
+                  ref={previewEditorRef}
+                  className="flex-1 w-full bg-gray-100 min-h-0 overflow-auto"
+                >
+                  {!previewJwt && (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="w-8 h-8 animate-spin text-theme-primary" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Actions */}
+                <div className="flex justify-between items-center p-4 border-t border-theme-border shrink-0 bg-theme-card">
+                  <button
+                    onClick={() => {
+                      setModalStep('select');
+                      setCreatedAgreements([]);
+                      setPreviewAgreementId(null);
+                      setPreviewJwt(null);
+                    }}
+                    className="px-4 py-2 text-sm font-medium bg-theme-background-30 text-theme-foreground-secondary hover:bg-theme-background-20 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-theme-foreground-muted">
+                      {createdAgreements.length} agreement{createdAgreements.length > 1 ? 's' : ''} ready to send
+                    </span>
+                    <button
+                      onClick={handleSendAll}
+                      disabled={isSending}
+                      className="px-4 py-2 text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedTemplates.includes(template.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedTemplates([...selectedTemplates, template.id]);
-                          } else {
-                            setSelectedTemplates(selectedTemplates.filter(id => id !== template.id));
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-theme-border text-theme-primary focus:ring-theme-primary"
-                      />
-                      <div>
-                        <span className="text-sm text-theme-foreground">{template.name}</span>
-                        {template.description && (
-                          <p className="text-xs text-theme-foreground-muted">{template.description}</p>
-                        )}
-                      </div>
-                    </label>
-                  ))}
+                      {isSending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          Approve & Send All
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-              ) : (
-                <div className="p-4 border border-theme-border text-center text-theme-foreground-muted text-sm">
-                  No agreement templates available. Create templates in the Agreements tab first.
-                </div>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowApproveModal(false);
-                  setSelectedApplication(null);
-                  setSelectedTemplates([]);
-                }}
-                className="px-4 py-2 text-sm font-medium bg-theme-background-30 text-theme-foreground-secondary hover:bg-theme-background-20 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => approveAndSendMutation.mutate({
-                  application: selectedApplication,
-                  templateIds: selectedTemplates
-                })}
-                disabled={selectedTemplates.length === 0 || approveAndSendMutation.isPending}
-                className="px-4 py-2 text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {approveAndSendMutation.isPending
-                  ? 'Sending...'
-                  : `Approve & Send${selectedTemplates.length > 0 ? ` (${selectedTemplates.length})` : ''}`
-                }
-              </button>
-            </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -2108,9 +2300,13 @@ function AgreementsSection() {
   const [activeView, setActiveView] = useState<'templates' | 'agreements'>('templates');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [templateEditorJwt, setTemplateEditorJwt] = useState<string | null>(null);
   const [uploadForm, setUploadForm] = useState({ name: '', description: '', file: null as File | null });
   const [sendForm, setSendForm] = useState({ templateId: '', recipientName: '', recipientEmail: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const templateEditorRef = useRef<HTMLDivElement>(null);
 
   // Fetch templates
   const { data: templatesData, isLoading: templatesLoading } = useQuery({
@@ -2220,6 +2416,52 @@ function AgreementsSection() {
     sendAgreementMutation.mutate(sendForm);
   };
 
+  // Open Firma template editor to configure signature fields
+  const handleConfigureTemplate = async (templateId: string, firmaTemplateId: string) => {
+    try {
+      const response = await agreementApi.getTemplateEditorToken(templateId);
+      setEditingTemplateId(firmaTemplateId);
+      setTemplateEditorJwt(response.data.jwt);
+      setShowTemplateEditor(true);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to open template editor');
+    }
+  };
+
+  // Initialize Firma template editor when modal opens
+  useEffect(() => {
+    if (showTemplateEditor && templateEditorJwt && editingTemplateId && templateEditorRef.current) {
+      // Load Firma's template editor script dynamically
+      const script = document.createElement('script');
+      script.src = 'https://api.firma.dev/functions/v1/embed-proxy/template-editor.js';
+      script.async = true;
+      script.onload = () => {
+        // @ts-ignore - FirmaTemplateEditor is loaded from external script
+        if (window.FirmaTemplateEditor) {
+          // @ts-ignore
+          new window.FirmaTemplateEditor({
+            container: templateEditorRef.current,
+            jwt: templateEditorJwt,
+            templateId: editingTemplateId,
+            onSave: () => {
+              toast.success('Template saved!');
+            },
+            onError: (error: any) => {
+              console.error('Template editor error:', error);
+              toast.error('Template editor error');
+            },
+          });
+        }
+      };
+      document.body.appendChild(script);
+
+      return () => {
+        // Cleanup script when modal closes
+        document.body.removeChild(script);
+      };
+    }
+  }, [showTemplateEditor, templateEditorJwt, editingTemplateId]);
+
   const handleDownload = async (agreementId: string) => {
     try {
       const response = await agreementApi.download(agreementId);
@@ -2321,6 +2563,14 @@ function AgreementsSection() {
                       </p>
                     </div>
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => handleConfigureTemplate(template.id, template.firmaTemplateId)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-theme-background-30 text-theme-foreground-secondary hover:bg-theme-background-20 transition-colors"
+                        title="Configure signature fields on the PDF"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        Configure Fields
+                      </button>
                       <button
                         onClick={() => {
                           setSendForm({ ...sendForm, templateId: template.id });
@@ -2571,6 +2821,47 @@ function AgreementsSection() {
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template Editor Modal - Firma's embeddable editor for configuring signature fields */}
+      {showTemplateEditor && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-theme-card border border-theme-border w-full max-w-6xl h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="flex justify-between items-center p-4 border-b border-theme-border">
+              <div>
+                <h3 className="text-lg font-medium text-theme-foreground">Configure Signature Fields</h3>
+                <p className="text-sm text-theme-foreground-muted mt-1">
+                  Drag and drop signature fields onto the document. Don't forget to save when done.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowTemplateEditor(false);
+                  setEditingTemplateId(null);
+                  setTemplateEditorJwt(null);
+                }}
+                className="p-2 text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-background-20 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Editor Container */}
+            <div
+              ref={templateEditorRef}
+              className="flex-1 w-full bg-gray-100"
+              style={{ minHeight: '500px' }}
+            >
+              {/* Firma's template editor will be mounted here */}
+              {!templateEditorJwt && (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="w-8 h-8 animate-spin text-theme-primary" />
+                </div>
+              )}
             </div>
           </div>
         </div>
