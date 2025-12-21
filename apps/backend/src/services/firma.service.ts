@@ -9,11 +9,8 @@ import crypto from 'crypto';
 
 // Environment configuration
 const FIRMA_API_KEY = process.env.FIRMA_API_KEY || '';
-// Firma API URL - ensure /v1 prefix is always present
-const rawFirmaUrl = process.env.FIRMA_API_URL || 'https://api.firma.dev';
-const FIRMA_API_URL = rawFirmaUrl.endsWith('/v1')
-  ? rawFirmaUrl
-  : rawFirmaUrl.replace(/\/$/, '') + '/v1';
+// Firma API base URL - the full path to the signing-request-api
+const FIRMA_API_URL = process.env.FIRMA_API_URL || 'https://api.firma.dev/functions/v1/signing-request-api';
 const FIRMA_WEBHOOK_SECRET = process.env.FIRMA_WEBHOOK_SECRET || '';
 
 // Types
