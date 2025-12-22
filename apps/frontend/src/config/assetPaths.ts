@@ -44,6 +44,24 @@ export const ANIMATIONS_LOCAL = import.meta.env.VITE_ANIMATIONS_LOCAL === 'true'
 export const MODELS_LOCAL = import.meta.env.VITE_MODELS_LOCAL === 'true';
 
 /**
+ * Check if textures should load from local public/textures/ folder
+ * Set VITE_TEXTURES_LOCAL=true in .env to test local texture files
+ */
+export const TEXTURES_LOCAL = import.meta.env.VITE_TEXTURES_LOCAL === 'true';
+
+/**
+ * Check if skybox should load from local public/skybox/ folder
+ * Set VITE_SKYBOX_LOCAL=true in .env to test local skybox files
+ */
+export const SKYBOX_LOCAL = import.meta.env.VITE_SKYBOX_LOCAL === 'true';
+
+/**
+ * Check if audio should load from local public/audio/ folder
+ * Set VITE_AUDIO_LOCAL=true in .env to test local audio files
+ */
+export const AUDIO_LOCAL = import.meta.env.VITE_AUDIO_LOCAL === 'true';
+
+/**
  * Get the full path for an animation file
  * @param filename - Animation filename (e.g., 'idle.glb', 'crouch_walk.glb')
  */
@@ -68,7 +86,9 @@ export function getModelPath(path: string): string {
  * @param path - Texture path relative to /textures/ (e.g., 'floor.png')
  */
 export function getTexturePath(path: string): string {
-  return `${ASSETS_BASE}/textures/${path}`;
+  // Use local path if VITE_TEXTURES_LOCAL=true, otherwise use CDN
+  const base = TEXTURES_LOCAL ? '' : ASSETS_BASE;
+  return `${base}/textures/${path}`;
 }
 
 /**
@@ -76,7 +96,9 @@ export function getTexturePath(path: string): string {
  * @param filename - Skybox filename (e.g., 'hilly_terrain_4k.jpg')
  */
 export function getSkyboxPath(filename: string): string {
-  return `${ASSETS_BASE}/skybox/${filename}`;
+  // Use local path if VITE_SKYBOX_LOCAL=true, otherwise use CDN
+  const base = SKYBOX_LOCAL ? '' : ASSETS_BASE;
+  return `${base}/skybox/${filename}`;
 }
 
 /**
@@ -84,7 +106,9 @@ export function getSkyboxPath(filename: string): string {
  * @param path - Audio path relative to /audio/ (e.g., 'sfx/weapons/ak47/AK-47_fire.wav')
  */
 export function getAudioPath(path: string): string {
-  return `${ASSETS_BASE}/audio/${path}`;
+  // Use local path if VITE_AUDIO_LOCAL=true, otherwise use CDN
+  const base = AUDIO_LOCAL ? '' : ASSETS_BASE;
+  return `${base}/audio/${path}`;
 }
 
 /**

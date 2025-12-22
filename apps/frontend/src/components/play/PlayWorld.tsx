@@ -55,7 +55,7 @@ import { useGameSettings } from '../../store/gameSettings.store';
 import { AnimatedAvatar, MixamoAnimatedAvatar, PlaceholderAvatar } from './avatars';
 
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
-import { getSkyboxPath } from '../../config/assetPaths';
+import { getSkyboxPath, getModelPath } from '../../config/assetPaths';
 import { StaticTerrain, TerrainPhysics } from './terrain';
 import { WATER_LEVEL, heightmapGenerator } from '../../lib/terrain';
 import { Water } from './world/Water';
@@ -157,7 +157,7 @@ export function PlayWorld({
         health: 100,
         maxHealth: 100,
         respawnTime: 10000, // Respawn after 10 seconds
-        modelUrl: '/models/Bandit/bandit.glb',
+        modelUrl: getModelPath('Bandit/bandit.glb'),
         animated: true, // Has Mixamo rig, use Mixamo animations
         scale: 1,
         isInteractable: true,
