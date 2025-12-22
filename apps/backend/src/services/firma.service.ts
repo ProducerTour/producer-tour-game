@@ -11,8 +11,6 @@ import crypto from 'crypto';
 const FIRMA_API_KEY = process.env.FIRMA_API_KEY || '';
 // Firma API base URL - the full path to the signing-request-api
 const FIRMA_API_URL = process.env.FIRMA_API_URL || 'https://api.firma.dev/functions/v1/signing-request-api';
-// JWT API is at a separate edge function path
-const FIRMA_JWT_API_URL = 'https://api.firma.dev/functions/v1/jwt-api';
 const FIRMA_WEBHOOK_SECRET = process.env.FIRMA_WEBHOOK_SECRET || '';
 
 // Types
@@ -111,34 +109,20 @@ export interface WebhookPayload {
 
 class FirmaService {
   private client: AxiosInstance;
-  private jwtClient: AxiosInstance;
 
   constructor() {
-    const authHeaders = {
-      'Authorization': `Bearer ${FIRMA_API_KEY}`,
-      'Content-Type': 'application/json',
-    };
-
-    // Main client for signing requests, templates, etc.
     this.client = axios.create({
       baseURL: FIRMA_API_URL,
-      headers: authHeaders,
-    });
-
-    // Separate client for JWT endpoints (different edge function)
-    this.jwtClient = axios.create({
-      baseURL: FIRMA_JWT_API_URL,
-      headers: authHeaders,
+      headers: {
+        'Authorization': `Bearer ${FIRMA_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
     });
 
     // Log requests in development
     if (process.env.NODE_ENV === 'development') {
       this.client.interceptors.request.use((config) => {
         console.log(`[Firma] ${config.method?.toUpperCase()} ${config.url}`);
-        return config;
-      });
-      this.jwtClient.interceptors.request.use((config) => {
-        console.log(`[Firma JWT] ${config.method?.toUpperCase()} ${config.url}`);
         return config;
       });
     }
@@ -200,9 +184,11 @@ class FirmaService {
 
   /**
    * Generate JWT token for embeddable template editor
+   * @see https://firma-2c386052.mintlify.app/guides/embeddable-template-editor
    */
   async generateTemplateEditorToken(templateId: string): Promise<TemplateEditorTokenResponse> {
-    const response = await this.jwtClient.post('/generate-template-token', {
+    // Endpoint: POST /generate-template-token (no /jwt prefix)
+    const response = await this.client.post('/generate-template-token', {
       companies_workspaces_templates_id: templateId,
     });
     return response.data;
@@ -290,7 +276,9 @@ class FirmaService {
    * Generate JWT token for embeddable signing request editor
    */
   async generateSigningRequestEditorToken(signingRequestId: string): Promise<SigningRequestEditorTokenResponse> {
-    const response = await this.jwtClient.post('/generate-signing-request', {
+    // Endpoint: POST /jwt/generate-signing-request (has /jwt prefix)
+    // @see https://firma-2c386052.mintlify.app/guides/embeddable-signing-request-editor
+    const response = await this.client.post('/jwt/generate-signing-request', {
       companies_workspaces_signing_requests_id: signingRequestId,
     });
     return response.data;
