@@ -25,6 +25,7 @@ import {
   WATER_LEVEL,
 } from '../../../lib/terrain';
 import { LAYERS } from '../constants/layers';
+import { getModelPath } from '../../../config/assetPaths';
 
 // Debug logging
 const DEBUG_TREES = false;
@@ -35,12 +36,12 @@ const TREE_PHYSICS_RADIUS = 50;
 // Maximum trees per chunk per type (for InstancedMesh pre-allocation)
 const MAX_TREES_PER_TYPE = 12;
 
-// Tree model paths - using new lowpoly models
+// Tree model paths - uses CDN in production, local in development
 const TREE_MODELS = {
-  deciduous: '/models/Foliage/Trees/lowpoly/tree-01-1.glb',
-  conifer: '/models/Foliage/Trees/lowpoly/tree-02-1.glb',
-  tropical: '/models/Foliage/Trees/lowpoly/tree-03-1.glb',
-} as const;
+  deciduous: getModelPath('Foliage/Trees/lowpoly/tree-01-1.glb'),
+  conifer: getModelPath('Foliage/Trees/lowpoly/tree-02-1.glb'),
+  tropical: getModelPath('Foliage/Trees/lowpoly/tree-03-1.glb'),
+};
 
 export interface ChunkTreesInstancedProps {
   chunkX: number;

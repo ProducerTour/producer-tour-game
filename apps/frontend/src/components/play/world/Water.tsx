@@ -12,6 +12,10 @@ import { useRef, useMemo } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
+import { getTexturePath } from '../../../config/assetPaths';
+
+// Water normal map path - uses CDN in production, local in development
+const WATER_NORMAL_MAP = getTexturePath('Water/Water_002_SD/Water_002_NORM.jpg');
 
 export interface WaterProps {
   /** Y position of water surface */
@@ -161,7 +165,7 @@ export function Water({
   const materialRef = useRef<THREE.ShaderMaterial>(null);
 
   // Load normal map texture
-  const normalMap = useTexture('/textures/Water/Water_002_SD/Water_002_NORM.jpg');
+  const normalMap = useTexture(WATER_NORMAL_MAP);
 
   // Configure texture for seamless tiling
   useMemo(() => {

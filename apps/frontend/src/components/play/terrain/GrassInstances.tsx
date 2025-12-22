@@ -11,6 +11,10 @@ import { useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import type { GLTF } from 'three-stdlib';
 import { HeightmapGenerator, NOISE_CONFIG } from '../../../lib/terrain';
+import { getTexturePath } from '../../../config/assetPaths';
+
+// Grass model path - uses CDN in production, local in development
+const GRASS_MODEL = getTexturePath('ground/grass_patches.glb');
 
 // Debug logging - set to false to reduce console spam
 const DEBUG_GRASS = false;
@@ -126,7 +130,7 @@ export function GrassInstances({
   const materialRef = useRef<THREE.ShaderMaterial | null>(null);
 
   // Load grass model
-  const gltf = useGLTF('/textures/ground/grass_patches.glb') as GLTFResult;
+  const gltf = useGLTF(GRASS_MODEL) as GLTFResult;
 
   // Get geometry and create shader material from the GLB
   const { geometry, material } = useMemo(() => {

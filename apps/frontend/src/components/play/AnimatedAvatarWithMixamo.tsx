@@ -13,14 +13,15 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
+import { getAnimationPath } from '../../config/assetPaths';
 
-// Animation file paths
+// Animation file paths - uses CDN in production, local in development
 const ANIMATIONS = {
-  idle: '/animations/idle.glb',
-  walking: '/animations/walking.glb',
-  running: '/animations/running.glb',
-  jump: '/animations/jump.glb',
-} as const;
+  idle: getAnimationPath('idle.glb'),
+  walking: getAnimationPath('walking.glb'),
+  running: getAnimationPath('running.glb'),
+  jump: getAnimationPath('jump.glb'),
+};
 
 // Animation state type
 type AnimState = 'idle' | 'walk' | 'run' | 'jump';

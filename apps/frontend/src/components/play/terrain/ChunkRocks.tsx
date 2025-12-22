@@ -17,6 +17,10 @@ import {
   WATER_LEVEL,
 } from '../../../lib/terrain';
 import { LAYERS } from '../constants/layers';
+import { getModelPath } from '../../../config/assetPaths';
+
+// Model path - uses CDN in production, local in development
+const ROCK_MODEL = getModelPath('Rocks/rock_1.glb');
 
 const DEBUG_ROCKS = false; // Disabled for performance
 
@@ -80,7 +84,7 @@ export const ChunkRocks = React.memo(function ChunkRocks({
   sizeMultiplier = 1.0,
   sizeVariation = 0.4,
 }: ChunkRocksProps) {
-  const gltf = useGLTF('/models/Rocks/rock_1.glb') as GLTFResult;
+  const gltf = useGLTF(ROCK_MODEL) as GLTFResult;
 
   // Leva controls for adjusting collider dimensions in real-time
   const { radiusMultiplier, heightMultiplier, xOffset, yOffset, zOffset, showDebug } = useRockColliderControls();
@@ -398,7 +402,7 @@ export const ChunkRocks = React.memo(function ChunkRocks({
 });
 
 (ChunkRocks as any).preload = () => {
-  useGLTF.preload('/models/Rocks/rock_1.glb');
+  useGLTF.preload(ROCK_MODEL);
 };
 
 export default ChunkRocks;

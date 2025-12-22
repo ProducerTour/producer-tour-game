@@ -15,11 +15,13 @@
  * await preloadAssets('critical');
  *
  * // Check if asset is loaded
- * if (isAssetLoaded('/models/weapons/rifle.glb')) {
+ * if (isAssetLoaded(getModelPath('weapons/rifle.glb'))) {
  *   // Safe to render rifle
  * }
  * ```
  */
+
+import { getModelPath, getTexturePath, getSkyboxPath, getAudioPath } from '../../config/assetPaths';
 
 // =============================================================================
 // TYPES
@@ -56,19 +58,19 @@ export const ASSET_MANIFEST: AssetManifest = {
   critical: [
     // Player avatar handled separately via RPM
     {
-      path: '/textures/terrain/grass.png',
+      path: getTexturePath('terrain/grass.png'),
       type: 'texture',
       name: 'Grass Texture',
       sizeKB: 500,
     },
     {
-      path: '/textures/terrain/rock.png',
+      path: getTexturePath('terrain/rock.png'),
       type: 'texture',
       name: 'Rock Texture',
       sizeKB: 500,
     },
     {
-      path: '/textures/terrain/sand.png',
+      path: getTexturePath('terrain/sand.png'),
       type: 'texture',
       name: 'Sand Texture',
       sizeKB: 500,
@@ -78,25 +80,25 @@ export const ASSET_MANIFEST: AssetManifest = {
   // Core gameplay assets
   gameplay: [
     {
-      path: '/models/weapons/pistol.glb',
+      path: getModelPath('weapons/pistol.glb'),
       type: 'model',
       name: 'Pistol',
       sizeKB: 200,
     },
     {
-      path: '/models/weapons/rifle.glb',
+      path: getModelPath('weapons/rifle.glb'),
       type: 'model',
       name: 'Rifle',
       sizeKB: 300,
     },
     {
-      path: '/models/Cliffside/alpine_rock.glb',
+      path: getModelPath('Cliffside/alpine_rock.glb'),
       type: 'model',
       name: 'Cliff Mesh',
       sizeKB: 800,
     },
     {
-      path: '/models/Bandit/bandit.glb',
+      path: getModelPath('Bandit/bandit.glb'),
       type: 'model',
       name: 'Bandit NPC',
       sizeKB: 1500,
@@ -106,25 +108,25 @@ export const ASSET_MANIFEST: AssetManifest = {
   // Environmental polish
   environment: [
     {
-      path: '/models/trees/oak_tree.glb',
+      path: getModelPath('trees/oak_tree.glb'),
       type: 'model',
       name: 'Oak Tree',
       sizeKB: 400,
     },
     {
-      path: '/models/trees/palm_tree.glb',
+      path: getModelPath('trees/palm_tree.glb'),
       type: 'model',
       name: 'Palm Tree',
       sizeKB: 300,
     },
     {
-      path: '/models/rocks/rock_1.glb',
+      path: getModelPath('rocks/rock_1.glb'),
       type: 'model',
       name: 'Rock 1',
       sizeKB: 150,
     },
     {
-      path: '/skybox/hilly_terrain_4k.jpg',
+      path: getSkyboxPath('hilly_terrain_4k.jpg'),
       type: 'hdri',
       name: 'HDRI Skybox',
       sizeKB: 4000,
@@ -134,19 +136,19 @@ export const ASSET_MANIFEST: AssetManifest = {
   // Background loading
   optional: [
     {
-      path: '/models/campfire/campfire.glb',
+      path: getModelPath('campfire/campfire.glb'),
       type: 'model',
       name: 'Campfire',
       sizeKB: 500,
     },
     {
-      path: '/audio/ambient/wind.mp3',
+      path: getAudioPath('ambient/wind.mp3'),
       type: 'audio',
       name: 'Wind Ambience',
       sizeKB: 1000,
     },
     {
-      path: '/audio/sfx/footsteps_grass.mp3',
+      path: getAudioPath('sfx/footsteps_grass.mp3'),
       type: 'audio',
       name: 'Footsteps (Grass)',
       sizeKB: 200,

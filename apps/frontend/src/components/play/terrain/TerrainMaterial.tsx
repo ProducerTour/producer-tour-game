@@ -8,44 +8,45 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { useTexture } from '@react-three/drei';
 import { TEXTURE_SCALE, MAX_HEIGHT, MIN_HEIGHT, WATER_LEVEL } from '../../../lib/terrain';
+import { getTexturePath } from '../../../config/assetPaths';
 
-// Texture paths
+// Texture paths - uses CDN in production, local in development
 const TEXTURE_PATHS = {
   grass: {
-    color: '/textures/ground/Grass004_1K-PNG_Color.png',
-    normal: '/textures/ground/Grass004_1K-PNG_NormalGL.png',
-    roughness: '/textures/ground/Grass004_1K-PNG_Roughness.png',
-    ao: '/textures/ground/Grass004_1K-PNG_AmbientOcclusion.png',
+    color: getTexturePath('ground/Grass004_1K-PNG_Color.png'),
+    normal: getTexturePath('ground/Grass004_1K-PNG_NormalGL.png'),
+    roughness: getTexturePath('ground/Grass004_1K-PNG_Roughness.png'),
+    ao: getTexturePath('ground/Grass004_1K-PNG_AmbientOcclusion.png'),
   },
   rock: {
-    color: '/textures/terrain/Concrete011_1K-PNG/Concrete011_1K-PNG_Color.png',
-    normal: '/textures/terrain/Concrete011_1K-PNG/Concrete011_1K-PNG_NormalGL.png',
-    roughness: '/textures/terrain/Concrete011_1K-PNG/Concrete011_1K-PNG_Roughness.png',
-    ao: '/textures/terrain/Concrete011_1K-PNG/Concrete011_1K-PNG_AmbientOcclusion.png',
+    color: getTexturePath('terrain/Concrete011_1K-PNG/Concrete011_1K-PNG_Color.png'),
+    normal: getTexturePath('terrain/Concrete011_1K-PNG/Concrete011_1K-PNG_NormalGL.png'),
+    roughness: getTexturePath('terrain/Concrete011_1K-PNG/Concrete011_1K-PNG_Roughness.png'),
+    ao: getTexturePath('terrain/Concrete011_1K-PNG/Concrete011_1K-PNG_AmbientOcclusion.png'),
   },
   // Sand texture for beach zones
   sand: {
-    color: '/textures/terrain/sand/Ground101_1K-PNG_Color.png',
-    normal: '/textures/terrain/sand/Ground101_1K-PNG_NormalGL.png',
-    roughness: '/textures/terrain/sand/Ground101_1K-PNG_Roughness.png',
-    ao: '/textures/terrain/sand/Ground101_1K-PNG_AmbientOcclusion.png',
+    color: getTexturePath('terrain/sand/Ground101_1K-PNG_Color.png'),
+    normal: getTexturePath('terrain/sand/Ground101_1K-PNG_NormalGL.png'),
+    roughness: getTexturePath('terrain/sand/Ground101_1K-PNG_Roughness.png'),
+    ao: getTexturePath('terrain/sand/Ground101_1K-PNG_AmbientOcclusion.png'),
   },
   road: {
-    color: '/textures/terrain/Road003_1K-PNG/Road003_1K-PNG_Color.png',
-    normal: '/textures/terrain/Road003_1K-PNG/Road003_1K-PNG_NormalGL.png',
-    roughness: '/textures/terrain/Road003_1K-PNG/Road003_1K-PNG_Roughness.png',
+    color: getTexturePath('terrain/Road003_1K-PNG/Road003_1K-PNG_Color.png'),
+    normal: getTexturePath('terrain/Road003_1K-PNG/Road003_1K-PNG_NormalGL.png'),
+    roughness: getTexturePath('terrain/Road003_1K-PNG/Road003_1K-PNG_Roughness.png'),
   },
   // Snow texture for mountain peaks (uses grass normal for now - can add dedicated snow textures later)
   snow: {
-    color: '/textures/ground/Grass004_1K-PNG_Color.png', // Placeholder - will use fallback color
-    normal: '/textures/ground/Grass004_1K-PNG_NormalGL.png',
-    roughness: '/textures/ground/Grass004_1K-PNG_Roughness.png',
+    color: getTexturePath('ground/Grass004_1K-PNG_Color.png'), // Placeholder - will use fallback color
+    normal: getTexturePath('ground/Grass004_1K-PNG_NormalGL.png'),
+    roughness: getTexturePath('ground/Grass004_1K-PNG_Roughness.png'),
   },
   // Forest floor texture (uses grass for now - can add dedicated forest textures later)
   forest: {
-    color: '/textures/ground/Grass004_1K-PNG_Color.png', // Placeholder - will use tinted color
-    normal: '/textures/ground/Grass004_1K-PNG_NormalGL.png',
-    roughness: '/textures/ground/Grass004_1K-PNG_Roughness.png',
+    color: getTexturePath('ground/Grass004_1K-PNG_Color.png'), // Placeholder - will use tinted color
+    normal: getTexturePath('ground/Grass004_1K-PNG_NormalGL.png'),
+    roughness: getTexturePath('ground/Grass004_1K-PNG_Roughness.png'),
   },
 };
 

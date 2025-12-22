@@ -25,6 +25,7 @@ import {
   WATER_LEVEL,
 } from '../../../lib/terrain';
 import { LAYERS } from '../constants/layers';
+import { getModelPath } from '../../../config/assetPaths';
 
 const DEBUG_CLIFFS = false;
 
@@ -128,7 +129,8 @@ function calculateRockWeight(normalY: number, height: number): number {
 }
 
 // Alaskan cliff rock - rounded organic 3D rock (looks good from all angles)
-const CLIFF_MODEL_PATH = '/models/Cliffside/alaskan-cliff-rock-9-free/alaskan_cliff_rock.glb';
+// Uses CDN in production, local in development
+const CLIFF_MODEL_PATH = getModelPath('Cliffside/alaskan-cliff-rock-9-free/alaskan_cliff_rock.glb');
 
 // Performance limits
 const MAX_INSTANCES_PER_CHUNK = 200;

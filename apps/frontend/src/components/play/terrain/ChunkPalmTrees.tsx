@@ -23,6 +23,7 @@ import {
   WORLD_PLAY_RADIUS,
 } from '../../../lib/terrain';
 import { LAYERS } from '../constants/layers';
+import { getModelPath } from '../../../config/assetPaths';
 
 const DEBUG_PALM_TREES = false;
 
@@ -32,8 +33,8 @@ const PALM_PHYSICS_RADIUS = 50;
 // Maximum palm trees per chunk (for InstancedMesh pre-allocation)
 const MAX_PALMS_PER_CHUNK = 8;
 
-// Palm tree model path
-const PALM_MODEL = '/models/Foliage/Trees/palm_tree.glb';
+// Palm tree model path - uses CDN in production, local in development
+const PALM_MODEL = getModelPath('Foliage/Trees/palm_tree.glb');
 
 export interface ChunkPalmTreesProps {
   chunkX: number;

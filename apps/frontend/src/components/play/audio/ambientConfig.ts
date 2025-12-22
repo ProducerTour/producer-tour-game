@@ -7,6 +7,7 @@
  */
 
 import { BiomeType } from '../../../lib/terrain';
+import { getAudioPath } from '../../../config/assetPaths';
 
 // =============================================================================
 // TYPES
@@ -83,38 +84,39 @@ export const BIOME_TO_ZONE: Record<BiomeType, AmbientZone> = {
  * - Bitrate: 128-192 kbps
  * - Stereo
  */
+// Audio paths - uses CDN in production, local in development
 export const ZONE_AUDIO: Record<AmbientZone, Record<TimeOfDay, string>> = {
   ocean: {
-    day: '/audio/ambient/zones/ocean_day.mp3',
-    night: '/audio/ambient/zones/ocean_night.mp3',
+    day: getAudioPath('ambient/zones/ocean_day.mp3'),
+    night: getAudioPath('ambient/zones/ocean_night.mp3'),
   },
   beach: {
-    day: '/audio/ambient/zones/beach_day.mp3',
-    night: '/audio/ambient/zones/beach_night.mp3',
+    day: getAudioPath('ambient/zones/beach_day.mp3'),
+    night: getAudioPath('ambient/zones/beach_night.mp3'),
   },
   wetland: {
-    day: '/audio/ambient/zones/wetland_day.mp3',
-    night: '/audio/ambient/zones/wetland_night.mp3',
+    day: getAudioPath('ambient/zones/wetland_day.mp3'),
+    night: getAudioPath('ambient/zones/wetland_night.mp3'),
   },
   grassland: {
-    day: '/audio/ambient/zones/grassland_day.mp3',
-    night: '/audio/ambient/zones/grassland_night.mp3',
+    day: getAudioPath('ambient/zones/grassland_day.mp3'),
+    night: getAudioPath('ambient/zones/grassland_night.mp3'),
   },
   forest: {
-    day: '/audio/ambient/zones/forest_day.mp3',
-    night: '/audio/ambient/zones/forest_night.mp3',
+    day: getAudioPath('ambient/zones/forest_day.mp3'),
+    night: getAudioPath('ambient/zones/forest_night.mp3'),
   },
   dry: {
-    day: '/audio/ambient/zones/dry_day.mp3',
-    night: '/audio/ambient/zones/dry_night.mp3',
+    day: getAudioPath('ambient/zones/dry_day.mp3'),
+    night: getAudioPath('ambient/zones/dry_night.mp3'),
   },
   mountain: {
-    day: '/audio/ambient/zones/mountain_day.mp3',
-    night: '/audio/ambient/zones/mountain_night.mp3',
+    day: getAudioPath('ambient/zones/mountain_day.mp3'),
+    night: getAudioPath('ambient/zones/mountain_night.mp3'),
   },
   snow: {
-    day: '/audio/ambient/zones/snow_day.mp3',
-    night: '/audio/ambient/zones/snow_night.mp3',
+    day: getAudioPath('ambient/zones/snow_day.mp3'),
+    night: getAudioPath('ambient/zones/snow_night.mp3'),
   },
 };
 
@@ -123,10 +125,10 @@ export const ZONE_AUDIO: Record<AmbientZone, Record<TimeOfDay, string>> = {
  * These layer on top of biome audio.
  */
 export const WEATHER_AUDIO: Record<Exclude<WeatherType, 'clear'>, string> = {
-  rain_light: '/audio/ambient/weather/rain_light.mp3',
-  rain_heavy: '/audio/ambient/weather/rain_heavy.mp3',
-  wind: '/audio/ambient/weather/wind_strong.mp3',
-  storm: '/audio/ambient/weather/storm.mp3',
+  rain_light: getAudioPath('ambient/weather/rain_light.mp3'),
+  rain_heavy: getAudioPath('ambient/weather/rain_heavy.mp3'),
+  wind: getAudioPath('ambient/weather/wind_strong.mp3'),
+  storm: getAudioPath('ambient/weather/storm.mp3'),
 };
 
 // =============================================================================

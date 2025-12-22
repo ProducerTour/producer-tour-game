@@ -17,6 +17,10 @@ import {
   getChunkOrigin,
   WATER_LEVEL,
 } from '../../../lib/terrain';
+import { getModelPath } from '../../../config/assetPaths';
+
+// Model path - uses CDN in production, local in development
+const OAK_TREES_MODEL = getModelPath('Foliage/Trees/oak_trees.glb');
 
 // Debug logging
 const DEBUG_TREES = false; // DISABLED for performance
@@ -93,7 +97,7 @@ export const ChunkTrees = React.memo(function ChunkTrees({
   playerPosition,
 }: ChunkTreesProps) {
   // Load oak tree model (cached by drei)
-  const gltf = useGLTF('/models/Foliage/Trees/oak_trees.glb') as GLTFResult;
+  const gltf = useGLTF(OAK_TREES_MODEL) as GLTFResult;
 
   // Configure materials on the source GLTF (cached, so this runs once)
   useMemo(() => {
@@ -397,7 +401,7 @@ export const ChunkTrees = React.memo(function ChunkTrees({
 
 // Preload the tree model
 (ChunkTrees as any).preload = () => {
-  useGLTF.preload('/models/Foliage/Trees/oak_trees.glb');
+  useGLTF.preload(OAK_TREES_MODEL);
 };
 
 export default ChunkTrees;

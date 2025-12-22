@@ -16,6 +16,10 @@ import {
   WATER_LEVEL,
 } from '../../../lib/terrain';
 import { LAYERS } from '../constants/layers';
+import { getTexturePath } from '../../../config/assetPaths';
+
+// Grass model path - uses CDN in production, local in development
+const GRASS_MODEL = getTexturePath('ground/grass_patches.glb');
 
 export interface ChunkGrassProps {
   /** Chunk X coordinate (grid index, not world position) */
@@ -153,7 +157,7 @@ export const ChunkGrass = React.memo(function ChunkGrass({
   const materialRef = useRef<THREE.ShaderMaterial | null>(null);
 
   // Load grass model (cached by drei)
-  const gltf = useGLTF('/textures/ground/grass_patches.glb') as GLTFResult;
+  const gltf = useGLTF(GRASS_MODEL) as GLTFResult;
 
   // Get geometry and create shader material from the GLB
   const { geometry, material } = useMemo(() => {

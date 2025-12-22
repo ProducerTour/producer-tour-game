@@ -24,6 +24,7 @@ import {
   WATER_LEVEL,
 } from '../../../lib/terrain';
 import { LAYERS } from '../constants/layers';
+import { getModelPath } from '../../../config/assetPaths';
 
 const DEBUG_BUSHES = false;
 
@@ -33,14 +34,14 @@ const BUSH_LOD_CULL = 80;
 // Maximum bushes per chunk per type
 const MAX_BUSHES_PER_TYPE = 10;
 
-// Bush model paths
+// Bush model paths - uses CDN in production, local in development
 const BUSH_MODELS = {
-  dense1: '/models/Foliage/Trees/lowpoly/bush-01.glb',
-  dense2: '/models/Foliage/Trees/lowpoly/bush-02.glb',
-  leafy1: '/models/Foliage/Trees/lowpoly/bush-03.glb',
-  leafy2: '/models/Foliage/Trees/lowpoly/bush-04.glb',
-  sparse: '/models/Foliage/Trees/lowpoly/bush-05.glb',
-} as const;
+  dense1: getModelPath('Foliage/Trees/lowpoly/bush-01.glb'),
+  dense2: getModelPath('Foliage/Trees/lowpoly/bush-02.glb'),
+  leafy1: getModelPath('Foliage/Trees/lowpoly/bush-03.glb'),
+  leafy2: getModelPath('Foliage/Trees/lowpoly/bush-04.glb'),
+  sparse: getModelPath('Foliage/Trees/lowpoly/bush-05.glb'),
+};
 
 export interface ChunkBushesProps {
   chunkX: number;
