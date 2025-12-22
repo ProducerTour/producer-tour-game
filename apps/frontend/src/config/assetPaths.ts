@@ -38,6 +38,12 @@ export const IS_DEV = import.meta.env.DEV;
 export const ANIMATIONS_LOCAL = import.meta.env.VITE_ANIMATIONS_LOCAL === 'true';
 
 /**
+ * Check if models should load from local public/models/ folder
+ * Set VITE_MODELS_LOCAL=true in .env to test local model files
+ */
+export const MODELS_LOCAL = import.meta.env.VITE_MODELS_LOCAL === 'true';
+
+/**
  * Get the full path for an animation file
  * @param filename - Animation filename (e.g., 'idle.glb', 'crouch_walk.glb')
  */
@@ -52,7 +58,9 @@ export function getAnimationPath(filename: string): string {
  * @param path - Model path relative to /models/ (e.g., 'weapons/ak47.gltf', 'Monkey/Monkey.glb')
  */
 export function getModelPath(path: string): string {
-  return `${ASSETS_BASE}/models/${path}`;
+  // Use local path if VITE_MODELS_LOCAL=true, otherwise use CDN
+  const base = MODELS_LOCAL ? '' : ASSETS_BASE;
+  return `${base}/models/${path}`;
 }
 
 /**

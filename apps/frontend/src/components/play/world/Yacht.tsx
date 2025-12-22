@@ -10,6 +10,9 @@ import { useGLTF } from '@react-three/drei';
 import { RigidBody, MeshCollider } from '@react-three/rapier';
 import type { RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
+import { getModelPath } from '../../../config/assetPaths';
+
+const YACHT_MODEL_PATH = getModelPath('Vehicles/Boats/motoryacht/motoryacht_optimized.glb');
 
 export interface YachtProps {
   /** World position [x, y, z] - y is water level (default 0) */
@@ -45,7 +48,7 @@ export function Yacht({
   const euler = useMemo(() => new THREE.Euler(), []);
 
   // Load the optimized yacht model
-  const { scene } = useGLTF('/models/Vehicles/Boats/motoryacht/motoryacht_optimized.glb');
+  const { scene } = useGLTF(YACHT_MODEL_PATH);
 
   // Clone the scene to allow multiple instances
   const clonedScene = useMemo(() => {
@@ -112,6 +115,6 @@ export function Yacht({
 }
 
 // Preload the model
-useGLTF.preload('/models/Vehicles/Boats/motoryacht/motoryacht_optimized.glb');
+useGLTF.preload(YACHT_MODEL_PATH);
 
 export default Yacht;

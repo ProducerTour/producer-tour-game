@@ -10,6 +10,9 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF, Html } from '@react-three/drei';
 import { RigidBody, CylinderCollider } from '@react-three/rapier';
 import type { GLTF } from 'three-stdlib';
+import { getModelPath } from '../../../config/assetPaths';
+
+const CAMPFIRE_MODEL_PATH = getModelPath('Campfire/campfire.glb');
 
 const DEBUG_CAMPFIRE = false;
 
@@ -68,7 +71,7 @@ export function Campfire({
   const [isPlayerNear, setIsPlayerNear] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
 
-  const gltf = useGLTF('/models/Campfire/campfire.glb') as GLTFResult;
+  const gltf = useGLTF(CAMPFIRE_MODEL_PATH) as GLTFResult;
 
   // Clone and configure the model
   const { baseObjects, fireObjects } = useMemo(() => {
@@ -327,7 +330,7 @@ export function Campfire({
 
 // Preload the model
 Campfire.preload = () => {
-  useGLTF.preload('/models/Campfire/campfire.glb');
+  useGLTF.preload(CAMPFIRE_MODEL_PATH);
 };
 
 export default Campfire;
