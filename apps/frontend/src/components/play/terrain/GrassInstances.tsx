@@ -36,8 +36,10 @@ export interface GrassInstancesProps {
 }
 
 // Vertex shader wind - base stays planted, tips move
-// Animation fades with distance (full at 0m, gone at 25m)
+// Animation fades with distance, fog support for render distance
 const windVertexShader = `
+  #include <fog_pars_vertex>
+
   uniform float uTime;
   uniform float uWindStrength;
 
@@ -72,10 +74,14 @@ const windVertexShader = `
 
     vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(pos, 1.0);
     gl_Position = projectionMatrix * mvPosition;
+
+    #include <fog_vertex>
   }
 `;
 
 const windFragmentShader = `
+  #include <fog_pars_fragment>
+
   uniform sampler2D uTexture;
   uniform float uAlphaTest;
 
@@ -92,6 +98,8 @@ const windFragmentShader = `
     float diffuse = max(dot(vNormal, light), 0.3);
 
     gl_FragColor = vec4(texColor.rgb * diffuse, texColor.a);
+
+    #include <fog_fragment>
   }
 `;
 
@@ -147,18 +155,22 @@ export function GrassInstances({
         texture = origMat.map;
       }
 
-      // Create shader material with wind
+      // Create shader material with wind + fog support
       const shaderMat = new THREE.ShaderMaterial({
-        uniforms: {
-          uTime: { value: 0 },
-          uWindStrength: { value: windStrength },
-          uTexture: { value: texture },
-          uAlphaTest: { value: 0.5 },
-        },
+        uniforms: THREE.UniformsUtils.merge([
+          THREE.UniformsLib.fog,
+          {
+            uTime: { value: 0 },
+            uWindStrength: { value: windStrength },
+            uTexture: { value: texture },
+            uAlphaTest: { value: 0.5 },
+          },
+        ]),
         vertexShader: windVertexShader,
         fragmentShader: windFragmentShader,
         side: THREE.DoubleSide,
         transparent: true,
+        fog: true,
       });
 
       if (DEBUG_GRASS) console.log('🌿 Loaded grass with shader wind:', { vertices: maxVertices, hasTexture: !!texture });
@@ -170,15 +182,19 @@ export function GrassInstances({
     const geo = new THREE.PlaneGeometry(0.1, 0.5);
     geo.translate(0, 0.25, 0);
     const mat = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uWindStrength: { value: windStrength },
-        uTexture: { value: null },
-        uAlphaTest: { value: 0.5 },
-      },
+      uniforms: THREE.UniformsUtils.merge([
+        THREE.UniformsLib.fog,
+        {
+          uTime: { value: 0 },
+          uWindStrength: { value: windStrength },
+          uTexture: { value: null },
+          uAlphaTest: { value: 0.5 },
+        },
+      ]),
       vertexShader: windVertexShader,
       fragmentShader: windFragmentShader,
       side: THREE.DoubleSide,
+      fog: true,
     });
     return { geometry: geo, material: mat };
   }, [gltf, windStrength]);
@@ -253,6 +269,9 @@ export function GrassInstances({
     meshRef.current.instanceMatrix.needsUpdate = true;
     meshRef.current.count = matrices.length;
 
+    // Compute bounding sphere for frustum culling to work
+    meshRef.current.computeBoundingSphere();
+
     // Store material ref for time updates
     materialRef.current = material as THREE.ShaderMaterial;
   }, [matrices, material]);
@@ -269,7 +288,7 @@ export function GrassInstances({
       args={[geometry, material, matrices.length]}
       castShadow={false}  // Grass doesn't cast visible shadows - saves ~50% shadow pass cost
       receiveShadow
-      frustumCulled={false}
+      frustumCulled={true}  // Skip rendering when off-screen (bounding sphere computed above)
     />
   );
 }

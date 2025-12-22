@@ -81,6 +81,9 @@ const ROTATION_SPEED = 5;
 // AI update interval (ms)
 const AI_UPDATE_INTERVAL = 100;
 
+// LOD distances - render simpler geometry when far away
+const LOD_FULL_AVATAR_DISTANCE = 25; // Full avatar with animations (capsule beyond)
+
 interface NPCProps {
   data: NPCData;
   playerPosition?: { x: number; y: number; z: number };
@@ -447,8 +450,34 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
   // Check if NPC is dead (used to disable physics and hide interaction prompts)
   const isDead = data.state === 'dead';
 
-  // Render NPC body - either MixamoAnimatedAvatar or simple capsule fallback
+  // Render NPC body with LOD - simpler geometry when far away
   const renderBody = () => {
+    // LOD: Use simple capsule when far from player (saves GPU/CPU)
+    // This skips expensive avatar loading, animation, and Suspense overhead
+    if (distanceToPlayer > LOD_FULL_AVATAR_DISTANCE) {
+      // LOD1: Simple capsule for distant NPCs
+      return (
+        <>
+          <mesh
+            ref={meshRef}
+            position={[0, 0.9, 0]}
+            onClick={handleClick}
+            userData={{ targetId: data.id }}
+          >
+            {/* Reduced geometry for distant NPCs: 4 segments instead of 8/16 */}
+            <capsuleGeometry args={[COLLIDER_RADIUS, 1, 4, 8]} />
+            <meshBasicMaterial color={color} />
+          </mesh>
+          <mesh position={[0, 1.7, 0]}>
+            <sphereGeometry args={[0.25, 8, 8]} />
+            <meshBasicMaterial color={color} />
+          </mesh>
+        </>
+      );
+    }
+
+    // LOD0: Full detail for nearby NPCs
+
     // Priority 1: Animated GLB model with Mixamo rig
     // These models keep the 'mixamorig:' prefix on bone names
     if (data.modelUrl && data.animated) {
@@ -484,7 +513,7 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
       );
     }
 
-    // Fallback: simple capsule body
+    // Fallback: simple capsule body (for NPCs with no avatar defined)
     return (
       <>
         <mesh

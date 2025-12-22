@@ -8,6 +8,7 @@ import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
 import { RigidBody, CylinderCollider } from '@react-three/rapier';
+import { useControls } from 'leva';
 import type { GLTF } from 'three-stdlib';
 import {
   TerrainGenerator,
@@ -15,8 +16,21 @@ import {
   getChunkOrigin,
   WATER_LEVEL,
 } from '../../../lib/terrain';
+import { LAYERS } from '../constants/layers';
 
-const DEBUG_ROCKS = false; // DISABLED for performance
+const DEBUG_ROCKS = false; // Disabled for performance
+
+// Leva controls hook for rock collider tuning
+function useRockColliderControls() {
+  return useControls('Rock Colliders', {
+    radiusMultiplier: { value: 8.5, min: 0.5, max: 15.0, step: 0.1, label: 'Radius Scale' },
+    heightMultiplier: { value: 2.1, min: 0.5, max: 10.0, step: 0.1, label: 'Height Scale' },
+    xOffset: { value: -0.1, min: -2, max: 2, step: 0.05, label: 'X Offset' },
+    yOffset: { value: 0.5, min: -2, max: 2, step: 0.05, label: 'Y Offset' },
+    zOffset: { value: 0.15, min: -2, max: 2, step: 0.05, label: 'Z Offset' },
+    showDebug: { value: false, label: 'Show Collider Mesh' },
+  });
+}
 
 export interface ChunkRocksProps {
   chunkX: number;
@@ -68,6 +82,9 @@ export const ChunkRocks = React.memo(function ChunkRocks({
 }: ChunkRocksProps) {
   const gltf = useGLTF('/models/Rocks/rock_1.glb') as GLTFResult;
 
+  // Leva controls for adjusting collider dimensions in real-time
+  const { radiusMultiplier, heightMultiplier, xOffset, yOffset, zOffset, showDebug } = useRockColliderControls();
+
   // Configure materials
   useMemo(() => {
     gltf.scene.traverse((node) => {
@@ -77,6 +94,8 @@ export const ChunkRocks = React.memo(function ChunkRocks({
 
         materials.forEach((mat) => {
           const m = mat as THREE.MeshStandardMaterial;
+          // Ensure fog is enabled for distance fading
+          m.fog = true;
           if (m.map) {
             m.map.colorSpace = THREE.SRGBColorSpace;
             m.map.anisotropy = 4;
@@ -106,7 +125,17 @@ export const ChunkRocks = React.memo(function ChunkRocks({
   }, [gltf.scene]);
 
   const rockBounds = useMemo(() => {
-    return new THREE.Box3().setFromObject(rockObject);
+    const bounds = new THREE.Box3().setFromObject(rockObject);
+    if (DEBUG_ROCKS) {
+      const size = new THREE.Vector3();
+      bounds.getSize(size);
+      console.log('🪨 Rock Model Bounds:', {
+        min: { x: bounds.min.x.toFixed(2), y: bounds.min.y.toFixed(2), z: bounds.min.z.toFixed(2) },
+        max: { x: bounds.max.x.toFixed(2), y: bounds.max.y.toFixed(2), z: bounds.max.z.toFixed(2) },
+        size: { x: size.x.toFixed(2), y: size.y.toFixed(2), z: size.z.toFixed(2) },
+      });
+    }
+    return bounds;
   }, [rockObject]);
 
   // Generate rock placements - HEIGHT-BASED filtering
@@ -280,11 +309,21 @@ export const ChunkRocks = React.memo(function ChunkRocks({
 
     // Recompute bounding sphere for proper frustum culling
     instancedMeshRef.current.computeBoundingSphere();
+
+    // PERF: Disable auto matrix updates for static geometry
+    instancedMeshRef.current.matrixAutoUpdate = false;
+    instancedMeshRef.current.updateMatrix();
+
+    // PERF: Enable vegetation layer to exclude from camera collision raycasts
+    // Use enable() not set() - set() removes from default layer (0) making it invisible!
+    instancedMeshRef.current.layers.enable(LAYERS.VEGETATION);
   }, [placements]);
 
   // Separate boulders for physics (visual handled by InstancedMesh)
-  // Higher threshold = fewer physics bodies = better FPS
-  const BOULDER_THRESHOLD = 0.15;
+  // All rocks above this threshold get physics colliders matching actual model bounds
+  // Beach pebbles (scale 0.02-0.05): No physics - too small to matter
+  // Grass rocks (scale 0.04-0.18): Full physics - player can't walk through
+  const BOULDER_THRESHOLD = 0.05;
   const boulders = useMemo(() =>
     placements.filter(p => p.scale.x >= BOULDER_THRESHOLD),
     [placements]
@@ -306,20 +345,51 @@ export const ChunkRocks = React.memo(function ChunkRocks({
         receiveShadow={false}
       />
 
-      {/* Physics colliders only for large boulders (invisible) */}
+      {/* Physics colliders for all rocks above threshold - use actual model bounds */}
       {boulders.map((placement, i) => {
         const scale = placement.scale.x;
-        const colliderRadius = scale * 2.5 * 0.7;
-        const colliderHeight = scale * 3 * 0.7;
+
+        // Use actual rock model bounds with Leva-adjustable multipliers
+        const rockWidth = (rockBounds.max.x - rockBounds.min.x) * scale * radiusMultiplier;
+        const rockHeight = (rockBounds.max.y - rockBounds.min.y) * scale * heightMultiplier;
+        const rockDepth = (rockBounds.max.z - rockBounds.min.z) * scale * radiusMultiplier;
+
+        // Cylinder radius = half of the larger horizontal dimension for full coverage
+        const colliderRadius = Math.max(rockWidth, rockDepth) / 2;
+        const colliderHalfHeight = rockHeight / 2;
+
+        // Calculate center offset from rock origin + Leva yOffset adjustment
+        const centerYOffset = ((rockBounds.min.y + rockBounds.max.y) / 2) * scale + yOffset;
+
+        // Debug log for first few boulders
+        if (DEBUG_ROCKS && i < 2) {
+          console.log(`🪨 Boulder ${i} collider:`, {
+            scale: scale.toFixed(3),
+            dimensions: { w: rockWidth.toFixed(2), h: rockHeight.toFixed(2), d: rockDepth.toFixed(2) },
+            collider: { radius: colliderRadius.toFixed(2), halfHeight: colliderHalfHeight.toFixed(2) },
+            position: { x: placement.position.x.toFixed(1), y: (placement.position.y + centerYOffset).toFixed(1), z: placement.position.z.toFixed(1) },
+          });
+        }
+
+        const colliderX = placement.position.x + xOffset;
+        const colliderY = placement.position.y + centerYOffset;
+        const colliderZ = placement.position.z + zOffset;
 
         return (
           <RigidBody
             key={`boulder-${i}`}
             type="fixed"
-            position={[placement.position.x, placement.position.y, placement.position.z]}
+            position={[colliderX, colliderY, colliderZ]}
             colliders={false}
           >
-            <CylinderCollider args={[colliderHeight / 2, colliderRadius]} />
+            <CylinderCollider args={[colliderHalfHeight, colliderRadius]} />
+            {/* Debug visualization mesh */}
+            {showDebug && (
+              <mesh position={[0, 0, 0]}>
+                <cylinderGeometry args={[colliderRadius, colliderRadius, colliderHalfHeight * 2, 16]} />
+                <meshBasicMaterial color="red" wireframe transparent opacity={0.5} />
+              </mesh>
+            )}
           </RigidBody>
         );
       })}

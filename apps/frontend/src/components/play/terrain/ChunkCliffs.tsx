@@ -16,6 +16,7 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
+import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import type { GLTF } from 'three-stdlib';
 import {
   TerrainGenerator,
@@ -23,8 +24,12 @@ import {
   getChunkOrigin,
   WATER_LEVEL,
 } from '../../../lib/terrain';
+import { LAYERS } from '../constants/layers';
 
 const DEBUG_CLIFFS = false;
+
+// Physics only within this radius from player (expensive, so keep small)
+const CLIFF_PHYSICS_RADIUS = 30;
 
 // =============================================================================
 // TYPES
@@ -71,6 +76,9 @@ export interface ChunkCliffsProps {
 
   // Embedding
   embedDepth?: number;
+
+  // Player position for proximity-based physics
+  playerPosition?: { x: number; z: number };
 }
 
 interface CliffPlacement {
@@ -159,6 +167,8 @@ export const ChunkCliffs = React.memo(function ChunkCliffs({
   maxStackHeight = 3,
   // Embedding
   embedDepth = 0.5,
+  // Player position for proximity-based physics
+  playerPosition,
 }: ChunkCliffsProps) {
   const instancedMeshRef = useRef<THREE.InstancedMesh>(null);
 
@@ -425,7 +435,30 @@ export const ChunkCliffs = React.memo(function ChunkCliffs({
     // Recompute bounding sphere for proper frustum culling
     // Without this, cliffs disappear when camera looks at certain angles
     instancedMeshRef.current.computeBoundingSphere();
+
+    // PERF: Disable auto matrix updates for static geometry
+    instancedMeshRef.current.matrixAutoUpdate = false;
+    instancedMeshRef.current.updateMatrix();
+
+    // PERF: Enable vegetation layer to exclude from camera collision raycasts
+    // Use enable() not set() - set() removes from default layer (0) making it invisible!
+    instancedMeshRef.current.layers.enable(LAYERS.VEGETATION);
   }, [placements]);
+
+  // Only add physics colliders for cliffs near player (expensive, so limit radius)
+  const physicsPlacements = useMemo(() => {
+    if (!playerPosition) {
+      // No player position - limit to first few cliffs as fallback
+      return placements.slice(0, 4);
+    }
+
+    const radiusSq = CLIFF_PHYSICS_RADIUS * CLIFF_PHYSICS_RADIUS;
+    return placements.filter((p) => {
+      const dx = p.position.x - playerPosition.x;
+      const dz = p.position.z - playerPosition.z;
+      return dx * dx + dz * dz < radiusSq;
+    });
+  }, [placements, playerPosition]);
 
   if (placements.length === 0) {
     return null;
@@ -434,14 +467,37 @@ export const ChunkCliffs = React.memo(function ChunkCliffs({
   const maxInstances = gridDensity * gridDensity * (verticalStackingEnabled ? maxStackHeight : 1);
 
   return (
-    <instancedMesh
-      ref={instancedMeshRef}
-      args={[geometry, material, Math.min(maxInstances, MAX_INSTANCES_PER_CHUNK)]}
-      frustumCulled={true}
-      castShadow={false}
-      receiveShadow={false}
-      name={`chunk-cliffs-${chunkX}-${chunkZ}`}
-    />
+    <group name={`chunk-cliffs-${chunkX}-${chunkZ}`}>
+      {/* Visual mesh - instanced for performance */}
+      <instancedMesh
+        ref={instancedMeshRef}
+        args={[geometry, material, Math.min(maxInstances, MAX_INSTANCES_PER_CHUNK)]}
+        frustumCulled={true}
+        castShadow={false}
+        receiveShadow={false}
+      />
+
+      {/* Physics colliders only for nearby cliffs (performance optimization) */}
+      {physicsPlacements.map((p) => {
+        // Use half-extents for CuboidCollider (box dimensions)
+        // Scale down slightly for tighter collision
+        const halfX = p.scale.x * 0.4;
+        const halfY = p.scale.y * 0.5;
+        const halfZ = p.scale.z * 0.4;
+
+        return (
+          <RigidBody
+            key={`cliff-collider-${p.position.x.toFixed(1)}-${p.position.z.toFixed(1)}`}
+            type="fixed"
+            position={[p.position.x, p.position.y + halfY, p.position.z]}
+            quaternion={[p.quaternion.x, p.quaternion.y, p.quaternion.z, p.quaternion.w]}
+            colliders={false}
+          >
+            <CuboidCollider args={[halfX, halfY, halfZ]} />
+          </RigidBody>
+        );
+      })}
+    </group>
   );
 });
 

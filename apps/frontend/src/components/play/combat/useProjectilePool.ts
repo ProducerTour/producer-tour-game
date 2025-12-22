@@ -4,7 +4,7 @@
  * Can be extended for server-validated hit detection in multiplayer
  */
 
-import { useRef, useCallback, useMemo } from 'react';
+import { useRef, useCallback, useMemo, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -91,6 +91,28 @@ export function useProjectilePool(options: UseProjectilePoolOptions = {}): UsePr
       });
     }
   }, [scene, poolSize, projectileSpeed, maxDistance, tracerColor, tracerLength]);
+
+  // CRITICAL: Cleanup on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Dispose all meshes, geometry, and material
+      for (const projectile of pool.current) {
+        if (projectile.mesh) {
+          projectile.mesh.geometry?.dispose();
+          if (projectile.mesh.material) {
+            const mat = projectile.mesh.material as THREE.Material;
+            mat.dispose();
+          }
+        }
+      }
+      // Remove container from scene
+      if (containerRef.current) {
+        scene.remove(containerRef.current);
+        containerRef.current = null;
+      }
+      pool.current = [];
+    };
+  }, [scene]);
 
   // Spawn a projectile
   const spawn = useCallback((origin: THREE.Vector3, direction: THREE.Vector3) => {

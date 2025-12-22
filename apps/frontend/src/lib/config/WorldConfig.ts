@@ -140,9 +140,10 @@ export const DEFAULT_WORLD_CONFIG: WorldConfig = {
   starsFactor: 4,
 
   // View Distance (scaled for 5-chunk Rust-style world)
+  // NOTE: fogNear/fogFar are IGNORED - PlayWorld uses renderDistance from gameSettings.store
   fogEnabled: true,
-  fogNear: 150,
-  fogFar: 350,
+  fogNear: 150,  // Not used - see gameSettings.store.ts
+  fogFar: 384,   // Not used - synced to CHUNK_LOAD_RADIUS in gameSettings
   fogColor: '#b3c4d9',
   starsRadius: 10000,
 
@@ -152,12 +153,12 @@ export const DEFAULT_WORLD_CONFIG: WorldConfig = {
   terrainTextured: true,
   terrainWireframe: false,
   terrainColor: '#3d7a37',
-  physicsResolution: 128, // Higher resolution = smoother collision on steep terrain
+  physicsResolution: 384, // Higher resolution = smoother collision (192→384 = ~1.83m per sample, reduces twitching)
   waterEnabled: true,
 
   // Foliage
-  grassEnabled: false,
-  grassDensity: 30,
+  grassEnabled: true,
+  grassDensity: 50,  // Reduced from 100 for better FPS
   windEnabled: true,
   treesEnabled: true,
   oakTreeDensity: 8,
@@ -288,8 +289,8 @@ export function useWorldControls() {
 
     'View Distance': folder({
       fogEnabled: { value: DEFAULT_WORLD_CONFIG.fogEnabled, label: 'Enable Fog' },
-      fogNear: { value: DEFAULT_WORLD_CONFIG.fogNear, min: 50, max: 400, step: 10, label: 'Fog Start (m)' },
-      fogFar: { value: DEFAULT_WORLD_CONFIG.fogFar, min: 200, max: 800, step: 25, label: 'Fog End (m)' },
+      // NOTE: fogNear/fogFar sliders removed - use Settings menu "Render Distance" instead
+      // fogNear = renderDistance * 0.4, fogFar = renderDistance (from gameSettings.store)
       fogColor: { value: DEFAULT_WORLD_CONFIG.fogColor, label: 'Fog Color' },
       starsRadius: { value: DEFAULT_WORLD_CONFIG.starsRadius, min: 1000, max: 50000, step: 1000, label: 'Stars Radius' },
     }, { collapsed: true }),
@@ -300,7 +301,7 @@ export function useWorldControls() {
       terrainTextured: { value: DEFAULT_WORLD_CONFIG.terrainTextured, label: 'Use Texture' },
       terrainWireframe: { value: DEFAULT_WORLD_CONFIG.terrainWireframe, label: 'Wireframe' },
       terrainColor: { value: DEFAULT_WORLD_CONFIG.terrainColor, label: 'Base Color' },
-      physicsResolution: { value: DEFAULT_WORLD_CONFIG.physicsResolution, min: 64, max: 256, step: 64, label: 'Physics Resolution' },
+      physicsResolution: { value: DEFAULT_WORLD_CONFIG.physicsResolution, min: 64, max: 512, step: 64, label: 'Physics Resolution' },
       waterEnabled: { value: DEFAULT_WORLD_CONFIG.waterEnabled, label: 'Enable Water' },
     }, { collapsed: false }),
 

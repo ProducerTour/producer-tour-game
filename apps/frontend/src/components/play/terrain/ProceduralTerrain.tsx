@@ -35,10 +35,11 @@ const USE_NEW_TERRAIN = true;
 
 import { TerrainChunkMesh } from './TerrainChunkMesh';
 import { ChunkGrass } from './ChunkGrass';
-import { ChunkTrees } from './ChunkTrees';
+import { ChunkTreesInstanced } from './ChunkTreesInstanced';
 import { ChunkPalmTrees } from './ChunkPalmTrees';
 import { ChunkRocks } from './ChunkRocks';
 import { ChunkCliffs } from './ChunkCliffs';
+import { ChunkBushes } from './ChunkBushes';
 import { useFallbackMaterial, useTerrainMaterial } from './TerrainMaterial';
 
 export interface ProceduralTerrainProps {
@@ -251,12 +252,11 @@ export function ProceduralTerrain({
               />
             )}
             {treesEnabled && (
-              <ChunkTrees
+              <ChunkTreesInstanced
                 chunkX={chunk.coord.x}
                 chunkZ={chunk.coord.z}
                 seed={seed}
                 instancesPerChunk={treesDensity}
-                windEnabled={windEnabled}
               />
             )}
             {treesEnabled && (
@@ -265,6 +265,14 @@ export function ProceduralTerrain({
                 chunkZ={chunk.coord.z}
                 seed={seed}
                 instancesPerChunk={4}
+              />
+            )}
+            {treesEnabled && (
+              <ChunkBushes
+                chunkX={chunk.coord.x}
+                chunkZ={chunk.coord.z}
+                seed={seed}
+                instancesPerChunk={15}
               />
             )}
           </group>
@@ -321,6 +329,9 @@ export interface StaticTerrainProps {
   /** Chunks to load in each direction from center */
   radius?: number;
 
+  /** Player position for physics culling (optional) */
+  playerPosition?: { x: number; z: number };
+
   /** Wireframe mode */
   wireframe?: boolean;
 
@@ -347,6 +358,9 @@ export interface StaticTerrainProps {
 
   /** Palm tree instances per chunk (sand biomes) */
   palmTreeDensity?: number;
+
+  /** Bush instances per chunk (forest undergrowth) */
+  bushDensity?: number;
 
   /** Rock instances per chunk */
   rockDensity?: number;
@@ -437,6 +451,7 @@ export interface StaticTerrainProps {
 export function StaticTerrain({
   seed = NOISE_CONFIG.seed,
   radius = 4,
+  playerPosition,
   wireframe = false,
   textured = true,
   color = '#3d7a37',
@@ -446,6 +461,7 @@ export function StaticTerrain({
   treesEnabled = true,
   oakTreeDensity = 8,
   palmTreeDensity = 2,
+  bushDensity = 15,
   rockDensity = 8,
   rockSizeMultiplier = 1.0,
   rockSizeVariation = 0.4,
@@ -531,10 +547,6 @@ export function StaticTerrain({
 
   // Generate chunks once using active generator (new or legacy)
   const chunks = useMemo(() => {
-    console.log('🌍 StaticTerrain chunks useMemo triggered');
-    console.log(`  seed=${seed}, radius=${radius}, USE_NEW_TERRAIN=${USE_NEW_TERRAIN}`);
-    console.log(`  terrainGen=${terrainGen ? 'exists' : 'null'}, heightmapGen=${heightmapGen ? 'exists' : 'null'}`);
-
     // Use appropriate generator based on feature flag
     const gen = USE_NEW_TERRAIN ? terrainGen : heightmapGen;
     if (!gen) {
@@ -544,10 +556,6 @@ export function StaticTerrain({
 
     const result: ChunkData[] = [];
     const centerChunk = Math.floor(CHUNKS_PER_AXIS / 2); // Middle of chunk grid
-
-    console.log('=== CHUNK GENERATION START ===');
-    console.log(`CHUNKS_PER_AXIS: ${CHUNKS_PER_AXIS}, centerChunk: ${centerChunk}, radius: ${radius}`);
-    console.log(`WORLD_BOUNDARY: ${WORLD_BOUNDARY}, CHUNK_SIZE: ${CHUNK_SIZE}`);
 
     let globalMin = Infinity;
     let globalMax = -Infinity;
@@ -599,17 +607,8 @@ export function StaticTerrain({
       }
     }
 
-    // Terrain height diagnostic
-    console.log('=== TERRAIN HEIGHT DIAGNOSTIC ===');
-    console.log(`System: ${USE_NEW_TERRAIN ? 'NEW (v2)' : 'LEGACY (v1)'}`);
-    console.log(`Chunks: kept=${keptCount}, skipped=${skippedCount}, total=${keptCount + skippedCount}`);
-    console.log(`Chunks generated: ${result.length}`);
-    if (result.length > 0) {
-      console.log(`Height range: ${globalMin.toFixed(1)}m to ${globalMax.toFixed(1)}m`);
-      // Log first chunk info
-      const firstChunk = result[0];
-      console.log(`First chunk: (${firstChunk.coord.x}, ${firstChunk.coord.z}), vertices=${firstChunk.vertices?.length}, indices=${firstChunk.indices?.length}`);
-    } else {
+    // Debug logging disabled for performance
+    if (DEBUG_TERRAIN && result.length === 0) {
       console.warn('⚠️ No chunks generated! Check world boundary and chunk coordinates.');
     }
 
@@ -637,14 +636,14 @@ export function StaticTerrain({
             />
           )}
           {treesEnabled && oakTreeDensity > 0 && (
-            <ChunkTrees
+            <ChunkTreesInstanced
               chunkX={chunk.coord.x}
               chunkZ={chunk.coord.z}
               seed={seed}
               chunkRadius={radius}
               terrainGen={terrainGen ?? undefined}
               instancesPerChunk={oakTreeDensity}
-              windEnabled={windEnabled}
+              playerPosition={playerPosition}
             />
           )}
           {treesEnabled && palmTreeDensity > 0 && (
@@ -655,6 +654,17 @@ export function StaticTerrain({
               chunkRadius={radius}
               terrainGen={terrainGen ?? undefined}
               instancesPerChunk={palmTreeDensity}
+              playerPosition={playerPosition}
+            />
+          )}
+          {treesEnabled && bushDensity > 0 && (
+            <ChunkBushes
+              chunkX={chunk.coord.x}
+              chunkZ={chunk.coord.z}
+              seed={seed}
+              chunkRadius={radius}
+              terrainGen={terrainGen ?? undefined}
+              instancesPerChunk={bushDensity}
             />
           )}
           {rockDensity > 0 && (
@@ -676,6 +686,7 @@ export function StaticTerrain({
               seed={seed}
               chunkRadius={radius}
               terrainGen={terrainGen ?? undefined}
+              playerPosition={playerPosition ? { x: playerPosition.x, z: playerPosition.z } : undefined}
               // Density
               gridDensity={cliffGridDensity}
               minSpacing={cliffMinSpacing}

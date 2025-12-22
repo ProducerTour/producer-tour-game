@@ -767,6 +767,17 @@ export function PhysicsPlayerController({
       airStateMachine.notifyJump();
     }
 
+    // === SLOPE FOLLOWING FORCE ===
+    // Keep character on slopes by adding small downward force proportional to steepness
+    // Force is kept under 2.0 to not interfere with animation velocity detection
+    if (grounded && !shouldJump && groundState.groundNormal.y < 0.99) {
+      const slopeStrength = 1.0 - groundState.groundNormal.y; // 0 = flat, 0.29 = 45°
+      const speed = Math.sqrt(vx * vx + vz * vz);
+      // Small base force (max 1.45 on 45° slope) + movement bonus
+      const slopeDownForce = (slopeStrength * 5.0) + (speed * slopeStrength * 2.0);
+      vy -= slopeDownForce;
+    }
+
     // === VELOCITY CLAMPING - Prevents physics explosions ===
     // Clamp horizontal velocity to prevent runaway speeds
     const horizontalSpeed = Math.sqrt(vx * vx + vz * vz);

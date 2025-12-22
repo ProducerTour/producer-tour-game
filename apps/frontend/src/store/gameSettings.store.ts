@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { CHUNK_LOAD_RADIUS } from '../lib/terrain';
 
 type ShadowQuality = 'off' | 'low' | 'medium' | 'high';
 
@@ -51,7 +52,7 @@ interface GameSettingsState {
 const DEFAULT_SETTINGS = {
   // Graphics
   shadowQuality: 'medium' as ShadowQuality,
-  renderDistance: 150, // Fog far distance in meters
+  renderDistance: CHUNK_LOAD_RADIUS, // Fog far = chunk load radius (384m) for seamless pop-in
   fogEnabled: true,
   fov: 75,
   showFps: false,

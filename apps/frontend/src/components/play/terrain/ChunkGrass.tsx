@@ -15,6 +15,7 @@ import {
   getChunkOrigin,
   WATER_LEVEL,
 } from '../../../lib/terrain';
+import { LAYERS } from '../constants/layers';
 
 export interface ChunkGrassProps {
   /** Chunk X coordinate (grid index, not world position) */
@@ -47,8 +48,10 @@ export interface ChunkGrassProps {
 }
 
 // Vertex shader wind - base stays planted, tips move
-// Distance fade handles culling - no fog shader for performance
+// Uses Three.js fog for distance fading (respects user fog settings)
 const windVertexShader = `
+  #include <fog_pars_vertex>
+
   uniform float uTime;
   uniform float uWindStrength;
 
@@ -65,10 +68,10 @@ const windVertexShader = `
     // World position for wave coherence and distance calc
     vec4 worldPos = modelMatrix * instanceMatrix * vec4(pos, 1.0);
 
-    // Distance-based fading (aggressive for performance)
-    // Full at 0m, fade starts at 50m, gone at 80m
+    // Distance-based fading for grass culling (separate from fog)
+    // Grass fades at 60-100m, fog handles the color blending
     float distFromCamera = distance(worldPos.xyz, cameraPosition);
-    vDistanceFade = 1.0 - smoothstep(50.0, 80.0, distFromCamera);
+    vDistanceFade = 1.0 - smoothstep(60.0, 100.0, distFromCamera);
 
     // Skip all calculations for distant grass (major perf win)
     if (vDistanceFade < 0.01) {
@@ -77,7 +80,7 @@ const windVertexShader = `
     }
 
     // Wind only for close grass (save ALU on distant grass)
-    if (distFromCamera < 40.0) {
+    if (distFromCamera < 50.0) {
       float windFactor = smoothstep(0.0, 0.4, pos.y);
       float wave = sin(uTime * 2.0 + worldPos.x * 0.1 + worldPos.z * 0.1);
       float finalWind = windFactor * uWindStrength;
@@ -87,10 +90,14 @@ const windVertexShader = `
 
     vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(pos, 1.0);
     gl_Position = projectionMatrix * mvPosition;
+
+    #include <fog_vertex>
   }
 `;
 
 const windFragmentShader = `
+  #include <fog_pars_fragment>
+
   uniform sampler2D uTexture;
   uniform float uAlphaTest;
 
@@ -116,6 +123,8 @@ const windFragmentShader = `
     vec3 finalColor = texColor.rgb * diffuse;
 
     gl_FragColor = vec4(finalColor, finalAlpha);
+
+    #include <fog_fragment>
   }
 `;
 
@@ -166,6 +175,16 @@ export const ChunkGrass = React.memo(function ChunkGrass({
     if (bestMesh) {
       const geo = bestMesh.geometry.clone();
 
+      // CRITICAL: Ensure geometry origin is at the bottom (ground level)
+      // Compute bounding box and translate so minY = 0
+      geo.computeBoundingBox();
+      if (geo.boundingBox) {
+        const minY = geo.boundingBox.min.y;
+        if (Math.abs(minY) > 0.001) {
+          geo.translate(0, -minY, 0);
+        }
+      }
+
       // Get texture from original material
       let texture: THREE.Texture | null = null;
       const origMat = bestMesh.material as THREE.MeshStandardMaterial;
@@ -173,18 +192,22 @@ export const ChunkGrass = React.memo(function ChunkGrass({
         texture = origMat.map;
       }
 
-      // Create shader material with wind (no fog for performance)
+      // Create shader material with wind + fog support
       const shaderMat = new THREE.ShaderMaterial({
-        uniforms: {
-          uTime: { value: 0 },
-          uWindStrength: { value: windStrength },
-          uTexture: { value: texture },
-          uAlphaTest: { value: 0.5 },
-        },
+        uniforms: THREE.UniformsUtils.merge([
+          THREE.UniformsLib.fog,
+          {
+            uTime: { value: 0 },
+            uWindStrength: { value: windStrength },
+            uTexture: { value: texture },
+            uAlphaTest: { value: 0.5 },
+          },
+        ]),
         vertexShader: windVertexShader,
         fragmentShader: windFragmentShader,
         side: THREE.DoubleSide,
         transparent: true,
+        fog: true, // Enable fog support
       });
 
       return { geometry: geo, material: shaderMat };
@@ -194,15 +217,19 @@ export const ChunkGrass = React.memo(function ChunkGrass({
     const geo = new THREE.PlaneGeometry(0.1, 0.5);
     geo.translate(0, 0.25, 0);
     const mat = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uWindStrength: { value: windStrength },
-        uTexture: { value: null },
-        uAlphaTest: { value: 0.5 },
-      },
+      uniforms: THREE.UniformsUtils.merge([
+        THREE.UniformsLib.fog,
+        {
+          uTime: { value: 0 },
+          uWindStrength: { value: windStrength },
+          uTexture: { value: null },
+          uAlphaTest: { value: 0.5 },
+        },
+      ]),
       vertexShader: windVertexShader,
       fragmentShader: windFragmentShader,
       side: THREE.DoubleSide,
+      fog: true,
     });
     return { geometry: geo, material: mat };
   }, [gltf, windStrength]);
@@ -312,6 +339,14 @@ export const ChunkGrass = React.memo(function ChunkGrass({
     });
     meshRef.current.instanceMatrix.needsUpdate = true;
     meshRef.current.count = matrices.length;
+
+    // PERF: Disable auto matrix updates for static geometry
+    meshRef.current.matrixAutoUpdate = false;
+    meshRef.current.updateMatrix();
+
+    // PERF: Enable vegetation layer to exclude from camera collision raycasts
+    // Use enable() not set() - set() removes from default layer (0) making it invisible!
+    meshRef.current.layers.enable(LAYERS.VEGETATION);
 
     materialRef.current = material as THREE.ShaderMaterial;
   }, [matrices, material]);

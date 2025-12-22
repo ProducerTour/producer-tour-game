@@ -5,11 +5,18 @@
  *
  * IMPORTANT: Must use TerrainGenerator (not HeightmapGenerator) to match visual terrain!
  *
+ * ANTI-TWITCH: Adds a small height margin (3cm) to all samples so the character
+ * capsule "floats" slightly above micro-bumps instead of settling into them.
+ *
  * Reference: https://rapier.rs/docs/user_guides/javascript/colliders/
  * Reference: https://github.com/pmndrs/react-three-rapier
  */
 
-import { useMemo } from 'react';
+// Height margin added to all samples to prevent character micro-bouncing
+// The capsule will rest ~3cm above the visual terrain instead of exactly on it
+const PHYSICS_HEIGHT_MARGIN = 0.03;
+
+import React, { useMemo } from 'react';
 import { RigidBody, HeightfieldCollider } from '@react-three/rapier';
 import {
   TerrainGenerator,
@@ -44,7 +51,7 @@ export interface TerrainPhysicsProps {
  * Uses Rapier's HeightfieldCollider which is optimized for terrain.
  * Much more efficient and stable than manual collision detection.
  */
-export function TerrainPhysics({
+export const TerrainPhysics = React.memo(function TerrainPhysics({
   seed = NOISE_CONFIG.seed,
   chunkRadius,
   width = 64,
@@ -88,29 +95,23 @@ export function TerrainPhysics({
         const worldZ = -halfDepth + z * stepZ;
 
         // Sample terrain height using NEW TerrainGenerator (matches visual terrain)
+        // Add small margin so capsule floats above micro-bumps (reduces twitching)
         const height = terrainGen.getHeight(worldX + position[0], worldZ + position[2]);
-        data.push(height);
+        data.push(height + PHYSICS_HEIGHT_MARGIN);
       }
     }
 
-    // Debug: Log alignment info
-    console.log(`🔧 TerrainPhysics: Generated ${data.length} height samples for collision mesh`);
-    console.log(`   Physics grid: ${width}×${depth} samples`);
-    console.log(`   Scale: (${scale.x}, ${scale.y}, ${scale.z})`);
-    console.log(`   Position offset: (${position[0]}, ${position[1]}, ${position[2]})`);
-    console.log(`   Collider spans: X[${-scale.x/2 + position[0]} to ${scale.x/2 + position[0]}]`);
-    console.log(`   Collider spans: Z[${-scale.z/2 + position[2]} to ${scale.z/2 + position[2]}]`);
-    console.log(`   Height samples cover: X[${-halfWidth + position[0]} to ${halfWidth + position[0]}]`);
-    console.log(`   Height samples cover: Z[${-halfDepth + position[2]} to ${halfDepth + position[2]}]`);
-
-    // Sample a few heights for debugging
-    const centerIdx = Math.floor(width / 2) * depth + Math.floor(depth / 2);
-    console.log(`   Height at center: ${data[centerIdx]?.toFixed(2)}m`);
-    console.log(`   Height at (0,0): ${data[0]?.toFixed(2)}m`);
-    console.log(`   Height at (max,max): ${data[data.length - 1]?.toFixed(2)}m`);
+    // Debug logging - disabled for performance
+    // Uncomment to debug physics alignment issues
+    // console.log(`🔧 TerrainPhysics: Generated ${data.length} height samples`);
+    // console.log(`   Physics grid: ${width}×${depth}, Scale: (${scale.x}, 1, ${scale.z})`);
+    // console.log(`   Position: (${position[0]}, ${position[1]}, ${position[2]})`);
+    // const centerIdx = Math.floor(width / 2) * depth + Math.floor(depth / 2);
+    // console.log(`   Height at center: ${data[centerIdx]?.toFixed(2)}m`);
 
     return data;
-  }, [seed, chunkRadius, width, depth, scale.x, scale.z, position]);
+  // Use individual position values as dependencies to avoid array reference issues
+  }, [seed, chunkRadius, width, depth, scale.x, scale.z, position[0], position[1], position[2]]);
 
   return (
     <RigidBody type="fixed" colliders={false} position={position}>
@@ -124,6 +125,6 @@ export function TerrainPhysics({
       />
     </RigidBody>
   );
-}
+});
 
 export default TerrainPhysics;

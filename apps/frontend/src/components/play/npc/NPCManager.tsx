@@ -52,7 +52,7 @@ export function NPCManager({
     };
   }, [multiplayerEnabled, initialNPCs, addNPCs]); // Re-run when NPCs change
 
-  // Filter NPCs by render distance
+  // Filter NPCs by render distance (squared distance check for performance)
   const visibleNPCs: NPCData[] = [];
   npcs.forEach((npc) => {
     if (!playerPosition) {
@@ -62,9 +62,9 @@ export function NPCManager({
 
     const dx = npc.position.x - playerPosition.x;
     const dz = npc.position.z - playerPosition.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
+    const distSq = dx * dx + dz * dz;
 
-    if (distance <= renderDistance) {
+    if (distSq <= renderDistance * renderDistance) {
       visibleNPCs.push(npc);
     }
   });

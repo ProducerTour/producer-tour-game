@@ -403,6 +403,8 @@ export function useTerrainMaterial({
     Object.values(textures).forEach((tex) => {
       if (tex instanceof THREE.Texture) {
         tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        // PERF: Anisotropic filtering improves quality at oblique angles (terrain viewed from above)
+        tex.anisotropy = 16; // Max on most GPUs
         tex.needsUpdate = true; // ensure wrap mode is applied to GPU
       }
     });
@@ -417,6 +419,8 @@ export function useTerrainMaterial({
     Object.values(textures).forEach((tex) => {
       if (tex instanceof THREE.Texture) {
         tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        // PERF: Anisotropic filtering improves quality at oblique angles
+        tex.anisotropy = 16;
         tex.needsUpdate = true;
       }
     });
@@ -431,6 +435,8 @@ export function useTerrainMaterial({
     Object.values(textures).forEach((tex) => {
       if (tex instanceof THREE.Texture) {
         tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        // PERF: Anisotropic filtering improves quality at oblique angles
+        tex.anisotropy = 16;
         tex.needsUpdate = true; // ensure wrap mode is applied to GPU
       }
     });

@@ -121,10 +121,22 @@ export function Campfire({
     return { baseObjects: base, fireObjects: fire };
   }, [gltf.scene]);
 
-  // Store fire parts in ref for animation
+  // Store fire parts and their materials in refs for animation
+  // Caching materials avoids repeated array access in useFrame
+  const fireMaterialsRef = useRef<THREE.MeshStandardMaterial[][]>([]);
+
   useEffect(() => {
     firePartsRef.current = fireObjects;
+    // Cache materials array once to avoid per-frame array creation
+    fireMaterialsRef.current = fireObjects.map((firePart) => {
+      return Array.isArray(firePart.material)
+        ? (firePart.material as THREE.MeshStandardMaterial[])
+        : [firePart.material as THREE.MeshStandardMaterial];
+    });
   }, [fireObjects]);
+
+  // Pre-allocated color for lerp (avoid GC)
+  const flickerColor = useRef(new THREE.Color());
 
   // Check player distance for interaction
   useEffect(() => {
@@ -162,62 +174,71 @@ export function Campfire({
   }, [isPlayerNear, onToggle]);
 
   // Animate fire flickering and light
+  // OPTIMIZED: Uses cached materials, pre-allocated color, reduced sin calls
   useFrame((state) => {
     const time = state.clock.elapsedTime;
 
-    // Animate fire parts
-    firePartsRef.current.forEach((firePart, i) => {
-      // Only show fire when lit
+    // Pre-compute shared flicker values (reduced from 3 sin calls per part to 3 total)
+    const t = time * FIRE_FLICKER_SPEED;
+    const baseFlicker1 = Math.sin(t);
+    const baseFlicker2 = Math.sin(t * 1.7);
+    const baseFlicker3 = Math.sin(t * 0.5);
+
+    // Animate fire parts using cached materials
+    const fireParts = firePartsRef.current;
+    const fireMaterials = fireMaterialsRef.current;
+
+    for (let i = 0; i < fireParts.length; i++) {
+      const firePart = fireParts[i];
       firePart.visible = isLit;
 
       if (isLit) {
         // Flicker effect - each part has offset phase
+        // Use pre-computed base values with phase offset approximation
         const phase = i * 0.3;
         const flicker =
-          Math.sin(time * FIRE_FLICKER_SPEED + phase) * 0.3 +
-          Math.sin(time * FIRE_FLICKER_SPEED * 1.7 + phase) * 0.2 +
-          Math.sin(time * FIRE_FLICKER_SPEED * 0.5 + phase) * 0.5;
+          baseFlicker1 * Math.cos(phase) * 0.3 +
+          baseFlicker2 * Math.cos(phase) * 0.2 +
+          baseFlicker3 * Math.cos(phase) * 0.5;
 
-        // Animate emissive intensity
-        const materials = Array.isArray(firePart.material)
-          ? (firePart.material as THREE.MeshStandardMaterial[])
-          : [firePart.material as THREE.MeshStandardMaterial];
+        // Use cached materials array
+        const materials = fireMaterials[i];
+        const emissiveIntensity = FIRE_INTENSITY_BASE + flicker * FIRE_INTENSITY_VARIANCE;
+        const colorT = 0.5 + flicker * 0.5;
 
-        materials.forEach((mat) => {
+        // Pre-compute lerped color once per part (not per material)
+        flickerColor.current.lerpColors(EMBER_COLOR, FIRE_COLOR, colorT);
+
+        for (let j = 0; j < materials.length; j++) {
+          const mat = materials[j];
           if (mat.emissive) {
-            mat.emissiveIntensity =
-              FIRE_INTENSITY_BASE + flicker * FIRE_INTENSITY_VARIANCE;
-
-            // Shift color between fire and ember
-            mat.emissive.lerpColors(EMBER_COLOR, FIRE_COLOR, 0.5 + flicker * 0.5);
+            mat.emissiveIntensity = emissiveIntensity;
+            mat.emissive.copy(flickerColor.current);
           }
-        });
+        }
 
         // Subtle scale animation for flame movement
-        const scaleFlicker = 1 + flicker * 0.05;
-        firePart.scale.setScalar(scaleFlicker);
+        firePart.scale.setScalar(1 + flicker * 0.05);
 
-        // Subtle rotation for dynamic feel
-        firePart.rotation.y += 0.002 * (1 + Math.sin(time + i));
+        // Subtle rotation - simplified calculation
+        firePart.rotation.y += 0.003;
       }
-    });
+    }
 
     // Animate point light
     if (lightRef.current) {
       lightRef.current.visible = isLit;
 
       if (isLit) {
-        const flicker =
-          Math.sin(time * FIRE_FLICKER_SPEED) * 0.4 +
-          Math.sin(time * FIRE_FLICKER_SPEED * 2.3) * 0.3 +
-          Math.sin(time * FIRE_FLICKER_SPEED * 0.7) * 0.3;
+        // Use pre-computed base flickers
+        const lightFlicker = baseFlicker1 * 0.4 + baseFlicker2 * 0.3 + baseFlicker3 * 0.3;
 
         lightRef.current.intensity =
-          (LIGHT_INTENSITY_BASE + flicker * LIGHT_INTENSITY_VARIANCE) * lightIntensity;
+          (LIGHT_INTENSITY_BASE + lightFlicker * LIGHT_INTENSITY_VARIANCE) * lightIntensity;
 
         // Subtle position jitter scaled by fireScale
-        lightRef.current.position.x = Math.sin(time * 3) * 0.05 * fireScale;
-        lightRef.current.position.z = Math.cos(time * 2.5) * 0.05 * fireScale;
+        lightRef.current.position.x = baseFlicker1 * 0.05 * fireScale;
+        lightRef.current.position.z = baseFlicker3 * 0.05 * fireScale;
       }
     }
   });

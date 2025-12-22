@@ -1,14 +1,9 @@
 /**
  * NPC Store
  * Zustand store for NPC state management
- *
- * PERFORMANCE: Uses Immer middleware for structural sharing.
- * This prevents O(n) Map copies on every NPC position update.
- * With 50 NPCs, this reduces per-update cost from ~50 copies to O(1).
  */
 
 import { create } from 'zustand';
-import { immer } from 'zustand/middleware/immer';
 
 export type NPCBehavior = 'idle' | 'patrol' | 'follow' | 'flee' | 'attack' | 'wander';
 export type NPCState = 'idle' | 'walking' | 'running' | 'talking' | 'dead';
@@ -103,181 +98,171 @@ interface NPCStore {
 let npcIdCounter = 0;
 export const generateNPCId = () => `npc_${++npcIdCounter}`;
 
-export const useNPCStore = create<NPCStore>()(
-  immer((set, get) => ({
-    npcs: new Map(),
-    activeDialogue: null,
-    selectedNPC: null,
+export const useNPCStore = create<NPCStore>((set, get) => ({
+  npcs: new Map(),
+  activeDialogue: null,
+  selectedNPC: null,
 
-    // CRUD operations - Immer handles structural sharing
-    addNPC: (npc) => {
-      set((state) => {
-        state.npcs.set(npc.id, npc);
-      });
-    },
+  // CRUD operations
+  addNPC: (npc) => {
+    const npcs = new Map(get().npcs);
+    npcs.set(npc.id, npc);
+    set({ npcs });
+  },
 
-    removeNPC: (id) => {
-      set((state) => {
-        state.npcs.delete(id);
-      });
-    },
+  removeNPC: (id) => {
+    const npcs = new Map(get().npcs);
+    npcs.delete(id);
+    set({ npcs });
+  },
 
-    updateNPC: (id, updates) => {
-      set((state) => {
-        const npc = state.npcs.get(id);
-        if (npc) {
-          state.npcs.set(id, { ...npc, ...updates });
-        }
-      });
-    },
+  updateNPC: (id, updates) => {
+    const npcs = new Map(get().npcs);
+    const npc = npcs.get(id);
+    if (npc) {
+      npcs.set(id, { ...npc, ...updates });
+      set({ npcs });
+    }
+  },
 
-    getNPC: (id) => get().npcs.get(id),
+  getNPC: (id) => get().npcs.get(id),
 
-    // Batch operations
-    addNPCs: (npcList) => {
-      set((state) => {
-        npcList.forEach((npc) => state.npcs.set(npc.id, npc));
-      });
-    },
+  // Batch operations
+  addNPCs: (npcList) => {
+    const npcs = new Map(get().npcs);
+    npcList.forEach((npc) => npcs.set(npc.id, npc));
+    set({ npcs });
+  },
 
-    clearAllNPCs: () =>
-      set((state) => {
-        state.npcs = new Map();
-        state.selectedNPC = null;
-        state.activeDialogue = null;
-      }),
+  clearAllNPCs: () =>
+    set({
+      npcs: new Map(),
+      selectedNPC: null,
+      activeDialogue: null,
+    }),
 
-    // State changes - O(1) updates with Immer
-    setNPCPosition: (id, position) => {
-      set((state) => {
-        const npc = state.npcs.get(id);
-        if (npc) {
-          npc.position = position;
-        }
-      });
-    },
+  // State changes
+  setNPCPosition: (id, position) => {
+    const npcs = new Map(get().npcs);
+    const npc = npcs.get(id);
+    if (npc) {
+      npcs.set(id, { ...npc, position });
+      set({ npcs });
+    }
+  },
 
-    setNPCState: (id, state) => {
-      set((draft) => {
-        const npc = draft.npcs.get(id);
-        if (npc) {
-          npc.state = state;
-        }
-      });
-    },
+  setNPCState: (id, newState) => {
+    const npcs = new Map(get().npcs);
+    const npc = npcs.get(id);
+    if (npc) {
+      npcs.set(id, { ...npc, state: newState });
+      set({ npcs });
+    }
+  },
 
-    setNPCBehavior: (id, behavior) => {
-      set((state) => {
-        const npc = state.npcs.get(id);
-        if (npc) {
-          npc.behavior = behavior;
-        }
-      });
-    },
+  setNPCBehavior: (id, behavior) => {
+    const npcs = new Map(get().npcs);
+    const npc = npcs.get(id);
+    if (npc) {
+      npcs.set(id, { ...npc, behavior });
+      set({ npcs });
+    }
+  },
 
-    damageNPC: (id, damage) => {
-      const npc = get().npcs.get(id);
-      if (!npc || npc.state === 'dead') return;
+  damageNPC: (id, damage) => {
+    const npc = get().npcs.get(id);
+    if (!npc || npc.state === 'dead') return;
 
-      const newHealth = Math.max(0, npc.health - damage);
-      const isDead = newHealth <= 0;
+    const newHealth = Math.max(0, npc.health - damage);
+    const isDead = newHealth <= 0;
 
-      set((state) => {
-        const npcDraft = state.npcs.get(id);
-        if (npcDraft) {
-          npcDraft.health = newHealth;
-          if (isDead) {
-            npcDraft.state = 'dead';
-            npcDraft.behavior = 'idle';
-            npcDraft.deathTime = Date.now();
-          }
-        }
-      });
+    const npcs = new Map(get().npcs);
+    npcs.set(id, {
+      ...npc,
+      health: newHealth,
+      state: isDead ? 'dead' : npc.state,
+      behavior: isDead ? 'idle' : npc.behavior,
+      deathTime: isDead ? Date.now() : npc.deathTime,
+    });
+    set({ npcs });
 
-      // Schedule respawn if configured
-      if (isDead && npc.respawnTime && npc.respawnTime > 0) {
-        setTimeout(() => {
-          get().respawnNPC(id);
-        }, npc.respawnTime);
+    // Schedule respawn if configured
+    if (isDead && npc.respawnTime && npc.respawnTime > 0) {
+      setTimeout(() => {
+        get().respawnNPC(id);
+      }, npc.respawnTime);
+    }
+  },
+
+  respawnNPC: (id) => {
+    const npcs = new Map(get().npcs);
+    const npc = npcs.get(id);
+    if (!npc) return;
+
+    npcs.set(id, {
+      ...npc,
+      health: npc.maxHealth,
+      state: 'idle',
+      behavior: npc.behavior === 'idle' ? 'wander' : npc.behavior,
+      position: npc.spawnPosition || npc.position,
+      deathTime: undefined,
+    });
+    set({ npcs });
+  },
+
+  // Interaction
+  setSelectedNPC: (id) => set({ selectedNPC: id }),
+
+  startDialogue: (npcId) => {
+    const npc = get().npcs.get(npcId);
+    if (npc?.dialogueId && npc.isInteractable) {
+      set({ activeDialogue: npc.dialogueId, selectedNPC: npcId });
+    }
+  },
+
+  endDialogue: () => set({ activeDialogue: null }),
+
+  // Queries - read-only, no mutations needed
+  getNPCsInRange: (position, range) => {
+    const result: NPCData[] = [];
+    get().npcs.forEach((npc) => {
+      const dx = npc.position.x - position.x;
+      const dy = npc.position.y - position.y;
+      const dz = npc.position.z - position.z;
+      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (distance <= range) {
+        result.push(npc);
       }
-    },
+    });
+    return result;
+  },
 
-    respawnNPC: (id) => {
-      set((state) => {
-        const npc = state.npcs.get(id);
-        if (!npc) return;
+  getInteractableNPCs: (playerPos) => {
+    const result: NPCData[] = [];
+    get().npcs.forEach((npc) => {
+      if (!npc.isInteractable || npc.state === 'dead') return;
 
-        npc.health = npc.maxHealth;
-        npc.state = 'idle';
-        npc.behavior = npc.behavior === 'idle' ? 'wander' : npc.behavior;
-        npc.position = npc.spawnPosition || npc.position;
-        npc.deathTime = undefined;
-      });
-    },
+      const dx = npc.position.x - playerPos.x;
+      const dz = npc.position.z - playerPos.z;
+      const distance = Math.sqrt(dx * dx + dz * dz);
 
-    // Interaction
-    setSelectedNPC: (id) =>
-      set((state) => {
-        state.selectedNPC = id;
-      }),
-
-    startDialogue: (npcId) => {
-      const npc = get().npcs.get(npcId);
-      if (npc?.dialogueId && npc.isInteractable) {
-        set((state) => {
-          state.activeDialogue = npc.dialogueId!;
-          state.selectedNPC = npcId;
-        });
+      if (distance <= npc.interactionRange) {
+        result.push(npc);
       }
-    },
+    });
+    return result;
+  },
 
-    endDialogue: () =>
-      set((state) => {
-        state.activeDialogue = null;
-      }),
-
-    // Queries - read-only, no mutations needed
-    getNPCsInRange: (position, range) => {
-      const result: NPCData[] = [];
-      get().npcs.forEach((npc) => {
-        const dx = npc.position.x - position.x;
-        const dy = npc.position.y - position.y;
-        const dz = npc.position.z - position.z;
-        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        if (distance <= range) {
-          result.push(npc);
-        }
-      });
-      return result;
-    },
-
-    getInteractableNPCs: (playerPos) => {
-      const result: NPCData[] = [];
-      get().npcs.forEach((npc) => {
-        if (!npc.isInteractable || npc.state === 'dead') return;
-
-        const dx = npc.position.x - playerPos.x;
-        const dz = npc.position.z - playerPos.z;
-        const distance = Math.sqrt(dx * dx + dz * dz);
-
-        if (distance <= npc.interactionRange) {
-          result.push(npc);
-        }
-      });
-      return result;
-    },
-
-    getHostileNPCs: () => {
-      const result: NPCData[] = [];
-      get().npcs.forEach((npc) => {
-        if (npc.type === 'hostile' && npc.state !== 'dead') {
-          result.push(npc);
-        }
-      });
-      return result;
-    },
-  }))
-);
+  getHostileNPCs: () => {
+    const result: NPCData[] = [];
+    get().npcs.forEach((npc) => {
+      if (npc.type === 'hostile' && npc.state !== 'dead') {
+        result.push(npc);
+      }
+    });
+    return result;
+  },
+}));
 
 // Factory functions for creating NPCs
 export function createNPC(options: Partial<NPCData> & { name: string; position: { x: number; y: number; z: number } }): NPCData {

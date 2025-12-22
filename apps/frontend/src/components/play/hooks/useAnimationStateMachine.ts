@@ -308,80 +308,261 @@ const TRANSITIONS: Transition[] = [
   },
 
   // Aiming transitions (enter aim mode)
+  // time > 30 keeps ADS responsive while preventing frame-by-frame flickering
   {
     from: ['rifleIdle', 'rifleWalk', 'rifleRun'],
     to: 'rifleAimIdle',
-    condition: (i) => i.isAiming && !i.isMoving && !i.isCrouching && i.weapon === 'rifle',
+    condition: (i, time) => time > 30 && i.isAiming && !i.isMoving && !i.isCrouching && i.weapon === 'rifle',
     priority: 85,
   },
   {
     from: ['rifleIdle', 'rifleWalk', 'rifleRun'],
     to: 'rifleAimWalk',
-    condition: (i) => i.isAiming && i.isMoving && !i.isCrouching && i.weapon === 'rifle',
+    condition: (i, time) => time > 30 && i.isAiming && i.isMoving && !i.isCrouching && i.weapon === 'rifle',
     priority: 85,
   },
   // Aim walk <-> aim idle
   {
     from: 'rifleAimIdle',
     to: 'rifleAimWalk',
-    condition: (i) => i.isAiming && i.isMoving,
+    condition: (i, time) => time > 30 && i.isAiming && i.isMoving,
     priority: 84,
   },
   {
     from: 'rifleAimWalk',
     to: 'rifleAimIdle',
-    condition: (i) => i.isAiming && !i.isMoving,
+    condition: (i, time) => time > 30 && i.isAiming && !i.isMoving,
     priority: 84,
   },
   // Exit aim mode (stop aiming)
   {
     from: [...RIFLE_AIM_STATES, ...RIFLE_FIRE_STATES],
     to: 'rifleIdle',
-    condition: (i) => !i.isAiming && !i.isMoving && !i.isCrouching && i.weapon === 'rifle',
+    condition: (i, time) => time > 30 && !i.isAiming && !i.isMoving && !i.isCrouching && i.weapon === 'rifle',
     priority: 83,
   },
   {
     from: [...RIFLE_AIM_STATES, ...RIFLE_FIRE_STATES],
     to: 'rifleWalk',
-    condition: (i) => !i.isAiming && i.isMoving && !i.isRunning && !i.isCrouching && i.weapon === 'rifle',
+    condition: (i, time) => time > 30 && !i.isAiming && i.isMoving && !i.isRunning && !i.isCrouching && i.weapon === 'rifle',
     priority: 83,
   },
   {
     from: [...RIFLE_AIM_STATES, ...RIFLE_FIRE_STATES],
     to: 'rifleRun',
-    condition: (i) => !i.isAiming && i.isMoving && i.isRunning && !i.isCrouching && i.weapon === 'rifle',
+    condition: (i, time) => time > 30 && !i.isAiming && i.isMoving && i.isRunning && !i.isCrouching && i.weapon === 'rifle',
     priority: 83,
   },
 
   // ===== DANCE (high priority, only when grounded and idle) =====
+  // time > 100 prevents rapid state flickering
   {
     from: 'idle',
     to: 'dance1',
-    condition: (i) => i.isDancing && i.isGrounded && !i.isMoving,
+    condition: (i, time) => time > 100 && i.isDancing && i.isGrounded && !i.isMoving,
     priority: 80,
   },
   {
     from: DANCE_STATES,
     to: 'idle',
-    condition: (i) => !i.isDancing || i.isMoving,
+    condition: (i, time) => time > 100 && (!i.isDancing || i.isMoving),
     priority: 80,
   },
 
-  // ===== CROUCH TRANSITIONS (one-shot) =====
+  // ===== CROUCH TRANSITIONS =====
+  // When moving, skip transition animation and go directly to crouch walk/strafe
+  // time > 100 prevents rapid state flickering if isCrouching flickers on certain terrain
   {
-    from: ['idle', 'walk', 'run', ...WEAPON_STANDING_STATES],
+    from: ['walk', 'run', 'rifleWalk', 'rifleRun', 'pistolWalk', 'pistolRun'],
+    to: 'crouchWalk',
+    condition: (i, time) => time > 100 && i.isCrouching && i.isGrounded && i.isMoving && i.weapon === 'none' && !i.isStrafeLeft && !i.isStrafeRight,
+    priority: 72,
+  },
+  {
+    from: ['walk', 'run'],
+    to: 'crouchStrafeLeft',
+    condition: (i, time) => time > 100 && i.isCrouching && i.isGrounded && i.isMoving && i.weapon === 'none' && i.isStrafeLeft,
+    priority: 72,
+  },
+  {
+    from: ['walk', 'run'],
+    to: 'crouchStrafeRight',
+    condition: (i, time) => time > 100 && i.isCrouching && i.isGrounded && i.isMoving && i.weapon === 'none' && i.isStrafeRight,
+    priority: 72,
+  },
+  {
+    from: ['rifleWalk', 'rifleRun'],
+    to: 'crouchRifleWalk',
+    condition: (i, time) => time > 100 && i.isCrouching && i.isGrounded && i.isMoving && i.weapon === 'rifle' && !i.isStrafeLeft && !i.isStrafeRight,
+    priority: 72,
+  },
+  {
+    from: ['rifleWalk', 'rifleRun'],
+    to: 'crouchRifleStrafeLeft',
+    condition: (i, time) => time > 100 && i.isCrouching && i.isGrounded && i.isMoving && i.weapon === 'rifle' && i.isStrafeLeft,
+    priority: 72,
+  },
+  {
+    from: ['rifleWalk', 'rifleRun'],
+    to: 'crouchRifleStrafeRight',
+    condition: (i, time) => time > 100 && i.isCrouching && i.isGrounded && i.isMoving && i.weapon === 'rifle' && i.isStrafeRight,
+    priority: 72,
+  },
+  {
+    from: ['pistolWalk', 'pistolRun'],
+    to: 'crouchPistolWalk',
+    condition: (i, time) => time > 100 && i.isCrouching && i.isGrounded && i.isMoving && i.weapon === 'pistol',
+    priority: 72,
+  },
+  // When idle with NO weapon, use transition animation
+  {
+    from: 'idle',
     to: 'standToCrouch',
-    condition: (i) => i.isCrouching && i.isGrounded,
+    condition: (i) => i.isCrouching && i.isGrounded && !i.isMoving && i.weapon === 'none',
     priority: 70,
   },
+  // When idle WITH weapon, skip transition animation and go directly to crouch idle
+  // This prevents the bobbing caused by standToCrouch offset (-0.84) vs crouchRifle offset (-0.25)
+  // time > 100 prevents rapid re-transitions that cause glitching
+  {
+    from: 'rifleIdle',
+    to: 'crouchRifleIdle',
+    condition: (i, time) => time > 100 && i.isCrouching && i.isGrounded && !i.isMoving && i.weapon === 'rifle',
+    priority: 71,
+  },
+  {
+    from: 'pistolIdle',
+    to: 'crouchPistolIdle',
+    condition: (i, time) => time > 100 && i.isCrouching && i.isGrounded && !i.isMoving && i.weapon === 'pistol',
+    priority: 71,
+  },
+  // standToCrouch exits - must match ONE_SHOT_NEXT_STATE behavior (check isMoving)
+  // Idle exits (not moving)
   {
     from: 'standToCrouch',
     to: 'crouchIdle',
-    condition: (_i, time) => time > 400, // After transition animation
+    condition: (i, time) => time > 400 && i.weapon === 'none' && !i.isMoving,
     priority: 75,
   },
   {
-    from: CROUCH_STATES.filter(s => s !== 'crouchToStand' && s !== 'crouchToSprint'),
+    from: 'standToCrouch',
+    to: 'crouchRifleIdle',
+    condition: (i, time) => time > 400 && i.weapon === 'rifle' && !i.isMoving,
+    priority: 75,
+  },
+  {
+    from: 'standToCrouch',
+    to: 'crouchPistolIdle',
+    condition: (i, time) => time > 400 && i.weapon === 'pistol' && !i.isMoving,
+    priority: 75,
+  },
+  // Walk exits (started moving during transition)
+  {
+    from: 'standToCrouch',
+    to: 'crouchWalk',
+    condition: (i, time) => time > 400 && i.weapon === 'none' && i.isMoving && !i.isStrafeLeft && !i.isStrafeRight,
+    priority: 75,
+  },
+  {
+    from: 'standToCrouch',
+    to: 'crouchRifleWalk',
+    condition: (i, time) => time > 400 && i.weapon === 'rifle' && i.isMoving && !i.isStrafeLeft && !i.isStrafeRight,
+    priority: 75,
+  },
+  {
+    from: 'standToCrouch',
+    to: 'crouchPistolWalk',
+    condition: (i, time) => time > 400 && i.weapon === 'pistol' && i.isMoving,
+    priority: 75,
+  },
+  // Strafe exits (started strafing during transition)
+  {
+    from: 'standToCrouch',
+    to: 'crouchStrafeLeft',
+    condition: (i, time) => time > 400 && i.weapon === 'none' && i.isStrafeLeft,
+    priority: 76,
+  },
+  {
+    from: 'standToCrouch',
+    to: 'crouchStrafeRight',
+    condition: (i, time) => time > 400 && i.weapon === 'none' && i.isStrafeRight,
+    priority: 76,
+  },
+  {
+    from: 'standToCrouch',
+    to: 'crouchRifleStrafeLeft',
+    condition: (i, time) => time > 400 && i.weapon === 'rifle' && i.isStrafeLeft,
+    priority: 76,
+  },
+  {
+    from: 'standToCrouch',
+    to: 'crouchRifleStrafeRight',
+    condition: (i, time) => time > 400 && i.weapon === 'rifle' && i.isStrafeRight,
+    priority: 76,
+  },
+  // When moving, skip transition animation and go directly to standing walk/run
+  // time > 100 prevents rapid state flickering if isCrouching flickers on certain terrain
+  {
+    from: ['crouchWalk', 'crouchStrafeLeft', 'crouchStrafeRight'],
+    to: 'walk',
+    condition: (i, time) => time > 100 && !i.isCrouching && i.isGrounded && i.isMoving && !i.isRunning && i.weapon === 'none',
+    priority: 72,
+  },
+  {
+    from: ['crouchWalk', 'crouchStrafeLeft', 'crouchStrafeRight'],
+    to: 'run',
+    condition: (i, time) => time > 100 && !i.isCrouching && i.isGrounded && i.isMoving && i.isRunning && i.weapon === 'none',
+    priority: 72,
+  },
+  // Rifle crouch → standing rifle (skip transition when moving)
+  {
+    from: ['crouchRifleWalk', 'crouchRifleStrafeLeft', 'crouchRifleStrafeRight'],
+    to: 'rifleWalk',
+    condition: (i, time) => time > 100 && !i.isCrouching && i.isGrounded && i.isMoving && !i.isRunning && i.weapon === 'rifle',
+    priority: 72,
+  },
+  {
+    from: ['crouchRifleWalk', 'crouchRifleStrafeLeft', 'crouchRifleStrafeRight'],
+    to: 'rifleRun',
+    condition: (i, time) => time > 100 && !i.isCrouching && i.isGrounded && i.isMoving && i.isRunning && i.weapon === 'rifle',
+    priority: 72,
+  },
+  // Pistol crouch → standing pistol (skip transition when moving)
+  {
+    from: ['crouchPistolWalk'],
+    to: 'pistolWalk',
+    condition: (i, time) => time > 100 && !i.isCrouching && i.isGrounded && i.isMoving && !i.isRunning && i.weapon === 'pistol',
+    priority: 72,
+  },
+  {
+    from: ['crouchPistolWalk'],
+    to: 'pistolRun',
+    condition: (i, time) => time > 100 && !i.isCrouching && i.isGrounded && i.isMoving && i.isRunning && i.weapon === 'pistol',
+    priority: 72,
+  },
+  // When idle with NO weapon, use transition animation
+  {
+    from: 'crouchIdle',
+    to: 'crouchToStand',
+    condition: (i) => !i.isCrouching && i.isGrounded && !i.isMoving && !i.isRunning && i.weapon === 'none',
+    priority: 70,
+  },
+  // When idle WITH weapon, skip transition animation and go directly to standing idle
+  // time > 100 prevents rapid re-transitions that cause glitching
+  {
+    from: 'crouchRifleIdle',
+    to: 'rifleIdle',
+    condition: (i, time) => time > 100 && !i.isCrouching && i.isGrounded && !i.isMoving && i.weapon === 'rifle',
+    priority: 71,
+  },
+  {
+    from: 'crouchPistolIdle',
+    to: 'pistolIdle',
+    condition: (i, time) => time > 100 && !i.isCrouching && i.isGrounded && !i.isMoving && i.weapon === 'pistol',
+    priority: 71,
+  },
+  {
+    from: CROUCH_STATES.filter(s => !['crouchToStand', 'crouchToSprint', 'crouchIdle', 'crouchRifleIdle', 'crouchPistolIdle', 'crouchWalk', 'crouchStrafeLeft', 'crouchStrafeRight', 'crouchRifleWalk', 'crouchRifleStrafeLeft', 'crouchRifleStrafeRight', 'crouchPistolWalk'].includes(s)),
     to: 'crouchToStand',
     condition: (i) => !i.isCrouching && i.isGrounded && !i.isRunning,
     priority: 70,
@@ -390,196 +571,235 @@ const TRANSITIONS: Transition[] = [
     from: CROUCH_STATES.filter(s => s !== 'crouchToStand' && s !== 'crouchToSprint'),
     to: 'crouchToSprint',
     condition: (i) => !i.isCrouching && i.isGrounded && i.isRunning && i.isMoving,
-    priority: 70,
+    priority: 69, // Lower priority than direct transitions
   },
   {
     from: 'crouchToStand',
     to: 'idle',
-    condition: (i, time) => time > 400 && !i.isMoving,
+    condition: (i, time) => time > 400 && !i.isMoving && i.weapon === 'none',
+    priority: 75,
+  },
+  {
+    from: 'crouchToStand',
+    to: 'rifleIdle',
+    condition: (i, time) => time > 400 && !i.isMoving && i.weapon === 'rifle',
+    priority: 75,
+  },
+  {
+    from: 'crouchToStand',
+    to: 'pistolIdle',
+    condition: (i, time) => time > 400 && !i.isMoving && i.weapon === 'pistol',
     priority: 75,
   },
   {
     from: 'crouchToStand',
     to: 'walk',
-    condition: (i, time) => time > 300 && i.isMoving && !i.isRunning,
+    condition: (i, time) => time > 300 && i.isMoving && !i.isRunning && i.weapon === 'none',
+    priority: 75,
+  },
+  {
+    from: 'crouchToStand',
+    to: 'rifleWalk',
+    condition: (i, time) => time > 300 && i.isMoving && !i.isRunning && i.weapon === 'rifle',
+    priority: 75,
+  },
+  {
+    from: 'crouchToStand',
+    to: 'pistolWalk',
+    condition: (i, time) => time > 300 && i.isMoving && !i.isRunning && i.weapon === 'pistol',
     priority: 75,
   },
   {
     from: 'crouchToSprint',
     to: 'run',
-    condition: (_i, time) => time > 300,
+    condition: (i, time) => time > 300 && i.weapon === 'none',
+    priority: 75,
+  },
+  {
+    from: 'crouchToSprint',
+    to: 'rifleRun',
+    condition: (i, time) => time > 300 && i.weapon === 'rifle',
+    priority: 75,
+  },
+  {
+    from: 'crouchToSprint',
+    to: 'pistolRun',
+    condition: (i, time) => time > 300 && i.weapon === 'pistol',
     priority: 75,
   },
 
   // ===== CROUCH + WEAPON STATES =====
   // Note: Don't include standToCrouch in 'from' - let the one-shot animation complete first
-  // Rifle crouching
+  // Rifle crouching - added minimum time (100ms) to prevent rapid idle/walk flickering that causes bobbing
   {
     from: ['crouchIdle', 'crouchWalk', 'crouchRifleWalk', 'crouchRifleStrafeLeft', 'crouchRifleStrafeRight'],
     to: 'crouchRifleIdle',
-    condition: (i) => i.isCrouching && i.weapon === 'rifle' && !i.isMoving,
+    condition: (i, time) => i.isCrouching && i.weapon === 'rifle' && !i.isMoving && time > 100,
     priority: 65,
   },
   {
     from: ['crouchIdle', 'crouchWalk', 'crouchRifleIdle', 'crouchRifleStrafeLeft', 'crouchRifleStrafeRight'],
     to: 'crouchRifleWalk',
-    condition: (i) => i.isCrouching && i.weapon === 'rifle' && i.isMoving && !i.isStrafeLeft && !i.isStrafeRight,
+    condition: (i, time) => i.isCrouching && i.weapon === 'rifle' && i.isMoving && !i.isStrafeLeft && !i.isStrafeRight && time > 100,
     priority: 65,
   },
   {
     from: ['crouchRifleIdle', 'crouchRifleWalk', 'crouchRifleStrafeRight'],
     to: 'crouchRifleStrafeLeft',
-    condition: (i) => i.isCrouching && i.weapon === 'rifle' && i.isStrafeLeft,
+    condition: (i, time) => i.isCrouching && i.weapon === 'rifle' && i.isStrafeLeft && time > 100,
     priority: 66,
   },
   {
     from: ['crouchRifleIdle', 'crouchRifleWalk', 'crouchRifleStrafeLeft'],
     to: 'crouchRifleStrafeRight',
-    condition: (i) => i.isCrouching && i.weapon === 'rifle' && i.isStrafeRight,
+    condition: (i, time) => i.isCrouching && i.weapon === 'rifle' && i.isStrafeRight && time > 100,
     priority: 66,
   },
-  // Pistol crouching
+  // Pistol crouching - also add minimum time
   {
     from: ['crouchIdle', 'crouchWalk'],
     to: 'crouchPistolIdle',
-    condition: (i) => i.isCrouching && i.weapon === 'pistol' && !i.isMoving,
+    condition: (i, time) => i.isCrouching && i.weapon === 'pistol' && !i.isMoving && time > 100,
     priority: 65,
   },
   {
     from: ['crouchIdle', 'crouchWalk', 'crouchPistolIdle'],
     to: 'crouchPistolWalk',
-    condition: (i) => i.isCrouching && i.weapon === 'pistol' && i.isMoving,
+    condition: (i, time) => i.isCrouching && i.weapon === 'pistol' && i.isMoving && time > 100,
     priority: 65,
   },
-  // Weapon unequipped while crouching
+  // Weapon unequipped while crouching - added time > 100 to prevent rapid state flickering
   {
     from: ['crouchRifleIdle', 'crouchPistolIdle'],
     to: 'crouchIdle',
-    condition: (i) => i.isCrouching && i.weapon === 'none' && !i.isMoving,
+    condition: (i, time) => time > 100 && i.isCrouching && i.weapon === 'none' && !i.isMoving,
     priority: 64,
   },
   {
     from: ['crouchRifleWalk', 'crouchRifleStrafeLeft', 'crouchRifleStrafeRight', 'crouchPistolWalk'],
     to: 'crouchWalk',
-    condition: (i) => i.isCrouching && i.weapon === 'none' && i.isMoving,
+    condition: (i, time) => time > 100 && i.isCrouching && i.weapon === 'none' && i.isMoving,
     priority: 64,
   },
 
   // ===== CROUCH MOVEMENT (no weapon) =====
   // Note: Don't include standToCrouch - let one-shot animation complete first
+  // Added minimum time (100ms) to prevent rapid idle/walk flickering
   {
     from: 'crouchIdle',
     to: 'crouchWalk',
-    condition: (i) => i.isCrouching && i.isMoving && i.weapon === 'none' && !i.isStrafeLeft && !i.isStrafeRight,
+    condition: (i, time) => i.isCrouching && i.isMoving && i.weapon === 'none' && !i.isStrafeLeft && !i.isStrafeRight && time > 100,
     priority: 60,
   },
   {
     from: ['crouchWalk', 'crouchStrafeLeft', 'crouchStrafeRight'],
     to: 'crouchIdle',
-    condition: (i) => i.isCrouching && !i.isMoving && i.weapon === 'none',
+    condition: (i, time) => i.isCrouching && !i.isMoving && i.weapon === 'none' && time > 100,
     priority: 60,
   },
   {
     from: ['crouchIdle', 'crouchWalk'],
     to: 'crouchStrafeLeft',
-    condition: (i) => i.isCrouching && i.isStrafeLeft && i.weapon === 'none',
+    condition: (i, time) => i.isCrouching && i.isStrafeLeft && i.weapon === 'none' && time > 100,
     priority: 61,
   },
   {
     from: ['crouchIdle', 'crouchWalk'],
     to: 'crouchStrafeRight',
-    condition: (i) => i.isCrouching && i.isStrafeRight && i.weapon === 'none',
+    condition: (i, time) => i.isCrouching && i.isStrafeRight && i.weapon === 'none' && time > 100,
     priority: 61,
   },
 
   // ===== WEAPON STATES (standing) =====
+  // time > 50 prevents rapid state flickering while keeping locomotion responsive
   // Rifle - includes transitions within rifle states (run->walk->idle)
   {
     from: ['idle', 'walk', 'run', 'rifleWalk', 'rifleRun', 'pistolIdle', 'pistolWalk', 'pistolRun'],
     to: 'rifleIdle',
-    condition: (i) => !i.isCrouching && i.weapon === 'rifle' && !i.isMoving,
+    condition: (i, time) => time > 50 && !i.isCrouching && i.weapon === 'rifle' && !i.isMoving,
     priority: 50,
   },
   {
     from: ['idle', 'walk', 'run', 'rifleIdle', 'rifleRun', 'pistolIdle', 'pistolWalk', 'pistolRun'],
     to: 'rifleWalk',
-    condition: (i) => !i.isCrouching && i.weapon === 'rifle' && i.isMoving && !i.isRunning,
+    condition: (i, time) => time > 50 && !i.isCrouching && i.weapon === 'rifle' && i.isMoving && !i.isRunning,
     priority: 50,
   },
   {
     from: ['idle', 'walk', 'run', 'rifleIdle', 'rifleWalk', 'pistolIdle', 'pistolWalk', 'pistolRun'],
     to: 'rifleRun',
-    condition: (i) => !i.isCrouching && i.weapon === 'rifle' && i.isMoving && i.isRunning,
+    condition: (i, time) => time > 50 && !i.isCrouching && i.weapon === 'rifle' && i.isMoving && i.isRunning,
     priority: 50,
   },
   // Pistol - includes transitions within pistol states (run->walk->idle)
   {
     from: ['idle', 'walk', 'run', 'pistolWalk', 'pistolRun', 'rifleIdle', 'rifleWalk', 'rifleRun'],
     to: 'pistolIdle',
-    condition: (i) => !i.isCrouching && i.weapon === 'pistol' && !i.isMoving,
+    condition: (i, time) => time > 50 && !i.isCrouching && i.weapon === 'pistol' && !i.isMoving,
     priority: 50,
   },
   {
     from: ['idle', 'walk', 'run', 'pistolIdle', 'pistolRun', 'rifleIdle', 'rifleWalk', 'rifleRun'],
     to: 'pistolWalk',
-    condition: (i) => !i.isCrouching && i.weapon === 'pistol' && i.isMoving && !i.isRunning,
+    condition: (i, time) => time > 50 && !i.isCrouching && i.weapon === 'pistol' && i.isMoving && !i.isRunning,
     priority: 50,
   },
   {
     from: ['idle', 'walk', 'run', 'pistolIdle', 'pistolWalk', 'rifleIdle', 'rifleWalk', 'rifleRun'],
     to: 'pistolRun',
-    condition: (i) => !i.isCrouching && i.weapon === 'pistol' && i.isMoving && i.isRunning,
+    condition: (i, time) => time > 50 && !i.isCrouching && i.weapon === 'pistol' && i.isMoving && i.isRunning,
     priority: 50,
   },
-  // Weapon unequipped
+  // Weapon unequipped - time > 50 prevents rapid state flickering
   {
     from: WEAPON_STANDING_STATES,
     to: 'idle',
-    condition: (i) => !i.isCrouching && i.weapon === 'none' && !i.isMoving,
+    condition: (i, time) => time > 50 && !i.isCrouching && i.weapon === 'none' && !i.isMoving,
     priority: 49,
   },
   {
     from: WEAPON_STANDING_STATES,
     to: 'walk',
-    condition: (i) => !i.isCrouching && i.weapon === 'none' && i.isMoving && !i.isRunning,
+    condition: (i, time) => time > 50 && !i.isCrouching && i.weapon === 'none' && i.isMoving && !i.isRunning,
     priority: 49,
   },
   {
     from: WEAPON_STANDING_STATES,
     to: 'run',
-    condition: (i) => !i.isCrouching && i.weapon === 'none' && i.isMoving && i.isRunning,
+    condition: (i, time) => time > 50 && !i.isCrouching && i.weapon === 'none' && i.isMoving && i.isRunning,
     priority: 49,
   },
 
   // ===== BASIC LOCOMOTION (lowest priority) =====
+  // time > 50 prevents rapid state flickering while keeping locomotion responsive
   {
     from: 'idle',
     to: 'walk',
-    condition: (i) => i.isMoving && !i.isRunning && !i.isCrouching && i.weapon === 'none',
+    condition: (i, time) => time > 50 && i.isMoving && !i.isRunning && !i.isCrouching && i.weapon === 'none',
     priority: 10,
   },
   {
     from: 'idle',
     to: 'run',
-    condition: (i) => i.isMoving && i.isRunning && !i.isCrouching && i.weapon === 'none',
+    condition: (i, time) => time > 50 && i.isMoving && i.isRunning && !i.isCrouching && i.weapon === 'none',
     priority: 10,
   },
   {
     from: 'walk',
     to: 'run',
-    condition: (i) => i.isRunning && !i.isCrouching && i.weapon === 'none',
+    condition: (i, time) => time > 50 && i.isRunning && !i.isCrouching && i.weapon === 'none',
     priority: 11,
   },
   {
     from: 'run',
     to: 'walk',
-    condition: (i) => !i.isRunning && i.isMoving && !i.isCrouching && i.weapon === 'none',
+    condition: (i, time) => time > 50 && !i.isRunning && i.isMoving && !i.isCrouching && i.weapon === 'none',
     priority: 11,
   },
   {
     from: ['walk', 'run'],
     to: 'idle',
-    condition: (i) => !i.isMoving && !i.isCrouching && i.weapon === 'none',
+    condition: (i, time) => time > 50 && !i.isMoving && !i.isCrouching && i.weapon === 'none',
     priority: 10,
   },
 ];

@@ -12,9 +12,13 @@ import type { RapierRigidBody } from '@react-three/rapier';
 
 // Ground detection constants
 const GROUND_RAY_LENGTH = 2.0;      // How far down to raycast
-const GROUND_THRESHOLD = 1.1;       // Distance to consider grounded
-const MIN_GROUND_NORMAL_Y = 0.7;    // Slope tolerance (~45° max)
-const MAX_ASCENDING_VELOCITY = 1.0; // Max upward velocity to count as grounded
+// Hysteresis thresholds prevent flickering on uneven terrain
+const GROUND_THRESHOLD_ENTER = 0.95;  // Must be closer to become grounded
+const GROUND_THRESHOLD_EXIT = 1.2;    // Must be farther to become airborne
+const MIN_GROUND_NORMAL_Y = 0.7;      // Slope tolerance (~45° max)
+const MAX_ASCENDING_VELOCITY = 1.5;   // Max upward velocity to count as grounded
+// Stability counter - require multiple consistent frames to change state
+const STABILITY_FRAMES = 2;           // Frames of consistent state before changing
 
 /**
  * 3D ground normal vector for slope alignment
@@ -70,6 +74,10 @@ export function useGroundDetection({ rigidBody, world, rapier }: UseGroundDetect
     verticalVelocity: 0,
   });
 
+  // Hysteresis state - track previous grounded state and stability counter
+  const wasGrounded = useRef(true);
+  const stabilityCounter = useRef(0);
+
   /**
    * Detect ground state for current frame
    * Call this once per frame in useFrame
@@ -99,40 +107,55 @@ export function useGroundDetection({ rigidBody, world, rapier }: UseGroundDetect
       rigidBody
     );
 
-    // No ground hit
-    if (!hit || hit.timeOfImpact >= GROUND_THRESHOLD) {
-      lastState.current = {
-        isGrounded: false,
-        groundNormalY: 0,
-        groundNormal: { x: 0, y: 1, z: 0 }, // Default to up when airborne
-        isValidSlope: false,
-        groundDistance: hit?.timeOfImpact ?? Infinity,
-        verticalVelocity,
-      };
-      return lastState.current;
-    }
-
-    // Extract full 3D ground normal
-    const groundNormal: GroundNormal = {
+    // Extract ground info from raycast
+    const groundDistance = hit?.timeOfImpact ?? Infinity;
+    const groundNormal: GroundNormal = hit ? {
       x: hit.normal?.x ?? 0,
       y: hit.normal?.y ?? 1,
       z: hit.normal?.z ?? 0,
-    };
+    } : { x: 0, y: 1, z: 0 };
     const groundNormalY = groundNormal.y;
     const isValidSlope = groundNormalY > MIN_GROUND_NORMAL_Y;
 
     // Not grounded if ascending (jumping through ground)
     const isAscending = verticalVelocity > MAX_ASCENDING_VELOCITY;
 
-    // Combined ground check
-    const isGrounded = isValidSlope && !isAscending;
+    // Hysteresis: use different thresholds based on current state
+    // This prevents flickering when distance hovers near threshold
+    const currentThreshold = wasGrounded.current ? GROUND_THRESHOLD_EXIT : GROUND_THRESHOLD_ENTER;
+    const distanceCheck = groundDistance < currentThreshold;
+
+    // Raw ground check (before stability filtering)
+    const rawIsGrounded = distanceCheck && isValidSlope && !isAscending;
+
+    // Stability counter: require consistent state for multiple frames
+    let isGrounded: boolean;
+    if (rawIsGrounded === wasGrounded.current) {
+      // State is consistent - use current raw value
+      stabilityCounter.current = 0;
+      isGrounded = rawIsGrounded;
+    } else {
+      // State wants to change - require stability
+      stabilityCounter.current++;
+      if (stabilityCounter.current >= STABILITY_FRAMES) {
+        // Changed state consistently - accept the change
+        isGrounded = rawIsGrounded;
+        stabilityCounter.current = 0;
+      } else {
+        // Not yet stable - keep previous state
+        isGrounded = wasGrounded.current;
+      }
+    }
+
+    // Update hysteresis state for next frame
+    wasGrounded.current = isGrounded;
 
     lastState.current = {
       isGrounded,
       groundNormalY,
       groundNormal,
       isValidSlope,
-      groundDistance: hit.timeOfImpact,
+      groundDistance,
       verticalVelocity,
     };
 

@@ -1,13 +1,19 @@
 /**
  * ChunkPalmTrees.tsx
- * Palm tree instances owned by a single terrain chunk
- * Places palm trees in sand biomes (beaches, desert edges)
+ * OPTIMIZED: Uses InstancedMesh for palm trees in beach/coastal zones
+ *
+ * PERFORMANCE:
+ * - Draw calls per chunk: 1 per primitive (trunk + fronds)
+ * - ~2000 triangles per palm (already optimized model)
+ * - Static geometry optimizations (matrixAutoUpdate = false)
+ *
+ * Placement: Coastal zones within 100m of world edge, height 0.5m - 10m
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useGLTF } from '@react-three/drei';
-import { SkeletonUtils } from 'three-stdlib';
+import { RigidBody, CylinderCollider } from '@react-three/rapier';
 import type { GLTF } from 'three-stdlib';
 import {
   TerrainGenerator,
@@ -16,22 +22,28 @@ import {
   WATER_LEVEL,
   WORLD_PLAY_RADIUS,
 } from '../../../lib/terrain';
+import { LAYERS } from '../constants/layers';
 
-const DEBUG_PALM_TREES = false; // DISABLED for performance
+const DEBUG_PALM_TREES = false;
+
+// Physics only within this radius from player (expensive, so keep small)
+const PALM_PHYSICS_RADIUS = 50;
+
+// Maximum palm trees per chunk (for InstancedMesh pre-allocation)
+const MAX_PALMS_PER_CHUNK = 8;
+
+// Palm tree model path
+const PALM_MODEL = '/models/Foliage/Trees/palm_tree.glb';
 
 export interface ChunkPalmTreesProps {
   chunkX: number;
   chunkZ: number;
   seed: number;
   chunkRadius?: number;
-  /**
-   * Pre-initialized TerrainGenerator with hydrology attached.
-   * Pass this from StaticTerrain to ensure river/lake detection works.
-   * If not provided, creates a new instance (without hydrology - rivers/lakes won't be detected)
-   */
   terrainGen?: TerrainGenerator;
   instancesPerChunk?: number;
   minTreeSpacing?: number;
+  playerPosition?: { x: number; z: number };
 }
 
 function seededRandom(seed: number) {
@@ -41,8 +53,8 @@ function seededRandom(seed: number) {
 
 interface TreePlacement {
   position: THREE.Vector3;
-  rotation: THREE.Euler;
-  scale: THREE.Vector3;
+  rotation: number;
+  scale: number;
 }
 
 type GLTFResult = GLTF & {
@@ -50,6 +62,64 @@ type GLTFResult = GLTF & {
   materials: Record<string, THREE.Material>;
   scene: THREE.Group;
 };
+
+// Primitive data (geometry + material pair)
+interface PrimitiveData {
+  geometry: THREE.BufferGeometry;
+  material: THREE.Material;
+}
+
+// Pre-allocated objects for matrix computation (avoid GC)
+const _matrix = new THREE.Matrix4();
+const _position = new THREE.Vector3();
+const _quaternion = new THREE.Quaternion();
+const _scale = new THREE.Vector3();
+const _euler = new THREE.Euler();
+
+/**
+ * Extract ALL primitives (geometry + material pairs) from a palm tree model
+ * Multi-material meshes have multiple primitives that need separate InstancedMeshes
+ */
+function extractAllPrimitives(scene: THREE.Group): PrimitiveData[] {
+  const primitives: PrimitiveData[] = [];
+
+  scene.traverse((node) => {
+    if ((node as THREE.Mesh).isMesh) {
+      const mesh = node as THREE.Mesh;
+      const geometry = mesh.geometry;
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+
+      materials.forEach((material) => {
+        if (material && geometry) {
+          primitives.push({ geometry, material });
+        }
+      });
+    }
+  });
+
+  return primitives;
+}
+
+/**
+ * Configure material for foliage rendering
+ */
+function configureFoliageMaterial(material: THREE.Material): void {
+  const m = material as THREE.MeshStandardMaterial;
+  m.side = THREE.DoubleSide;
+  // Ensure fog is enabled for distance fading
+  m.fog = true;
+
+  if (m.map) {
+    m.alphaTest = 0.5;
+    m.transparent = false;
+    m.depthWrite = true;
+    m.map.colorSpace = THREE.SRGBColorSpace;
+    m.map.anisotropy = 8;
+    m.roughness = 0.85;
+    m.metalness = 0;
+    m.needsUpdate = true;
+  }
+}
 
 export const ChunkPalmTrees = React.memo(function ChunkPalmTrees({
   chunkX,
@@ -59,62 +129,35 @@ export const ChunkPalmTrees = React.memo(function ChunkPalmTrees({
   terrainGen: passedTerrainGen,
   instancesPerChunk = 4,
   minTreeSpacing = 12,
+  playerPosition,
 }: ChunkPalmTreesProps) {
-  const gltf = useGLTF('/models/Foliage/Trees/palm_tree.glb') as GLTFResult;
+  // Refs for InstancedMesh array (one per primitive)
+  const meshRefs = useRef<(THREE.InstancedMesh | null)[]>([]);
 
-  // Configure materials
-  useMemo(() => {
-    gltf.scene.traverse((node) => {
-      if ((node as THREE.Mesh).isMesh) {
-        const mesh = node as THREE.Mesh;
-        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  // Load palm tree model (cached by drei)
+  const gltf = useGLTF(PALM_MODEL) as GLTFResult;
 
-        materials.forEach((mat) => {
-          const m = mat as THREE.MeshStandardMaterial;
-          m.side = THREE.DoubleSide;
+  // Extract all primitives from the model
+  const primitives = useMemo(() => {
+    const prims = extractAllPrimitives(gltf.scene);
 
-          if (m.map) {
-            m.alphaTest = 0.5;
-            m.transparent = false;
-            m.depthWrite = true;
-            m.map.colorSpace = THREE.SRGBColorSpace;
-            m.map.anisotropy = 8;
-            m.map.generateMipmaps = true;
-            m.map.minFilter = THREE.LinearMipmapLinearFilter;
-            m.map.magFilter = THREE.LinearFilter;
-            m.map.needsUpdate = true;
-            // Matte tropical leaves
-            m.roughness = 0.85;
-            m.metalness = 0;
-          }
-          m.needsUpdate = true;
-        });
-      }
-    });
-  }, [gltf]);
+    // Configure materials
+    prims.forEach((p) => configureFoliageMaterial(p.material));
 
-  // Get the palm tree object
-  const palmTreeObject = useMemo(() => {
-    // Find the main mesh
-    let mainMesh: THREE.Object3D | null = null;
-    gltf.scene.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh && !mainMesh) {
-        mainMesh = child;
-      }
-    });
-    return mainMesh || gltf.scene;
+    if (DEBUG_PALM_TREES) {
+      console.log('🌴 Palm primitives loaded:', prims.length);
+    }
+
+    return prims;
   }, [gltf.scene]);
 
+  // Get tree bounds for proper ground placement
   const treeBounds = useMemo(() => {
-    return new THREE.Box3().setFromObject(palmTreeObject);
-  }, [palmTreeObject]);
+    return new THREE.Box3().setFromObject(gltf.scene);
+  }, [gltf.scene]);
 
-  // Generate palm tree placements for beach zones (Rust-style: near coast)
-  // NOTE: Uses HEIGHT-BASED filtering, NOT biome lookup (which is unreliable)
+  // Generate palm tree placements for beach zones
   const placements = useMemo(() => {
-    if (!palmTreeObject) return [];
-
-    // Use passed terrainGen (has hydrology) or create fallback (no hydrology)
     const terrainGen = passedTerrainGen ?? new TerrainGenerator(seed, chunkRadius);
     const origin = getChunkOrigin(chunkX, chunkZ);
     const chunkSeed = seed + chunkX * 2000 + chunkZ + 777777;
@@ -122,18 +165,13 @@ export const ChunkPalmTrees = React.memo(function ChunkPalmTrees({
     const result: TreePlacement[] = [];
     const placedPositions: THREE.Vector2[] = [];
 
-    // CRITICAL: Palm trees use HEIGHT-BASED placement, not biome lookup
-    // Beach heights: 0.5m to 8m (water level to above dunes)
-    const minPalmHeight = WATER_LEVEL + 0.5;  // Just above waterline
-    const maxPalmHeight = 10;  // Extended range for dune/grass transition
+    // Beach heights: just above water to dune level
+    const minPalmHeight = WATER_LEVEL + 0.5;
+    const maxPalmHeight = 10;
 
     const worldRadius = chunkRadius ? chunkRadius * CHUNK_SIZE : WORLD_PLAY_RADIUS;
 
-    // Debug: track rejection reasons
-    let rejections = { height: 0, distance: 0, slope: 0, spacing: 0, density: 0, river: 0, lake: 0, total: 0 };
-
-    for (let i = 0; i < instancesPerChunk * 6; i++) {  // More attempts
-      rejections.total++;
+    for (let i = 0; i < instancesPerChunk * 6 && result.length < instancesPerChunk; i++) {
       const randX = seededRandom(chunkSeed + i * 11);
       const randZ = seededRandom(chunkSeed + i * 11 + 1);
       const randRot = seededRandom(chunkSeed + i * 11 + 2);
@@ -152,127 +190,149 @@ export const ChunkPalmTrees = React.memo(function ChunkPalmTrees({
           break;
         }
       }
-      if (tooClose) { rejections.spacing++; continue; }
+      if (tooClose) continue;
 
-      // Sample terrain (height only, skip biome check)
+      // Sample terrain
       const terrain = terrainGen.sampleTerrain(x, z);
       const height = terrain.height;
 
-      // Skip invalid heights
       if (!Number.isFinite(height)) continue;
+      if (terrain.isSubmerged) continue;
 
-      // =================================================================
-      // RUST-STYLE TOPOLOGY: Skip ALL submerged areas (rivers, lakes, underwater)
-      // Uses single flag from TerrainSample for reliable water detection
-      // =================================================================
-      if (terrain.isSubmerged) { rejections.lake++; continue; }
-
-      // =================================================================
-      // DISTANCE-BASED FILTERING: Palm trees near coast ONLY
-      // This is the PRIMARY filter - palm trees are a coastal feature
-      // =================================================================
+      // Distance-based filtering: palm trees near coast only
       const distFromCenter = Math.sqrt(x * x + z * z);
       const distFromCoast = worldRadius - distFromCenter;
 
-      // Palm trees only within 100m of coastline
-      if (distFromCoast < 3) { rejections.distance++; continue; }    // Not in water
-      if (distFromCoast > 100) { rejections.distance++; continue; }  // Not too far inland
+      if (distFromCoast < 3) continue;    // Not in water
+      if (distFromCoast > 100) continue;  // Not too far inland
 
-      // =================================================================
-      // HEIGHT-BASED FILTERING: Beach/dune elevation zone
-      // =================================================================
-      if (height < minPalmHeight) { rejections.height++; continue; }
-      if (height > maxPalmHeight) { rejections.height++; continue; }
+      // Height-based filtering: beach/dune zone
+      if (height < minPalmHeight) continue;
+      if (height > maxPalmHeight) continue;
 
-      // =================================================================
-      // SLOPE FILTERING: Gentle terrain only
-      // =================================================================
-      if (terrain.normal.y < 0.8) { rejections.slope++; continue; }
+      // Slope filtering: gentle terrain only
+      if (terrain.normal.y < 0.8) continue;
 
-      // =================================================================
-      // DENSITY VARIATION: Natural clumping (less strict)
-      // =================================================================
+      // Density variation: natural clumping
       const densityNoise = (terrainGen as any).noise?.fbm2?.(x * 0.02, z * 0.02, 2, 0.5, 2.0, 1.0) ?? 0;
-      const palmDensity = 0.7 + densityNoise * 0.3;  // Higher base density
-      if (randDensity > palmDensity) { rejections.density++; continue; }
+      const palmDensity = 0.7 + densityNoise * 0.3;
+      if (randDensity > palmDensity) continue;
 
-      if (placedPositions.length >= instancesPerChunk) break;
       placedPositions.push(pos2D);
 
-      // Place at ground level
+      // Place at ground level (accounting for model origin offset)
       const y = height - treeBounds.min.y - 0.05;
 
-      // Scale variation
+      // Scale variation (0.5x to 1.0x)
       const s = 0.5 + randScaleVar * 0.5;
 
       result.push({
         position: new THREE.Vector3(x, y, z),
-        rotation: new THREE.Euler(0, randRot * Math.PI * 2, 0),
-        scale: new THREE.Vector3(s, s, s),
+        rotation: randRot * Math.PI * 2,
+        scale: s,
       });
     }
 
-    if (DEBUG_PALM_TREES) {
-      console.log(`🌴 Chunk [${chunkX},${chunkZ}]: ${result.length} palm trees placed. Rejections:`, rejections);
-      if (result.length > 0) {
-        console.log(`  First palm at: (${result[0].position.x.toFixed(1)}, ${result[0].position.y.toFixed(1)}, ${result[0].position.z.toFixed(1)})`);
-      }
+    if (DEBUG_PALM_TREES && result.length > 0) {
+      console.log(`🌴 Chunk [${chunkX},${chunkZ}]: ${result.length} palm trees`);
     }
 
     return result;
-  }, [chunkX, chunkZ, seed, chunkRadius, passedTerrainGen, instancesPerChunk, palmTreeObject, treeBounds, minTreeSpacing]);
+  }, [chunkX, chunkZ, seed, chunkRadius, passedTerrainGen, instancesPerChunk, minTreeSpacing, treeBounds]);
 
-  // Create cloned instances
-  // NOTE: This hook must run unconditionally (before any early returns) to satisfy React's rules of hooks
-  const treeInstances = useMemo(() => {
-    if (placements.length === 0) return [];
+  // Update instance matrices for all primitives
+  useEffect(() => {
+    const count = Math.min(placements.length, MAX_PALMS_PER_CHUNK);
 
-    return placements.map((placement) => {
-      const clone = SkeletonUtils.clone(palmTreeObject);
+    meshRefs.current.forEach((mesh) => {
+      if (!mesh) return;
 
-      clone.position.copy(placement.position);
-      clone.rotation.copy(placement.rotation);
-      clone.scale.copy(placement.scale);
+      for (let i = 0; i < count; i++) {
+        const p = placements[i];
 
-      clone.traverse((node) => {
-        if ((node as THREE.Mesh).isMesh) {
-          const mesh = node as THREE.Mesh;
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
+        _euler.set(0, p.rotation, 0);
+        _quaternion.setFromEuler(_euler);
+        _scale.setScalar(p.scale);
+        _position.copy(p.position);
 
-          const m = mesh.material as THREE.MeshStandardMaterial;
-          if (m.map) {
-            m.alphaTest = 0.5;
-            m.transparent = false;
-            m.depthWrite = true;
-            m.side = THREE.DoubleSide;
-            m.map.anisotropy = 8;
-            m.roughness = 0.85;
-            m.metalness = 0;
-          }
-        }
-      });
+        _matrix.compose(_position, _quaternion, _scale);
+        mesh.setMatrixAt(i, _matrix);
+      }
 
-      return clone;
+      mesh.count = count;
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+
+      // PERF: Static geometry optimizations
+      mesh.matrixAutoUpdate = false;
+      mesh.updateMatrix();
+      mesh.layers.enable(LAYERS.VEGETATION);
     });
-  }, [placements, palmTreeObject]);
+  }, [placements]);
 
-  // Don't render if no trees
-  if (treeInstances.length === 0) {
+  // Only add physics colliders for palms near player (expensive, so limit radius)
+  // If no playerPosition, limit to first few palms per chunk as fallback
+  const physicsTreesNearPlayer = useMemo(() => {
+    if (!playerPosition) {
+      // Fallback: limit physics bodies when no player position available
+      return placements.slice(0, 2);
+    }
+
+    const radiusSq = PALM_PHYSICS_RADIUS * PALM_PHYSICS_RADIUS;
+    return placements.filter((p) => {
+      const dx = p.position.x - playerPosition.x;
+      const dz = p.position.z - playerPosition.z;
+      return dx * dx + dz * dz < radiusSq;
+    });
+  }, [placements, playerPosition]);
+
+  // Early return if no placements or no primitives
+  if (placements.length === 0 || primitives.length === 0) {
     return null;
   }
 
+  // Ensure refs array is correct size
+  meshRefs.current = new Array(primitives.length).fill(null);
+
   return (
     <group name={`chunk-palm-trees-${chunkX}-${chunkZ}`}>
-      {treeInstances.map((tree, i) => (
-        <primitive key={i} object={tree} />
+      {/* Palm tree instances - all primitives */}
+      {primitives.map((prim, idx) => (
+        <instancedMesh
+          key={`palm-${idx}`}
+          ref={(el) => { meshRefs.current[idx] = el; }}
+          args={[prim.geometry, prim.material, MAX_PALMS_PER_CHUNK]}
+          frustumCulled
+          receiveShadow
+        />
       ))}
+
+      {/* Physics colliders for palm tree trunks - only near player for performance */}
+      {physicsTreesNearPlayer.map((p) => {
+        const trunkRadius = 0.3 * p.scale;
+        const trunkHeight = 3.0 * p.scale;
+
+        return (
+          <RigidBody
+            key={`collider-${p.position.x.toFixed(1)}-${p.position.z.toFixed(1)}`}
+            type="fixed"
+            position={[p.position.x, p.position.y, p.position.z]}
+            colliders={false}
+          >
+            <CylinderCollider
+              args={[trunkHeight / 2, trunkRadius]}
+              position={[0, trunkHeight / 2, 0]}
+            />
+          </RigidBody>
+        );
+      })}
     </group>
   );
 });
 
+// Preload palm tree model
 (ChunkPalmTrees as any).preload = () => {
-  useGLTF.preload('/models/Foliage/Trees/palm_tree.glb');
+  useGLTF.preload(PALM_MODEL);
 };
 
 export default ChunkPalmTrees;

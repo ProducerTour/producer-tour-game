@@ -7,7 +7,7 @@
 export { ProceduralTerrain, StaticTerrain } from './ProceduralTerrain';
 export type { ProceduralTerrainProps, StaticTerrainProps } from './ProceduralTerrain';
 
-// Physics heightfield collider
+// Physics heightfield collider (global)
 export { TerrainPhysics } from './TerrainPhysics';
 export type { TerrainPhysicsProps } from './TerrainPhysics';
 
@@ -43,6 +43,10 @@ export type { ChunkGrassProps } from './ChunkGrass';
 export { ChunkTrees } from './ChunkTrees';
 export type { ChunkTreesProps } from './ChunkTrees';
 
+// Chunk-owned trees - INSTANCED version (optimized, fewer draw calls)
+export { ChunkTreesInstanced } from './ChunkTreesInstanced';
+export type { ChunkTreesInstancedProps } from './ChunkTreesInstanced';
+
 // Chunk-owned palm trees (sand biomes)
 export { ChunkPalmTrees } from './ChunkPalmTrees';
 export type { ChunkPalmTreesProps } from './ChunkPalmTrees';
@@ -54,6 +58,10 @@ export type { ChunkRocksProps } from './ChunkRocks';
 // Chunk-owned cliffs (steep slopes in mountain regions)
 export { ChunkCliffs } from './ChunkCliffs';
 export type { ChunkCliffsProps } from './ChunkCliffs';
+
+// Chunk-owned bushes (forest undergrowth)
+export { ChunkBushes } from './ChunkBushes';
+export type { ChunkBushesProps } from './ChunkBushes';
 
 // Re-export lib types for convenience
 export type {

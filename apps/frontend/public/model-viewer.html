@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Model Viewer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui;
+      background: #1a1a2e;
+      color: white;
+      min-height: 100vh;
+    }
+    .header {
+      padding: 20px;
+      background: #16213e;
+      text-align: center;
+    }
+    .header h1 { margin-bottom: 10px; }
+    .drop-zone {
+      border: 3px dashed #4a5568;
+      border-radius: 10px;
+      padding: 40px;
+      margin: 20px;
+      text-align: center;
+      transition: all 0.3s;
+    }
+    .drop-zone.dragover {
+      border-color: #48bb78;
+      background: rgba(72, 187, 120, 0.1);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+    .model-card {
+      background: #16213e;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .model-card canvas {
+      width: 100% !important;
+      height: 300px !important;
+    }
+    .model-info {
+      padding: 15px;
+    }
+    .model-info h3 {
+      margin-bottom: 10px;
+      word-break: break-all;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stat {
+      background: #1a1a2e;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .stat-label { font-size: 12px; color: #888; }
+    .stat-value { font-size: 18px; font-weight: bold; }
+    .stat-value.good { color: #48bb78; }
+    .stat-value.warn { color: #ecc94b; }
+    .stat-value.bad { color: #f56565; }
+    .remove-btn {
+      background: #f56565;
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>3D Model Viewer</h1>
+    <p>Drag & drop GLB/GLTF files to compare</p>
+  </div>
+
+  <div class="drop-zone" id="dropZone">
+    <p>Drop GLB/GLTF files here</p>
+    <p style="color: #888; margin-top: 10px;">or click to select files</p>
+    <input type="file" id="fileInput" multiple accept=".glb,.gltf" style="display: none;">
+  </div>
+
+  <div style="padding: 0 20px; margin-bottom: 20px;">
+    <p style="margin-bottom: 10px;">Or load from URL (for separated GLTF with textures):</p>
+    <div style="display: flex; gap: 10px;">
+      <input type="text" id="urlInput" placeholder="/models/Foliage/Trees/my_tree/scene.gltf"
+        style="flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #4a5568; background: #16213e; color: white;">
+      <button id="loadUrlBtn" style="padding: 10px 20px; background: #48bb78; border: none; border-radius: 5px; color: white; cursor: pointer;">
+        Load
+      </button>
+    </div>
+  </div>
+
+  <div class="grid" id="modelGrid"></div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const modelGrid = document.getElementById('modelGrid');
+    const loader = new GLTFLoader();
+
+    const urlInput = document.getElementById('urlInput');
+    const loadUrlBtn = document.getElementById('loadUrlBtn');
+
+    // Click to select
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+    // Load from URL
+    loadUrlBtn.addEventListener('click', () => {
+      const url = urlInput.value.trim();
+      if (url) {
+        loadModelFromUrl(url);
+        urlInput.value = '';
+      }
+    });
+    urlInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        loadUrlBtn.click();
+      }
+    });
+
+    function loadModelFromUrl(url) {
+      const filename = url.split('/').pop();
+      loader.load(url, (gltf) => {
+        const card = createModelCard(filename, gltf);
+        modelGrid.appendChild(card);
+      }, undefined, (error) => {
+        console.error('Error loading model:', error);
+        alert('Failed to load: ' + url + '\\n\\nMake sure the path is relative to the server root.');
+      });
+    }
+
+    // Drag and drop
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+
+    function handleFiles(files) {
+      Array.from(files).forEach(file => {
+        if (file.name.endsWith('.glb') || file.name.endsWith('.gltf')) {
+          loadModel(file);
+        }
+      });
+    }
+
+    function loadModel(file) {
+      const url = URL.createObjectURL(file);
+
+      loader.load(url, (gltf) => {
+        const card = createModelCard(file.name, gltf);
+        modelGrid.appendChild(card);
+        URL.revokeObjectURL(url);
+      }, undefined, (error) => {
+        console.error('Error loading model:', error);
+        alert('Failed to load: ' + file.name);
+      });
+    }
+
+    function createModelCard(filename, gltf) {
+      const card = document.createElement('div');
+      card.className = 'model-card';
+
+      // Create canvas and renderer
+      const canvas = document.createElement('canvas');
+      card.appendChild(canvas);
+
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setSize(400, 300);
+      renderer.setClearColor(0x2d3748);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+      // Scene
+      const scene = new THREE.Scene();
+
+      // Camera
+      const camera = new THREE.PerspectiveCamera(50, 400/300, 0.1, 1000);
+
+      // Lights
+      scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+      dirLight.position.set(5, 10, 5);
+      scene.add(dirLight);
+      scene.add(new THREE.HemisphereLight(0x87CEEB, 0x3d7a37, 0.4));
+
+      // Add model
+      const model = gltf.scene;
+      scene.add(model);
+
+      // Calculate stats
+      let triangles = 0;
+      let vertices = 0;
+      let meshCount = 0;
+      const meshNames = [];
+
+      model.traverse((node) => {
+        if (node.isMesh) {
+          meshCount++;
+          meshNames.push(node.name || 'unnamed');
+          const geo = node.geometry;
+          if (geo.index) {
+            triangles += geo.index.count / 3;
+          } else {
+            triangles += geo.attributes.position.count / 3;
+          }
+          vertices += geo.attributes.position.count;
+        }
+      });
+
+      // Center and fit model
+      const box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+
+      model.position.sub(center);
+      camera.position.set(0, maxDim * 0.5, maxDim * 2);
+      camera.lookAt(0, 0, 0);
+
+      // Controls
+      const controls = new OrbitControls(camera, canvas);
+      controls.enableDamping = true;
+      controls.target.set(0, 0, 0);
+
+      // Animate
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Info panel
+      const info = document.createElement('div');
+      info.className = 'model-info';
+
+      // Determine color based on triangle count
+      let triClass = 'good';
+      if (triangles > 2000) triClass = 'warn';
+      if (triangles > 5000) triClass = 'bad';
+
+      info.innerHTML = `
+        <h3>${filename}</h3>
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">Triangles</div>
+            <div class="stat-value ${triClass}">${Math.round(triangles).toLocaleString()}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Vertices</div>
+            <div class="stat-value">${vertices.toLocaleString()}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Meshes</div>
+            <div class="stat-value">${meshCount}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Size (m)</div>
+            <div class="stat-value">${size.y.toFixed(1)}h</div>
+          </div>
+        </div>
+        <details style="margin-top: 10px;">
+          <summary style="cursor: pointer; color: #888;">Mesh names</summary>
+          <div style="font-size: 12px; color: #666; margin-top: 5px;">
+            ${meshNames.join(', ')}
+          </div>
+        </details>
+        <button class="remove-btn">Remove</button>
+      `;
+
+      card.appendChild(info);
+
+      // Remove button
+      info.querySelector('.remove-btn').addEventListener('click', () => {
+        renderer.dispose();
+        card.remove();
+      });
+
+      return card;
+    }
+  </script>
+</body>
+</html>

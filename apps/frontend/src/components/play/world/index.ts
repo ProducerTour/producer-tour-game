@@ -6,3 +6,5 @@ export { BaseWorld } from './BaseWorld';
 export type { BaseWorldProps } from './BaseWorld';
 export { Campfire } from './Campfire';
 export type { CampfireProps } from './Campfire';
+export { Yacht } from './Yacht';
+export type { YachtProps } from './Yacht';

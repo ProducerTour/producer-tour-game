@@ -8,6 +8,38 @@ import {
 } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
 import * as THREE from 'three';
+
+/**
+ * ShaderPrewarmer - Pre-compiles all shaders in the scene to eliminate frame spikes
+ *
+ * Three.js compiles shaders on first use, causing frame drops.
+ * This component forces compilation during load instead of during gameplay.
+ *
+ * Reference: https://threejs.org/docs/#api/en/renderers/WebGLRenderer.compile
+ */
+function ShaderPrewarmer() {
+  const { gl, scene, camera } = useThree();
+  const hasCompiled = useRef(false);
+
+  useEffect(() => {
+    if (hasCompiled.current) return;
+    hasCompiled.current = true;
+
+    // Small delay to ensure all materials are loaded
+    const timer = setTimeout(() => {
+      try {
+        gl.compile(scene, camera);
+        if (DEBUG_WORLD) console.log('🔧 Shaders pre-compiled successfully');
+      } catch (error) {
+        console.warn('Shader pre-compilation failed:', error);
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [gl, scene, camera]);
+
+  return null;
+}
 import { usePlayMultiplayer } from './hooks/usePlayMultiplayer';
 import { OtherPlayers } from './multiplayer/OtherPlayers';
 import { PhysicsPlayerController, type AnimationState } from './PhysicsPlayerController';
@@ -29,6 +61,7 @@ import { WATER_LEVEL, heightmapGenerator } from '../../lib/terrain';
 import { Water } from './world/Water';
 import { WorldBoundary } from './world/WorldBoundary';
 import { Campfire } from './world/Campfire';
+import { Yacht } from './world/Yacht';
 import { NPCManager, createNPC } from './npc';
 import { useNPCStore } from './npc/useNPCStore';
 
@@ -295,6 +328,9 @@ export function PlayWorld({
 
   return (
     <>
+      {/* PERF: Pre-compile shaders during load to eliminate frame spikes */}
+      <ShaderPrewarmer />
+
       {/* Lighting - simplified for performance */}
       <ambientLight intensity={0.5} />
       <directionalLight
@@ -383,6 +419,7 @@ export function PlayWorld({
           <StaticTerrain
             seed={cityMapControls.terrainSeed}
             radius={cityMapControls.terrainRadius}
+            playerPosition={playerPositionObject}
             wireframe={cityMapControls.terrainWireframe}
             textured={cityMapControls.terrainTextured}
             color={cityMapControls.terrainColor}
@@ -423,16 +460,26 @@ export function PlayWorld({
 
           {/* Global water plane at sea level - animated shader water */}
           {cityMapControls.waterEnabled && (
-            <Water
-              seaLevel={WATER_LEVEL}
-              size={1500}
-              deepColor="#0a3d62"
-              shallowColor="#48c9b0"
-              waveSpeed={0.5}
-              waveScale={0.5}
-              fresnelPower={2.0}
-              fogEnabled={effectiveFogEnabled}
-            />
+            <>
+              <Water
+                seaLevel={WATER_LEVEL}
+                size={1500}
+                deepColor="#0a3d62"
+                shallowColor="#48c9b0"
+                waveSpeed={0.5}
+                waveScale={0.5}
+                fresnelPower={2.0}
+                fogEnabled={effectiveFogEnabled}
+              />
+              {/* Yacht floating in ocean at K9 grid cell */}
+              <Suspense fallback={null}>
+                <Yacht
+                  position={[288, WATER_LEVEL, 160]}
+                  rotation={-Math.PI / 6}
+                  scale={1.0}
+                />
+              </Suspense>
+            </>
           )}
 
           {/* Terrain physics collision - HeightfieldCollider for smooth walking */}

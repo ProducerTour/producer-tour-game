@@ -21,6 +21,9 @@ import {
 // Debug logging
 const DEBUG_TREES = false; // DISABLED for performance
 
+// LOD distance for tree rendering - skip trees beyond this distance
+const TREE_LOD_CULL = 120;
+
 export interface ChunkTreesProps {
   /** Chunk X coordinate (grid index, not world position) */
   chunkX: number;
@@ -52,6 +55,9 @@ export interface ChunkTreesProps {
 
   /** Minimum distance between trees (meters) */
   minTreeSpacing?: number;
+
+  /** Player position for LOD calculations (optional) */
+  playerPosition?: { x: number; z: number };
 }
 
 // Seeded random for deterministic tree placement
@@ -84,6 +90,7 @@ export const ChunkTrees = React.memo(function ChunkTrees({
   windEnabled: _windEnabled = true,
   windStrength: _windStrength = 0.5,
   minTreeSpacing = 8,
+  playerPosition,
 }: ChunkTreesProps) {
   // Load oak tree model (cached by drei)
   const gltf = useGLTF('/models/Foliage/Trees/oak_trees.glb') as GLTFResult;
@@ -308,7 +315,7 @@ export const ChunkTrees = React.memo(function ChunkTrees({
           if (originalMat) {
             mesh.material = originalMat;
           }
-          mesh.castShadow = true;
+          mesh.castShadow = false; // Disabled for performance - foliage shadows expensive
           mesh.receiveShadow = true;
 
           // Ensure alpha cutout and green tint for foliage
@@ -338,17 +345,33 @@ export const ChunkTrees = React.memo(function ChunkTrees({
     return null;
   }
 
+  // LOD: Filter trees based on distance from player
+  // Trees beyond TREE_LOD_CULL are not rendered at all
+  const visibleTrees = playerPosition
+    ? treeInstances.filter(({ placement }) => {
+        const dx = placement.position.x - playerPosition.x;
+        const dz = placement.position.z - playerPosition.z;
+        const distSq = dx * dx + dz * dz;
+        return distSq < TREE_LOD_CULL * TREE_LOD_CULL;
+      })
+    : treeInstances;
+
+  // Skip rendering if all trees are culled
+  if (visibleTrees.length === 0) {
+    return null;
+  }
+
   // Optimized rendering: separate visual tree meshes from physics colliders
   // This reduces React reconciliation overhead by not wrapping each tree in RigidBody
   return (
     <group name={`chunk-trees-${chunkX}-${chunkZ}`}>
       {/* Visual tree meshes - no physics wrapper */}
-      {treeInstances.map(({ clone }, i) => (
+      {visibleTrees.map(({ clone }, i) => (
         <primitive key={`tree-${i}`} object={clone} />
       ))}
 
-      {/* Physics colliders for tree trunks - separate from visuals */}
-      {treeInstances.map(({ placement }, i) => {
+      {/* Physics colliders for tree trunks - only for visible trees */}
+      {visibleTrees.map(({ placement }, i) => {
         const scale = placement.scale.x;
         // Trunk-only collision - smaller than visual for better gameplay
         const trunkRadius = 0.4 * scale;
