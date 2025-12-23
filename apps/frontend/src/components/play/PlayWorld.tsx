@@ -57,7 +57,7 @@ import { AnimatedAvatar, MixamoAnimatedAvatar, PlaceholderAvatar } from './avata
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { getSkyboxPath, getModelPath } from '../../config/assetPaths';
 import { StaticTerrain, TerrainPhysics } from './terrain';
-import { WATER_LEVEL, heightmapGenerator } from '../../lib/terrain';
+import { WATER_LEVEL, heightmapGenerator, terrainGenerator } from '../../lib/terrain';
 import { Water } from './world/Water';
 import { WorldBoundary } from './world/WorldBoundary';
 import { Campfire } from './world/Campfire';
@@ -147,20 +147,52 @@ export function PlayWorld({
   // Initialize combat sounds (plays weapon SFX on fire/reload)
   useCombatSounds({ enabled: true, volume: 1.0 });
 
-  // Test NPC - bandit model spawns near player landing position
-  // Sample terrain height at spawn position for correct ground placement
+  // Test NPC - bandit model spawns in a valid grass biome near player
+  // Uses terrainGenerator for consistent terrain/biome lookups
   const testNPCs = useMemo(() => {
-    // Spawn NPC directly in front of player spawn (player spawns at 0,0,0 and falls)
-    const npcX = 0;
-    const npcZ = 8; // 8 meters in front of player
-    const terrainHeight = heightmapGenerator.sampleHeight(npcX, npcZ);
-    console.log(`🎭 NPC spawn: terrain height at (${npcX}, ${npcZ}) = ${terrainHeight.toFixed(2)}m`);
+    // Find a valid grass biome position for NPC spawn (spiral search from player spawn)
+    const findGrassBiomePosition = () => {
+      const centerX = 0;
+      const centerZ = 8; // Start searching near player spawn
+      const maxRadius = 50;
+      const step = 5;
+
+      // Grass-like biomes that are safe for NPC spawning
+      const validBiomes = new Set([
+        'grassland', 'meadow', 'temperate_forest', 'savanna', 'scrubland', 'alpine_meadow'
+      ]);
+
+      // Spiral search for valid spawn point
+      for (let radius = 0; radius <= maxRadius; radius += step) {
+        const numPoints = Math.max(1, Math.floor(radius * 2 * Math.PI / step));
+        for (let i = 0; i < numPoints; i++) {
+          const angle = (i / numPoints) * Math.PI * 2;
+          const x = centerX + Math.cos(angle) * radius;
+          const z = centerZ + Math.sin(angle) * radius;
+          const height = terrainGenerator.getHeight(x, z);
+          const biome = terrainGenerator.getBiome(x, z);
+
+          // Valid spawn: above water, in grass biome
+          if (height > 1 && validBiomes.has(biome)) {
+            return { x, y: height, z };
+          }
+        }
+      }
+
+      // Fallback: use center position
+      const fallbackHeight = terrainGenerator.getHeight(centerX, centerZ);
+      return { x: centerX, y: fallbackHeight, z: centerZ };
+    };
+
+    const spawnPos = findGrassBiomePosition();
+    const biomeAtSpawn = terrainGenerator.getBiome(spawnPos.x, spawnPos.z);
+    console.log(`🎭 NPC spawn: (${spawnPos.x.toFixed(1)}, ${spawnPos.z.toFixed(1)}) height=${spawnPos.y.toFixed(2)}m biome=${biomeAtSpawn}`);
 
     return [
       createNPC({
         name: 'Bandit',
-        position: { x: npcX, y: terrainHeight, z: npcZ },
-        spawnPosition: { x: npcX, y: terrainHeight, z: npcZ }, // Remember spawn point for respawn
+        position: spawnPos,
+        spawnPosition: spawnPos, // Remember spawn point for respawn
         rotation: Math.PI, // Face toward player spawn
         behavior: 'wander',
         type: 'hostile',
@@ -555,7 +587,8 @@ export function PlayWorld({
             playerPosition={playerPositionObject}
             initialNPCs={testNPCs}
             renderDistance={100}
-            getTerrainHeight={(x, z) => heightmapGenerator.sampleHeight(x, z)}
+            getTerrainHeight={(x, z) => terrainGenerator.getHeight(x, z)}
+            getBiome={(x, z) => terrainGenerator.getBiome(x, z)}
           />
 
           {/* Interactive Campfire - Press E to toggle */}

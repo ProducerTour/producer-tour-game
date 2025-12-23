@@ -18,6 +18,26 @@ import * as THREE from 'three';
 import { useNPCStore, type NPCData } from './useNPCStore';
 import { MixamoAnimatedAvatar } from '../avatars';
 import { useGamePause } from '../context';
+import { BiomeType } from '../../../lib/terrain/BiomeLookupTable';
+
+// Biomes that NPCs can safely walk on (grass-like biomes)
+const WALKABLE_BIOMES = new Set<BiomeType>([
+  BiomeType.GRASSLAND,
+  BiomeType.MEADOW,
+  BiomeType.TEMPERATE_FOREST,
+  BiomeType.SAVANNA,
+  BiomeType.SCRUBLAND,
+  BiomeType.ALPINE_MEADOW,
+  BiomeType.BEACH,
+]);
+
+// Biomes that NPCs must avoid (water)
+const WATER_BIOMES = new Set<BiomeType>([
+  BiomeType.DEEP_OCEAN,
+  BiomeType.SHALLOW_OCEAN,
+  BiomeType.MARSH,
+  BiomeType.SWAMP,
+]);
 
 /**
  * Static model component for NPCs without animations
@@ -95,6 +115,8 @@ interface NPCProps {
   enablePhysics?: boolean;
   /** Function to get terrain height at x,z position - for terrain following */
   getTerrainHeight?: (x: number, z: number) => number;
+  /** Function to get biome at x,z position - for valid wander target selection */
+  getBiome?: (x: number, z: number) => BiomeType;
 }
 
 /**
@@ -109,7 +131,7 @@ function NPCPlaceholder({ color }: { color: string }) {
   );
 }
 
-export function NPC({ data, playerPosition, onInteract, serverControlled = false, enablePhysics = true, getTerrainHeight }: NPCProps) {
+export function NPC({ data, playerPosition, onInteract, serverControlled = false, enablePhysics = true, getTerrainHeight, getBiome }: NPCProps) {
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
   const rigidBodyRef = useRef<RapierRigidBody>(null);
@@ -317,25 +339,62 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
     }
   };
 
-  // Random wandering
+  /**
+   * Check if a position is valid for NPC movement (not water, in walkable biome)
+   */
+  const isValidWanderTarget = (x: number, z: number): boolean => {
+    if (!getBiome || !getTerrainHeight) return true; // No biome check available, allow any position
+
+    const biome = getBiome(x, z);
+    const height = getTerrainHeight(x, z);
+
+    // Reject water biomes
+    if (WATER_BIOMES.has(biome)) return false;
+
+    // Reject positions below water level (height < 0 is underwater)
+    if (height < 0.5) return false;
+
+    // Only allow walkable biomes (grass, meadow, etc.)
+    if (!WALKABLE_BIOMES.has(biome)) return false;
+
+    return true;
+  };
+
+  // Random wandering - constrained to walkable biomes
   const handleWanderBehavior = (now: number) => {
     if (now < waitUntil.current) return;
 
     if (!currentTarget.current || Math.random() < 0.01) {
-      // Pick a new random point within 10 units
-      const angle = Math.random() * Math.PI * 2;
-      const distance = 3 + Math.random() * 7;
-      currentTarget.current = {
-        x: data.position.x + Math.cos(angle) * distance,
-        z: data.position.z + Math.sin(angle) * distance,
-      };
-      setNPCState(data.id, 'walking');
+      // Try to find a valid wander point (up to 10 attempts)
+      let validTarget: { x: number; z: number } | null = null;
+
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 3 + Math.random() * 7;
+        const candidateX = localPosition.current.x + Math.cos(angle) * distance;
+        const candidateZ = localPosition.current.z + Math.sin(angle) * distance;
+
+        if (isValidWanderTarget(candidateX, candidateZ)) {
+          validTarget = { x: candidateX, z: candidateZ };
+          break;
+        }
+      }
+
+      if (validTarget) {
+        currentTarget.current = validTarget;
+        setNPCState(data.id, 'walking');
+      } else {
+        // No valid target found, stay in place and wait
+        currentTarget.current = null;
+        waitUntil.current = now + 2000 + Math.random() * 2000;
+        setNPCState(data.id, 'idle');
+      }
     }
 
     // Check if reached target
     if (currentTarget.current) {
-      const dx = data.position.x - currentTarget.current.x;
-      const dz = data.position.z - currentTarget.current.z;
+      const dx = localPosition.current.x - currentTarget.current.x;
+      const dz = localPosition.current.z - currentTarget.current.z;
       if (Math.sqrt(dx * dx + dz * dz) < 0.5) {
         currentTarget.current = null;
         waitUntil.current = now + 1000 + Math.random() * 3000;
@@ -413,10 +472,28 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
     const dirZ = dz / distance;
     const speed = data.state === 'running' ? RUN_SPEED : WALK_SPEED;
 
-    // Move - update local refs (not store)
+    // Calculate next position
     const moveAmount = Math.min(speed * delta, distance);
-    localPosition.current.x += dirX * moveAmount;
-    localPosition.current.z += dirZ * moveAmount;
+    const nextX = localPosition.current.x + dirX * moveAmount;
+    const nextZ = localPosition.current.z + dirZ * moveAmount;
+
+    // Safety check: validate next position before moving
+    // This prevents NPCs from walking into water even if target validation failed
+    if (getBiome && getTerrainHeight) {
+      const nextBiome = getBiome(nextX, nextZ);
+      const nextHeight = getTerrainHeight(nextX, nextZ);
+
+      // Abort movement if about to enter water or below water level
+      if (WATER_BIOMES.has(nextBiome) || nextHeight < 0.5) {
+        currentTarget.current = null; // Cancel target
+        setNPCState(data.id, 'idle');
+        return;
+      }
+    }
+
+    // Move - update local refs (not store)
+    localPosition.current.x = nextX;
+    localPosition.current.z = nextZ;
 
     // Sample terrain height at new position for terrain following
     if (getTerrainHeight) {

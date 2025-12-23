@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/auth.store';
@@ -11,7 +12,30 @@ import { ChatWidget } from './components/chat';
 import { BugReportButton } from './components/BugReportButton';
 import { MobileLayout } from './components/mobile/MobileLayout';
 
-// Pages
+// ============================================================================
+// LAZY-LOADED PAGES
+// Heavy 3D pages are loaded on-demand to reduce initial bundle size
+// These include Three.js, Rapier physics, terrain generation, etc.
+// ============================================================================
+const PlayPage = lazy(() => import('./pages/PlayPage'));
+const HoldingsInteriorPage = lazy(() => import('./pages/HoldingsInteriorPage'));
+
+// Loading fallback for lazy-loaded 3D pages
+function GameLoadingFallback() {
+  return (
+    <div className="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-white text-lg font-medium">Loading game...</p>
+        <p className="text-slate-400 text-sm mt-1">Preparing 3D assets</p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// STANDARD PAGES (loaded immediately)
+// ============================================================================
 import { PublisherCassetteLandingPage as LandingPage } from './components/landing-page-templates/template-11-publisher-cassette';
 import LandingPreview from './pages/LandingPreview';
 import LoginPage from './pages/LoginPage';
@@ -58,9 +82,6 @@ import NotFoundPage from './pages/NotFoundPage';
 import ToolsPage from './pages/ToolsPage';
 import TrifectaPlannerPage from './pages/TrifectaPlannerPage';
 import CorporateStructurePage from './pages/CorporateStructurePage';
-import HoldingsInteriorPage from './pages/HoldingsInteriorPage';
-import PlayPage from './pages/PlayPage';
-import CityPage from './pages/CityPage';
 
 function PrivateRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { user, token } = useAuthStore();
@@ -82,7 +103,7 @@ function GlobalUI() {
   const location = useLocation();
 
   // Hide chat widget and bug report button on game pages
-  const isGamePage = location.pathname === '/play' || location.pathname === '/city';
+  const isGamePage = location.pathname === '/play';
 
   if (isGamePage) return null;
 
@@ -358,8 +379,12 @@ function App() {
         <Route path="/" element={<LandingPage />} />
 
         {/* Producer Tour Play - Music Industry Metaverse */}
-        <Route path="/play" element={<PlayPage />} />
-        <Route path="/city" element={<CityPage />} />
+        {/* Lazy-loaded 3D game pages - wrapped in Suspense for code splitting */}
+        <Route path="/play" element={
+          <Suspense fallback={<GameLoadingFallback />}>
+            <PlayPage />
+          </Suspense>
+        } />
 
         {/* Landing Page Templates Preview */}
         <Route path="/landing-preview" element={<LandingPreview />} />
@@ -377,7 +402,9 @@ function App() {
           path="/tools/corporate-structure/holdings"
           element={
             <PrivateRoute roles={['ADMIN']}>
-              <HoldingsInteriorPage />
+              <Suspense fallback={<GameLoadingFallback />}>
+                <HoldingsInteriorPage />
+              </Suspense>
             </PrivateRoute>
           }
         />

@@ -66,7 +66,9 @@ const CONFIG = {
   /** Duration of landing state before returning to grounded */
   LANDING_DURATION: 0.05,  // Reduced from 0.1 for snappier bunny hopping
   /** Max velocity magnitude to be considered "stable" for landing */
-  STABLE_VELOCITY: 3.0,    // Increased to allow landing at higher velocities
+  // Increased significantly: jump force is 9.0, so landing velocity can be 6-10 m/s
+  // Previous value of 3.0 caused stuck jumps on slopes
+  STABLE_VELOCITY: 12.0,
   /** Grace period for jump input (coyote time) */
   COYOTE_TIME: 0.15,       // Slightly increased for more forgiving edge jumps
   /** Cooldown between jumps */
@@ -75,6 +77,8 @@ const CONFIG = {
   STABLE_LAND_TIME: 0.02,  // Reduced for faster jump reset
   /** Jump buffer window - press jump before landing, execute on touchdown */
   JUMP_BUFFER_TIME: 0.15,  // 150ms buffer for pre-landing jump input
+  /** Force landing after being grounded for this long, regardless of velocity */
+  FORCE_LAND_TIME: 0.1,    // 100ms - ensures landing even with physics quirks
 };
 
 /**
@@ -258,7 +262,13 @@ export function useAirState() {
 
         case AirState.JUMPING:
           if (isGrounded && isLowVelocity) {
-            // Landed
+            // Normal landing - velocity is low enough
+            currentState.current = AirState.LANDING;
+            stateTime.current = 0;
+            hasJumped.current = false;
+          } else if (isGrounded && groundedStableTime.current > CONFIG.FORCE_LAND_TIME) {
+            // Force landing - grounded for long enough, velocity doesn't matter
+            // This prevents getting stuck in jump state on slopes where velocity spikes
             currentState.current = AirState.LANDING;
             stateTime.current = 0;
             hasJumped.current = false;
@@ -276,7 +286,11 @@ export function useAirState() {
 
         case AirState.FALLING:
           if (isGrounded && isLowVelocity) {
-            // Landed from fall
+            // Normal landing from fall - velocity is low enough
+            currentState.current = AirState.LANDING;
+            stateTime.current = 0;
+          } else if (isGrounded && groundedStableTime.current > CONFIG.FORCE_LAND_TIME) {
+            // Force landing - grounded for long enough, velocity doesn't matter
             currentState.current = AirState.LANDING;
             stateTime.current = 0;
           }

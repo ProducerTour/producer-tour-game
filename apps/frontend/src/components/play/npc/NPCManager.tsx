@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { useNPCStore, type NPCData } from './useNPCStore';
 import { NPC } from './NPC';
 import { useNPCSync } from './useNPCSync';
+import type { BiomeType } from '../../../lib/terrain/BiomeLookupTable';
 
 interface NPCManagerProps {
   playerPosition?: { x: number; y: number; z: number };
@@ -20,6 +21,8 @@ interface NPCManagerProps {
   multiplayerEnabled?: boolean;
   /** Function to get terrain height at x,z position */
   getTerrainHeight?: (x: number, z: number) => number;
+  /** Function to get biome at x,z position - for NPC pathfinding */
+  getBiome?: (x: number, z: number) => BiomeType;
 }
 
 export function NPCManager({
@@ -29,6 +32,7 @@ export function NPCManager({
   renderDistance = 50,
   multiplayerEnabled = false,
   getTerrainHeight,
+  getBiome,
 }: NPCManagerProps) {
   // Use individual selectors to prevent re-renders on unrelated store changes
   const npcs = useNPCStore((s) => s.npcs);
@@ -80,6 +84,7 @@ export function NPCManager({
           onInteract={onNPCInteract}
           serverControlled={multiplayerEnabled || isServerControlled}
           getTerrainHeight={getTerrainHeight}
+          getBiome={getBiome}
         />
       ))}
     </group>

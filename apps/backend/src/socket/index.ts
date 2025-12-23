@@ -47,6 +47,59 @@ const players3D = new Map<string, Player3D>();
 const PLAYER_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
 const SHIP_MODELS: ('rocket' | 'fighter' | 'unaf' | 'monkey')[] = ['rocket', 'fighter', 'unaf', 'monkey'];
 
+// === SERVER-AUTHORITATIVE COMBAT STATE ===
+interface PlayerCombatState {
+  health: number;
+  maxHealth: number;
+  ammo: Record<string, number>;
+  lastFireTime: number;
+  lastDamageTime: number;
+}
+
+const playerCombatState = new Map<string, PlayerCombatState>();
+
+// === SERVER-AUTHORITATIVE INVENTORY STATE ===
+interface InventoryItem {
+  id: string;
+  name: string;
+  quantity: number;
+  consumable: boolean;
+  effects?: {
+    heal?: number;
+    ammo?: number;
+    ammoType?: string;
+  };
+}
+
+interface PlayerInventory {
+  items: InventoryItem[];
+  maxSlots: number;
+}
+
+const playerInventory = new Map<string, PlayerInventory>();
+
+// Initialize player combat and inventory state
+function initializePlayerState(socketId: string): void {
+  playerCombatState.set(socketId, {
+    health: 100,
+    maxHealth: 100,
+    ammo: { rifle: 30, pistol: 12 },
+    lastFireTime: 0,
+    lastDamageTime: 0,
+  });
+
+  playerInventory.set(socketId, {
+    items: [],
+    maxSlots: 20,
+  });
+}
+
+// Clean up player state on disconnect
+function cleanupPlayerState(socketId: string): void {
+  playerCombatState.delete(socketId);
+  playerInventory.delete(socketId);
+}
+
 // === SERVER-AUTHORITATIVE NPC SYSTEM ===
 interface ServerNPC {
   id: string;
@@ -722,6 +775,11 @@ export function initializeSocket(httpServer: HttpServer): Server {
         const socketRoom = room === 'holdings' ? '3d-holdings-room' : room === 'play' ? '3d-play-room' : '3d-room';
         socket.join(socketRoom);
 
+        // Initialize combat and inventory state for play room
+        if (room === 'play') {
+          initializePlayerState(socket.id);
+        }
+
         // Log appropriate message based on room type
         if (room === 'play') {
           console.log(`🎮 Player ${username} (${socket.id}) joined play-room${data.avatarUrl ? ' with avatar' : ''}`);
@@ -917,6 +975,247 @@ export function initializeSocket(httpServer: HttpServer): Server {
       }
     });
 
+    // =========================================================================
+    // SERVER-AUTHORITATIVE COMBAT SYSTEM
+    // All combat actions are validated server-side to prevent cheating
+    // =========================================================================
+
+    // Player fires weapon - server validates and broadcasts
+    socket.on('combat:fire', (data: {
+      weaponType: 'rifle' | 'pistol';
+      targetId?: string;
+      targetType?: 'npc' | 'player';
+      hitPosition?: { x: number; y: number; z: number };
+      isCritical?: boolean;
+    }) => {
+      const player = players3D.get(socket.id);
+      if (!player || player.room !== 'play') return;
+
+      const combatState = playerCombatState.get(socket.id);
+      if (!combatState) return;
+
+      // Validate weapon cooldown (server-side fire rate enforcement)
+      const now = Date.now();
+      const fireRates: Record<string, number> = { rifle: 150, pistol: 400 };
+      const fireRate = fireRates[data.weaponType] || 200;
+
+      if (now - combatState.lastFireTime < fireRate) {
+        // Fire rate exceeded - potential cheat attempt
+        socket.emit('combat:rejected', { reason: 'fire_rate' });
+        return;
+      }
+
+      // Validate ammo (server tracks ammo)
+      const currentAmmo = combatState.ammo[data.weaponType] || 0;
+      if (currentAmmo <= 0) {
+        socket.emit('combat:rejected', { reason: 'no_ammo' });
+        return;
+      }
+
+      // Deduct ammo and update fire time
+      combatState.ammo[data.weaponType] = currentAmmo - 1;
+      combatState.lastFireTime = now;
+
+      // If target specified, validate distance and calculate damage
+      if (data.targetId && data.targetType) {
+        const weaponDamage: Record<string, number> = { rifle: 15, pistol: 25 };
+        const weaponRange: Record<string, number> = { rifle: 100, pistol: 50 };
+        const baseDamage = weaponDamage[data.weaponType] || 10;
+        const maxRange = weaponRange[data.weaponType] || 50;
+
+        let targetPosition: { x: number; y: number; z: number } | null = null;
+
+        // Get target position based on type
+        if (data.targetType === 'npc') {
+          const playRoomNPCs = roomNPCs.get('play');
+          const npc = playRoomNPCs?.get(data.targetId);
+          if (npc) {
+            targetPosition = npc.position;
+          }
+        } else if (data.targetType === 'player') {
+          const targetPlayer = players3D.get(data.targetId);
+          if (targetPlayer && targetPlayer.room === 'play') {
+            targetPosition = targetPlayer.position;
+          }
+        }
+
+        if (targetPosition) {
+          // Validate distance
+          const dx = player.position.x - targetPosition.x;
+          const dy = player.position.y - targetPosition.y;
+          const dz = player.position.z - targetPosition.z;
+          const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+          if (distance <= maxRange) {
+            // Calculate damage with critical hit
+            const critMultiplier = data.isCritical ? 2.0 : 1.0;
+            const damage = Math.round(baseDamage * critMultiplier);
+
+            // Broadcast hit to all players in room
+            io?.to('3d-play-room').emit('combat:hit', {
+              attackerId: socket.id,
+              targetId: data.targetId,
+              targetType: data.targetType,
+              damage,
+              isCritical: data.isCritical || false,
+              hitPosition: data.hitPosition || targetPosition,
+            });
+
+            // If NPC, update NPC health server-side
+            if (data.targetType === 'npc') {
+              const playRoomNPCs = roomNPCs.get('play');
+              const npc = playRoomNPCs?.get(data.targetId);
+              if (npc && 'health' in npc) {
+                (npc as ServerNPC & { health: number }).health -= damage;
+                if ((npc as ServerNPC & { health: number }).health <= 0) {
+                  // NPC killed
+                  io?.to('3d-play-room').emit('combat:npc-killed', {
+                    npcId: data.targetId,
+                    killerId: socket.id,
+                  });
+                }
+              }
+            }
+
+            console.log(`⚔️ ${player.username} hit ${data.targetType} ${data.targetId} for ${damage} damage`);
+          } else {
+            socket.emit('combat:rejected', { reason: 'out_of_range', distance, maxRange });
+          }
+        }
+      }
+
+      // Broadcast fire event (for visual effects on other clients)
+      socket.to('3d-play-room').emit('combat:player-fired', {
+        playerId: socket.id,
+        weaponType: data.weaponType,
+        position: player.position,
+        rotation: player.rotation,
+      });
+    });
+
+    // Player reloads weapon
+    socket.on('combat:reload', (data: { weaponType: 'rifle' | 'pistol' }) => {
+      const combatState = playerCombatState.get(socket.id);
+      if (!combatState) return;
+
+      const magazineSizes: Record<string, number> = { rifle: 30, pistol: 12 };
+      const magazineSize = magazineSizes[data.weaponType] || 12;
+
+      combatState.ammo[data.weaponType] = magazineSize;
+
+      socket.emit('combat:reloaded', {
+        weaponType: data.weaponType,
+        ammo: magazineSize,
+      });
+    });
+
+    // Sync combat state (client requests current server state)
+    socket.on('combat:sync', () => {
+      const combatState = playerCombatState.get(socket.id);
+      if (combatState) {
+        socket.emit('combat:state', {
+          health: combatState.health,
+          maxHealth: combatState.maxHealth,
+          ammo: combatState.ammo,
+        });
+      }
+    });
+
+    // =========================================================================
+    // SERVER-AUTHORITATIVE INVENTORY SYSTEM
+    // Inventory changes are validated server-side
+    // =========================================================================
+
+    // Sync inventory (client requests current server inventory)
+    socket.on('inventory:sync', () => {
+      const inventory = playerInventory.get(socket.id);
+      if (inventory) {
+        socket.emit('inventory:state', { items: inventory.items });
+      }
+    });
+
+    // Player uses an item
+    socket.on('inventory:use', (data: { itemId: string; slot?: number }) => {
+      const inventory = playerInventory.get(socket.id);
+      if (!inventory) return;
+
+      const itemIndex = inventory.items.findIndex(i => i.id === data.itemId);
+      if (itemIndex === -1) {
+        socket.emit('inventory:rejected', { reason: 'item_not_found' });
+        return;
+      }
+
+      const item = inventory.items[itemIndex];
+
+      // Apply item effects server-side
+      const combatState = playerCombatState.get(socket.id);
+      if (combatState && item.effects) {
+        if (item.effects.heal) {
+          combatState.health = Math.min(combatState.maxHealth, combatState.health + item.effects.heal);
+        }
+        if (item.effects.ammo) {
+          const weaponType = item.effects.ammoType || 'rifle';
+          combatState.ammo[weaponType] = (combatState.ammo[weaponType] || 0) + item.effects.ammo;
+        }
+      }
+
+      // Remove consumable items
+      if (item.consumable) {
+        item.quantity = (item.quantity || 1) - 1;
+        if (item.quantity <= 0) {
+          inventory.items.splice(itemIndex, 1);
+        }
+      }
+
+      // Broadcast updated state
+      socket.emit('inventory:used', {
+        itemId: data.itemId,
+        remainingQuantity: item.quantity || 0,
+        combatState: combatState ? {
+          health: combatState.health,
+          ammo: combatState.ammo,
+        } : null,
+      });
+    });
+
+    // Player picks up world item
+    socket.on('inventory:pickup', (data: { worldItemId: string; position: { x: number; y: number; z: number } }) => {
+      const player = players3D.get(socket.id);
+      if (!player || player.room !== 'play') return;
+
+      // Validate proximity (must be within 3 meters of item)
+      const dx = player.position.x - data.position.x;
+      const dz = player.position.z - data.position.z;
+      const distance = Math.sqrt(dx * dx + dz * dz);
+
+      if (distance > 3) {
+        socket.emit('inventory:rejected', { reason: 'too_far' });
+        return;
+      }
+
+      // Add item to inventory (in real implementation, look up worldItemId in world state)
+      const inventory = playerInventory.get(socket.id);
+      if (inventory) {
+        // Placeholder: add generic item
+        inventory.items.push({
+          id: data.worldItemId,
+          name: 'Picked Up Item',
+          quantity: 1,
+          consumable: false,
+        });
+
+        socket.emit('inventory:picked-up', {
+          itemId: data.worldItemId,
+        });
+
+        // Broadcast item removal to other players
+        socket.to('3d-play-room').emit('world:item-removed', {
+          itemId: data.worldItemId,
+          pickerId: socket.id,
+        });
+      }
+    });
+
     // Handle disconnect
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${userId} (socket: ${socket.id})`);
@@ -932,6 +1231,11 @@ export function initializeSocket(httpServer: HttpServer): Server {
         io?.to(socketRoom).emit('3d:player-left', { id: socket.id });
         const roomPlayerCount = Array.from(players3D.values()).filter(p => p.room === playerRoom).length;
         io?.to(socketRoom).emit('3d:player-count', roomPlayerCount);
+
+        // Clean up combat and inventory state
+        if (playerRoom === 'play') {
+          cleanupPlayerState(socket.id);
+        }
       }
 
       // Remove socket from online users

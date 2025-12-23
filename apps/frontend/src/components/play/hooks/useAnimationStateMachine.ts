@@ -171,24 +171,46 @@ const TRANSITIONS: Transition[] = [
     priority: 95,
   },
   // Landing while moving - go directly to locomotion (skip awkward 'land' state)
+  // Reduced time from 100ms to 50ms for snappier transitions
   {
     from: ['jump', 'fall'],
     to: 'run',
-    condition: (i, time) => i.isGrounded && i.isMoving && i.isRunning && time > 100,
+    condition: (i, time) => i.isGrounded && i.isMoving && i.isRunning && time > 50,
     priority: 91,
   },
   {
     from: ['jump', 'fall'],
     to: 'walk',
-    condition: (i, time) => i.isGrounded && i.isMoving && !i.isRunning && time > 100,
+    condition: (i, time) => i.isGrounded && i.isMoving && !i.isRunning && time > 50,
     priority: 91,
   },
   // Landing while stationary - brief land state then idle
+  // Reduced time from 150ms to 80ms for snappier transitions
   {
     from: ['jump', 'fall'],
     to: 'idle',
-    condition: (i, time) => i.isGrounded && !i.isMoving && time > 150,
+    condition: (i, time) => i.isGrounded && !i.isMoving && time > 80,
     priority: 90,
+  },
+  // Safety fallback: Use isLanding flag directly from air state machine
+  // This catches cases where isGrounded hasn't propagated yet
+  {
+    from: ['jump', 'fall'],
+    to: 'run',
+    condition: (i) => i.isLanding === true && i.isMoving && i.isRunning,
+    priority: 89,
+  },
+  {
+    from: ['jump', 'fall'],
+    to: 'walk',
+    condition: (i) => i.isLanding === true && i.isMoving && !i.isRunning,
+    priority: 89,
+  },
+  {
+    from: ['jump', 'fall'],
+    to: 'idle',
+    condition: (i) => i.isLanding === true && !i.isMoving,
+    priority: 88,
   },
 
   // ===== RIFLE FIRING (high priority) =====
@@ -945,11 +967,11 @@ const ONE_SHOT_NEXT_STATE: Partial<Record<AnimState, (input: AnimationInput) => 
     return 'run';
   },
   // Jump/rifleJump landings - simplified with PlayerAirState machine
+  // PRIORITY ORDER: landing/grounded first (prevents stuck jump), then fall, then stay in jump
   jump: (i) => {
-    // Still in controlled jump? Stay in jump state
-    if (i.isJumping) return 'jump';
-
-    // Grounded or landing? Go to appropriate locomotion state
+    // HIGHEST PRIORITY: Grounded or landing - exit jump immediately
+    // Check this BEFORE isJumping to prevent race condition where air state
+    // hasn't cleared isJumping yet but we've already touched ground
     if (i.isGrounded || i.isLanding) {
       return i.isMoving ? (i.isRunning ? 'run' : 'walk') : 'idle';
     }
@@ -957,8 +979,11 @@ const ONE_SHOT_NEXT_STATE: Partial<Record<AnimState, (input: AnimationInput) => 
     // Falling? Transition to fall animation
     if (i.isFalling) return 'fall';
 
-    // Default: stay in jump (shouldn't happen with new state machine)
-    return 'jump';
+    // Still in controlled jump? Stay in jump state
+    if (i.isJumping) return 'jump';
+
+    // Default: go to idle (safety fallback - should trigger transition system)
+    return 'idle';
   },
 };
 
@@ -1146,6 +1171,8 @@ export function useAnimationStateMachine(
     input.isRunning,
     input.isGrounded,
     input.isJumping,
+    input.isFalling,   // IMPORTANT: Track fall state changes for landing transitions
+    input.isLanding,   // IMPORTANT: Track landing state for jump→idle/walk/run transitions
     input.isCrouching,
     input.isDancing,
     input.dancePressed,
