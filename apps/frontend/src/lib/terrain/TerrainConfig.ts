@@ -158,9 +158,11 @@ export const MOUNTAIN_CONFIG = {
   /** Enable plateau clamping for mesa-style mountains */
   plateauEnabled: true,
   /** Height threshold above which peaks become flat (fraction of maxHeight) */
-  plateauThreshold: 0.5,  // Lower = more flattening (was 0.7)
+  plateauThreshold: 0.35,  // Lower = more flattening (was 0.5) - flattens top 65% of peaks
   /** Smoothness of plateau transition (0=sharp, 1=gradual) */
-  plateauSmooth: 0.5,     // Smoother transition (was 0.3)
+  plateauSmooth: 0.6,      // Smoother transition (was 0.5)
+  /** Maximum excess above threshold (0.2 = peaks can only rise 20% above threshold) */
+  plateauMaxExcess: 0.15,  // NEW: Limits how pointy peaks can get
   /** Number of terrace steps (0=smooth, 2-5=visible steps) */
   terraceSteps: 0,
 };

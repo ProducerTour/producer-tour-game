@@ -21,6 +21,7 @@ import {
 import { Leva } from 'leva';
 import { PlayWorld, type PlayerInfo } from '../components/play/PlayWorld';
 import { AvatarCreator } from '../components/play/AvatarCreator';
+import { useTerrainPreloader } from '../components/play/hooks/useTerrainPreloader';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { Crosshair } from '../components/play/hud';
 import { GTAMinimap } from '../components/play/ui/GTAMinimap';
@@ -28,11 +29,15 @@ import { DevConsole, DevPanel } from '../components/play/debug';
 import { UpdateOverlay } from '../components/play/UpdateOverlay';
 import { KeybindsMenu } from '../components/play/settings';
 import { WorldMap } from '../components/play/ui/WorldMap';
+import { InventorySystem } from '../components/play/inventory';
+import { useInventoryStore } from '../lib/economy/inventoryStore';
+import { addSampleItemsToInventory } from '../lib/economy/itemDatabase';
 import { userApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import { useGameSettings, SHADOW_MAP_SIZES } from '../store/gameSettings.store';
 import { useSocket } from '../hooks/useSocket';
 import { useServerVersion } from '../hooks/useServerVersion';
+import { DEFAULT_WORLD_CONFIG } from '../lib/config';
 
 // Auto-save storage key
 const WORLD_STATE_KEY = 'producerTour_worldState';
@@ -114,13 +119,23 @@ function loadWorldState(): Partial<WorldState> | null {
   return null;
 }
 
-// Sandbox-style loading screen
-function LoadingScreen() {
-  const [progress, setProgress] = useState(0);
+// Sandbox-style loading screen with real progress tracking
+interface LoadingScreenProps {
+  progress?: number;
+  message?: string;
+}
+
+function LoadingScreen({ progress: externalProgress, message }: LoadingScreenProps = {}) {
+  // Use external progress if provided, otherwise fake progress for Suspense fallback
+  const [internalProgress, setInternalProgress] = useState(0);
+  const progress = externalProgress ?? internalProgress;
 
   useEffect(() => {
+    // Only use fake progress if no external progress provided
+    if (externalProgress !== undefined) return;
+
     const interval = setInterval(() => {
-      setProgress(prev => {
+      setInternalProgress(prev => {
         if (prev >= 100) {
           clearInterval(interval);
           return 100;
@@ -129,7 +144,10 @@ function LoadingScreen() {
       });
     }, 200);
     return () => clearInterval(interval);
-  }, []);
+  }, [externalProgress]);
+
+  // Determine status message
+  const statusMessage = message ?? (progress < 100 ? 'Loading world...' : 'Ready!');
 
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0f]">
@@ -181,7 +199,7 @@ function LoadingScreen() {
             />
           </div>
           <p className="text-white/50 text-sm mt-3">
-            {progress < 100 ? 'Loading world...' : 'Ready!'}
+            {statusMessage}
           </p>
         </div>
       </motion.div>
@@ -781,14 +799,42 @@ export default function PlayPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showFps, setShowFps] = useState(false);
   const [showWorldMap, setShowWorldMap] = useState(false);
+  const [showInventory, setShowInventory] = useState(false);
   const [playerRotation, setPlayerRotation] = useState(0); // Y-axis rotation in radians
-  const [terrainSettings, setTerrainSettings] = useState({ seed: 12345, terrainRadius: 4 });
+  // Use WorldConfig defaults to ensure physics preload matches visual terrain
+  const [terrainSettings, setTerrainSettings] = useState({
+    seed: DEFAULT_WORLD_CONFIG.terrainSeed,
+    terrainRadius: DEFAULT_WORLD_CONFIG.terrainRadius,
+  });
+
+  // Preload exact terrain geometry for physics - shows real loading progress
+  const {
+    progress: terrainProgress,
+    message: terrainMessage,
+    isReady: terrainReady,
+    terrain: preloadedTerrain,
+  } = useTerrainPreloader({
+    seed: terrainSettings.seed,
+    chunkRadius: terrainSettings.terrainRadius,
+    autoStart: true,
+  });
 
   // Listen for /fps command from DevConsole
   useEffect(() => {
     const handleToggleFps = () => setShowFps(prev => !prev);
     window.addEventListener('devConsole:toggleFps', handleToggleFps);
     return () => window.removeEventListener('devConsole:toggleFps', handleToggleFps);
+  }, []);
+
+  // Populate sample items on first load (for testing)
+  useEffect(() => {
+    const slots = useInventoryStore.getState().slots;
+    // Only add sample items if inventory is empty
+    if (slots.size === 0) {
+      const addItem = useInventoryStore.getState().addItem;
+      addSampleItemsToInventory(addItem);
+      console.log('Added sample items to inventory for testing');
+    }
   }, []);
 
   // Skip welcome modal if returning from an interior (sessionStorage flag set on entry)
@@ -859,6 +905,29 @@ export default function PlayPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showWelcome, isPaused, isAvatarCreatorOpen]);
+
+  // Handle Tab/I key for inventory toggle
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Tab' || e.code === 'KeyI') {
+        // Don't toggle inventory if welcome modal, pause, or avatar creator is open
+        if (showWelcome || isPaused || isAvatarCreatorOpen) return;
+        e.preventDefault();
+        setShowInventory(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showWelcome, isPaused, isAvatarCreatorOpen]);
+
+  // Release pointer lock when inventory opens (show cursor)
+  useEffect(() => {
+    if (showInventory) {
+      // Exit pointer lock to show cursor
+      document.exitPointerLock?.();
+    }
+  }, [showInventory]);
 
   // Focus container when modals close to capture keyboard events
   const focusContainer = useCallback(() => {
@@ -1023,39 +1092,45 @@ export default function PlayPage() {
         </motion.div>
       )}
 
-      {/* 3D Canvas */}
-      <ErrorBoundary fallback="fullPage">
-        <Suspense fallback={<LoadingScreen />}>
-          <Canvas
-            camera={{ position: [0, 8, 20], fov: 50, far: 800 }}
-            gl={{
-              antialias: false,
-              alpha: false,
-              powerPreference: 'high-performance',
-              depth: true,
-              stencil: false,
-            }}
-            dpr={dpr}
-          >
-            {/* Auto-adjust quality based on frame rate */}
-            <PerformanceMonitor
-              onIncline={() => setDpr(Math.min(2, dpr + 0.25))}
-              onDecline={() => setDpr(Math.max(0.75, dpr - 0.25))}
-              flipflops={3}
-              onFallback={() => setDpr(1)}
-            />
-            {/* FPS/Performance stats - toggle via settings or /fps command */}
-            {showFps && <Stats />}
-            <PlayWorld
-              avatarUrl={avatarUrl || undefined}
-              onPlayerPositionChange={(pos) => setPlayerCoords({ x: pos.x, y: pos.y, z: pos.z })}
-              onPlayerRotationChange={setPlayerRotation}
-              onTerrainSettingsChange={setTerrainSettings}
-              onPlayersChange={setOnlinePlayers}
-            />
-          </Canvas>
-        </Suspense>
-      </ErrorBoundary>
+      {/* 3D Canvas - only render after terrain physics is preloaded */}
+      {!terrainReady ? (
+        <LoadingScreen progress={terrainProgress} message={terrainMessage} />
+      ) : (
+        <ErrorBoundary fallback="fullPage">
+          <Suspense fallback={<LoadingScreen progress={100} message="Initializing 3D..." />}>
+            <Canvas
+              camera={{ position: [0, 8, 20], fov: 50, far: 800 }}
+              gl={{
+                antialias: false,
+                alpha: false,
+                powerPreference: 'high-performance',
+                depth: true,
+                stencil: false,
+              }}
+              dpr={dpr}
+            >
+              {/* Auto-adjust quality based on frame rate */}
+              <PerformanceMonitor
+                onIncline={() => setDpr(Math.min(2, dpr + 0.25))}
+                onDecline={() => setDpr(Math.max(0.75, dpr - 0.25))}
+                flipflops={3}
+                onFallback={() => setDpr(1)}
+              />
+              {/* FPS/Performance stats - toggle via settings or /fps command */}
+              {showFps && <Stats />}
+              <PlayWorld
+                avatarUrl={avatarUrl || undefined}
+                isPaused={showInventory || isPaused}
+                onPlayerPositionChange={(pos) => setPlayerCoords({ x: pos.x, y: pos.y, z: pos.z })}
+                onPlayerRotationChange={setPlayerRotation}
+                onTerrainSettingsChange={setTerrainSettings}
+                onPlayersChange={setOnlinePlayers}
+                preloadedTerrain={preloadedTerrain}
+              />
+            </Canvas>
+          </Suspense>
+        </ErrorBoundary>
+      )}
 
       {/* Game HUD Overlays */}
       {!showWelcome && (
@@ -1081,6 +1156,16 @@ export default function PlayPage() {
         terrainRadius={terrainSettings.terrainRadius}
         seed={terrainSettings.seed}
       />
+
+      {/* Inventory System - Press Tab or I to toggle */}
+      {/* Conditionally mounted to prevent background subscriptions */}
+      {showInventory && (
+        <InventorySystem
+          isOpen={true}
+          onClose={() => setShowInventory(false)}
+          avatarUrl={avatarUrl || undefined}
+        />
+      )}
     </div>
   );
 }

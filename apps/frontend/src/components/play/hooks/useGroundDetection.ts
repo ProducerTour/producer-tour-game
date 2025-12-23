@@ -10,15 +10,25 @@
 import { useRef, useCallback } from 'react';
 import type { RapierRigidBody } from '@react-three/rapier';
 
-// Ground detection constants
-const GROUND_RAY_LENGTH = 2.0;      // How far down to raycast
+// Ground detection constants - industry-standard values
+const GROUND_RAY_LENGTH = 2.0;        // Standard raycast distance for ground detection
 // Hysteresis thresholds prevent flickering on uneven terrain
-const GROUND_THRESHOLD_ENTER = 0.95;  // Must be closer to become grounded
-const GROUND_THRESHOLD_EXIT = 1.2;    // Must be farther to become airborne
-const MIN_GROUND_NORMAL_Y = 0.7;      // Slope tolerance (~45° max)
+const GROUND_THRESHOLD_ENTER = 0.95;  // Must be closer than this to become grounded
+const GROUND_THRESHOLD_EXIT = 1.2;    // Must be farther than this to become airborne (20% margin)
+const MIN_GROUND_NORMAL_Y = 0.5;      // Slope tolerance (~60° max) - Rust-style allows grounding on steep slopes for slide behavior
 const MAX_ASCENDING_VELOCITY = 1.5;   // Max upward velocity to count as grounded
 // Stability counter - require multiple consistent frames to change state
-const STABILITY_FRAMES = 2;           // Frames of consistent state before changing
+const STABILITY_FRAMES = 2;           // Proven value - prevents flicker without causing lag
+
+// Multi-ray offsets for edge detection - prevents falling through cliff edges
+// Cast rays in a small circle around the player to catch edges
+const EDGE_RAY_OFFSET = 0.25;         // Distance from center for edge detection rays
+const EDGE_RAY_OFFSETS = [
+  { x: EDGE_RAY_OFFSET, z: 0 },
+  { x: -EDGE_RAY_OFFSET, z: 0 },
+  { x: 0, z: EDGE_RAY_OFFSET },
+  { x: 0, z: -EDGE_RAY_OFFSET },
+];
 
 /**
  * 3D ground normal vector for slope alignment
@@ -90,15 +100,15 @@ export function useGroundDetection({ rigidBody, world, rapier }: UseGroundDetect
     const linvel = rigidBody.linvel();
     const verticalVelocity = linvel.y;
 
-    // Cast ray downward from player position
+    // Cast ray downward from player position (center ray)
     const position = rigidBody.translation();
-    const ray = new rapier.Ray(
+    const centerRay = new rapier.Ray(
       { x: position.x, y: position.y, z: position.z },
       { x: 0, y: -1, z: 0 }
     );
 
-    const hit = world.castRayAndGetNormal(
-      ray,
+    const centerHit = world.castRayAndGetNormal(
+      centerRay,
       GROUND_RAY_LENGTH,
       true,
       undefined,
@@ -107,12 +117,42 @@ export function useGroundDetection({ rigidBody, world, rapier }: UseGroundDetect
       rigidBody
     );
 
-    // Extract ground info from raycast
-    const groundDistance = hit?.timeOfImpact ?? Infinity;
-    const groundNormal: GroundNormal = hit ? {
-      x: hit.normal?.x ?? 0,
-      y: hit.normal?.y ?? 1,
-      z: hit.normal?.z ?? 0,
+    // Start with center ray result
+    let bestHit = centerHit;
+    let bestDistance = centerHit?.timeOfImpact ?? Infinity;
+
+    // Cast additional rays around the player to detect cliff edges
+    // This prevents falling through when the center ray misses the edge
+    for (const offset of EDGE_RAY_OFFSETS) {
+      const edgeRay = new rapier.Ray(
+        { x: position.x + offset.x, y: position.y, z: position.z + offset.z },
+        { x: 0, y: -1, z: 0 }
+      );
+
+      const edgeHit = world.castRayAndGetNormal(
+        edgeRay,
+        GROUND_RAY_LENGTH,
+        true,
+        undefined,
+        undefined,
+        undefined,
+        rigidBody
+      );
+
+      // Use the closest hit (smallest distance = most grounded)
+      const edgeDistance = edgeHit?.timeOfImpact ?? Infinity;
+      if (edgeDistance < bestDistance) {
+        bestHit = edgeHit;
+        bestDistance = edgeDistance;
+      }
+    }
+
+    // Extract ground info from best raycast hit
+    const groundDistance = bestDistance;
+    const groundNormal: GroundNormal = bestHit ? {
+      x: bestHit.normal?.x ?? 0,
+      y: bestHit.normal?.y ?? 1,
+      z: bestHit.normal?.z ?? 0,
     } : { x: 0, y: 1, z: 0 };
     const groundNormalY = groundNormal.y;
     const isValidSlope = groundNormalY > MIN_GROUND_NORMAL_Y;

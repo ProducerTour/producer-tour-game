@@ -10,6 +10,7 @@ import { useControls, folder } from 'leva';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { WeaponAttachment, type WeaponType } from '../WeaponAttachment';
+import { useGamePause } from '../context';
 import {
   ANIMATION_CONFIG,
   type AnimationName,
@@ -80,6 +81,7 @@ export interface MixamoAnimatedAvatarProps {
   isFalling?: boolean;    // Uncontrolled fall state
   isLanding?: boolean;    // Brief landing state
   isDancing?: boolean;
+  dancePressed?: boolean;  // True only on frame V is pressed (for cycling dances)
   isCrouching?: boolean;
   isStrafingLeft?: boolean;
   isStrafingRight?: boolean;
@@ -106,6 +108,7 @@ export function MixamoAnimatedAvatar({
   isFalling = false,
   isLanding = false,
   isDancing = false,
+  dancePressed = false,
   isCrouching = false,
   isStrafingLeft = false,
   isStrafingRight = false,
@@ -118,6 +121,7 @@ export function MixamoAnimatedAvatar({
   keepMixamoPrefix = false,
 }: MixamoAnimatedAvatarProps) {
   const group = useRef<THREE.Group>(null);
+  const isPaused = useGamePause();
   const avatarRef = useRef<THREE.Group>(null);
   const leftFootRef = useRef<THREE.Bone | null>(null);
   const rightFootRef = useRef<THREE.Bone | null>(null);
@@ -480,6 +484,7 @@ export function MixamoAnimatedAvatar({
     isLanding,
     isCrouching,
     isDancing,
+    dancePressed,
     isStrafeLeft: isStrafingLeft,
     isStrafeRight: isStrafingRight,
     isAiming,
@@ -487,7 +492,7 @@ export function MixamoAnimatedAvatar({
     isDying,
     weapon: (weaponType ?? 'none') as FSMWeaponType,
     velocityY,
-  }), [isMoving, isRunning, isGrounded, isJumping, isFalling, isLanding, isCrouching, isDancing, isStrafingLeft, isStrafingRight, isAiming, isFiring, isDying, weaponType, velocityY]);
+  }), [isMoving, isRunning, isGrounded, isJumping, isFalling, isLanding, isCrouching, isDancing, dancePressed, isStrafingLeft, isStrafingRight, isAiming, isFiring, isDying, weaponType, velocityY]);
 
   // Use the FSM for all animation state management
   // The FSM handles transitions, crossfading, one-shot completions, and fallbacks
@@ -626,8 +631,9 @@ export function MixamoAnimatedAvatar({
   const currentAimTilt = useRef(0);
 
   // SINGLE useFrame for all avatar transforms (combined for performance)
+  // Skip when paused (e.g., inventory open) to save CPU
   useFrame((_, delta) => {
-    if (!avatarRef.current) return;
+    if (isPaused || !avatarRef.current) return;
 
     // Determine target offsets based on animation state
     let targetOffsetY = 0;

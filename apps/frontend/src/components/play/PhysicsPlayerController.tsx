@@ -74,6 +74,7 @@ export interface AnimationState {
   isFalling: boolean;      // NEW: Uncontrolled fall state
   isLanding: boolean;      // NEW: Brief landing state
   isDancing: boolean;
+  dancePressed: boolean;   // True only on frame dance key pressed (for cycling)
   isCrouching: boolean;
   isStrafingLeft: boolean;
   isStrafingRight: boolean;
@@ -95,11 +96,13 @@ export interface AvatarAnimationProps {
 interface PhysicsPlayerControllerProps {
   onPositionChange?: (pos: THREE.Vector3, rotation?: THREE.Euler, animState?: AnimationState) => void;
   children?: ReactNode | ((state: AnimationState) => ReactNode);
+  isPaused?: boolean;
 }
 
 export function PhysicsPlayerController({
   onPositionChange,
   children,
+  isPaused = false,
 }: PhysicsPlayerControllerProps) {
   const keys = useKeyboardControls();
   const rigidBodyRef = useRef<RapierRigidBody>(null);
@@ -201,6 +204,7 @@ export function PhysicsPlayerController({
     isFalling: false,
     isLanding: false,
     isDancing: false,
+    dancePressed: false,
     isCrouching: false,
     isStrafingLeft: false,
     isStrafingRight: false,
@@ -435,6 +439,9 @@ export function PhysicsPlayerController({
   }, [keys.fire, currentWeapon, isFiring, setFiring]);
 
   useFrame((_, delta) => {
+    // Skip all calculations when game is paused (e.g., inventory open)
+    if (isPaused) return;
+
     const rb = rigidBodyRef.current;
     const { cameraDir, cameraRight, up, position, rotation, desiredCameraPos, desiredLookTarget, playerHead, rayDir, raycaster } = vectors;
 
@@ -685,6 +692,7 @@ export function PhysicsPlayerController({
         isFalling: false,
         isLanding: false,
         isDancing: false,
+        dancePressed: false,
         isCrouching: false,
         isStrafingLeft: false,
         isStrafingRight: false,
@@ -749,7 +757,8 @@ export function PhysicsPlayerController({
 
     // === AIR STATE MACHINE (single source of truth for jump state) ===
     // The air state machine now handles all jump timing - use its canJump instead of local refs
-    const jumpKeyPressed = keys.jump;
+    // Use jumpPressed (edge detection) instead of jump (held state) to prevent spam
+    const jumpKeyPressed = keys.jumpPressed;
     const airStateResult = airStateMachine.update({
       groundState,
       positionY: position.y,  // For distance-based fall detection
@@ -767,15 +776,82 @@ export function PhysicsPlayerController({
       airStateMachine.notifyJump();
     }
 
-    // === SLOPE FOLLOWING FORCE ===
-    // Keep character on slopes by adding small downward force proportional to steepness
-    // Force is kept under 2.0 to not interfere with animation velocity detection
+    // === RUST-STYLE SLOPE HANDLING ===
+    // Key principles from Rust game:
+    // 1. Slopes <45° are easily walkable with NO resistance
+    // 2. Velocity is projected along the slope surface (not fighting it)
+    // 3. Only steep slopes (>45°) cause sliding or block movement
+    // 4. Downward force only applies when stationary (anti-slide) or going downhill
     if (grounded && !shouldJump && groundState.groundNormal.y < 0.99) {
-      const slopeStrength = 1.0 - groundState.groundNormal.y; // 0 = flat, 0.29 = 45°
+      // Calculate slope angle in degrees
+      const slopeAngleDeg = Math.acos(Math.min(1, groundState.groundNormal.y)) * (180 / Math.PI);
+
+      // Rust-style: 45° is the easy traversal limit
+      const MAX_WALKABLE_SLOPE = 45;
+      const STEEP_SLOPE_START = 50;  // Start sliding above this
+
       const speed = Math.sqrt(vx * vx + vz * vz);
-      // Small base force (max 1.45 on 45° slope) + movement bonus
-      const slopeDownForce = (slopeStrength * 5.0) + (speed * slopeStrength * 2.0);
-      vy -= slopeDownForce;
+
+      // Get slope direction
+      const nx = groundState.groundNormal.x;
+      const nz = groundState.groundNormal.z;
+      const normalXZMag = Math.sqrt(nx * nx + nz * nz);
+
+      // Determine if climbing uphill
+      let uphillFactor = 0;
+      if (speed > 0.3 && normalXZMag > 0.01) {
+        const moveX = vx / speed;
+        const moveZ = vz / speed;
+        const downhillX = nx / normalXZMag;
+        const downhillZ = nz / normalXZMag;
+        const downhillDot = moveX * downhillX + moveZ * downhillZ;
+        uphillFactor = Math.max(0, -downhillDot);  // 0-1, 1 = directly uphill
+      }
+
+      if (slopeAngleDeg < MAX_WALKABLE_SLOPE) {
+        // === WALKABLE SLOPE (<45°) - Rust-style easy traversal ===
+        // NO resistance when actively climbing
+        // Only apply minimal anti-slide force when stationary
+
+        if (speed < 0.3) {
+          // Stationary on slope - apply minimal anti-slide force
+          const antiSlideForce = (slopeAngleDeg / MAX_WALKABLE_SLOPE) * 2.0;
+          vy -= antiSlideForce;
+        } else if (uphillFactor < 0.2) {
+          // Moving sideways or downhill - gentle grounding force
+          const groundingForce = (slopeAngleDeg / MAX_WALKABLE_SLOPE) * 3.0;
+          vy -= groundingForce * (1.0 - uphillFactor);
+        }
+        // CRITICAL: No force when actively climbing uphill on walkable slopes!
+        // This is the key Rust-style behavior - slopes <45° feel like flat ground
+
+      } else if (slopeAngleDeg < STEEP_SLOPE_START) {
+        // === MODERATE SLOPE (45-50°) - Transition zone ===
+        // Some resistance, but still climbable with effort
+        const t = (slopeAngleDeg - MAX_WALKABLE_SLOPE) / (STEEP_SLOPE_START - MAX_WALKABLE_SLOPE);
+        const resistanceForce = t * 5.0;
+
+        // Less resistance when actively pushing uphill
+        const uphillReduction = 1.0 - uphillFactor * 0.6;
+        vy -= resistanceForce * uphillReduction;
+
+      } else {
+        // === STEEP SLOPE (>50°) - Sliding zone ===
+        // Strong downward force, difficult to climb
+        const steepness = Math.min((slopeAngleDeg - STEEP_SLOPE_START) / 20, 1.0);
+        const slideForce = 5.0 + steepness * 10.0;
+
+        // Even when climbing, apply significant force
+        const uphillReduction = 1.0 - uphillFactor * 0.3;
+        vy -= slideForce * uphillReduction;
+
+        // Also slow horizontal movement on very steep slopes
+        if (slopeAngleDeg > 55 && uphillFactor > 0.5) {
+          const slowdown = 0.7 + (1.0 - uphillFactor) * 0.3;
+          vx *= slowdown;
+          vz *= slowdown;
+        }
+      }
     }
 
     // === VELOCITY CLAMPING - Prevents physics explosions ===
@@ -893,6 +969,8 @@ export function PhysicsPlayerController({
     const isStrafingRight = isAiming && keys.right && !keys.left;
     const velocity = Math.sqrt(vx * vx + vz * vz);
 
+    const dancePressed = keys.dancePressed;
+
     const currentAnimState: AnimationState = {
       isMoving,
       isRunning,
@@ -901,6 +979,7 @@ export function PhysicsPlayerController({
       isFalling,
       isLanding,
       isDancing,
+      dancePressed,
       isCrouching,
       isStrafingLeft,
       isStrafingRight,
@@ -928,6 +1007,7 @@ export function PhysicsPlayerController({
       lastState.isFalling !== isFalling ||
       lastState.isLanding !== isLanding ||
       lastState.isDancing !== isDancing ||
+      lastState.dancePressed !== dancePressed ||
       lastState.isCrouching !== isCrouching ||
       lastState.isStrafingLeft !== isStrafingLeft ||
       lastState.isStrafingRight !== isStrafingRight ||
@@ -937,7 +1017,7 @@ export function PhysicsPlayerController({
     ) {
       lastAnimState.current = {
         isMoving, isRunning, isGrounded: animIsGrounded, isJumping, isFalling, isLanding,
-        isDancing, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring,
+        isDancing, dancePressed, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring,
         airState: currentAirState
       } as typeof lastAnimState.current;
       setAnimState(currentAnimState);

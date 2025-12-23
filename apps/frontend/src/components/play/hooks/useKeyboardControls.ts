@@ -8,7 +8,9 @@ export interface KeyState {
   right: boolean;
   sprint: boolean;
   jump: boolean;
+  jumpPressed: boolean; // True only on the frame jump key is pressed (edge detection)
   dance: boolean;
+  dancePressed: boolean; // True only on the frame dance key is pressed (for cycling)
   toggleWeapon: boolean;
   crouch: boolean;
   aim: boolean;     // Right mouse button held
@@ -42,12 +44,18 @@ export function useKeyboardControls(): KeyboardControlsResult {
     right: false,
     sprint: false,
     jump: false,
+    jumpPressed: false,
     dance: false,
+    dancePressed: false,
     toggleWeapon: false,
     crouch: false,
     aim: false,
     fire: false,
   });
+
+  // Refs to clear edge-detected states after one frame
+  const jumpPressedTimeout = useRef<number | null>(null);
+  const dancePressedTimeout = useRef<number | null>(null);
 
   // Get keybinds check function from store
   const isAction = useKeybindsStore((state) => state.isAction);
@@ -120,11 +128,35 @@ export function useKeyboardControls(): KeyboardControlsResult {
     }
     if (isAction('jump', code)) {
       e.preventDefault();
-      setKeys((k) => ({ ...k, jump: true }));
+      // Edge detection: only set jumpPressed if jump wasn't already held
+      setKeys((k) => {
+        if (k.jump) return k; // Already held, don't trigger again
+        return { ...k, jump: true, jumpPressed: true };
+      });
+      // Clear jumpPressed after one frame (edge detection - fires once per press)
+      if (jumpPressedTimeout.current) {
+        clearTimeout(jumpPressedTimeout.current);
+      }
+      jumpPressedTimeout.current = window.setTimeout(() => {
+        setKeys((k) => ({ ...k, jumpPressed: false }));
+      }, 50); // 50ms is enough for one frame at 60fps
     }
     if (isAction('dance', code)) {
       e.preventDefault();
-      setKeys((k) => ({ ...k, dance: true }));
+      // Dance is a toggle - pressing V starts dancing, keeps dancing while pressing V again (for cycling)
+      // Moving will exit dance mode (handled in PhysicsPlayerController)
+      setKeys((k) => ({
+        ...k,
+        dance: true, // Always set to true - moving will reset it
+        dancePressed: true, // For cycling detection
+      }));
+      // Clear dancePressed after one frame (for edge detection)
+      if (dancePressedTimeout.current) {
+        clearTimeout(dancePressedTimeout.current);
+      }
+      dancePressedTimeout.current = window.setTimeout(() => {
+        setKeys((k) => ({ ...k, dancePressed: false }));
+      }, 50); // 50ms is enough for one frame at 60fps
     }
     if (isAction('toggleWeapon', code)) {
       e.preventDefault();
@@ -158,9 +190,10 @@ export function useKeyboardControls(): KeyboardControlsResult {
     if (isAction('jump', code)) {
       setKeys((k) => ({ ...k, jump: false }));
     }
-    if (isAction('dance', code)) {
-      setKeys((k) => ({ ...k, dance: false }));
-    }
+    // Dance is a toggle - don't reset on keyup, let movement reset it
+    // if (isAction('dance', code)) {
+    //   setKeys((k) => ({ ...k, dance: false }));
+    // }
     if (isAction('toggleWeapon', code)) {
       setKeys((k) => ({ ...k, toggleWeapon: false }));
     }

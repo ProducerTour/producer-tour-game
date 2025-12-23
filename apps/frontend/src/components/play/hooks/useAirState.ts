@@ -164,11 +164,10 @@ export function useAirState() {
         peakAirborneY.current = positionY;  // Reset peak to ground level
         fallDistance.current = 0;
 
-        // Reset jump flag when grounded - more aggressive reset to fix "can't jump" bug
-        // Only need to be grounded for a brief moment with low velocity
+        // Reset jump flag when stably grounded
+        // Require stable ground contact to prevent mid-air jump resets from raycast flickers
         const isStable = groundedStableTime.current > CONFIG.STABLE_LAND_TIME;
-        const isLowVelocity = Math.abs(vy) < 2.0;  // Increased threshold
-        if (hasJumped.current && (isStable || isLowVelocity)) {
+        if (hasJumped.current && isStable) {
           hasJumped.current = false;
         }
       } else {

@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import { getTexturePath } from '../../../config/assetPaths';
+import { useGamePause } from '../context';
 
 // Water normal map path - uses CDN in production, local in development
 const WATER_NORMAL_MAP = getTexturePath('Water/Water_002_SD/Water_002_NORM.jpg');
@@ -163,6 +164,7 @@ export function Water({
   fogEnabled = true,
 }: WaterProps) {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const isPaused = useGamePause();
 
   // Load normal map texture
   const normalMap = useTexture(WATER_NORMAL_MAP);
@@ -196,8 +198,9 @@ export function Water({
     });
   }, [deepColor, shallowColor, waveSpeed, waveScale, fresnelPower, fogEnabled, normalMap]);
 
-  // Animate water
+  // Animate water (skip when paused for performance)
   useFrame((_, delta) => {
+    if (isPaused) return;
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value += delta;
     }

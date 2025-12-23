@@ -42,6 +42,7 @@ interface InventoryState {
   // Actions
   addItem: (item: Item, quantity?: number) => boolean;
   removeItem: (slotId: string, quantity?: number) => boolean;
+  useItem: (slotId: string, quantity?: number) => InventorySlot | null;
   moveItem: (fromSlotId: string, toSlotId: string) => boolean;
   equipItem: (slotId: string, equipSlot: string) => boolean;
   unequipItem: (equipSlot: string) => boolean;
@@ -62,6 +63,7 @@ interface InventoryState {
   // Utility
   sortInventory: (by: 'name' | 'type' | 'rarity' | 'value') => void;
   expandInventory: (additionalSlots: number) => void;
+  clearInventory: () => void;
   reset: () => void;
 }
 
@@ -167,6 +169,26 @@ export const useInventoryStore = create<InventoryState>()(
         });
 
         return true;
+      },
+
+      useItem: (slotId, quantity = 1) => {
+        const state = get();
+        const slot = state.slots.get(slotId);
+
+        if (!slot) return null;
+        if (slot.quantity < quantity) return null;
+
+        // Clone the slot info before removing
+        const usedItem: InventorySlot = {
+          item: { ...slot.item },
+          quantity,
+        };
+
+        // Remove the item
+        const success = state.removeItem(slotId, quantity);
+        if (!success) return null;
+
+        return usedItem;
       },
 
       moveItem: (fromSlotId, toSlotId) => {
@@ -336,6 +358,13 @@ export const useInventoryStore = create<InventoryState>()(
 
       expandInventory: (additionalSlots) => {
         set((s) => ({ maxSlots: s.maxSlots + additionalSlots }));
+      },
+
+      clearInventory: () => {
+        set({
+          slots: new Map(),
+          equippedItems: new Map(),
+        });
       },
 
       reset: () => {

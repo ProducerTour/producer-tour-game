@@ -17,6 +17,7 @@ import type { RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
 import { useNPCStore, type NPCData } from './useNPCStore';
 import { MixamoAnimatedAvatar } from '../avatars';
+import { useGamePause } from '../context';
 
 /**
  * Static model component for NPCs without animations
@@ -112,6 +113,7 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
   const rigidBodyRef = useRef<RapierRigidBody>(null);
+  const isPaused = useGamePause();
   const lastAIUpdate = useRef(0);
   const currentTarget = useRef<{ x: number; z: number } | null>(null);
   const waitUntil = useRef(0);
@@ -180,9 +182,9 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
     };
   }, [data.state]);
 
-  // AI behavior logic
+  // AI behavior logic (skip when paused for performance)
   useFrame((_, delta) => {
-    if (!groupRef.current || data.state === 'dead') return;
+    if (isPaused || !groupRef.current || data.state === 'dead') return;
 
     if (serverControlled) {
       // Server-controlled: smoothly interpolate to server position

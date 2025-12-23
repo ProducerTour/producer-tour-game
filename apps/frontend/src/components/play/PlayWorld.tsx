@@ -62,8 +62,11 @@ import { Water } from './world/Water';
 import { WorldBoundary } from './world/WorldBoundary';
 import { Campfire } from './world/Campfire';
 import { Yacht } from './world/Yacht';
+import { PlacementController } from './world/PlacementController';
+import { PlacedObjectsManager } from './world/PlacedObjectsManager';
 import { NPCManager, createNPC } from './npc';
 import { useNPCStore } from './npc/useNPCStore';
+import { GamePauseProvider } from './context';
 
 // Flag to use Mixamo animations vs procedural
 const USE_MIXAMO_ANIMATIONS = true;
@@ -112,21 +115,28 @@ export interface PlayerInfo {
   color: string;
 }
 
+// Import preloaded terrain type
+import type { PreloadedTerrain } from './hooks/useTerrainPreloader';
+
 // Main world component
 export function PlayWorld({
   avatarUrl,
+  isPaused = false,
   onPlayerPositionChange,
   onPlayerRotationChange,
   onTerrainSettingsChange,
   onMultiplayerReady,
   onPlayersChange,
+  preloadedTerrain,
 }: {
   avatarUrl?: string;
+  isPaused?: boolean;
   onPlayerPositionChange?: (pos: THREE.Vector3) => void;
   onPlayerRotationChange?: (rotationY: number) => void;
   onTerrainSettingsChange?: (settings: { seed: number; terrainRadius: number }) => void;
   onMultiplayerReady?: (data: { playerCount: number; isConnected: boolean }) => void;
   onPlayersChange?: (players: PlayerInfo[]) => void;
+  preloadedTerrain?: PreloadedTerrain | null;
 }) {
   const [playerPos, setPlayerPos] = useState(new THREE.Vector3(0, 0, 5));
   const playerRotation = useRef(new THREE.Euler());
@@ -327,7 +337,7 @@ export function PlayWorld({
   }, [onPlayerPositionChange, onPlayerRotationChange, updatePosition, getAnimationName, weaponType]);
 
   return (
-    <>
+    <GamePauseProvider isPaused={isPaused}>
       {/* PERF: Pre-compile shaders during load to eliminate frame spikes */}
       <ShaderPrewarmer />
 
@@ -482,20 +492,15 @@ export function PlayWorld({
             </>
           )}
 
-          {/* Terrain physics collision - HeightfieldCollider for smooth walking */}
+          {/* Terrain physics collision - TrimeshCollider using exact visual mesh geometry */}
           {/*
-            CRITICAL: Position offset of 32m in X and Z to align with visual terrain!
-            - Visual terrain center is at (CHUNK_SIZE/2, CHUNK_SIZE/2) = (32, 32)
-            - Physics heightfield must be offset to match
-            - Scale covers full terrain span: (radius * 2 + 1) * CHUNK_SIZE
+            Uses preloaded terrain geometry that matches the visual mesh exactly.
+            This eliminates physics/visual mismatches on steep terrain.
           */}
           <TerrainPhysics
             seed={cityMapControls.terrainSeed}
             chunkRadius={cityMapControls.terrainRadius}
-            width={cityMapControls.physicsResolution}
-            depth={cityMapControls.physicsResolution}
-            scale={{ x: (cityMapControls.terrainRadius * 2 + 1) * 64, y: 1, z: (cityMapControls.terrainRadius * 2 + 1) * 64 }}
-            position={[32, 0, 32]}
+            preloadedTerrain={preloadedTerrain}
           />
 
           {/* World boundary walls + alphanumeric grid overlay */}
@@ -507,8 +512,8 @@ export function PlayWorld({
           />
 
           {/* Physics Player Controller with animation state */}
-          <PhysicsPlayerController onPositionChange={handlePositionChange}>
-            {({ isMoving, isRunning, isGrounded, isJumping, isFalling, isLanding, isDancing, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring, velocityY, aimPitch }) => (
+          <PhysicsPlayerController onPositionChange={handlePositionChange} isPaused={isPaused}>
+            {({ isMoving, isRunning, isGrounded, isJumping, isFalling, isLanding, isDancing, dancePressed, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring, velocityY, aimPitch }) => (
               <Suspense fallback={<PlaceholderAvatar isMoving={false} />}>
                 {avatarUrl ? (
                   USE_MIXAMO_ANIMATIONS ? (
@@ -524,6 +529,7 @@ export function PlayWorld({
                         isFalling={isFalling}
                         isLanding={isLanding}
                         isDancing={isDancing}
+                        dancePressed={dancePressed}
                         isCrouching={isCrouching}
                         isStrafingLeft={isStrafingLeft}
                         isStrafingRight={isStrafingRight}
@@ -577,6 +583,12 @@ export function PlayWorld({
             far={3}
             color="#8b5cf6"
           />
+
+          {/* Player-placed objects */}
+          <PlacedObjectsManager playerPosition={playerPos} />
+
+          {/* Placement preview (when placing items from inventory) */}
+          <PlacementController />
         </Physics>
       </Suspense>
 
@@ -590,6 +602,6 @@ export function PlayWorld({
         terrainRadius={cityMapControls.terrainRadius}
         enabled={cityMapControls.ambientAudioEnabled}
       />
-    </>
+    </GamePauseProvider>
   );
 }

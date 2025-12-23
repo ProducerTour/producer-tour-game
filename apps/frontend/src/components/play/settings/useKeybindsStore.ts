@@ -83,7 +83,7 @@ export const DEFAULT_KEYBINDS: KeybindMap = {
     { type: 'keyboard', code: 'KeyC', display: 'C' },
   ],
   dance: [
-    { type: 'keyboard', code: 'KeyE', display: 'E' },
+    { type: 'keyboard', code: 'KeyV', display: 'V' },
   ],
   toggleWeapon: [
     { type: 'keyboard', code: 'KeyQ', display: 'Q' },

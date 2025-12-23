@@ -3378,7 +3378,7 @@ function UsersListSection() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="relative overflow-hidden bg-theme-card border border-theme-border-strong p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
-            <h3 className="text-xl font-light text-white mb-4">Edit User</h3>
+            <h3 className="text-xl font-light text-theme-foreground mb-4">Edit User</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
@@ -3388,7 +3388,7 @@ function UsersListSection() {
                   type="email"
                   value={editingUser.email}
                   onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                 />
               </div>
               <div>
@@ -3399,7 +3399,7 @@ function UsersListSection() {
                   type="password"
                   value={editingUser.password || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
-                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                   placeholder="Leave blank to keep current password"
                 />
               </div>
@@ -3410,7 +3410,7 @@ function UsersListSection() {
                 <select
                   value={editingUser.role}
                   onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white focus:outline-none focus:border-theme-input-focus transition-colors"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus transition-colors"
                 >
                   <option value="WRITER">Writer</option>
                   <option value="CUSTOMER">Customer</option>
@@ -3430,7 +3430,7 @@ function UsersListSection() {
                   type="text"
                   value={editingUser.firstName || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
-                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                 />
               </div>
               <div>
@@ -3441,7 +3441,7 @@ function UsersListSection() {
                   type="text"
                   value={editingUser.middleName || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, middleName: e.target.value })}
-                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                   placeholder="Optional"
                 />
               </div>
@@ -3453,7 +3453,7 @@ function UsersListSection() {
                   type="text"
                   value={editingUser.lastName || ''}
                   onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
-                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                 />
               </div>
 
@@ -3469,7 +3469,7 @@ function UsersListSection() {
                         type="text"
                         value={editingUser.writerIpiNumber || ''}
                         onChange={(e) => setEditingUser({ ...editingUser, writerIpiNumber: e.target.value })}
-                        className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                        className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                         placeholder="Writer IPI/CAE Number"
                       />
                     </div>
@@ -3482,7 +3482,7 @@ function UsersListSection() {
                       type="text"
                       value={editingUser.publisherName || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, publisherName: e.target.value })}
-                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                       placeholder="Publisher Name"
                     />
                   </div>
@@ -3494,7 +3494,7 @@ function UsersListSection() {
                       type="text"
                       value={editingUser.publisherIpiNumber || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, publisherIpiNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                       placeholder="Publisher IPI/CAE Number"
                     />
                   </div>
@@ -3506,7 +3506,7 @@ function UsersListSection() {
                       type="text"
                       value={editingUser.subPublisherName || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, subPublisherName: e.target.value })}
-                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                       placeholder="Sub Publisher Name / Administrator"
                     />
                   </div>
@@ -3518,7 +3518,7 @@ function UsersListSection() {
                       type="text"
                       value={editingUser.subPublisherIpiNumber || ''}
                       onChange={(e) => setEditingUser({ ...editingUser, subPublisherIpiNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                       placeholder="Sub Publisher IPI Number"
                     />
                   </div>
@@ -3531,7 +3531,7 @@ function UsersListSection() {
                         <select
                           value={editingUser.producer?.proAffiliation || 'OTHER'}
                           onChange={(e) => setEditingUser({ ...editingUser, producer: { ...(editingUser.producer || {}), proAffiliation: e.target.value } })}
-                          className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white focus:outline-none focus:border-theme-input-focus transition-colors"
+                          className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus transition-colors"
                         >
                           <option value="BMI">BMI</option>
                           <option value="ASCAP">ASCAP</option>
@@ -3551,7 +3551,7 @@ function UsersListSection() {
                           step={0.01}
                           value={editingUser.commissionOverrideRate ?? ''}
                           onChange={(e) => setEditingUser({ ...editingUser, commissionOverrideRate: e.target.value })}
-                          className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                          className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
                           placeholder="Leave blank to use default"
                         />
                         <p className="text-xs text-theme-foreground-muted mt-1">Writer sees net = writer split minus commission. Blank uses global rate.</p>

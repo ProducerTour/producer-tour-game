@@ -19,7 +19,6 @@ import {
   WATER_LEVEL,
   chunkToWorld,
   WORLD_BOUNDARY,
-  getLODLevel,
   CHUNK_SIZE,
   CHUNKS_PER_AXIS,
   // New terrain system v2
@@ -576,10 +575,11 @@ export function StaticTerrain({
         }
         keptCount++;
 
-        // Use distance-based LOD for performance
-        // Inner chunks get full detail, outer chunks get reduced detail
+        // Always use LOD0 for visual terrain to match physics exactly
+        // This ensures the visual mesh matches the TrimeshCollider geometry
+        // which is preloaded at LOD0 for accurate collisions
         const chunkDist = Math.sqrt(dx * dx + dz * dz) * 64;
-        const lod = getLODLevel(chunkDist);
+        const lod = 0;  // Force LOD0 for physics accuracy
 
         const heightmap = gen.generateChunkHeightmap(x, z, lod);
         const vertices = gen.generateChunkVertices(x, z, lod);

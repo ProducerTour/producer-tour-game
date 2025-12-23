@@ -8,6 +8,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGameSettings } from '../../../store/gameSettings.store';
 import { useDevStore } from './useDevStore';
 import { useCombatStore, WEAPON_CONFIG } from '../combat/useCombatStore';
+import { useInventoryStore } from '../../../lib/economy/inventoryStore';
+import { SAMPLE_ITEMS } from '../../../lib/economy/itemDatabase';
 
 interface LogEntry {
   type: 'log' | 'warn' | 'error' | 'info' | 'cmd' | 'success';
@@ -23,6 +25,7 @@ interface DevConsoleProps {
 // Store references for use in BUILT_IN_COMMANDS (will be set in component)
 let devStoreRef: ReturnType<typeof useDevStore.getState> | null = null;
 let combatStoreRef: ReturnType<typeof useCombatStore.getState> | null = null;
+let inventoryStoreRef: ReturnType<typeof useInventoryStore.getState> | null = null;
 
 // Built-in commands
 const BUILT_IN_COMMANDS: Record<string, { description: string; usage?: string; handler: (args: string[], addLog: (entry: LogEntry) => void) => void }> = {
@@ -34,7 +37,8 @@ const BUILT_IN_COMMANDS: Record<string, { description: string; usage?: string; h
       const categories: Record<string, string[]> = {
         cheats: ['god', 'noclip', 'speed', 'gravity', 'ammo', 'health', 'fullheal', 'kill'],
         debug: ['fps', 'stats', 'hitboxes', 'wireframe', 'colliders', 'pos', 'debug'],
-        combat: ['weapon', 'reload', 'damage', 'spawn', 'killall'],
+        combat: ['weapon', 'reload', 'damage', 'spawnnpc', 'killall'],
+        items: ['spawn', 'give', 'inventory'],
         time: ['timescale', 'pause'],
         util: ['help', 'clear', 'tp', 'players', 'weaponedit', 'reset'],
       };
@@ -52,7 +56,7 @@ const BUILT_IN_COMMANDS: Record<string, { description: string; usage?: string; h
         });
       } else {
         addLog({ type: 'info', message: '=== Dev Console Commands ===', timestamp: new Date() });
-        addLog({ type: 'info', message: 'Categories: /help cheats | debug | combat | time | util', timestamp: new Date() });
+        addLog({ type: 'info', message: 'Categories: /help cheats | debug | combat | items | time | util', timestamp: new Date() });
         addLog({ type: 'info', message: '', timestamp: new Date() });
         Object.entries(BUILT_IN_COMMANDS).forEach(([name, { description }]) => {
           addLog({ type: 'info', message: `  /${name} - ${description}`, timestamp: new Date() });
@@ -321,14 +325,107 @@ const BUILT_IN_COMMANDS: Record<string, { description: string; usage?: string; h
       addLog({ type: 'warn', message: `Took ${amount} damage`, timestamp: new Date() });
     },
   },
-  spawn: {
-    description: 'Spawn a target dummy',
-    usage: '/spawn [type] (dummy, target)',
+  spawnnpc: {
+    description: 'Spawn a target dummy NPC',
+    usage: '/spawnnpc [type] (dummy, target)',
     handler: (args, addLog) => {
       const type = args[0]?.toLowerCase() || 'dummy';
       const event = new CustomEvent('devConsole:spawn', { detail: { type } });
       window.dispatchEvent(event);
       addLog({ type: 'success', message: `Spawning ${type}...`, timestamp: new Date() });
+    },
+  },
+  spawn: {
+    description: 'Spawn items to inventory (Rust-style)',
+    usage: '/spawn <item_id> [quantity] | /spawn list',
+    handler: (args, addLog) => {
+      if (!inventoryStoreRef) {
+        addLog({ type: 'error', message: 'Inventory store not available', timestamp: new Date() });
+        return;
+      }
+
+      // Show list of available items
+      if (args.length === 0 || args[0]?.toLowerCase() === 'list') {
+        addLog({ type: 'info', message: '=== Available Items ===', timestamp: new Date() });
+        Object.entries(SAMPLE_ITEMS).forEach(([key, item]) => {
+          const rarity = item.rarity || 'common';
+          const rarityColors: Record<string, string> = {
+            common: '⬜', uncommon: '🟩', rare: '🟦', epic: '🟪', legendary: '🟧'
+          };
+          addLog({
+            type: 'info',
+            message: `  ${rarityColors[rarity] || '⬜'} ${key} - ${item.name} (${item.type})`,
+            timestamp: new Date()
+          });
+        });
+        addLog({ type: 'info', message: '', timestamp: new Date() });
+        addLog({ type: 'info', message: 'Usage: /spawn <item_id> [quantity]', timestamp: new Date() });
+        addLog({ type: 'info', message: 'Example: /spawn healthPotion 5', timestamp: new Date() });
+        return;
+      }
+
+      const itemId = args[0];
+      const quantity = parseInt(args[1]) || 1;
+
+      // Check if item exists in database
+      const itemTemplate = SAMPLE_ITEMS[itemId as keyof typeof SAMPLE_ITEMS];
+      if (!itemTemplate) {
+        addLog({ type: 'error', message: `Unknown item: ${itemId}`, timestamp: new Date() });
+        addLog({ type: 'info', message: 'Use /spawn list to see available items', timestamp: new Date() });
+        return;
+      }
+
+      // Validate quantity
+      if (quantity < 1 || quantity > 999) {
+        addLog({ type: 'error', message: 'Quantity must be between 1 and 999', timestamp: new Date() });
+        return;
+      }
+
+      // Add item to inventory
+      const success = inventoryStoreRef.addItem(itemTemplate, quantity);
+      if (success) {
+        addLog({
+          type: 'success',
+          message: `Spawned ${quantity}x ${itemTemplate.name}`,
+          timestamp: new Date()
+        });
+      } else {
+        addLog({ type: 'error', message: 'Failed to add item (inventory full?)', timestamp: new Date() });
+      }
+    },
+  },
+  inventory: {
+    description: 'Show inventory contents',
+    usage: '/inventory [clear]',
+    handler: (args, addLog) => {
+      if (!inventoryStoreRef) {
+        addLog({ type: 'error', message: 'Inventory store not available', timestamp: new Date() });
+        return;
+      }
+
+      if (args[0]?.toLowerCase() === 'clear') {
+        inventoryStoreRef.clearInventory();
+        addLog({ type: 'success', message: 'Inventory cleared', timestamp: new Date() });
+        return;
+      }
+
+      const slots = useInventoryStore.getState().slots;
+      if (slots.size === 0) {
+        addLog({ type: 'info', message: 'Inventory is empty', timestamp: new Date() });
+        return;
+      }
+
+      addLog({ type: 'info', message: '=== Inventory Contents ===', timestamp: new Date() });
+      let totalItems = 0;
+      slots.forEach((slot) => {
+        totalItems += slot.quantity;
+        addLog({
+          type: 'info',
+          message: `  ${slot.quantity}x ${slot.item.name} (${slot.item.type})`,
+          timestamp: new Date()
+        });
+      });
+      addLog({ type: 'info', message: `Total: ${slots.size} slots, ${totalItems} items`, timestamp: new Date() });
     },
   },
   killall: {
@@ -509,12 +606,14 @@ export function DevConsole({ onCommand, onlinePlayers = [] }: DevConsoleProps) {
   const { showWeaponEditor, toggleWeaponEditor } = useGameSettings();
   const devStore = useDevStore();
   const combatStore = useCombatStore();
+  const inventoryStore = useInventoryStore();
 
   // Update store refs for use in commands
   useEffect(() => {
     devStoreRef = devStore;
     combatStoreRef = combatStore;
-  }, [devStore, combatStore]);
+    inventoryStoreRef = inventoryStore;
+  }, [devStore, combatStore, inventoryStore]);
 
   const addLog = useCallback((entry: LogEntry) => {
     setLogs(prev => [...prev.slice(-200), entry]); // Keep last 200 logs

@@ -263,10 +263,11 @@ export class TerrainGenerator {
     // Normalize ridged noise (0-1 range)
     let normalizedRidged = ridged / 2.0;
 
-    // PLATEAU/MESA CLAMPING: Flatten peaks above threshold
+    // PLATEAU/MESA CLAMPING: Flatten peaks above threshold for walkable mountain tops
     if (cfg.plateauEnabled) {
       const threshold = cfg.plateauThreshold;
       const smooth = cfg.plateauSmooth;
+      const maxExcessFactor = cfg.plateauMaxExcess ?? 0.15;
 
       if (normalizedRidged > threshold) {
         // Apply terracing if enabled (creates step-like levels)
@@ -275,12 +276,17 @@ export class TerrainGenerator {
           const step = 1.0 / cfg.terraceSteps;
           normalizedRidged = Math.floor(normalizedRidged / step) * step;
         } else {
-          // Smooth sigmoid clamping - levels off gradually
+          // Improved plateau clamping for flatter, more walkable mountain tops
           const excess = normalizedRidged - threshold;
           const maxExcess = 1.0 - threshold;
-          // Soft clamp using smoothstep-like curve
-          const softClamp = excess * smooth / (excess + smooth * maxExcess);
-          normalizedRidged = threshold + softClamp * maxExcess * 0.3;
+
+          // Use asymptotic curve: rises quickly at first, then flattens
+          // This creates broad, flat plateaus with gentle variation
+          const t = excess / maxExcess;  // 0-1 range of "how far above threshold"
+          const flattenedT = 1 - Math.exp(-t * 3 * smooth);  // Asymptotic curve
+
+          // Limit the maximum height above threshold
+          normalizedRidged = threshold + flattenedT * maxExcess * maxExcessFactor;
         }
       }
     }
@@ -337,7 +343,7 @@ export class TerrainGenerator {
   // LAYER 6: DETAIL NOISE (micro variation)
   // ===========================================================================
 
-  getDetailHeight(worldX: number, worldZ: number): number {
+  getDetailHeight(worldX: number, worldZ: number, mountainMask?: number): number {
     const cfg = DETAIL_CONFIG;
 
     const detail = this.noise.fbm2(
@@ -349,7 +355,13 @@ export class TerrainGenerator {
       1.0
     );
 
-    return detail * cfg.amplitude;
+    // Reduce detail noise on mountain tops for smoother, more walkable surfaces
+    // Mountain tops (high mask value) get 30% of normal detail noise
+    const mountainReduction = mountainMask !== undefined
+      ? 0.3 + 0.7 * (1 - mountainMask)  // 0.3-1.0 multiplier based on mountain mask
+      : 1.0;
+
+    return detail * cfg.amplitude * mountainReduction;
   }
 
   // ===========================================================================
@@ -376,8 +388,8 @@ export class TerrainGenerator {
     const mountainMask = this.getMountainMask(worldX, worldZ);
     const mountainHeight = this.getMountainHeight(worldX, worldZ, mountainMask);
 
-    // Layer 6: Detail variation
-    const detailHeight = this.getDetailHeight(worldX, worldZ);
+    // Layer 6: Detail variation (reduced on mountain tops for smoother surfaces)
+    const detailHeight = this.getDetailHeight(worldX, worldZ, mountainMask);
 
     // Combine layers with island mask
     let height = (baseHeight + mountainHeight + detailHeight) * islandMask;
@@ -411,8 +423,8 @@ export class TerrainGenerator {
     const mountainMask = this.getMountainMask(worldX, worldZ);
     const mountainHeight = this.getMountainHeight(worldX, worldZ, mountainMask);
 
-    // Layer 6: Detail variation
-    const detailHeight = this.getDetailHeight(worldX, worldZ);
+    // Layer 6: Detail variation (reduced on mountain tops for smoother surfaces)
+    const detailHeight = this.getDetailHeight(worldX, worldZ, mountainMask);
 
     // Combine layers with island mask
     let height = (baseHeight + mountainHeight + detailHeight) * islandMask;

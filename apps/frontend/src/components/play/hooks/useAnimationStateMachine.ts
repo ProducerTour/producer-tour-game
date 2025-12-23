@@ -71,6 +71,7 @@ export interface AnimationInput {
   isLanding?: boolean;    // NEW: Brief landing state
   isCrouching: boolean;
   isDancing: boolean;
+  dancePressed?: boolean; // True only on frame dance key is pressed (for cycling)
   isStrafeLeft: boolean;
   isStrafeRight: boolean;
   isAiming: boolean;
@@ -356,12 +357,33 @@ const TRANSITIONS: Transition[] = [
 
   // ===== DANCE (high priority, only when grounded and idle) =====
   // time > 100 prevents rapid state flickering
+  // Start dancing from idle
   {
     from: 'idle',
     to: 'dance1',
     condition: (i, time) => time > 100 && i.isDancing && i.isGrounded && !i.isMoving,
     priority: 80,
   },
+  // Cycle through dances when V is pressed while already dancing
+  {
+    from: 'dance1',
+    to: 'dance2',
+    condition: (i) => i.isDancing && i.dancePressed === true && !i.isMoving,
+    priority: 81, // Higher priority than exit transition
+  },
+  {
+    from: 'dance2',
+    to: 'dance3',
+    condition: (i) => i.isDancing && i.dancePressed === true && !i.isMoving,
+    priority: 81,
+  },
+  {
+    from: 'dance3',
+    to: 'dance1',
+    condition: (i) => i.isDancing && i.dancePressed === true && !i.isMoving,
+    priority: 81,
+  },
+  // Exit dance when key released or moving
   {
     from: DANCE_STATES,
     to: 'idle',
@@ -1126,6 +1148,7 @@ export function useAnimationStateMachine(
     input.isJumping,
     input.isCrouching,
     input.isDancing,
+    input.dancePressed,
     input.isStrafeLeft,
     input.isStrafeRight,
     input.isAiming,

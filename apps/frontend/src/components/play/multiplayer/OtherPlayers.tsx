@@ -6,6 +6,7 @@ import { SkeletonUtils } from 'three-stdlib';
 import type { Player3D } from '../hooks/usePlayMultiplayer';
 import { ANIMATION_CONFIG } from '../animations.config';
 import { getPooledClipRPM } from '../avatars/AnimationClipPool';
+import { useGamePause } from '../context';
 
 // Debug logging - set to false to reduce console spam
 const DEBUG_OTHER_PLAYERS = false;
@@ -436,6 +437,7 @@ interface OtherPlayerProps {
 const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
+  const isPaused = useGamePause();
   const [lod, setLod] = useState<'full' | 'simple' | 'hidden'>('simple');
   const lastLodCheck = useRef(0);
 
@@ -468,7 +470,7 @@ const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
   }, [player.position.x, player.position.y, player.position.z, player.rotation.y]);
 
   useFrame((_, delta) => {
-    if (!groupRef.current) return;
+    if (isPaused || !groupRef.current) return;
 
     const buffer = positionBuffer.current;
     const renderTime = Date.now() - INTERPOLATION_DELAY;
