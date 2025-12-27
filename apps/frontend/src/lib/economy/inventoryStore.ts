@@ -12,6 +12,8 @@ export interface Item {
   maxStack: number;
   value: number; // Base sell value
   icon?: string;
+  thumbnail?: string; // Pre-rendered 2D image of 3D model
+  modelPath?: string; // Path to 3D model for world rendering
   metadata?: Record<string, unknown>;
 }
 
@@ -28,6 +30,36 @@ export interface Currency {
   amount: number;
 }
 
+// Default weapons for hotbar initialization
+const DEFAULT_WEAPONS: Item[] = [
+  {
+    id: 'weapon-ak47',
+    name: 'AK-47',
+    description: 'Assault rifle with high damage',
+    type: 'weapon',
+    rarity: 'rare',
+    stackable: false,
+    maxStack: 1,
+    value: 2500,
+    thumbnail: '/icons/weapons/ak47.png',
+    modelPath: 'weapons/ak47fbx_gltf/scene.gltf',
+    metadata: { weaponType: 'rifle' },
+  },
+  {
+    id: 'weapon-pistol',
+    name: 'Pistol',
+    description: 'Standard sidearm',
+    type: 'weapon',
+    rarity: 'common',
+    stackable: false,
+    maxStack: 1,
+    value: 500,
+    thumbnail: '/icons/weapons/pistol.png',
+    modelPath: 'weapons/pistolorange_gltf/scene.gltf',
+    metadata: { weaponType: 'pistol' },
+  },
+];
+
 interface InventoryState {
   // Inventory
   slots: Map<string, InventorySlot>; // slot id -> slot
@@ -38,6 +70,16 @@ interface InventoryState {
 
   // Equipment
   equippedItems: Map<string, string>; // slot type -> item slot id
+
+  // Hotbar (12 slots for quick access - shared between HUD and inventory menu)
+  // Stores actual InventorySlot objects (items are MOVED to hotbar, not referenced)
+  hotbarSlots: (InventorySlot | null)[];
+
+  // Active hotbar slot (-1 = nothing selected/equipped)
+  activeHotbarSlot: number;
+
+  // UI State (for disabling game input when inventory is open)
+  isInventoryOpen: boolean;
 
   // Actions
   addItem: (item: Item, quantity?: number) => boolean;
@@ -59,6 +101,23 @@ interface InventoryState {
   hasItem: (itemId: string, quantity?: number) => boolean;
   getItemCount: (itemId: string) => number;
   getFreeSlots: () => number;
+
+  // Hotbar
+  setHotbarSlot: (index: number, slot: InventorySlot | null) => void;
+  getHotbarSlots: () => (InventorySlot | null)[];
+  getHotbarItem: (index: number) => InventorySlot | null;
+  moveToHotbar: (slotId: string, hotbarIndex: number) => boolean;
+  moveFromHotbar: (hotbarIndex: number) => boolean;
+  initializeDefaultWeapons: () => void;
+
+  // Active hotbar slot selection
+  setActiveHotbarSlot: (index: number) => void;
+  toggleHotbarSlot: (index: number) => void; // Toggle on/off if same slot pressed
+  getActiveHotbarSlot: () => number;
+  getActiveItem: () => InventorySlot | null;
+
+  // UI State actions
+  setInventoryOpen: (isOpen: boolean) => void;
 
   // Utility
   sortInventory: (by: 'name' | 'type' | 'rarity' | 'value') => void;
@@ -86,6 +145,9 @@ export const useInventoryStore = create<InventoryState>()(
         ['gems', { id: 'gems', name: 'Gems', icon: '💎', amount: 0 }],
       ]),
       equippedItems: new Map(),
+      hotbarSlots: Array(12).fill(null) as (InventorySlot | null)[],
+      activeHotbarSlot: -1, // -1 = nothing selected
+      isInventoryOpen: false, // Track if inventory UI is open (for disabling game input)
 
       addItem: (item, quantity = 1) => {
         const state = get();
@@ -324,6 +386,154 @@ export const useInventoryStore = create<InventoryState>()(
         return state.maxSlots - state.slots.size;
       },
 
+      // Hotbar actions
+      setHotbarSlot: (index, slot) => {
+        if (index < 0 || index >= 12) return;
+        set((s) => {
+          const newHotbar = [...s.hotbarSlots];
+          newHotbar[index] = slot;
+          return { hotbarSlots: newHotbar };
+        });
+      },
+
+      getHotbarSlots: () => get().hotbarSlots,
+
+      getHotbarItem: (index) => {
+        const state = get();
+        if (index < 0 || index >= 12) return null;
+        return state.hotbarSlots[index];
+      },
+
+      moveToHotbar: (slotId, hotbarIndex) => {
+        if (hotbarIndex < 0 || hotbarIndex >= 12) return false;
+        const state = get();
+        const slot = state.slots.get(slotId);
+        if (!slot) return false;
+
+        set((s) => {
+          // Remove from inventory
+          const newSlots = new Map(s.slots);
+          newSlots.delete(slotId);
+
+          // If there's already something in the hotbar slot, move it back to inventory
+          const existingHotbarItem = s.hotbarSlots[hotbarIndex];
+          if (existingHotbarItem) {
+            const returnSlotId = `slot-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            newSlots.set(returnSlotId, existingHotbarItem);
+          }
+
+          // Place in hotbar
+          const newHotbar = [...s.hotbarSlots];
+          newHotbar[hotbarIndex] = slot;
+
+          return { slots: newSlots, hotbarSlots: newHotbar };
+        });
+
+        return true;
+      },
+
+      moveFromHotbar: (hotbarIndex) => {
+        if (hotbarIndex < 0 || hotbarIndex >= 12) return false;
+        const state = get();
+        const slot = state.hotbarSlots[hotbarIndex];
+        if (!slot) return false;
+
+        set((s) => {
+          // Remove from hotbar
+          const newHotbar = [...s.hotbarSlots];
+          newHotbar[hotbarIndex] = null;
+
+          // Add back to inventory
+          const newSlots = new Map(s.slots);
+          const newSlotId = `slot-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          newSlots.set(newSlotId, slot);
+
+          return { slots: newSlots, hotbarSlots: newHotbar };
+        });
+
+        return true;
+      },
+
+      initializeDefaultWeapons: () => {
+        const state = get();
+        const newHotbar = [...state.hotbarSlots];
+        let needsUpdate = false;
+
+        // Check each default weapon slot
+        DEFAULT_WEAPONS.forEach((defaultWeapon, index) => {
+          const existingSlot = state.hotbarSlots[index];
+
+          // If slot is empty, add the weapon
+          if (!existingSlot || !existingSlot.item) {
+            newHotbar[index] = { item: defaultWeapon, quantity: 1 };
+            needsUpdate = true;
+            return;
+          }
+
+          // If existing weapon is missing thumbnail, update it with the default weapon data
+          if (existingSlot.item.type === 'weapon' && !existingSlot.item.thumbnail) {
+            console.log(`[InventoryStore] Updating ${existingSlot.item.name} with thumbnail`);
+            newHotbar[index] = {
+              ...existingSlot,
+              item: { ...existingSlot.item, thumbnail: defaultWeapon.thumbnail }
+            };
+            needsUpdate = true;
+          }
+        });
+
+        // Also check inventory slots for weapons missing thumbnails
+        const newSlots = new Map(state.slots);
+        for (const [slotId, slot] of state.slots) {
+          if (slot.item?.type === 'weapon' && !slot.item.thumbnail) {
+            // Find matching default weapon by id or name
+            const defaultWeapon = DEFAULT_WEAPONS.find(
+              w => w.id === slot.item.id || w.name.toLowerCase() === slot.item.name.toLowerCase()
+            );
+            if (defaultWeapon?.thumbnail) {
+              console.log(`[InventoryStore] Updating inventory ${slot.item.name} with thumbnail`);
+              newSlots.set(slotId, {
+                ...slot,
+                item: { ...slot.item, thumbnail: defaultWeapon.thumbnail }
+              });
+              needsUpdate = true;
+            }
+          }
+        }
+
+        if (needsUpdate) {
+          set({ hotbarSlots: newHotbar, slots: newSlots });
+          console.log('[InventoryStore] Weapons updated with thumbnails');
+        }
+      },
+
+      // Active hotbar slot management
+      setActiveHotbarSlot: (index) => {
+        if (index < -1 || index >= 12) return;
+        set({ activeHotbarSlot: index });
+      },
+
+      toggleHotbarSlot: (index) => {
+        if (index < 0 || index >= 12) return;
+        const state = get();
+        // If same slot is pressed, deselect (put away)
+        if (state.activeHotbarSlot === index) {
+          set({ activeHotbarSlot: -1 });
+        } else {
+          set({ activeHotbarSlot: index });
+        }
+      },
+
+      getActiveHotbarSlot: () => get().activeHotbarSlot,
+
+      getActiveItem: () => {
+        const state = get();
+        if (state.activeHotbarSlot < 0 || state.activeHotbarSlot >= 12) return null;
+        return state.hotbarSlots[state.activeHotbarSlot];
+      },
+
+      // UI State
+      setInventoryOpen: (isOpen) => set({ isInventoryOpen: isOpen }),
+
       sortInventory: (by) => {
         set((s) => {
           const entries = Array.from(s.slots.entries());
@@ -375,6 +585,7 @@ export const useInventoryStore = create<InventoryState>()(
             ['gems', { id: 'gems', name: 'Gems', icon: '💎', amount: 0 }],
           ]),
           equippedItems: new Map(),
+          hotbarSlots: Array(12).fill(null),
         });
       },
     }),
@@ -384,6 +595,7 @@ export const useInventoryStore = create<InventoryState>()(
         slots: Array.from(state.slots.entries()),
         currencies: Array.from(state.currencies.entries()),
         equippedItems: Array.from(state.equippedItems.entries()),
+        hotbarSlots: state.hotbarSlots,
         maxSlots: state.maxSlots,
       }),
       merge: (persisted, current) => {
@@ -391,13 +603,34 @@ export const useInventoryStore = create<InventoryState>()(
           slots?: [string, InventorySlot][];
           currencies?: [string, Currency][];
           equippedItems?: [string, string][];
+          hotbarSlots?: (InventorySlot | null)[];
           maxSlots?: number;
         };
+
+        // Sanitize hotbar slots - filter out corrupted entries (slots without valid item)
+        const sanitizedHotbarSlots = (data?.hotbarSlots ?? current.hotbarSlots).map(slot => {
+          if (slot && !slot.item) {
+            console.warn('[InventoryStore] Removed corrupted hotbar slot (missing item)');
+            return null;
+          }
+          return slot;
+        });
+
+        // Sanitize inventory slots - filter out corrupted entries
+        const sanitizedSlots = (data?.slots ?? []).filter(([_, slot]) => {
+          if (slot && !slot.item) {
+            console.warn('[InventoryStore] Removed corrupted inventory slot (missing item)');
+            return false;
+          }
+          return true;
+        });
+
         return {
           ...current,
-          slots: new Map(data?.slots ?? []),
+          slots: new Map(sanitizedSlots),
           currencies: new Map(data?.currencies ?? current.currencies),
           equippedItems: new Map(data?.equippedItems ?? []),
+          hotbarSlots: sanitizedHotbarSlots,
           maxSlots: data?.maxSlots ?? current.maxSlots,
         };
       },

@@ -65,6 +65,7 @@ export const ANIMATION_CONFIG: Record<string, AnimationConfig> = {
 
   // Weapon standing (Mixamo)
   rifleIdle: { url: anim('rifle_idle.glb'), loop: true, fadeTime: 0.2, fallback: 'idle', mixamo: true },
+  rifleAimIdle: { url: anim('rifle_aim_idle.glb'), loop: true, fadeTime: 0.15, fallback: 'rifleIdle', mixamo: true },
   rifleWalk: { url: anim('rifle_walk.glb'), loop: true, fadeTime: 0.2, fallback: 'walking', mixamo: true },
   rifleRun: { url: anim('rifle_run.glb'), loop: true, fadeTime: 0.2, fallback: 'running', mixamo: true },
   pistolIdle: { url: anim('pistol_idle.glb'), loop: true, fadeTime: 0.15, fallback: 'idle', mixamo: true },

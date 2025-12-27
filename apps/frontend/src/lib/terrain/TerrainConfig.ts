@@ -252,10 +252,10 @@ export const CLIMATE_CONFIG = {
 // =============================================================================
 
 /** Distance within which chunks are loaded (meters) */
-export const CHUNK_LOAD_RADIUS = 384;
+export const CHUNK_LOAD_RADIUS = 768;
 
 /** Distance beyond which chunks are unloaded (meters) */
-export const CHUNK_UNLOAD_RADIUS = 448;
+export const CHUNK_UNLOAD_RADIUS = 832;
 
 /** Maximum chunks to load per frame */
 export const MAX_CHUNK_LOADS_PER_FRAME = 4;
@@ -263,11 +263,13 @@ export const MAX_CHUNK_LOADS_PER_FRAME = 4;
 /** Distance at which chunks switch to lower LOD */
 export const LOD_DISTANCES = {
   /** Full detail (33x33 vertices) */
-  lod0: 128,
+  lod0: 96,
   /** Half detail (17x17 vertices) */
-  lod1: 256,
+  lod1: 192,
   /** Quarter detail (9x9 vertices) */
-  lod2: 320,
+  lod2: 384,
+  /** Ultra-low detail (5x5 vertices) for distant chunks */
+  lod3: 768,
 };
 
 // =============================================================================
@@ -346,6 +348,7 @@ export enum LODLevel {
   LOD0 = 0, // Full detail (33x33)
   LOD1 = 1, // Half detail (17x17)
   LOD2 = 2, // Quarter detail (9x9)
+  LOD3 = 3, // Ultra-low detail (5x5) for distant chunks
 }
 
 /** Resolution for each LOD level */
@@ -353,6 +356,7 @@ export const LOD_RESOLUTIONS: Record<LODLevel, number> = {
   [LODLevel.LOD0]: 33,
   [LODLevel.LOD1]: 17,
   [LODLevel.LOD2]: 9,
+  [LODLevel.LOD3]: 5,
 };
 
 // =============================================================================
@@ -434,7 +438,8 @@ export function clampToWorldBounds(worldX: number, worldZ: number): { x: number;
 export function getLODLevel(distance: number): LODLevel {
   if (distance <= LOD_DISTANCES.lod0) return LODLevel.LOD0;
   if (distance <= LOD_DISTANCES.lod1) return LODLevel.LOD1;
-  return LODLevel.LOD2;
+  if (distance <= LOD_DISTANCES.lod2) return LODLevel.LOD2;
+  return LODLevel.LOD3;
 }
 
 /**

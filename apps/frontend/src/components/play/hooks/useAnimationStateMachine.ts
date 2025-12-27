@@ -880,7 +880,7 @@ const STATE_TO_ACTION: Record<AnimState, string> = {
   crouchPistolWalk: 'crouchPistolWalk',
   rifleJump: 'rifleJump',
   // Rifle aiming/firing (use existing idle animations as base for aim)
-  rifleAimIdle: 'rifleIdle',  // Use rifleIdle as aim pose
+  rifleAimIdle: 'rifleAimIdle',  // Distinct aiming pose animation
   rifleAimWalk: 'rifleWalk',  // Use rifleWalk while aim-walking
   rifleFireStill: 'rifleFireStill',
   rifleFireWalk: 'rifleFireWalk',

@@ -593,7 +593,6 @@ const BUILT_IN_COMMANDS: Record<string, { description: string; usage?: string; h
 };
 
 export function DevConsole({ onCommand, onlinePlayers = [] }: DevConsoleProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [input, setInput] = useState('');
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -607,6 +606,10 @@ export function DevConsole({ onCommand, onlinePlayers = [] }: DevConsoleProps) {
   const devStore = useDevStore();
   const combatStore = useCombatStore();
   const inventoryStore = useInventoryStore();
+
+  // Use store for console open state (so HotbarHUD can check it)
+  const isOpen = devStore.isConsoleOpen;
+  const setIsOpen = devStore.setConsoleOpen;
 
   // Update store refs for use in commands
   useEffect(() => {
@@ -659,7 +662,7 @@ export function DevConsole({ onCommand, onlinePlayers = [] }: DevConsoleProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === '`' || e.key === '~') {
         e.preventDefault();
-        setIsOpen(prev => !prev);
+        setIsOpen(!isOpen);
       }
       // Escape to close
       if (e.key === 'Escape' && isOpen) {
@@ -669,7 +672,7 @@ export function DevConsole({ onCommand, onlinePlayers = [] }: DevConsoleProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, setIsOpen]);
 
   // Focus input when opened
   useEffect(() => {

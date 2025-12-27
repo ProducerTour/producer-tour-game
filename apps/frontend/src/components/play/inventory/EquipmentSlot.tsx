@@ -19,7 +19,7 @@ export function EquipmentSlot({
 }: EquipmentSlotProps) {
   // Get rarity colors for equipped item
   const rarityStyle = useMemo(() => {
-    if (!slot) return null;
+    if (!slot || !slot.item) return null;
     return RARITY_COLORS[slot.item.rarity];
   }, [slot]);
 
@@ -89,13 +89,13 @@ export function EquipmentSlot({
       whileDrag={{ scale: 1.1, zIndex: 100 }}
       title={EQUIPMENT_SLOT_LABELS[slotType]}
     >
-      {slot ? (
+      {slot && slot.item ? (
         <>
-          {/* Equipped item icon */}
+          {/* Equipped item icon - prefer thumbnail, fallback to icon, then emoji */}
           <div className="absolute inset-1.5 flex items-center justify-center">
-            {slot.item.icon ? (
+            {slot.item.thumbnail || slot.item.icon ? (
               <img
-                src={slot.item.icon}
+                src={slot.item.thumbnail || slot.item.icon}
                 alt={slot.item.name}
                 className="w-full h-full object-contain pointer-events-none"
                 draggable={false}

@@ -9,35 +9,35 @@ import {
   User,
   Users,
   Music,
-  Sparkles,
   Volume2,
   Gamepad2,
   ChevronRight,
   Zap,
   Pause,
   Play,
-  Save
+  Save,
 } from 'lucide-react';
 import { Leva } from 'leva';
 import { PlayWorld, type PlayerInfo } from '../components/play/PlayWorld';
 import { AvatarCreator } from '../components/play/AvatarCreator';
 import { useTerrainPreloader } from '../components/play/hooks/useTerrainPreloader';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
-import { Crosshair } from '../components/play/hud';
-import { GTAMinimap } from '../components/play/ui/GTAMinimap';
+import { Crosshair, HotbarHUD, DeathOverlay } from '../components/play/hud';
+import { GTAMinimap, CreatorWorldLoadingScreen } from '../components/play/ui';
 import { DevConsole, DevPanel } from '../components/play/debug';
 import { UpdateOverlay } from '../components/play/UpdateOverlay';
 import { KeybindsMenu } from '../components/play/settings';
 import { WorldMap } from '../components/play/ui/WorldMap';
 import { InventorySystem } from '../components/play/inventory';
 import { useInventoryStore } from '../lib/economy/inventoryStore';
-import { addSampleItemsToInventory } from '../lib/economy/itemDatabase';
+import { addSampleItemsToInventory, getItemById } from '../lib/economy/itemDatabase';
 import { userApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import { useGameSettings, SHADOW_MAP_SIZES } from '../store/gameSettings.store';
 import { useSocket } from '../hooks/useSocket';
 import { useServerVersion } from '../hooks/useServerVersion';
 import { DEFAULT_WORLD_CONFIG } from '../lib/config';
+// Grass now loads progressively - store no longer needed for blocking
 
 // Auto-save storage key
 const WORLD_STATE_KEY = 'producerTour_worldState';
@@ -119,93 +119,8 @@ function loadWorldState(): Partial<WorldState> | null {
   return null;
 }
 
-// Sandbox-style loading screen with real progress tracking
-interface LoadingScreenProps {
-  progress?: number;
-  message?: string;
-}
 
-function LoadingScreen({ progress: externalProgress, message }: LoadingScreenProps = {}) {
-  // Use external progress if provided, otherwise fake progress for Suspense fallback
-  const [internalProgress, setInternalProgress] = useState(0);
-  const progress = externalProgress ?? internalProgress;
 
-  useEffect(() => {
-    // Only use fake progress if no external progress provided
-    if (externalProgress !== undefined) return;
-
-    const interval = setInterval(() => {
-      setInternalProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + Math.random() * 15;
-      });
-    }, 200);
-    return () => clearInterval(interval);
-  }, [externalProgress]);
-
-  // Determine status message
-  const statusMessage = message ?? (progress < 100 ? 'Loading world...' : 'Ready!');
-
-  return (
-    <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0f]">
-      {/* Animated background grid */}
-      <div className="absolute inset-0 opacity-20">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: '50px 50px',
-            animation: 'pulse 4s ease-in-out infinite'
-          }}
-        />
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="text-center z-10"
-      >
-        {/* Logo */}
-        <div className="relative mb-8">
-          <div className="w-24 h-24 mx-auto relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-2xl rotate-45 animate-pulse" />
-            <div className="absolute inset-2 bg-[#0a0a0f] rounded-xl rotate-45" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Music className="w-10 h-10 text-white" />
-            </div>
-          </div>
-          <Sparkles className="w-6 h-6 text-yellow-400 absolute -top-2 right-1/3 animate-bounce" />
-        </div>
-
-        <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
-          PRODUCER TOUR
-        </h1>
-        <p className="text-violet-400 font-medium mb-8">THE MUSIC METAVERSE</p>
-
-        {/* Progress bar */}
-        <div className="w-64 mx-auto">
-          <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-violet-500"
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.min(progress, 100)}%` }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
-          <p className="text-white/50 text-sm mt-3">
-            {statusMessage}
-          </p>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
 
 
 
@@ -819,6 +734,36 @@ export default function PlayPage() {
     autoStart: true,
   });
 
+  // Track shader preloading (done in hidden Canvas during loading screen)
+  const [weaponsReady, setWeaponsReady] = useState(false);
+  const [grassReady, setGrassReady] = useState(false);
+  const [grassGenerationProgress, setGrassGenerationProgress] = useState(0);
+
+  const handleWeaponsReady = useCallback(() => {
+    setWeaponsReady(true);
+    console.log('🔫 Weapon shaders ready');
+  }, []);
+
+  const handleGrassReady = useCallback(() => {
+    setGrassReady(true);
+    console.log('🌾 Grass shaders ready');
+  }, []);
+
+  const handleGrassGenerationProgress = useCallback((percent: number) => {
+    setGrassGenerationProgress(percent);
+    if (percent === 100) {
+      console.log('🌾 Grass generation complete');
+    }
+  }, []);
+
+  // Shaders ready = can mount Canvas (so GrassManager can start generating)
+  const shadersReady = terrainReady && weaponsReady && grassReady;
+
+  // Game fully ready when shaders compiled AND grass has generated enough
+  // Wait for 80% grass generation to minimize lag after loading screen
+  // (higher threshold = longer load but smoother gameplay start)
+  const isFullyLoaded = shadersReady && grassGenerationProgress >= 80;
+
   // Listen for /fps command from DevConsole
   useEffect(() => {
     const handleToggleFps = () => setShowFps(prev => !prev);
@@ -834,6 +779,48 @@ export default function PlayPage() {
       const addItem = useInventoryStore.getState().addItem;
       addSampleItemsToInventory(addItem);
       console.log('Added sample items to inventory for testing');
+    }
+  }, []);
+
+  // Migrate existing items to ensure they have proper metadata from the database
+  // This fixes items that were persisted before their metadata (e.g., placeableConfig) was added
+  useEffect(() => {
+    const { slots, hotbarSlots, setHotbarSlot } = useInventoryStore.getState();
+    let updated = false;
+
+    // Update hotbar items with latest metadata from database
+    const newHotbarSlots = hotbarSlots.map((slot) => {
+      if (!slot?.item) return slot;
+      const dbItem = getItemById(slot.item.id);
+      if (dbItem && dbItem.metadata && JSON.stringify(dbItem.metadata) !== JSON.stringify(slot.item.metadata)) {
+        console.log(`[Migration] Updating hotbar item "${slot.item.name}" with latest metadata`);
+        updated = true;
+        return { ...slot, item: { ...slot.item, metadata: dbItem.metadata } };
+      }
+      return slot;
+    });
+
+    if (updated) {
+      newHotbarSlots.forEach((slot, index) => {
+        if (slot !== hotbarSlots[index]) {
+          setHotbarSlot(index, slot);
+        }
+      });
+    }
+
+    // Update inventory items with latest metadata from database
+    const newSlots = new Map(slots);
+    for (const [slotId, slot] of slots) {
+      const dbItem = getItemById(slot.item.id);
+      if (dbItem && dbItem.metadata && JSON.stringify(dbItem.metadata) !== JSON.stringify(slot.item.metadata)) {
+        console.log(`[Migration] Updating inventory item "${slot.item.name}" with latest metadata`);
+        newSlots.set(slotId, { ...slot, item: { ...slot.item, metadata: dbItem.metadata } });
+        updated = true;
+      }
+    }
+
+    if (updated && newSlots.size > 0) {
+      useInventoryStore.setState({ slots: newSlots });
     }
   }, []);
 
@@ -906,6 +893,9 @@ export default function PlayPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showWelcome, isPaused, isAvatarCreatorOpen]);
 
+  // Sync inventory open state with the inventory store
+  const setInventoryOpen = useInventoryStore((s) => s.setInventoryOpen);
+
   // Handle Tab/I key for inventory toggle
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -920,6 +910,11 @@ export default function PlayPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showWelcome, isPaused, isAvatarCreatorOpen]);
+
+  // Sync showInventory state with store for other components to read
+  useEffect(() => {
+    setInventoryOpen(showInventory);
+  }, [showInventory, setInventoryOpen]);
 
   // Release pointer lock when inventory opens (show cursor)
   useEffect(() => {
@@ -1092,14 +1087,35 @@ export default function PlayPage() {
         </motion.div>
       )}
 
-      {/* 3D Canvas - only render after terrain physics is preloaded */}
-      {!terrainReady ? (
-        <LoadingScreen progress={terrainProgress} message={terrainMessage} />
-      ) : (
+      {/* Loading Screen - shows until terrain, shaders, AND grass generation are ready */}
+      {!isFullyLoaded && (
+        <CreatorWorldLoadingScreen
+          progress={
+            !shadersReady
+              ? terrainProgress
+              : Math.min(100, 50 + grassGenerationProgress / 2)  // Show 50-100% during grass gen
+          }
+          message={
+            !terrainReady ? terrainMessage :
+            !weaponsReady ? 'Compiling weapon shaders...' :
+            !grassReady ? 'Compiling grass shaders...' :
+            grassGenerationProgress < 50 ? `Generating grass... ${grassGenerationProgress}%` :
+            'Ready!'
+          }
+          shouldPreloadWeapons={terrainReady && !weaponsReady}
+          onWeaponsReady={handleWeaponsReady}
+          shouldPreloadGrass={terrainReady && weaponsReady && !grassReady}
+          onGrassReady={handleGrassReady}
+        />
+      )}
+
+      {/* 3D Canvas - mounts when shaders ready so grass can generate in background */}
+      {shadersReady && (
         <ErrorBoundary fallback="fullPage">
-          <Suspense fallback={<LoadingScreen progress={100} message="Initializing 3D..." />}>
+          <Suspense fallback={<CreatorWorldLoadingScreen progress={100} message="Initializing 3D..." />}>
             <Canvas
               camera={{ position: [0, 8, 20], fov: 50, far: 800 }}
+              shadows="soft"
               gl={{
                 antialias: false,
                 alpha: false,
@@ -1126,21 +1142,29 @@ export default function PlayPage() {
                 onTerrainSettingsChange={setTerrainSettings}
                 onPlayersChange={setOnlinePlayers}
                 preloadedTerrain={preloadedTerrain}
+                onGrassGenerationProgress={handleGrassGenerationProgress}
               />
             </Canvas>
           </Suspense>
         </ErrorBoundary>
       )}
 
-      {/* Game HUD Overlays */}
-      {!showWelcome && (
-        <GTAMinimap
-          playerX={playerCoords.x}
-          playerZ={playerCoords.z}
-          playerRotation={playerRotation}
-        />
+      {/* Game HUD Overlays - only show when fully loaded */}
+      {!showWelcome && isFullyLoaded && (
+        <>
+          <GTAMinimap
+            playerX={playerCoords.x}
+            playerZ={playerCoords.z}
+            playerRotation={playerRotation}
+          />
+          {/* Hotbar with ammo display - always visible during gameplay */}
+          <HotbarHUD />
+        </>
       )}
       <Crosshair />
+
+      {/* Death Screen Overlay */}
+      <DeathOverlay />
 
       {/* Dev Tools */}
       <DevConsole onlinePlayers={onlinePlayers} />

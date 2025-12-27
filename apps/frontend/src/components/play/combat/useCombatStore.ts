@@ -28,16 +28,20 @@ interface CombatState {
   playerMaxHealth: number;
   isInCombat: boolean;
   lastDamageTime: number;
+  isDead: boolean;
+  respawnTimer: number; // Countdown in seconds (0 = not respawning)
 
   // Aiming state
   isAiming: boolean;
   isFiring: boolean;
   aimStartTime: number;
+  cameraPitch: number;  // Camera pitch angle in radians (for spine aiming)
 
   // Weapon state
   currentWeapon: 'none' | 'rifle' | 'pistol';
   ammo: Record<string, number>;
   isReloading: boolean;
+  reloadSoundTrigger: number; // Timestamp when reload sound should play (near end of reload)
   lastFireTime: number;
 
   // Targets
@@ -55,7 +59,8 @@ interface CombatState {
   setWeapon: (weapon: 'none' | 'rifle' | 'pistol') => void;
   setAiming: (isAiming: boolean) => void;
   setFiring: (isFiring: boolean) => void;
-  fire: () => boolean; // Returns true if weapon fired
+  setCameraPitch: (pitch: number) => void;
+  fire: () => boolean | 'reloading' | 'empty'; // Returns true if weapon fired, 'reloading' if blocked by reload, 'empty' if no ammo
   reload: () => void;
 
   addTarget: (target: CombatTarget) => void;
@@ -68,6 +73,8 @@ interface CombatState {
 
   enterCombat: () => void;
   exitCombat: () => void;
+  die: () => void;
+  respawn: () => void;
   reset: () => void;
 }
 
@@ -119,10 +126,13 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   playerMaxHealth: 100,
   isInCombat: false,
   lastDamageTime: 0,
+  isDead: false,
+  respawnTimer: 0,
 
   isAiming: false,
   isFiring: false,
   aimStartTime: 0,
+  cameraPitch: 0,
 
   currentWeapon: 'none',
   ammo: {
@@ -130,6 +140,7 @@ export const useCombatStore = create<CombatState>((set, get) => ({
     pistol: 12,
   },
   isReloading: false,
+  reloadSoundTrigger: 0,
   lastFireTime: 0,
 
   targets: new Map(),
@@ -149,12 +160,21 @@ export const useCombatStore = create<CombatState>((set, get) => ({
     }
 
     const state = get();
+    // Can't take damage when already dead
+    if (state.isDead) return;
+
     const newHealth = Math.max(0, state.playerHealth - amount);
     set({
       playerHealth: newHealth,
       lastDamageTime: Date.now(),
       isInCombat: true,
     });
+
+    // Check for death
+    if (newHealth <= 0) {
+      get().die();
+      return;
+    }
 
     // Auto exit combat after 5 seconds of no damage
     setTimeout(() => {
@@ -182,11 +202,16 @@ export const useCombatStore = create<CombatState>((set, get) => ({
 
   setFiring: (isFiring) => set({ isFiring }),
 
+  setCameraPitch: (pitch) => set({ cameraPitch: pitch }),
+
   fire: () => {
     const state = get();
     const { currentWeapon, ammo, isReloading, lastFireTime } = state;
 
-    if (currentWeapon === 'none' || isReloading) return false;
+    if (currentWeapon === 'none') return false;
+
+    // If reloading, signal this so caller can play empty SFX
+    if (isReloading) return 'reloading';
 
     const config = WEAPON_CONFIG[currentWeapon];
     const now = Date.now();
@@ -200,9 +225,9 @@ export const useCombatStore = create<CombatState>((set, get) => ({
     // Check ammo (skip if unlimited)
     const currentAmmo = ammo[currentWeapon] || 0;
     if (currentAmmo <= 0 && !hasUnlimitedAmmo) {
-      // Auto reload
+      // Auto reload and signal empty
       get().reload();
-      return false;
+      return 'empty';
     }
 
     // Fire! (don't decrease ammo if unlimited)
@@ -225,6 +250,14 @@ export const useCombatStore = create<CombatState>((set, get) => ({
 
     set({ isReloading: true });
 
+    // Play reload sound near the END of reload (400ms before completion)
+    // This syncs the "magazine insertion" sound with when the weapon becomes usable
+    const soundDelay = Math.max(0, config.reloadTime - 400);
+    setTimeout(() => {
+      set({ reloadSoundTrigger: Date.now() });
+    }, soundDelay);
+
+    // Complete reload
     setTimeout(() => {
       set((s) => ({
         isReloading: false,
@@ -299,15 +332,54 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   enterCombat: () => set({ isInCombat: true }),
   exitCombat: () => set({ isInCombat: false }),
 
+  // Death and respawn
+  die: () => {
+    const state = get();
+    if (state.isDead) return; // Already dead
+
+    set({
+      isDead: true,
+      playerHealth: 0,
+      respawnTimer: 3, // 3 second respawn countdown
+    });
+
+    // Countdown timer
+    const countdownInterval = setInterval(() => {
+      const current = get();
+      if (current.respawnTimer <= 1) {
+        clearInterval(countdownInterval);
+        get().respawn();
+      } else {
+        set({ respawnTimer: current.respawnTimer - 1 });
+      }
+    }, 1000);
+  },
+
+  respawn: () => {
+    set({
+      isDead: false,
+      playerHealth: 100,
+      respawnTimer: 0,
+      isInCombat: false,
+    });
+
+    // Dispatch event for player controller to teleport to spawn
+    window.dispatchEvent(new CustomEvent('player:respawn'));
+  },
+
   reset: () => set({
     playerHealth: 100,
     isInCombat: false,
     lastDamageTime: 0,
+    isDead: false,
+    respawnTimer: 0,
     isAiming: false,
     isFiring: false,
     aimStartTime: 0,
+    cameraPitch: 0,
     ammo: { rifle: 30, pistol: 12 },
     isReloading: false,
+    reloadSoundTrigger: 0,
     lastFireTime: 0,
     targets: new Map(),
     lockedTarget: null,

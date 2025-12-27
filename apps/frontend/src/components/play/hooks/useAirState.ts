@@ -49,6 +49,11 @@ export enum AirState {
 /**
  * Configuration for state transitions
  * All timing in one place - no scattered magic numbers
+ *
+ * AAA Design Notes:
+ * - Jump only allowed in GROUNDED state (not LANDING, JUMPING, FALLING)
+ * - Require significant airborne time before hasJumped can reset
+ * - This prevents multi-jump exploits from ground detection flicker
  */
 const CONFIG = {
   /** Time airborne before triggering fall animation when walking off edge */
@@ -64,21 +69,21 @@ const CONFIG = {
   /** Minimum distance fallen during jump before triggering fall animation */
   LONG_FALL_DISTANCE: 3.0,
   /** Duration of landing state before returning to grounded */
-  LANDING_DURATION: 0.05,  // Reduced from 0.1 for snappier bunny hopping
+  LANDING_DURATION: 0.08,  // Slightly longer for proper animation
   /** Max velocity magnitude to be considered "stable" for landing */
-  // Increased significantly: jump force is 9.0, so landing velocity can be 6-10 m/s
-  // Previous value of 3.0 caused stuck jumps on slopes
   STABLE_VELOCITY: 12.0,
   /** Grace period for jump input (coyote time) */
-  COYOTE_TIME: 0.15,       // Slightly increased for more forgiving edge jumps
-  /** Cooldown between jumps */
-  JUMP_COOLDOWN: 0.08,     // Further reduced for rapid bunny hopping
-  /** Time grounded before clearing jump flag */
-  STABLE_LAND_TIME: 0.02,  // Reduced for faster jump reset
+  COYOTE_TIME: 0.12,       // Standard coyote time
+  /** Cooldown between jumps - prevents accidental double-jumps */
+  JUMP_COOLDOWN: 0.15,     // Increased to prevent spam
+  /** Time grounded before clearing jump flag - CRITICAL for preventing multi-jump */
+  STABLE_LAND_TIME: 0.15,  // Increased significantly - must be truly grounded
   /** Jump buffer window - press jump before landing, execute on touchdown */
-  JUMP_BUFFER_TIME: 0.15,  // 150ms buffer for pre-landing jump input
+  JUMP_BUFFER_TIME: 0.15,
   /** Force landing after being grounded for this long, regardless of velocity */
-  FORCE_LAND_TIME: 0.1,    // 100ms - ensures landing even with physics quirks
+  FORCE_LAND_TIME: 0.1,
+  /** Minimum time that must pass in air before hasJumped can reset */
+  MIN_AIRBORNE_FOR_RESET: 0.08,  // Must be airborne for 80ms before jump can reset (short hops still count)
 };
 
 /**
@@ -93,8 +98,10 @@ export interface AirStateResult {
   airborneTime: number;
   /** Time spent grounded (cumulative) */
   groundedTime: number;
-  /** Distance fallen from last grounded position (meters) */
+  /** Distance fallen from last grounded position (meters) - resets when grounded */
   fallDistance: number;
+  /** Fall distance preserved on landing (for damage calculation) - stays until fully grounded */
+  landingFallDistance: number;
   /** Whether player can jump (grounded or coyote time) */
   canJump: boolean;
   /** Whether player has jumped and hasn't landed yet */
@@ -140,6 +147,9 @@ export function useAirState() {
   const jumpCooldown = useRef(0);
   const wasGrounded = useRef(true);
 
+  // Track cumulative airborne time since last jump - used to prevent multi-jump exploits
+  const airborneTimeSinceJump = useRef(0);
+
   // Jump buffer - stores time since jump was buffered (0 = no buffer)
   const jumpBufferTime = useRef(0);
 
@@ -147,6 +157,7 @@ export function useAirState() {
   const lastGroundedY = useRef(0);    // Y position when player was last grounded
   const peakAirborneY = useRef(0);    // Highest Y reached while airborne (for fall distance)
   const fallDistance = useRef(0);      // Current fall distance (from peak)
+  const landingFallDistance = useRef(0); // Preserved fall distance when landing (for damage calc)
 
   /**
    * Update state machine for current frame
@@ -158,6 +169,15 @@ export function useAirState() {
 
       // Update timing accumulators and fall distance
       if (isGrounded) {
+        // Preserve fall distance on the FIRST frame of landing (before resetting)
+        // This allows fall damage to be calculated correctly
+        if (fallDistance.current > 0 && groundedStableTime.current < 0.05) {
+          landingFallDistance.current = fallDistance.current;
+        } else if (groundedStableTime.current > 0.2) {
+          // Clear landing fall distance after we've been grounded for a bit
+          landingFallDistance.current = 0;
+        }
+
         groundedTime.current = 0;
         airborneTime.current = 0;
         groundedStableTime.current += delta;
@@ -168,15 +188,29 @@ export function useAirState() {
         peakAirborneY.current = positionY;  // Reset peak to ground level
         fallDistance.current = 0;
 
-        // Reset jump flag when stably grounded
-        // Require stable ground contact to prevent mid-air jump resets from raycast flickers
-        const isStable = groundedStableTime.current > CONFIG.STABLE_LAND_TIME;
-        if (hasJumped.current && isStable) {
+        // Reset jump flag when TRULY stably grounded
+        // AAA FIX: Multiple conditions must be met to prevent multi-jump exploits:
+        // 1. Must be in GROUNDED or LANDING state (not just raycast grounded)
+        // 2. Must be grounded for STABLE_LAND_TIME
+        // 3. Must have been airborne for MIN_AIRBORNE_FOR_RESET since last jump
+        const isStableState = currentState.current === AirState.GROUNDED ||
+                               currentState.current === AirState.LANDING;
+        const isStableTime = groundedStableTime.current > CONFIG.STABLE_LAND_TIME;
+        const wasAirborneEnough = airborneTimeSinceJump.current > CONFIG.MIN_AIRBORNE_FOR_RESET;
+
+        if (hasJumped.current && isStableState && isStableTime && wasAirborneEnough) {
           hasJumped.current = false;
+          airborneTimeSinceJump.current = 0;  // Reset for next jump
         }
       } else {
         groundedTime.current += delta;
         airborneTime.current += delta;
+
+        // Track airborne time since last jump (for preventing multi-jump)
+        if (hasJumped.current) {
+          airborneTimeSinceJump.current += delta;
+        }
+
         // Decay stable time with hysteresis
         groundedStableTime.current = Math.max(0, groundedStableTime.current - delta * 10);
 
@@ -211,14 +245,25 @@ export function useAirState() {
         jumpBufferTime.current = CONFIG.JUMP_BUFFER_TIME;
       }
 
-      // Check if can jump (coyote time)
+      // Check if can jump - AAA FIX: Much stricter conditions
+      // 1. Must NOT have already jumped (hasJumped prevents multi-jump)
+      // 2. Must be off cooldown
+      // 3. Must be in GROUNDED state OR within coyote time of leaving GROUNDED
+      // NOTE: We check state machine state, not just raw isGrounded from raycast
+      const isInGroundedState = currentState.current === AirState.GROUNDED;
+      const inCoyoteTime = wasGrounded.current &&
+                           groundedTime.current < CONFIG.COYOTE_TIME &&
+                           currentState.current !== AirState.JUMPING;  // No coyote after jump
+
       const canJump =
         !hasJumped.current &&
         jumpCooldown.current <= 0 &&
-        (isGrounded || (wasGrounded.current && groundedTime.current < CONFIG.COYOTE_TIME));
+        (isInGroundedState || inCoyoteTime);
 
-      // Check for buffered jump on landing
-      const hasBufferedJump = jumpBufferTime.current > 0 && isGrounded && !hasJumped.current;
+      // Check for buffered jump on landing - AAA FIX: require GROUNDED or LANDING state
+      const inLandingState = currentState.current === AirState.LANDING ||
+                              currentState.current === AirState.GROUNDED;
+      const hasBufferedJump = jumpBufferTime.current > 0 && inLandingState && !hasJumped.current;
       let shouldExecuteBufferedJump = false;
 
       // Handle jump request (direct or buffered)
@@ -239,11 +284,14 @@ export function useAirState() {
 
       // State machine transitions
       const isLowVelocity = Math.abs(vy) < CONFIG.STABLE_VELOCITY;
+      const isDescending = vy < -1.0; // Must be clearly descending, not at apex (vy ≈ 0)
       const prevState = currentState.current;
 
       switch (currentState.current) {
         case AirState.GROUNDED:
-          if (jumped || hasJumped.current) {
+          // Only transition to JUMPING if a NEW jump was executed this frame
+          // hasJumped being true alone shouldn't cause a jump!
+          if (jumped) {
             currentState.current = AirState.JUMPING;
             stateTime.current = 0;
           } else if (
@@ -261,17 +309,21 @@ export function useAirState() {
           break;
 
         case AirState.JUMPING:
-          if (isGrounded && isLowVelocity) {
-            // Normal landing - velocity is low enough
+          // CRITICAL FIX: Don't transition to LANDING at jump apex!
+          // Ground detection can report "grounded" at apex due to hysteresis (threshold ~1.2m, apex ~1.225m)
+          // We must require BOTH low velocity AND actually descending (not at apex where vy ≈ 0)
+          if (isGrounded && isLowVelocity && isDescending) {
+            // Normal landing - velocity is low AND we're descending
             currentState.current = AirState.LANDING;
             stateTime.current = 0;
-            hasJumped.current = false;
+            // NOTE: Do NOT reset hasJumped here! Let the proper reset logic handle it
+            // after player has been grounded for STABLE_LAND_TIME and was airborne for MIN_AIRBORNE_FOR_RESET
           } else if (isGrounded && groundedStableTime.current > CONFIG.FORCE_LAND_TIME) {
             // Force landing - grounded for long enough, velocity doesn't matter
             // This prevents getting stuck in jump state on slopes where velocity spikes
             currentState.current = AirState.LANDING;
             stateTime.current = 0;
-            hasJumped.current = false;
+            // NOTE: Do NOT reset hasJumped here! Let the proper reset logic handle it
           } else if (
             !isGrounded &&
             vy < CONFIG.LONG_FALL_VELOCITY &&
@@ -298,8 +350,10 @@ export function useAirState() {
 
         case AirState.LANDING:
           stateTime.current += delta;
-          if (jumped || hasJumped.current) {
-            // Bunny hop - jump during landing
+          // Only allow bunny hop if a NEW jump was executed this frame
+          // hasJumped being true alone doesn't mean we should jump again!
+          if (jumped) {
+            // Bunny hop - a new jump was requested and executed during landing
             currentState.current = AirState.JUMPING;
             stateTime.current = 0;
           } else if (stateTime.current > CONFIG.LANDING_DURATION) {
@@ -322,6 +376,7 @@ export function useAirState() {
         airborneTime: airborneTime.current,
         groundedTime: groundedTime.current,
         fallDistance: fallDistance.current,
+        landingFallDistance: landingFallDistance.current,
         canJump,
         hasJumped: hasJumped.current,
         shouldExecuteBufferedJump,
@@ -359,10 +414,12 @@ export function useAirState() {
     hasJumped.current = false;
     jumpCooldown.current = 0;
     jumpBufferTime.current = 0;
+    airborneTimeSinceJump.current = 0;
     wasGrounded.current = true;
     lastGroundedY.current = 0;
     peakAirborneY.current = 0;
     fallDistance.current = 0;
+    landingFallDistance.current = 0;
   }, []);
 
   return { update, notifyJump, reset, CONFIG };

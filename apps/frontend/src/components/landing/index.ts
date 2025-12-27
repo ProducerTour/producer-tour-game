@@ -13,7 +13,6 @@ export * from './data';
 // Sections
 export { Header } from './Header';
 export { Hero } from './Hero';
-export { ProducersCarousel } from './ProducersCarousel';
 export { FeaturesSection } from './FeaturesSection';
 export { PricingSection } from './PricingSection';
 export { ProcessSection } from './ProcessSection';

@@ -16,6 +16,7 @@ interface InventoryGridProps {
   onDrop: (targetSlotId: string) => void;
   onDoubleClick: (slotId: string) => void;
   onSelect?: (slotId: string | null) => void;
+  onContextMenu?: (slotId: string, slot: InventorySlot, position: { x: number; y: number }) => void;
 }
 
 export function InventoryGrid({
@@ -26,6 +27,7 @@ export function InventoryGrid({
   onDrop,
   onDoubleClick,
   onSelect,
+  onContextMenu,
 }: InventoryGridProps) {
   const slots = useInventoryStore((s) => s.slots);
   const maxSlots = useInventoryStore((s) => s.maxSlots);
@@ -77,6 +79,7 @@ export function InventoryGrid({
           onDrop={onDrop}
           onDoubleClick={onDoubleClick}
           onClick={() => handleSelect(slotId, slot)}
+          onContextMenu={onContextMenu}
         />
       ))}
     </div>

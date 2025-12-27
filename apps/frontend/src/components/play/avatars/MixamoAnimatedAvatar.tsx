@@ -10,7 +10,9 @@ import { useControls, folder } from 'leva';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { WeaponAttachment, type WeaponType } from '../WeaponAttachment';
+import { EquipmentAttachment } from '../EquipmentAttachment';
 import { useGamePause } from '../context';
+import { useCombatStore } from '../combat/useCombatStore';
 import {
   ANIMATION_CONFIG,
   type AnimationName,
@@ -93,6 +95,8 @@ export interface MixamoAnimatedAvatarProps {
   aimPitch?: number;  // Camera pitch for upper body aiming (radians)
   /** Keep mixamorig: prefix in bone names (for models with Mixamo rig, not RPM) */
   keepMixamoPrefix?: boolean;
+  /** Whether this is the player avatar (enables equipment attachment) */
+  isPlayer?: boolean;
 }
 
 /**
@@ -119,6 +123,7 @@ export function MixamoAnimatedAvatar({
   weaponType = null,
   aimPitch = 0,
   keepMixamoPrefix = false,
+  isPlayer = false,
 }: MixamoAnimatedAvatarProps) {
   const group = useRef<THREE.Group>(null);
   const isPaused = useGamePause();
@@ -156,6 +161,7 @@ export function MixamoAnimatedAvatar({
 
   // Weapon animations
   const rifleIdleGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.rifleIdle : ANIMATIONS.idle);
+  const rifleAimIdleGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.rifleAimIdle : ANIMATIONS.rifleIdle);
   const rifleWalkGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.rifleWalk : ANIMATIONS.walking);
   const rifleRunGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.rifleRun : ANIMATIONS.running);
   const pistolIdleGltf = useGLTF(WEAPON_ANIMATIONS_AVAILABLE ? ANIMATIONS.pistolIdle : ANIMATIONS.idle);
@@ -395,6 +401,7 @@ export function MixamoAnimatedAvatar({
     // Weapon animations
     if (WEAPON_ANIMATIONS_AVAILABLE) {
       addAnim(rifleIdleGltf, 'rifleIdle');
+      addAnim(rifleAimIdleGltf, 'rifleAimIdle');
       addAnim(rifleWalkGltf, 'rifleWalk');
       addAnim(rifleRunGltf, 'rifleRun');
       addAnim(pistolIdleGltf, 'pistolIdle');
@@ -441,7 +448,7 @@ export function MixamoAnimatedAvatar({
     crouchWalkGltf.animations,
     crouchStrafeLeftGltf.animations, crouchStrafeRightGltf.animations,
     standToCrouchGltf.animations, crouchToStandGltf.animations, crouchToSprintGltf.animations,
-    rifleIdleGltf.animations, rifleWalkGltf.animations, rifleRunGltf.animations,
+    rifleIdleGltf.animations, rifleAimIdleGltf.animations, rifleWalkGltf.animations, rifleRunGltf.animations,
     pistolIdleGltf.animations, pistolWalkGltf.animations, pistolRunGltf.animations,
     crouchRifleIdleGltf.animations, crouchRifleWalkGltf.animations,
     crouchRifleStrafeLeftGltf.animations, crouchRifleStrafeRightGltf.animations,
@@ -511,11 +518,25 @@ export function MixamoAnimatedAvatar({
       lerpSpeed: { value: 9, min: 1, max: 20, step: 0.5, label: 'Lerp Speed' },
       aimTiltMultiplier: { value: 0.15, min: 0, max: 0.5, step: 0.01, label: 'Aim Tilt Amount' },
     }, { collapsed: true }),
+    'Upper Body Aim': folder({
+      spineAimEnabled: { value: true, label: 'Enable Spine Aim' },
+      spineAimAlways: { value: true, label: 'Track Mouse Always' },
+      spineAimMultiplier: { value: 1.0, min: 0, max: 1.5, step: 0.05, label: 'Spine Pitch Mult' },
+      spineAimMaxAngle: { value: 45, min: 15, max: 75, step: 5, label: 'Max Angle°' },
+      spineAimSmoothing: { value: 10, min: 2, max: 20, step: 1, label: 'Smoothing' },
+    }, { collapsed: true }),
     'Rifle': folder({
       'Idle': folder({
         rifleIdleOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Y' },
         rifleIdleOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'X' },
         rifleIdleRotY: { value: -45, min: -45, max: 45, step: 1, label: 'Rot°' },
+      }, { collapsed: true }),
+      'Aim Idle': folder({
+        rifleAimIdleOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Y' },
+        rifleAimIdleOffsetX: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'X' },
+        rifleAimIdleRotX: { value: 0, min: -45, max: 45, step: 1, label: 'Rot X°' },
+        rifleAimIdleRotY: { value: -53, min: -90, max: 90, step: 1, label: 'Rot Y°' },
+        rifleAimIdleRotZ: { value: -14, min: -45, max: 45, step: 1, label: 'Rot Z°' },
       }, { collapsed: true }),
       'Walk': folder({
         rifleWalkOffset: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: 'Y' },
@@ -589,7 +610,9 @@ export function MixamoAnimatedAvatar({
   // Extract values with compatibility mappings
   const {
     crouchIdleOffset, crouchWalkOffset, transitionOffset, lerpSpeed, aimTiltMultiplier,
+    spineAimEnabled, spineAimAlways, spineAimMultiplier, spineAimMaxAngle, spineAimSmoothing,
     rifleIdleOffset, rifleIdleOffsetX, rifleIdleRotY,
+    rifleAimIdleOffset, rifleAimIdleOffsetX, rifleAimIdleRotX, rifleAimIdleRotY, rifleAimIdleRotZ,
     rifleWalkOffset, rifleWalkOffsetX, rifleWalkRotY,
     rifleRunOffset, rifleRunOffsetX, rifleRunRotX, rifleRunRotY, rifleRunRotZ,
     rifleFireStillOffset, rifleFireStillOffsetX, rifleFireStillRotX, rifleFireStillRotY, rifleFireStillRotZ,
@@ -629,6 +652,8 @@ export function MixamoAnimatedAvatar({
   const currentRotY = useRef(0);
   const currentRotZ = useRef(0);
   const currentAimTilt = useRef(0);
+  const currentSpinePitch = useRef(0);  // For smooth spine rotation
+  const baseSpineRotationX = useRef(0);  // Animation's base spine rotation (before aim offset)
 
   // SINGLE useFrame for all avatar transforms (combined for performance)
   // Skip when paused (e.g., inventory open) to save CPU
@@ -659,10 +684,17 @@ export function MixamoAnimatedAvatar({
       targetOffsetY = crouchWalkOffset;
     }
     // Rifle states
-    else if (currentState === 'rifleIdle' || currentState === 'rifleAimIdle') {
+    else if (currentState === 'rifleIdle') {
       targetOffsetY = rifleIdleOffset;
       targetOffsetX = rifleIdleOffsetX;
       targetRotY = rifleIdleRotY;
+    } else if (currentState === 'rifleAimIdle') {
+      // Rifle aim idle has its own settings for orientation correction
+      targetOffsetY = rifleAimIdleOffset;
+      targetOffsetX = rifleAimIdleOffsetX;
+      targetRotX = rifleAimIdleRotX;
+      targetRotY = rifleAimIdleRotY;
+      targetRotZ = rifleAimIdleRotZ;
     } else if (currentState === 'rifleWalk' || currentState === 'rifleAimWalk') {
       targetOffsetY = rifleWalkOffset;
       targetOffsetX = rifleWalkOffsetX;
@@ -749,6 +781,46 @@ export function MixamoAnimatedAvatar({
     avatarRef.current.rotation.x = baseRotX + currentAimTilt.current;
     avatarRef.current.rotation.y = (currentRotY.current * Math.PI) / 180;
     avatarRef.current.rotation.z = (currentRotZ.current * Math.PI) / 180;
+
+    // === UPPER BODY AIMING - Rotate spine bone to follow camera pitch ===
+    // This makes the character look up/down when aiming or moving mouse
+    // spineAimAlways: track mouse whenever weapon equipped (not just when aiming)
+    // Read cameraPitch directly from store (updates every frame, not dependent on React re-renders)
+    const cameraPitch = useCombatStore.getState().cameraPitch;
+    const shouldTrackSpine = spineAimEnabled && weaponType && (spineAimAlways || isAiming);
+
+    if (spineRef.current && shouldTrackSpine) {
+      // Capture the animation's base rotation BEFORE we modify it
+      // (mixer.update() has already run, so this is the animation's value)
+      baseSpineRotationX.current = spineRef.current.rotation.x;
+
+      // Calculate target spine pitch based on camera pitch from store
+      // cameraPitch is negative when looking up, positive when looking down
+      // We clamp to max angle and apply multiplier for natural feel
+      const maxAngleRad = (spineAimMaxAngle * Math.PI) / 180;
+      const targetSpinePitch = Math.max(-maxAngleRad, Math.min(maxAngleRad,
+        cameraPitch * spineAimMultiplier
+      ));
+
+      // Smooth interpolation for natural movement
+      const spineT = 1 - Math.exp(-spineAimSmoothing * delta);
+      currentSpinePitch.current += (targetSpinePitch - currentSpinePitch.current) * spineT;
+
+      // Apply offset FROM BASE rotation (not additive - prevents 360 accumulation)
+      spineRef.current.rotation.x = baseSpineRotationX.current + currentSpinePitch.current;
+    } else if (spineRef.current) {
+      // Capture base rotation for return-to-neutral case
+      baseSpineRotationX.current = spineRef.current.rotation.x;
+
+      // Smoothly return to neutral when no weapon equipped
+      const returnT = 1 - Math.exp(-spineAimSmoothing * delta);
+      currentSpinePitch.current *= (1 - returnT);
+
+      // Only apply if there's significant rotation to avoid jitter
+      if (Math.abs(currentSpinePitch.current) > 0.001) {
+        spineRef.current.rotation.x = baseSpineRotationX.current + currentSpinePitch.current;
+      }
+    }
   });
 
   return (
@@ -764,6 +836,8 @@ export function MixamoAnimatedAvatar({
           currentAnimState={currentState}
         />
       )}
+      {/* Equipment attachment for flashlight and other tools - only for player */}
+      {isPlayer && <EquipmentAttachment avatarRef={avatarRef} />}
     </group>
   );
 }

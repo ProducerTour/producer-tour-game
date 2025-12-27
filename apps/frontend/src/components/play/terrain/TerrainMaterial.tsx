@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { useTexture } from '@react-three/drei';
 import { TEXTURE_SCALE, MAX_HEIGHT, MIN_HEIGHT, WATER_LEVEL } from '../../../lib/terrain';
 import { getTexturePath } from '../../../config/assetPaths';
+import { FogType, DEFAULT_FOG_CONFIG } from '../../../lib/fog';
 
 // Texture paths - uses CDN in production, local in development
 const TEXTURE_PATHS = {
@@ -125,11 +126,25 @@ const terrainFragmentShader = /* glsl */ `
   uniform float forestMin;
   uniform float forestMax;
 
-  // Manual fog uniforms (more efficient than Three.js fog)
+  // Fog uniforms (ShaderX2 techniques: Linear, Exponential, Exp Squared)
   uniform bool fogEnabled;
+  uniform int fogType;        // 0=None, 1=Linear, 2=Exponential, 3=ExpSquared
   uniform vec3 fogColor;
   uniform float fogNear;
   uniform float fogFar;
+  uniform float fogDensity;   // Density for exponential fog types
+  uniform bool fogHeightEnabled;
+  uniform float fogBaseHeight;
+  uniform float fogHeightFalloff;
+  uniform float fogMinDensity;
+
+  // Dynamic lighting uniforms (synced with time of day)
+  uniform vec3 uSunDirection;      // Normalized sun direction
+  uniform vec3 uSunColor;          // Sun color (changes with time)
+  uniform float uSunIntensity;     // Sun brightness
+  uniform vec3 uAmbientSkyColor;   // Hemisphere sky color
+  uniform vec3 uAmbientGroundColor; // Hemisphere ground color
+  uniform bool uUseDynamicLighting; // Toggle for dynamic vs legacy lighting
 
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -296,26 +311,45 @@ const terrainFragmentShader = /* glsl */ `
                     + forestFloorColor * forestWeight;
 
     // === LIGHTING ===
-    // Directional light from above-front (sun-like)
-    vec3 lightDir = normalize(vec3(0.3, 0.8, 0.4));
+    // Use dynamic sun direction if available, otherwise fallback to legacy
+    vec3 lightDir;
+    vec3 lightColor;
+    float lightIntensity;
+    vec3 skyAmbient;
+    vec3 groundAmbient;
+
+    if (uUseDynamicLighting) {
+      // Dynamic lighting from GameLighting (synced with time of day)
+      lightDir = normalize(uSunDirection);
+      lightColor = uSunColor;
+      lightIntensity = uSunIntensity;
+      skyAmbient = uAmbientSkyColor;
+      groundAmbient = uAmbientGroundColor;
+    } else {
+      // Legacy fallback - static directional light
+      lightDir = normalize(vec3(0.3, 0.8, 0.4));
+      lightColor = vec3(1.0, 1.0, 0.95);
+      lightIntensity = 1.0;
+      skyAmbient = vec3(0.6, 0.7, 0.9);
+      groundAmbient = vec3(0.4, 0.35, 0.3);
+    }
+
     float NdotL = dot(vWorldNormal, lightDir);
 
     // Wrap lighting so steep faces aren't completely dark
     float wrapLight = NdotL * 0.5 + 0.5; // Remap -1..1 to 0..1
 
-    // Hemispheric ambient (sky blue top, ground brown bottom)
-    vec3 skyColor = vec3(0.6, 0.7, 0.9);
-    vec3 groundColor = vec3(0.4, 0.35, 0.3);
+    // Hemispheric ambient (sky/ground gradient)
     float skyBlend = vWorldNormal.y * 0.5 + 0.5;
-    vec3 ambient = mix(groundColor, skyColor, skyBlend) * 0.4;
+    vec3 ambient = mix(groundAmbient, skyAmbient, skyBlend) * 0.4;
 
     // Snow gets brighter ambient (reflective)
     if (snowWeight > 0.1) {
       ambient += vec3(0.1, 0.1, 0.15) * snowWeight;
     }
 
-    // Combine lighting
-    vec3 diffuse = finalColor * wrapLight * 0.7;
+    // Combine lighting with sun color and intensity
+    vec3 diffuse = finalColor * lightColor * lightIntensity * wrapLight * 0.7;
     finalColor = ambient * finalColor + diffuse;
 
     // Subtle variation based on world position (breaks up uniformity)
@@ -323,10 +357,41 @@ const terrainFragmentShader = /* glsl */ `
     float noiseVar = fract(sin(dot(vWorldPosition.xz * 0.02, vec2(12.9898, 78.233))) * 43758.5453);
     finalColor *= (0.98 + noiseVar * 0.04); // Reduced from 5-10% to 2-4% variation
 
-    // Manual fog calculation (linear fog - more efficient than exponential)
-    if (fogEnabled) {
-      float fogFactor = smoothstep(fogNear, fogFar, vFogDepth);
-      finalColor = mix(finalColor, fogColor, fogFactor);
+    // === FOG CALCULATION (ShaderX2 techniques) ===
+    // fogType: 0=None, 1=Linear, 2=Exponential, 3=ExpSquared
+    if (fogEnabled && fogType > 0) {
+      float dist = vFogDepth;
+      float factor = 1.0; // 1 = no fog, 0 = full fog
+
+      if (fogType == 1) {
+        // Linear fog: interpolate between near/far
+        float fogRange = fogFar - fogNear;
+        float fogDelta = fogFar - dist;
+        factor = clamp(fogDelta / fogRange, 0.0, 1.0);
+      } else if (fogType == 2) {
+        // Exponential fog: e^(-distance * density)
+        float normalizedDist = dist / fogFar;
+        float exponent = normalizedDist * 4.0 * (fogDensity * 100.0);
+        factor = exp(-exponent);
+      } else {
+        // Exponential squared fog (type 3): e^(-(distance * density)^2)
+        // Drops more sharply near camera, levels off at distance
+        float normalizedDist = dist / fogFar;
+        float exponent = normalizedDist * 3.5 * (fogDensity * 100.0);
+        factor = exp(-(exponent * exponent));
+      }
+
+      // Apply height-based fog modification
+      if (fogHeightEnabled) {
+        float heightAboveBase = max(0.0, vHeight - fogBaseHeight);
+        float heightMult = exp(-heightAboveBase * fogHeightFalloff);
+        heightMult = max(heightMult, fogMinDensity);
+        factor = mix(1.0, factor, heightMult);
+      }
+
+      // Blend fog color with final color
+      // factor: 1 = no fog (show object), 0 = full fog
+      finalColor = mix(fogColor, finalColor, factor);
     }
 
     // Output
@@ -353,14 +418,52 @@ export interface TerrainMaterialProps {
   /** Enable fog effect */
   fogEnabled?: boolean;
 
+  /**
+   * Fog type (default: ExponentialSquared)
+   * 0=None, 1=Linear, 2=Exponential, 3=ExponentialSquared
+   */
+  fogType?: FogType;
+
   /** Fog color (default: light gray-blue sky) */
   fogColor?: THREE.Color;
 
-  /** Fog start distance (default: 150) */
+  /** Fog start distance for linear fog (default: 100) */
   fogNear?: number;
 
-  /** Fog end distance (default: 400) */
+  /** Fog end distance / reference distance (default: 400) */
   fogFar?: number;
+
+  /** Fog density for exponential types (default: 0.008) */
+  fogDensity?: number;
+
+  /** Enable height-based fog (thins with altitude) */
+  fogHeightEnabled?: boolean;
+
+  /** Base height where fog is thickest (default: 0) */
+  fogBaseHeight?: number;
+
+  /** Height falloff rate (default: 0.02) */
+  fogHeightFalloff?: number;
+
+  /** Minimum fog density at high altitude (default: 0.3) */
+  fogMinDensity?: number;
+
+  // === Dynamic Lighting (synced with time of day) ===
+
+  /** Sun direction (normalized, from GameLighting) */
+  sunDirection?: THREE.Vector3;
+
+  /** Sun color (from GameLighting time of day) */
+  sunColor?: THREE.Color;
+
+  /** Sun intensity (from GameLighting time of day) */
+  sunIntensity?: number;
+
+  /** Ambient sky color for hemisphere lighting (from GameLighting) */
+  ambientSkyColor?: THREE.Color;
+
+  /** Ambient ground color for hemisphere lighting (from GameLighting) */
+  ambientGroundColor?: THREE.Color;
 }
 
 // Beach zone configuration (Rust-style wider beaches)
@@ -380,17 +483,40 @@ const DEFAULT_FOG_COLOR = new THREE.Color(0.7, 0.75, 0.85);
 /**
  * Creates a terrain splatting material with PBR textures
  * Blends grass, rock, and sand based on height and slope
+ *
+ * Fog types (ShaderX2):
+ * - Linear: Interpolates between near/far distance
+ * - Exponential: e^(-distance * density) - fog increases exponentially
+ * - ExpSquared: e^(-(distance * density)^2) - sharper near, levels off far
  */
+// Default sun direction (normalized, pointing from above-front)
+const DEFAULT_SUN_DIRECTION = new THREE.Vector3(0.3, 0.8, 0.4).normalize();
+const DEFAULT_SUN_COLOR = new THREE.Color(1.0, 1.0, 0.95);
+const DEFAULT_AMBIENT_SKY = new THREE.Color(0.6, 0.7, 0.9);
+const DEFAULT_AMBIENT_GROUND = new THREE.Color(0.4, 0.35, 0.3);
+
 export function useTerrainMaterial({
   grassScale = TEXTURE_SCALE.grass / 64, // Per-meter scale
   rockScale = TEXTURE_SCALE.rock / 64,
   sandScale = 0.15, // Sand tiles a bit larger than grass
   simple = false,
   debugWeights = false,
-  fogEnabled = true,
+  fogEnabled = DEFAULT_FOG_CONFIG.enabled,
+  fogType = DEFAULT_FOG_CONFIG.type,
   fogColor = DEFAULT_FOG_COLOR,
-  fogNear = 150,
-  fogFar = 400,
+  fogNear = DEFAULT_FOG_CONFIG.nearDistance,
+  fogFar = DEFAULT_FOG_CONFIG.farDistance,
+  fogDensity = DEFAULT_FOG_CONFIG.density,
+  fogHeightEnabled = DEFAULT_FOG_CONFIG.heightFog.enabled,
+  fogBaseHeight = DEFAULT_FOG_CONFIG.heightFog.baseHeight,
+  fogHeightFalloff = DEFAULT_FOG_CONFIG.heightFog.falloff,
+  fogMinDensity = DEFAULT_FOG_CONFIG.heightFog.minDensity,
+  // Dynamic lighting props
+  sunDirection,
+  sunColor,
+  sunIntensity,
+  ambientSkyColor,
+  ambientGroundColor,
 }: TerrainMaterialProps = {}) {
   // Load textures (with error handling)
   const grassTextures = useTexture({
@@ -498,17 +624,30 @@ export function useTerrainMaterial({
         debugWeights: { value: debugWeights },
         debugSlope: { value: false },
         forceMinRock: { value: 0.0 },
-        // Manual fog (efficient - no Three.js fog system overhead)
+        // Fog uniforms (ShaderX2 techniques)
         fogEnabled: { value: fogEnabled },
+        fogType: { value: fogType },
         fogColor: { value: fogColor },
         fogNear: { value: fogNear },
         fogFar: { value: fogFar },
+        fogDensity: { value: fogDensity },
+        fogHeightEnabled: { value: fogHeightEnabled },
+        fogBaseHeight: { value: fogBaseHeight },
+        fogHeightFalloff: { value: fogHeightFalloff },
+        fogMinDensity: { value: fogMinDensity },
+        // Dynamic lighting uniforms (synced with time of day)
+        uSunDirection: { value: sunDirection || DEFAULT_SUN_DIRECTION },
+        uSunColor: { value: sunColor || DEFAULT_SUN_COLOR },
+        uSunIntensity: { value: sunIntensity ?? 1.0 },
+        uAmbientSkyColor: { value: ambientSkyColor || DEFAULT_AMBIENT_SKY },
+        uAmbientGroundColor: { value: ambientGroundColor || DEFAULT_AMBIENT_GROUND },
+        uUseDynamicLighting: { value: sunDirection !== undefined },
       },
       side: THREE.FrontSide,
     });
 
     return shaderMat;
-  }, [grassTextures, rockTextures, sandTextures, grassScale, rockScale, sandScale, simple, debugWeights, fogEnabled, fogColor, fogNear, fogFar]);
+  }, [grassTextures, rockTextures, sandTextures, grassScale, rockScale, sandScale, simple, debugWeights, fogEnabled, fogType, fogColor, fogNear, fogFar, fogDensity, fogHeightEnabled, fogBaseHeight, fogHeightFalloff, fogMinDensity, sunDirection, sunColor, sunIntensity, ambientSkyColor, ambientGroundColor]);
 
   return material;
 }

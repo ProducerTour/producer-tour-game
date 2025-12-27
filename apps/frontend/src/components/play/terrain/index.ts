@@ -39,6 +39,11 @@ export type { GrassInstancesProps } from './GrassInstances';
 export { ChunkGrass } from './ChunkGrass';
 export type { ChunkGrassProps } from './ChunkGrass';
 
+// GrassManager - Centralized grass rendering (SimonDev Quick_Grass pattern)
+// Replaces per-chunk ProceduralGrass with single manager for better performance
+export { GrassManager } from './GrassManager';
+export type { GrassManagerProps } from './GrassManager';
+
 // Chunk-owned trees (loads/unloads with terrain chunks)
 export { ChunkTrees } from './ChunkTrees';
 export type { ChunkTreesProps } from './ChunkTrees';

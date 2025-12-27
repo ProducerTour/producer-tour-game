@@ -37,6 +37,7 @@ export function useCombatSounds(options: UseCombatSoundsOptions = {}) {
   const prevState = useRef({
     isFiring: false,
     isReloading: false,
+    reloadSoundTrigger: 0,
     currentWeapon: 'none' as 'none' | 'rifle' | 'pistol',
     ammo: { rifle: 30, pistol: 12 },
   });
@@ -185,7 +186,7 @@ export function useCombatSounds(options: UseCombatSoundsOptions = {}) {
 
     const unsubscribe = useCombatStore.subscribe((state) => {
       const prev = prevState.current;
-      const { isFiring, isReloading, currentWeapon, ammo } = state;
+      const { isFiring, isReloading, reloadSoundTrigger, currentWeapon, ammo } = state;
 
       // Detect weapon fire (lastFireTime changed while firing)
       if (currentWeapon !== 'none' && isFiring) {
@@ -210,8 +211,19 @@ export function useCombatSounds(options: UseCombatSoundsOptions = {}) {
         handleFireStop(prev.currentWeapon);
       }
 
-      // Detect reload start
-      if (isReloading && !prev.isReloading && currentWeapon !== 'none') {
+      // Stop fire sounds when ammo runs out (even if still holding fire button)
+      if (currentWeapon !== 'none' && isFiring) {
+        const currentAmmo = ammo[currentWeapon] || 0;
+        const prevAmmo = prev.ammo[currentWeapon] || 0;
+        if (prevAmmo > 0 && currentAmmo === 0) {
+          // Just ran out of ammo - stop fire sounds immediately
+          handleFireStop(currentWeapon);
+        }
+      }
+
+      // Detect reload sound trigger (plays near END of reload, not start)
+      // This syncs the "magazine insertion" sound with when the weapon becomes usable
+      if (reloadSoundTrigger !== prev.reloadSoundTrigger && reloadSoundTrigger > 0 && currentWeapon !== 'none') {
         playReloadSound(currentWeapon);
       }
 
@@ -219,6 +231,7 @@ export function useCombatSounds(options: UseCombatSoundsOptions = {}) {
       prevState.current = {
         isFiring,
         isReloading,
+        reloadSoundTrigger,
         currentWeapon,
         ammo: { rifle: ammo.rifle, pistol: ammo.pistol },
       };

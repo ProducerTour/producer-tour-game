@@ -6,3 +6,5 @@
 export { Crosshair, type CrosshairStyle } from './Crosshair';
 export { PlayerHealthBar } from './PlayerHealthBar';
 export { AmmoDisplay } from './AmmoDisplay';
+export { HotbarHUD } from './HotbarHUD';
+export { DeathOverlay } from './DeathOverlay';

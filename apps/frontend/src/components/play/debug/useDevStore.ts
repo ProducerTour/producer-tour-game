@@ -28,6 +28,9 @@ interface DevState {
   // Dev mode
   isDevMode: boolean;
 
+  // UI State (for disabling game input when menus are open)
+  isConsoleOpen: boolean;
+
   // Actions - Cheats
   toggleGodMode: () => void;
   toggleNoclip: () => void;
@@ -48,6 +51,9 @@ interface DevState {
 
   // Actions - Dev mode
   toggleDevMode: () => void;
+
+  // Actions - UI State
+  setConsoleOpen: (isOpen: boolean) => void;
 
   // Utility
   reset: () => void;
@@ -74,6 +80,9 @@ const DEFAULT_DEV_STATE = {
 
   // Dev mode
   isDevMode: import.meta.env.DEV, // Auto-enable in dev builds
+
+  // UI State
+  isConsoleOpen: false,
 };
 
 export const useDevStore = create<DevState>((set) => ({
@@ -99,6 +108,9 @@ export const useDevStore = create<DevState>((set) => ({
 
   // Dev mode
   toggleDevMode: () => set((state) => ({ isDevMode: !state.isDevMode })),
+
+  // UI State
+  setConsoleOpen: (isOpen) => set({ isConsoleOpen: isOpen }),
 
   // Reset to defaults
   reset: () => set(DEFAULT_DEV_STATE),

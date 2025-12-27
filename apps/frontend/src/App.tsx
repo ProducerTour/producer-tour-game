@@ -19,6 +19,7 @@ import { MobileLayout } from './components/mobile/MobileLayout';
 // ============================================================================
 const PlayPage = lazy(() => import('./pages/PlayPage'));
 const HoldingsInteriorPage = lazy(() => import('./pages/HoldingsInteriorPage'));
+const ThumbnailGenerator = lazy(() => import('./utils/ThumbnailGenerator'));
 
 // Loading fallback for lazy-loaded 3D pages
 function GameLoadingFallback() {
@@ -66,6 +67,7 @@ import TypeBeatVideoMakerPage from './pages/TypeBeatVideoMakerPage';
 import SessionPayoutTool from './pages/SessionPayoutTool';
 import LeakScannerPage from './pages/LeakScannerPage';
 import BorderPreview from './components/test/BorderPreview';
+import BrandKitPage from './pages/BrandKitPage';
 import AffiliatesDashboard from './pages/AffiliatesDashboard';
 import AffiliateManagement from './pages/AffiliateManagement';
 import MyStorePage from './pages/MyStorePage';
@@ -411,6 +413,14 @@ function App() {
 
         {/* Dev/Test Routes */}
         <Route path="/test/borders" element={<BorderPreview />} />
+        <Route path="/test/brand-kit" element={<BrandKitPage />} />
+        <Route path="/dev/thumbnails" element={
+          <div style={{ backgroundColor: '#111827', minHeight: '100vh' }}>
+            <Suspense fallback={<GameLoadingFallback />}>
+              <ThumbnailGenerator />
+            </Suspense>
+          </div>
+        } />
 
         {/* 404 Catch-all - must be last */}
         <Route path="*" element={<NotFoundPage />} />

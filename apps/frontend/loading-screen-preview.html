@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Creator World - Loading</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Roboto Condensed', sans-serif;
+      background: #000;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Main container */
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      background: #000;
+    }
+
+    /* Video background */
+    .video-container {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .video-bg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      min-width: 100%;
+      min-height: 100%;
+      width: auto;
+      height: auto;
+      transform: translate(-50%, -50%);
+      object-fit: cover;
+      opacity: 0.4;
+      filter: saturate(0.3) brightness(0.6);
+    }
+
+    /* Gradient overlays */
+    .overlay-top {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.8) 0%,
+        rgba(0,0,0,0.3) 30%,
+        rgba(0,0,0,0.3) 70%,
+        rgba(0,0,0,0.9) 100%
+      );
+      pointer-events: none;
+    }
+
+    /* Vignette effect */
+    .vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.7) 100%);
+      pointer-events: none;
+    }
+
+    /* Scanlines effect (optional - gives it that game feel) */
+    .scanlines {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.1) 0px,
+        rgba(0, 0, 0, 0.1) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      pointer-events: none;
+      opacity: 0.3;
+    }
+
+    /* Top section with logo */
+    .top-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Main title */
+    .title {
+      font-size: 5rem;
+      font-weight: 700;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      text-shadow:
+        0 0 40px rgba(255, 215, 0, 0.3),
+        0 4px 8px rgba(0, 0, 0, 0.8);
+      margin-bottom: 0.5rem;
+      animation: titleGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes titleGlow {
+      0%, 100% {
+        text-shadow:
+          0 0 40px rgba(255, 215, 0, 0.3),
+          0 4px 8px rgba(0, 0, 0, 0.8);
+      }
+      50% {
+        text-shadow:
+          0 0 60px rgba(255, 215, 0, 0.5),
+          0 0 100px rgba(255, 215, 0, 0.2),
+          0 4px 8px rgba(0, 0, 0, 0.8);
+      }
+    }
+
+    /* Tagline */
+    .tagline {
+      font-size: 1.1rem;
+      color: #ffd700;
+      text-transform: lowercase;
+      letter-spacing: 0.3em;
+      font-style: italic;
+      opacity: 0.8;
+    }
+
+    /* Bottom section */
+    .bottom-section {
+      padding: 1.5rem 2rem;
+      background: rgba(0, 0, 0, 0.85);
+      border-top: 1px solid rgba(255, 215, 0, 0.1);
+      position: relative;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Progress section */
+    .progress-section {
+      max-width: 800px;
+      margin: 0 auto 1rem;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .loading-label {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .loading-percent {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.875rem;
+      color: #ffd700;
+      font-weight: 500;
+    }
+
+    .progress-track {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #ffd700, #ffec8b);
+      width: 0%;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    .loading-asset {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.3);
+      margin-top: 0.5rem;
+      height: 1rem;
+    }
+
+    /* Console */
+    .console-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .console-body {
+      height: 120px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      padding: 8px 12px;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 11px;
+    }
+
+    .console-body::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .console-body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .console-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 215, 0, 0.3);
+      border-radius: 2px;
+    }
+
+    /* Log entries */
+    .log-entry {
+      display: flex;
+      gap: 8px;
+      padding: 1px 0;
+      line-height: 1.4;
+    }
+
+    .log-time {
+      color: rgba(255, 255, 255, 0.25);
+      flex-shrink: 0;
+    }
+
+    .log-message {
+      color: rgba(255, 255, 255, 0.5);
+      word-break: break-all;
+    }
+
+    .log-message.success { color: #ffd700; }
+    .log-message.warn { color: #f0ad4e; }
+    .log-message.error { color: #ff6b6b; }
+    .log-message.asset { color: rgba(255, 255, 255, 0.35); }
+
+    /* Loading tip */
+    .loading-tip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 1rem;
+      padding: 0.75rem 1.5rem;
+      background: rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      border-radius: 2px;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    .tip-label {
+      font-size: 0.65rem;
+      color: #ffd700;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 0.25rem;
+    }
+
+    .tip-text {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.6);
+      line-height: 1.4;
+    }
+
+    /* Cursor blink */
+    .cursor {
+      display: inline-block;
+      width: 6px;
+      height: 12px;
+      background: #ffd700;
+      animation: blink 1s step-end infinite;
+      margin-left: 2px;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Version info */
+    .version-info {
+      position: absolute;
+      top: 1rem;
+      right: 1.5rem;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.2);
+      z-index: 10;
+    }
+
+    /* Server info */
+    .server-info {
+      position: absolute;
+      top: 1rem;
+      left: 1.5rem;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.2);
+      z-index: 10;
+    }
+
+    /* Video fallback */
+    .video-fallback {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #1a1a2e 0%, #0a0a0a 100%);
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-screen">
+    <!-- Video background -->
+    <div class="video-container">
+      <div class="video-fallback"></div>
+      <!--
+        SWAP VIDEO HERE - Options:
+        1. Pexels: https://www.pexels.com/search/videos/terrain/
+        2. Coverr: https://coverr.co/
+        3. Mixkit: https://mixkit.co/free-stock-video/
+
+        Download and use local file, or use direct URL if available
+      -->
+      <video
+        class="video-bg"
+        id="bgVideo"
+        autoplay
+        muted
+        playsinline
+        poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1920 1080'%3E%3Crect fill='%230a0a0a'/%3E%3C/svg%3E"
+      >
+        <source src="./21985-323496013_medium.mp4" type="video/mp4">
+      </video>
+    </div>
+
+    <!-- Overlays -->
+    <div class="overlay-top"></div>
+    <div class="vignette"></div>
+    <div class="scanlines"></div>
+
+    <!-- Version -->
+    <div class="version-info">v0.1.0-alpha</div>
+    <div class="server-info">Creator World Official</div>
+
+    <!-- Top section with logo -->
+    <div class="top-section">
+      <h1 class="title">Creator World</h1>
+      <p class="tagline">"run it up or run it back"</p>
+    </div>
+
+    <!-- Bottom section with progress and console -->
+    <div class="bottom-section">
+      <!-- Loading tip -->
+      <div class="loading-tip">
+        <div class="tip-label">Loading Tip</div>
+        <div class="tip-text" id="tipText">Build your empire. Collaborate or compete. The choice is yours.</div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-section">
+        <div class="progress-header">
+          <span class="loading-label">Loading</span>
+          <span class="loading-percent" id="loadingPercent">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="loading-asset" id="loadingAsset">Initializing...</div>
+      </div>
+
+      <!-- Console -->
+      <div class="console-wrapper">
+        <div class="console-body" id="consoleBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Loading tips
+    const tips = [
+      "Build your empire. Collaborate or compete. The choice is yours.",
+      "Trust no one. Or trust everyone. See what happens.",
+      "Your creations are only as safe as your defenses.",
+      "The grind never stops. Neither should you.",
+      "Stack your resources. Winter is always coming.",
+      "Every creator started with nothing.",
+      "Alliances are powerful. Betrayals are permanent.",
+      "The map is vast. Your ambition should be vaster.",
+    ];
+
+    // Simulated loading sequence
+    const loadingSequence = [
+      { asset: 'Bootstrap', logs: ['Initializing game systems...'] },
+      { asset: 'GameManager', logs: ['Loading game manager...', 'Game manager initialized'] },
+      { asset: 'NetworkManager', logs: ['Establishing connection...'] },
+      { asset: 'TerrainTextures', logs: ['Loading terrain textures (1/4)...', 'Loading terrain textures (2/4)...', 'Loading terrain textures (3/4)...', 'Loading terrain textures (4/4)...'] },
+      { asset: 'TerrainMesh', logs: ['Generating terrain mesh...', 'Terrain mesh complete'] },
+      { asset: 'Prefabs/Building', logs: ['Loading building prefabs...'] },
+      { asset: 'Prefabs/Weapons', logs: ['Loading weapon prefabs...'] },
+      { asset: 'Prefabs/Items', logs: ['Loading item prefabs...'] },
+      { asset: 'Prefabs/Vehicles', logs: ['Loading vehicle prefabs...'] },
+      { asset: 'Shaders/Standard', logs: ['Compiling standard shaders...'] },
+      { asset: 'Shaders/Terrain', logs: ['Compiling terrain shaders...'] },
+      { asset: 'Shaders/Water', logs: ['Compiling water shaders...'] },
+      { asset: 'Audio/Ambient', logs: ['Loading ambient audio...'] },
+      { asset: 'Audio/Effects', logs: ['Loading sound effects...'] },
+      { asset: 'Entities/Players', logs: ['Loading player entities...'] },
+      { asset: 'Entities/NPCs', logs: ['Loading NPC entities...'] },
+      { asset: 'WorldData', logs: ['Loading world data...', 'Deserializing world state...'] },
+      { asset: 'SpawnManager', logs: ['Initializing spawn points...'] },
+      { asset: 'WeatherSystem', logs: ['Initializing weather system...'] },
+      { asset: 'Complete', logs: ['Finalizing...', 'Ready to connect!'] },
+    ];
+
+    let sequenceIndex = 0;
+    let logIndex = 0;
+    let progress = 0;
+
+    const consoleBody = document.getElementById('consoleBody');
+    const progressBar = document.getElementById('progressBar');
+    const loadingPercent = document.getElementById('loadingPercent');
+    const loadingAsset = document.getElementById('loadingAsset');
+    const tipText = document.getElementById('tipText');
+
+    function formatTime() {
+      const now = new Date();
+      return now.toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    function addLog(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `
+        <span class="log-time">${formatTime()}</span>
+        <span class="log-message ${type}">${message}</span>
+      `;
+      consoleBody.appendChild(entry);
+      consoleBody.scrollTop = consoleBody.scrollHeight;
+    }
+
+    function updateProgress(value) {
+      progress = Math.min(value, 100);
+      progressBar.style.width = `${progress}%`;
+      loadingPercent.textContent = `${Math.round(progress)}%`;
+    }
+
+    function processSequence() {
+      if (sequenceIndex >= loadingSequence.length) {
+        loadingAsset.innerHTML = 'Complete<span class="cursor"></span>';
+        return;
+      }
+
+      const current = loadingSequence[sequenceIndex];
+
+      if (logIndex === 0) {
+        loadingAsset.textContent = current.asset;
+      }
+
+      if (logIndex < current.logs.length) {
+        const isSuccess = current.logs[logIndex].includes('complete') ||
+                         current.logs[logIndex].includes('initialized') ||
+                         current.logs[logIndex].includes('Ready');
+        addLog(current.logs[logIndex], isSuccess ? 'success' : 'asset');
+        logIndex++;
+
+        const totalLogs = loadingSequence.reduce((acc, s) => acc + s.logs.length, 0);
+        const completedLogs = loadingSequence.slice(0, sequenceIndex).reduce((acc, s) => acc + s.logs.length, 0) + logIndex;
+        updateProgress((completedLogs / totalLogs) * 100);
+
+        setTimeout(processSequence, 50 + Math.random() * 150);
+      } else {
+        sequenceIndex++;
+        logIndex = 0;
+        setTimeout(processSequence, 100 + Math.random() * 200);
+      }
+    }
+
+    // Rotate tips
+    let tipIndex = 0;
+    function rotateTip() {
+      tipIndex = (tipIndex + 1) % tips.length;
+      tipText.style.opacity = 0;
+      setTimeout(() => {
+        tipText.textContent = tips[tipIndex];
+        tipText.style.opacity = 1;
+      }, 300);
+    }
+
+    // Start
+    tipText.style.transition = 'opacity 0.3s ease';
+    setTimeout(processSequence, 500);
+    setInterval(rotateTip, 5000);
+
+    // ===== VIDEO CYCLING =====
+    // Add your videos here - local files or URLs
+    const videoSources = [
+      './21985-323496013_medium.mp4',    // Detroit
+      './300699_tiny.mp4',               // Clip 2
+      './192357-892475199_tiny.mp4',     // Clip 3
+    ];
+
+    let currentVideoIndex = 0;
+    const bgVideo = document.getElementById('bgVideo');
+
+    function cycleVideo() {
+      // Fade out
+      bgVideo.style.opacity = '0';
+
+      setTimeout(() => {
+        // Move to next video
+        currentVideoIndex = (currentVideoIndex + 1) % videoSources.length;
+        bgVideo.src = videoSources[currentVideoIndex];
+        bgVideo.load();
+        bgVideo.play();
+
+        // Fade back in
+        setTimeout(() => {
+          bgVideo.style.opacity = '1';
+        }, 300);
+      }, 500);
+    }
+
+    // Add transition to video
+    bgVideo.style.transition = 'opacity 0.5s ease';
+    bgVideo.style.opacity = '1';
+
+    // Cycle every 8 seconds
+    setInterval(cycleVideo, 8000);
+
+    // Also cycle when video ends naturally
+    bgVideo.addEventListener('ended', cycleVideo);
+  </script>
+</body>
+</html>

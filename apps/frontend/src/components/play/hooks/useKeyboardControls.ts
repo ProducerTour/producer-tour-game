@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useKeybindsStore } from '../settings';
+import { useInventoryStore } from '../../../lib/economy/inventoryStore';
 
 export interface KeyState {
   forward: boolean;
@@ -12,6 +13,8 @@ export interface KeyState {
   dance: boolean;
   dancePressed: boolean; // True only on the frame dance key is pressed (for cycling)
   toggleWeapon: boolean;
+  reload: boolean;
+  reloadPressed: boolean; // True only on the frame reload key is pressed (edge detection)
   crouch: boolean;
   aim: boolean;     // Right mouse button held
   fire: boolean;    // Left mouse button pressed
@@ -48,6 +51,8 @@ export function useKeyboardControls(): KeyboardControlsResult {
     dance: false,
     dancePressed: false,
     toggleWeapon: false,
+    reload: false,
+    reloadPressed: false,
     crouch: false,
     aim: false,
     fire: false,
@@ -56,9 +61,14 @@ export function useKeyboardControls(): KeyboardControlsResult {
   // Refs to clear edge-detected states after one frame
   const jumpPressedTimeout = useRef<number | null>(null);
   const dancePressedTimeout = useRef<number | null>(null);
+  const reloadPressedTimeout = useRef<number | null>(null);
 
-  // Get keybinds check function from store
+  // Get keybinds check function and aim mode from store
   const isAction = useKeybindsStore((state) => state.isAction);
+  const aimMode = useKeybindsStore((state) => state.aimMode);
+
+  // Check if inventory is open (to disable combat mouse controls)
+  const isInventoryOpen = useInventoryStore((state) => state.isInventoryOpen);
 
   // Input buffer for combat/action inputs
   const inputBuffer = useRef<BufferedInput[]>([]);
@@ -162,6 +172,21 @@ export function useKeyboardControls(): KeyboardControlsResult {
       e.preventDefault();
       setKeys((k) => ({ ...k, toggleWeapon: true }));
     }
+    if (isAction('reload', code)) {
+      e.preventDefault();
+      // Edge detection: only set reloadPressed if reload wasn't already held
+      setKeys((k) => {
+        if (k.reload) return k; // Already held, don't trigger again
+        return { ...k, reload: true, reloadPressed: true };
+      });
+      // Clear reloadPressed after one frame (edge detection)
+      if (reloadPressedTimeout.current) {
+        clearTimeout(reloadPressedTimeout.current);
+      }
+      reloadPressedTimeout.current = window.setTimeout(() => {
+        setKeys((k) => ({ ...k, reloadPressed: false }));
+      }, 50);
+    }
     if (isAction('crouch', code)) {
       e.preventDefault();
       // Toggle crouch on press (not hold)
@@ -197,37 +222,51 @@ export function useKeyboardControls(): KeyboardControlsResult {
     if (isAction('toggleWeapon', code)) {
       setKeys((k) => ({ ...k, toggleWeapon: false }));
     }
+    if (isAction('reload', code)) {
+      setKeys((k) => ({ ...k, reload: false }));
+    }
     // Crouch is a toggle, no action on keyup
   }, [isAction]);
 
   // Mouse handlers for aim (right-click) and fire (left-click)
   const handleMouseDown = useCallback((e: MouseEvent) => {
-    // Right-click = aim
+    // Skip combat mouse controls when inventory is open (allow UI interactions)
+    if (isInventoryOpen) return;
+
+    // Right-click = aim (toggle or hold based on setting)
     if (e.button === 2) {
       e.preventDefault();
-      setKeys((k) => ({ ...k, aim: true }));
+      if (aimMode === 'toggle') {
+        // Toggle mode: click to start/stop aiming
+        setKeys((k) => ({ ...k, aim: !k.aim }));
+      } else {
+        // Hold mode: hold to aim
+        setKeys((k) => ({ ...k, aim: true }));
+      }
     }
     // Left-click = fire
     if (e.button === 0) {
       setKeys((k) => ({ ...k, fire: true }));
     }
-  }, []);
+  }, [aimMode, isInventoryOpen]);
 
   const handleMouseUp = useCallback((e: MouseEvent) => {
-    // Right-click release = stop aiming
-    if (e.button === 2) {
+    // Right-click release = stop aiming (only in hold mode)
+    if (e.button === 2 && aimMode === 'hold') {
       setKeys((k) => ({ ...k, aim: false }));
     }
     // Left-click release = stop firing
     if (e.button === 0) {
       setKeys((k) => ({ ...k, fire: false }));
     }
-  }, []);
+  }, [aimMode]);
 
-  // Prevent context menu on right-click
+  // Prevent context menu on right-click (but allow when inventory is open)
   const handleContextMenu = useCallback((e: MouseEvent) => {
+    // Allow context menu when inventory is open for item interactions
+    if (isInventoryOpen) return;
     e.preventDefault();
-  }, []);
+  }, [isInventoryOpen]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);

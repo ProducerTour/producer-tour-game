@@ -19,6 +19,7 @@ interface GridSlotProps {
   onDrop: (slotId: string) => void;
   onDoubleClick: (slotId: string) => void;
   onClick?: () => void;
+  onContextMenu?: (slotId: string, slot: InventorySlot, position: { x: number; y: number }) => void;
 }
 
 export const GridSlot = React.memo(function GridSlot({
@@ -32,10 +33,11 @@ export const GridSlot = React.memo(function GridSlot({
   onDrop,
   onDoubleClick,
   onClick,
+  onContextMenu,
 }: GridSlotProps) {
   // Get rarity colors for the item
   const rarityStyle = useMemo(() => {
-    if (!slot) return null;
+    if (!slot || !slot.item) return null;
     return RARITY_COLORS[slot.item.rarity];
   }, [slot]);
 
@@ -61,6 +63,16 @@ export const GridSlot = React.memo(function GridSlot({
     onClick?.();
   }, [onClick]);
 
+  // Handle right-click context menu
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      if (!slot || !onContextMenu) return;
+      onContextMenu(slotId, slot, { x: e.clientX, y: e.clientY });
+    },
+    [slot, slotId, onContextMenu]
+  );
+
   // Quantity display
   const quantityDisplay = useMemo(() => {
     if (!slot || slot.quantity <= 1) return null;
@@ -73,7 +85,7 @@ export const GridSlot = React.memo(function GridSlot({
   return (
     <motion.div
       className={`
-        relative aspect-square cursor-pointer transition-all duration-100
+        relative aspect-square cursor-pointer
         ${isDropTarget
           ? 'bg-[#3d5a3d]/40 border-2 border-[#7cb87c]'
           : isSelected
@@ -86,22 +98,23 @@ export const GridSlot = React.memo(function GridSlot({
       `}
       drag={!!slot}
       dragSnapToOrigin
-      dragElastic={0.1}
+      dragElastic={0}
       dragMomentum={false}
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
+      onContextMenu={handleContextMenu}
       onPointerUp={isDropTarget ? handleDrop : undefined}
       whileDrag={{ scale: 1.1, zIndex: 100, opacity: 0.8 }}
     >
-      {slot ? (
+      {slot && slot.item ? (
         <>
-          {/* Item icon */}
+          {/* Item icon - prefer thumbnail, fallback to icon, then emoji */}
           <div className="absolute inset-1 flex items-center justify-center">
-            {slot.item.icon ? (
+            {slot.item.thumbnail || slot.item.icon ? (
               <img
-                src={slot.item.icon}
+                src={slot.item.thumbnail || slot.item.icon}
                 alt={slot.item.name}
                 className="w-full h-full object-contain pointer-events-none"
                 draggable={false}

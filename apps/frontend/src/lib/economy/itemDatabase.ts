@@ -103,6 +103,36 @@ export const CONSUMABLE_ITEMS: ConsumableItem[] = [
 ];
 
 /**
+ * Equipment Items (tools, lights, etc.)
+ */
+export const EQUIPMENT_ITEMS: Item[] = [
+  {
+    id: 'flashlight',
+    name: 'Flashlight',
+    description: 'A handheld flashlight for illuminating dark areas. Toggle on/off when equipped.',
+    type: 'material',
+    rarity: 'common',
+    stackable: false,
+    maxStack: 1,
+    value: 50,
+    icon: '/icons/items/flashlight.png',
+    thumbnail: '/icons/items/flashlight.png',
+    modelPath: 'Items/Flashlight/flashlight.glb',
+    metadata: {
+      equipSlot: 'hand',
+      lightConfig: {
+        type: 'spotlight',
+        color: '#fffae6',
+        intensity: 2.0,
+        distance: 30,
+        angle: Math.PI / 6, // 30 degree cone
+        penumbra: 0.3,
+      },
+    },
+  },
+];
+
+/**
  * Placeable Items
  */
 export const PLACEABLE_ITEMS: PlaceableItem[] = [
@@ -122,7 +152,7 @@ export const PLACEABLE_ITEMS: PlaceableItem[] = [
         modelPath: 'Campfire/campfire.glb',
         colliderType: 'cylinder',
         colliderSize: [0.6, 0.4, 0.6],
-        previewScale: 0.3,  // Preview scale for placement
+        previewScale: 0.3,
         placementRules: {
           requiresFlat: true,
           minDistanceFromWater: 5,
@@ -146,7 +176,7 @@ export const PLACEABLE_ITEMS: PlaceableItem[] = [
         modelPath: 'Props/torch.glb',
         colliderType: 'cylinder',
         colliderSize: [0.15, 1.2, 0.15],
-        previewScale: 0.5,  // Preview scale for placement
+        previewScale: 0.5,
       },
     },
   },
@@ -163,8 +193,12 @@ export const SAMPLE_ITEMS = {
   energyDrink: CONSUMABLE_ITEMS[3],
   bandage: CONSUMABLE_ITEMS[4],
 
+  // Equipment
+  flashlight: EQUIPMENT_ITEMS[0],
+
   // Placeables
   campfireKit: PLACEABLE_ITEMS[0],
+  campfire: PLACEABLE_ITEMS[0], // Alias for campfireKit
   torch: PLACEABLE_ITEMS[1],
 };
 
@@ -172,7 +206,7 @@ export const SAMPLE_ITEMS = {
  * Get item by ID
  */
 export function getItemById(id: string): Item | undefined {
-  return [...CONSUMABLE_ITEMS, ...PLACEABLE_ITEMS].find((item) => item.id === id);
+  return [...CONSUMABLE_ITEMS, ...EQUIPMENT_ITEMS, ...PLACEABLE_ITEMS].find((item) => item.id === id);
 }
 
 /**
@@ -187,6 +221,9 @@ export function addSampleItemsToInventory(
   addItem(SAMPLE_ITEMS.medkit, 1);
   addItem(SAMPLE_ITEMS.energyDrink, 3);
   addItem(SAMPLE_ITEMS.bandage, 10);
+
+  // Add equipment
+  addItem(SAMPLE_ITEMS.flashlight, 1);
 
   // Add some placeables
   addItem(SAMPLE_ITEMS.campfireKit, 2);

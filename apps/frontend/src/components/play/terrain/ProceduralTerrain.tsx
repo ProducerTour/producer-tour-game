@@ -34,12 +34,15 @@ const USE_NEW_TERRAIN = true;
 
 import { TerrainChunkMesh } from './TerrainChunkMesh';
 import { ChunkGrass } from './ChunkGrass';
+import { GrassManager } from './GrassManager';
 import { ChunkTreesInstanced } from './ChunkTreesInstanced';
 import { ChunkPalmTrees } from './ChunkPalmTrees';
 import { ChunkRocks } from './ChunkRocks';
 import { ChunkCliffs } from './ChunkCliffs';
 import { ChunkBushes } from './ChunkBushes';
 import { useFallbackMaterial, useTerrainMaterial } from './TerrainMaterial';
+import { getVisibilityManager } from '../../../lib/visibility';
+import { getGlobalWindSystem } from './GrassWindSystem';
 
 export interface ProceduralTerrainProps {
   /** World seed for terrain generation */
@@ -114,6 +117,10 @@ export function ProceduralTerrain({
 
   // Create material
   const material = useFallbackMaterial('#3d7a37');
+
+  // Global wind system - updated once per frame for ALL grass chunks
+  // Must be declared before useFrame that uses it
+  const windSystem = useMemo(() => getGlobalWindSystem(), []);
 
   // Initialize terrain system
   useEffect(() => {
@@ -198,7 +205,11 @@ export function ProceduralTerrain({
   }, [chunks]);
 
   // Update chunks based on player position each frame
-  useFrame(() => {
+  useFrame((_, delta) => {
+    // Update wind system ONCE globally for all grass chunks
+    // This was previously called 121x per frame (once per grass chunk) - now just once!
+    windSystem.update(delta);
+
     if (!chunkManagerRef.current) return;
 
     const x = playerPosition?.x ?? 0;
@@ -361,6 +372,25 @@ export interface StaticTerrainProps {
   /** Bush instances per chunk (forest undergrowth) */
   bushDensity?: number;
 
+  // === PROCEDURAL GRASS (SimonDev Quick_Grass style) ===
+  /** Enable procedural grass rendering */
+  proceduralGrassEnabled?: boolean;
+
+  /** Number of grass blades per chunk (default: 3072 = 32*32*3) */
+  proceduralGrassBladesPerChunk?: number;
+
+  /** Maximum render distance for grass (meters) */
+  proceduralGrassMaxRenderDistance?: number;
+
+  /** Density multiplier for fuller grass coverage (1.0 = normal, 2.0 = double) */
+  proceduralGrassDensity?: number;
+
+  /** Wind animation speed (0 = still, 0.5 = calm, 1.0 = normal) */
+  proceduralGrassWindSpeed?: number;
+
+  /** Blade size multiplier (affects height/width proportionally, 1.0 = normal) */
+  proceduralGrassBladeScale?: number;
+
   /** Rock instances per chunk */
   rockDensity?: number;
 
@@ -445,6 +475,29 @@ export interface StaticTerrainProps {
 
   /** Fog color (hex string) */
   fogColor?: string;
+
+  // === Dynamic Lighting (synced with time of day) ===
+
+  /** Sun direction (normalized, from GameLighting) */
+  sunDirection?: THREE.Vector3;
+
+  /** Sun color (from GameLighting time of day) */
+  sunColor?: THREE.Color;
+
+  /** Sun intensity (from GameLighting time of day) */
+  sunIntensity?: number;
+
+  /** Ambient sky color for hemisphere lighting (from GameLighting) */
+  ambientSkyColor?: THREE.Color;
+
+  /** Ambient ground color for hemisphere lighting (from GameLighting) */
+  ambientGroundColor?: THREE.Color;
+
+  /** Fog color synced with time of day (for grass shader) */
+  timeOfDayFogColor?: THREE.Color;
+
+  /** Called with grass generation progress (0-100) during loading */
+  onGrassGenerationProgress?: (percent: number) => void;
 }
 
 export function StaticTerrain({
@@ -461,6 +514,13 @@ export function StaticTerrain({
   oakTreeDensity = 8,
   palmTreeDensity = 2,
   bushDensity = 15,
+  // Procedural grass (SimonDev Quick_Grass style)
+  proceduralGrassEnabled = true,
+  proceduralGrassBladesPerChunk = 3072,  // SimonDev: 32*32*3
+  proceduralGrassMaxRenderDistance = 100,
+  proceduralGrassDensity = 6.4,     // Full chunk coverage (64m)
+  proceduralGrassWindSpeed = 0.5,   // Calm wind (0.5 = calm, 1.0 = normal)
+  proceduralGrassBladeScale = 0.5,  // Half size for natural look
   rockDensity = 8,
   rockSizeMultiplier = 1.0,
   rockSizeVariation = 0.4,
@@ -492,6 +552,15 @@ export function StaticTerrain({
   fogNear = 150,
   fogFar = 400,
   fogColor = '#b3c4d9',
+  // Dynamic lighting props (from GameLighting)
+  sunDirection,
+  sunColor,
+  sunIntensity,
+  ambientSkyColor,
+  ambientGroundColor,
+  timeOfDayFogColor,
+  // Grass generation progress callback
+  onGrassGenerationProgress,
 }: StaticTerrainProps) {
   // =========================================================================
   // NEW TERRAIN SYSTEM (v2) - Hybrid height + flow-based rivers
@@ -531,8 +600,22 @@ export function StaticTerrain({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   void hydrology; // Keep reference to prevent tree-shaking
 
+  // Debug: Log grass configuration on mount
+  useEffect(() => {
+    console.log(`🌾 ProceduralTerrain: proceduralGrassEnabled=${proceduralGrassEnabled}, terrainGen=${!!terrainGen}`);
+  }, [proceduralGrassEnabled, terrainGen]);
+
   // Convert hex color to THREE.Color for terrain material
   const fogColorThree = useMemo(() => new THREE.Color(fogColor), [fogColor]);
+
+  // Create THREE.Vector3 for procedural grass (needs full 3D position)
+  const playerPositionVec3 = useMemo(() => {
+    return new THREE.Vector3(
+      playerPosition?.x ?? 0,
+      0, // Y position updated during render
+      playerPosition?.z ?? 0
+    );
+  }, [playerPosition?.x, playerPosition?.z]);
 
   // Use full terrain material with biome splatting (grass, rock, sand)
   const terrainMaterial = useTerrainMaterial({
@@ -540,6 +623,12 @@ export function StaticTerrain({
     fogNear,
     fogFar,
     fogColor: fogColorThree,
+    // Dynamic lighting (synced with time of day)
+    sunDirection,
+    sunColor,
+    sunIntensity,
+    ambientSkyColor,
+    ambientGroundColor,
   });
   const fallbackMaterial = useFallbackMaterial(color);
   const material = textured ? terrainMaterial : fallbackMaterial;
@@ -615,26 +704,56 @@ export function StaticTerrain({
     return result;
   }, [terrainGen, heightmapGen, radius]);
 
+  // Register chunks with visibility system
+  useEffect(() => {
+    const visibility = getVisibilityManager();
+
+    // Register all chunks for visibility tracking
+    for (const chunk of chunks) {
+      visibility.registerChunk(chunk.coord.x, chunk.coord.z);
+    }
+
+    // Cleanup: unregister chunks on unmount
+    return () => {
+      for (const chunk of chunks) {
+        visibility.unregisterChunk(chunk.coord.x, chunk.coord.z);
+      }
+    };
+  }, [chunks]);
+
+  // === TERRAIN VISIBILITY (hide until grass is ready to prevent green plane) ===
+  const [terrainVisible, setTerrainVisible] = useState(!proceduralGrassEnabled);
+
+  // Log when grass manager is active
+  useEffect(() => {
+    if (proceduralGrassEnabled && terrainGen) {
+      console.log(`🌾 GrassManager: ${chunks.length} chunks will generate in background`);
+    }
+  }, [chunks.length, proceduralGrassEnabled, terrainGen]);
+
   return (
     <group name="static-terrain">
-      {chunks.map((chunk) => (
-        <group key={`${chunk.coord.x},${chunk.coord.z}`}>
-          <TerrainChunkMesh
-            chunk={chunk}
-            wireframe={wireframe}
-            material={material}
-          />
-          {grassEnabled && (
-            <ChunkGrass
-              chunkX={chunk.coord.x}
-              chunkZ={chunk.coord.z}
-              seed={seed}
-              chunkRadius={radius}
-              terrainGen={terrainGen ?? undefined}
-              instancesPerChunk={grassDensity}
-              windEnabled={windEnabled}
+      {/* Terrain chunks - hidden until grass is ready (prevents green plane) */}
+      <group visible={terrainVisible}>
+        {chunks.map((chunk) => (
+          <group key={`${chunk.coord.x},${chunk.coord.z}`}>
+            <TerrainChunkMesh
+              chunk={chunk}
+              wireframe={wireframe}
+              material={material}
             />
-          )}
+            {/* Legacy grass (instanced patches) */}
+            {grassEnabled && !proceduralGrassEnabled && (
+              <ChunkGrass
+                chunkX={chunk.coord.x}
+                chunkZ={chunk.coord.z}
+                seed={seed}
+                chunkRadius={radius}
+                terrainGen={terrainGen ?? undefined}
+                instancesPerChunk={grassDensity}
+                windEnabled={windEnabled}
+              />
+            )}
           {treesEnabled && oakTreeDensity > 0 && (
             <ChunkTreesInstanced
               chunkX={chunk.coord.x}
@@ -715,6 +834,25 @@ export function StaticTerrain({
           )}
         </group>
       ))}
+      </group>
+
+      {/* GrassManager - Single component manages ALL grass (SimonDev pattern) */}
+      {proceduralGrassEnabled && terrainGen && (
+        <GrassManager
+          chunks={chunks}
+          terrainGen={terrainGen}
+          playerPosition={playerPositionVec3}
+          enabled={proceduralGrassEnabled}
+          onFirstGrassVisible={() => setTerrainVisible(true)}
+          onGenerationProgress={onGrassGenerationProgress}
+          bladesPerChunk={proceduralGrassBladesPerChunk}
+          maxRenderDistance={proceduralGrassMaxRenderDistance}
+          densityMultiplier={proceduralGrassDensity}
+          bladeScale={proceduralGrassBladeScale}
+          windSpeed={proceduralGrassWindSpeed}
+          fogColor={timeOfDayFogColor}
+        />
+      )}
     </group>
   );
 }

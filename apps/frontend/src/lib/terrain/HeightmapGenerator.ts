@@ -4,7 +4,7 @@
  * Provides height sampling for both mesh generation and collision
  */
 
-import { NoiseGenerator } from '../city/NoiseGenerator';
+import { NoiseGenerator } from './NoiseGenerator';
 import {
   NOISE_CONFIG,
   MAX_HEIGHT,

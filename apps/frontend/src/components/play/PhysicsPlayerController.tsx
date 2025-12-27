@@ -6,7 +6,7 @@
  * See ARCHITECTURE_ANALYSIS.md and REFACTOR_PLAN.md for design rationale.
  */
 
-import { useRef, useMemo, useEffect, useState, type ReactNode } from 'react';
+import { useRef, useMemo, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { RigidBody, CapsuleCollider, useRapier, type RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
@@ -16,6 +16,7 @@ import { useCombatStore } from './combat/useCombatStore';
 import { useRecoil } from './combat/useRecoil';
 import { useHitDetection } from './combat/useHitDetection';
 import { useDevStore } from './debug/useDevStore';
+import { useSoundEffects, SFX } from './audio/useSoundEffects';
 // New modular hooks (Phase 1 refactor)
 import { useGroundDetection } from './hooks/useGroundDetection';
 import { useAirState } from './hooks/useAirState';
@@ -26,8 +27,10 @@ import { useTerrainFootsteps } from './audio/useTerrainFootsteps';
 import { terrainGenerator } from '../../lib/terrain';
 
 // Movement constants now in useCharacterMovement hook
-// Only JUMP_FORCE remains here (physics, not movement)
-const JUMP_FORCE = 5;
+// JUMP_FORCE calculated to ensure clear separation from ground detection threshold
+// With gravityScale=1.0 and physics gravity=-20, apex height = v²/2g = 7²/40 = 1.225m
+// This clears the GROUND_THRESHOLD_EXIT (1.2m) for proper air state detection
+const JUMP_FORCE = 7;
 
 // Crouch settings - REALISTIC HUMAN SCALE (1 unit = 1 meter)
 // Standing: total height ~1.7m (half-height 0.55 + radius 0.3 * 2)
@@ -55,6 +58,14 @@ const NOCLIP_FAST_MULTIPLIER = 3;     // Speed when holding sprint
 // Spawn position - high enough to be above any terrain (will fall to ground)
 // Terrain generates 0-40m base + ridges, so 80m should be safe
 const SPAWN_POSITION: [number, number, number] = [0, 80, 0];
+
+// Fall damage configuration
+const FALL_DAMAGE = {
+  THRESHOLD: 4.0,         // Minimum fall distance (meters) before taking damage
+  DAMAGE_PER_METER: 8,    // Damage per meter fallen beyond threshold
+  MAX_DAMAGE: 100,        // Cap on fall damage (instant death threshold)
+  LETHAL_DISTANCE: 15,    // Distance that guarantees death
+};
 
 // === PLAYER AIR STATE - Single authoritative state for animation ===
 // Replaces multiple timing variables to prevent race conditions
@@ -116,14 +127,35 @@ export function PhysicsPlayerController({
   const setAiming = useCombatStore((s) => s.setAiming);
   const isFiring = useCombatStore((s) => s.isFiring);
   const setFiring = useCombatStore((s) => s.setFiring);
+  const setCameraPitch = useCombatStore((s) => s.setCameraPitch);
+  const reload = useCombatStore((s) => s.reload);
+  const takeDamage = useCombatStore((s) => s.takeDamage);
+  const isDead = useCombatStore((s) => s.isDead);
+
+  // Sound effects for blocked fire attempts (reloading/empty)
+  const { play: playSound } = useSoundEffects();
+  const lastEmptyPlayTime = useRef(0);
+
+  // Callback when fire is blocked - plays empty weapon SFX
+  const handleFireBlocked = useCallback((_reason: 'reloading' | 'empty') => {
+    // Throttle empty sound to once per 200ms to avoid spam
+    const now = Date.now();
+    if (now - lastEmptyPlayTime.current < 200) return;
+    lastEmptyPlayTime.current = now;
+
+    // Play appropriate empty sound based on weapon type
+    const emptySound = currentWeapon === 'pistol' ? SFX.emptyClip : SFX.ak47Empty;
+    playSound(emptySound, { volume: 0.5 });
+  }, [currentWeapon, playSound]);
 
   // Recoil system (bloom + camera kick)
   const { getCurrentSpread, onFire: applyRecoil, getRecoilOffset, reset: resetRecoil } = useRecoil();
 
-  // Hit detection with recoil integration
+  // Hit detection with recoil integration and blocked fire callback
   const { fireWeapon } = useHitDetection({
     getCurrentSpread,
     onFire: applyRecoil,
+    onFireBlocked: handleFireBlocked,
   });
 
   // Reset recoil when weapon changes
@@ -174,22 +206,22 @@ export function PhysicsPlayerController({
   const cameraControls = useControls('🎥 Camera', {
     'Normal': folder({
       distance: { value: 3, min: 2, max: 12, step: 0.5 },
-      heightOffset: { value: 1.2, min: 0, max: 4, step: 0.1 },
-      shoulderOffset: { value: 0.8, min: -2, max: 2, step: 0.1 },
-      fov: { value: 75, min: 40, max: 120, step: 1 },
+      heightOffset: { value: 1.7, min: 0, max: 4, step: 0.1 },
+      shoulderOffset: { value: 1.3, min: -2, max: 2, step: 0.1 },
+      fov: { value: 70, min: 40, max: 120, step: 1 },
     }, { collapsed: true }),
     'Aiming': folder({
       previewAim: { value: false, label: '👁 Preview Aim' },
-      aimDistance: { value: 2.5, min: 1.5, max: 6, step: 0.25 },
+      aimDistance: { value: 2.75, min: 1.5, max: 6, step: 0.25 },
       aimShoulderOffset: { value: 1, min: -2, max: 2, step: 0.1 },
-      aimHeightOffset: { value: 1.7, min: 0.5, max: 3, step: 0.1 },
-      aimFov: { value: 55, min: 25, max: 90, step: 1 },
+      aimHeightOffset: { value: 1.9, min: 0.5, max: 3, step: 0.1 },
+      aimFov: { value: 40, min: 25, max: 90, step: 1 },
       aimTransitionSpeed: { value: 8, min: 2, max: 20, step: 1 },
     }, { collapsed: true }),
   }, { collapsed: true });
 
   // Track current FOV for smooth interpolation
-  const currentFov = useRef(75);
+  const currentFov = useRef(70);
 
   // Minimum fire animation duration (semi-auto feel, prevents spam)
   const MIN_FIRE_DURATION = 200; // ms
@@ -230,6 +262,10 @@ export function PhysicsPlayerController({
 
   // Aim mode camera transition (0 = normal, 1 = fully aimed)
   const aimTransition = useRef(0);
+
+  // Fall damage tracking - prevent applying damage multiple times per landing
+  const lastFallDamageTime = useRef(0);
+  const previousAirState = useRef<string>('grounded');
 
   // Reusable vectors to avoid GC pressure
   const vectors = useMemo(() => ({
@@ -303,6 +339,30 @@ export function PhysicsPlayerController({
     window.addEventListener('devConsole:teleport', handleTeleport as EventListener);
     return () => window.removeEventListener('devConsole:teleport', handleTeleport as EventListener);
   }, [movementCalculator, slopeAlignment]);
+
+  // Listen for respawn event (triggered when player respawns after death)
+  useEffect(() => {
+    const handleRespawn = () => {
+      if (rigidBodyRef.current) {
+        // Teleport to spawn position
+        rigidBodyRef.current.setTranslation(
+          { x: SPAWN_POSITION[0], y: SPAWN_POSITION[1], z: SPAWN_POSITION[2] },
+          true
+        );
+        rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        movementCalculator.reset();
+        slopeAlignment.reset();
+        airStateMachine.reset();
+        // Reset fall damage tracking
+        lastFallDamageTime.current = 0;
+        previousAirState.current = 'grounded';
+        console.log('Player respawned at spawn point');
+      }
+    };
+
+    window.addEventListener('player:respawn', handleRespawn);
+    return () => window.removeEventListener('player:respawn', handleRespawn);
+  }, [movementCalculator, slopeAlignment, airStateMachine]);
 
   // Mouse camera orbit with pointer lock when weapon equipped
   useEffect(() => {
@@ -412,6 +472,13 @@ export function PhysicsPlayerController({
     }
   }, [keys.aim, currentWeapon, isAiming, setAiming]);
 
+  // Handle reload key press
+  useEffect(() => {
+    if (keys.reloadPressed && currentWeapon !== 'none') {
+      reload();
+    }
+  }, [keys.reloadPressed, currentWeapon, reload]);
+
   // Track firing state for animation with minimum duration (prevents spam clicking)
   useEffect(() => {
     const shouldFire = keys.fire && currentWeapon !== 'none';
@@ -441,6 +508,17 @@ export function PhysicsPlayerController({
   useFrame((_, delta) => {
     // Skip all calculations when game is paused (e.g., inventory open)
     if (isPaused) return;
+
+    // Skip movement when dead (but keep camera working)
+    if (isDead) {
+      // Still update camera position to follow body
+      const rb = rigidBodyRef.current;
+      if (rb) {
+        const t = rb.translation();
+        vectors.position.set(t.x, t.y, t.z);
+      }
+      return;
+    }
 
     const rb = rigidBodyRef.current;
     const { cameraDir, cameraRight, up, position, rotation, desiredCameraPos, desiredLookTarget, playerHead, rayDir, raycaster } = vectors;
@@ -766,11 +844,58 @@ export function PhysicsPlayerController({
       delta,
     });
 
+    // === FALL DAMAGE ===
+    // Apply damage when landing with significant fall distance
+    // Uses landingFallDistance which is preserved on the first frame of grounding
+    const currentTime = Date.now();
+    const landingDistance = airStateResult.landingFallDistance;
+
+    // Apply damage if: significant fall distance AND not recently damaged
+    // landingFallDistance is only set on the first frame of landing, then cleared
+    if (landingDistance > FALL_DAMAGE.THRESHOLD && currentTime - lastFallDamageTime.current > 500) {
+      // Calculate damage based on fall distance
+      const excessDistance = landingDistance - FALL_DAMAGE.THRESHOLD;
+      let damage = Math.floor(excessDistance * FALL_DAMAGE.DAMAGE_PER_METER);
+
+      // Instant death for extreme falls
+      if (landingDistance >= FALL_DAMAGE.LETHAL_DISTANCE) {
+        damage = FALL_DAMAGE.MAX_DAMAGE;
+      }
+
+      // Cap damage
+      damage = Math.min(damage, FALL_DAMAGE.MAX_DAMAGE);
+
+      if (damage > 0) {
+        takeDamage(damage);
+        lastFallDamageTime.current = currentTime;
+        console.log(`[FALL DAMAGE] Fell ${landingDistance.toFixed(1)}m, took ${damage} damage`);
+      }
+    }
+
+    // Track previous air state for next frame (still useful for animation debugging)
+    previousAirState.current = airStateResult.state;
+
     // === JUMP ===
     // Use air state machine's canJump as single source of truth
     // This eliminates the duplicate state tracking that was causing inconsistency
     const shouldJump = (jumpKeyPressed && airStateResult.canJump) || airStateResult.shouldExecuteBufferedJump;
+
+    // DEBUG: Log jump state to diagnose multi-jump issue
+    if (jumpKeyPressed) {
+      console.log('[JUMP DEBUG]', {
+        jumpKeyPressed,
+        canJump: airStateResult.canJump,
+        hasJumped: airStateResult.hasJumped,
+        state: airStateResult.state,
+        isGrounded: groundState.isGrounded,
+        shouldJump,
+        vy: linvel.y,
+        posY: position.y,
+      });
+    }
+
     if (shouldJump) {
+      console.log('[JUMP EXECUTED] vy =', JUMP_FORCE);
       vy = JUMP_FORCE;
       // Notify air state machine that a jump was executed (it tracks hasJumped internally)
       airStateMachine.notifyJump();
@@ -782,7 +907,11 @@ export function PhysicsPlayerController({
     // 2. Velocity is projected along the slope surface (not fighting it)
     // 3. Only steep slopes (>45°) cause sliding or block movement
     // 4. Downward force only applies when stationary (anti-slide) or going downhill
-    if (grounded && !shouldJump && groundState.groundNormal.y < 0.99) {
+    // 5. IMPORTANT: Don't apply slope forces during a jump - only when truly grounded and descending/stationary
+    //    The ground detection can report "grounded" at jump apex due to hysteresis thresholds,
+    //    but applying slope forces there would make jumps feel too fast/heavy.
+    const isDescendingOrStationary = vy <= 0.5; // Small positive threshold for apex smoothing
+    if (grounded && !shouldJump && !airStateResult.isJumping && isDescendingOrStationary && groundState.groundNormal.y < 0.99) {
       // Calculate slope angle in degrees
       const slopeAngleDeg = Math.acos(Math.min(1, groundState.groundNormal.y)) * (180 / Math.PI);
 
@@ -893,6 +1022,16 @@ export function PhysicsPlayerController({
       slopeAlignment.reset();     // Reset slope tilt on recovery
     }
 
+    // DEBUG: Log every 60 frames to see velocity trend
+    if (Math.random() < 0.02) {  // ~once per second at 60fps
+      console.log('[VELOCITY DEBUG]', {
+        vy: vy.toFixed(2),
+        isGrounded: groundState.isGrounded,
+        state: airStateResult.state,
+        posY: position.y.toFixed(2),
+      });
+    }
+
     rb.setLinvel({ x: vx, y: vy, z: vz }, true);
 
     // === CROUCH COLLIDER ADJUSTMENT ===
@@ -971,6 +1110,9 @@ export function PhysicsPlayerController({
 
     const dancePressed = keys.dancePressed;
 
+    // Update camera pitch in store for spine aiming (updates every frame)
+    setCameraPitch(pitchAngle.current);
+
     const currentAnimState: AnimationState = {
       isMoving,
       isRunning,
@@ -1040,7 +1182,7 @@ export function PhysicsPlayerController({
       lockRotations
       // Physics stability settings
       ccd={true}                    // Continuous Collision Detection - prevents tunneling
-      gravityScale={1.2}            // Slightly stronger gravity for snappier landing
+      gravityScale={1.0}            // Normal gravity - JUMP_FORCE calibrated for this
       canSleep={false}              // Keep physics active to prevent desync
     >
       <CapsuleCollider

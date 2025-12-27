@@ -14,6 +14,7 @@ import { InventoryGrid } from './InventoryGrid';
 import { ContextPanel } from './ContextPanel';
 import { Hotbar } from './Hotbar';
 import { ItemTooltip } from './ItemTooltip';
+import { ItemContextMenu, ContextMenuPosition } from './ItemContextMenu';
 import { useInventoryKeyboard } from './hooks/useInventoryKeyboard';
 import { useInventoryDrag } from './hooks/useInventoryDrag';
 import { useItemUsage } from './hooks/useItemUsage';
@@ -25,6 +26,12 @@ export function InventorySystem({ isOpen, onClose, avatarUrl }: InventorySystemP
   const sortInventory = useInventoryStore((s) => s.sortInventory);
   const equipItem = useInventoryStore((s) => s.equipItem);
   const getItem = useInventoryStore((s) => s.getItem);
+  const removeItem = useInventoryStore((s) => s.removeItem);
+  const addItem = useInventoryStore((s) => s.addItem);
+
+  // Hotbar from store (shared with HotbarHUD)
+  const hotbarSlots = useInventoryStore((s) => s.hotbarSlots);
+  const moveToHotbar = useInventoryStore((s) => s.moveToHotbar);
 
   // Combat store for weapon sync
   const setWeapon = useCombatStore((s) => s.setWeapon);
@@ -40,13 +47,12 @@ export function InventorySystem({ isOpen, onClose, avatarUrl }: InventorySystemP
     setSplitting,
     dropOnInventory,
     dropOnEquipment,
+    dropOnHotbar,
+    dropFromHotbarToInventory,
     unequipToInventory,
   } = useInventoryDrag();
 
-  // Hotbar state (12 slots for Rust style)
-  const [hotbarSlots, setHotbarSlots] = useState<(string | null)[]>(
-    Array(12).fill(null)
-  );
+  // Active hotbar slot (local state for selection highlighting)
   const [activeHotbarSlot, setActiveHotbarSlot] = useState(0);
 
   // Tooltip state
@@ -59,6 +65,19 @@ export function InventorySystem({ isOpen, onClose, avatarUrl }: InventorySystemP
 
   // Selected item for context panel
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    isVisible: boolean;
+    position: ContextMenuPosition | null;
+    slotId: string | null;
+    slot: InventorySlot | null;
+  }>({
+    isVisible: false,
+    position: null,
+    slotId: null,
+    slot: null,
+  });
 
   // Handle sort
   const handleSort = useCallback(
@@ -80,34 +99,99 @@ export function InventorySystem({ isOpen, onClose, avatarUrl }: InventorySystemP
   const handleHotbarUse = useCallback(
     (index: number) => {
       setActiveHotbarSlot(index);
-      const slotId = hotbarSlots[index];
-      if (slotId) {
-        const slot = getItem(slotId);
-        if (slot) {
-          if (slot.item.type === 'consumable') {
-            // Use the consumable (apply effect, remove from inventory)
-            useConsumable(slotId);
-          } else if (slot.item.type === 'weapon') {
-            equipItem(slotId, 'primaryWeapon');
-            const weaponType = slot.item.metadata?.weaponType as 'rifle' | 'pistol' | undefined;
-            if (weaponType) {
-              setWeapon(weaponType);
-            }
+      const slot = hotbarSlots[index];
+      if (slot) {
+        if (slot.item.type === 'consumable') {
+          // For consumables in hotbar, we need to handle them differently
+          // since they're no longer in the inventory slots Map
+          console.log('Used consumable from hotbar:', slot.item.name);
+        } else if (slot.item.type === 'weapon') {
+          const weaponType = slot.item.metadata?.weaponType as 'rifle' | 'pistol' | undefined;
+          if (weaponType) {
+            setWeapon(weaponType);
           }
         }
       }
     },
-    [hotbarSlots, getItem, equipItem, setWeapon, useConsumable]
+    [hotbarSlots, setWeapon]
   );
 
-  // Handle hotbar assign
-  const handleHotbarAssign = useCallback((index: number, slotId: string) => {
-    setHotbarSlots((prev) => {
-      const next = [...prev];
-      next[index] = slotId;
-      return next;
+  // Handle hotbar drop (drag from inventory to hotbar)
+  const handleHotbarDrop = useCallback(
+    (index: number) => {
+      dropOnHotbar(index);
+    },
+    [dropOnHotbar]
+  );
+
+  // Context menu handlers
+  const handleContextMenuOpen = useCallback(
+    (slotId: string, slot: InventorySlot, position: { x: number; y: number }) => {
+      setContextMenu({
+        isVisible: true,
+        position,
+        slotId,
+        slot,
+      });
+      setSelectedSlotId(slotId);
+    },
+    []
+  );
+
+  const handleContextMenuClose = useCallback(() => {
+    setContextMenu({
+      isVisible: false,
+      position: null,
+      slotId: null,
+      slot: null,
     });
   }, []);
+
+  const handleContextMenuUse = useCallback(
+    (slotId: string) => {
+      const slot = getItem(slotId);
+      if (!slot) return;
+
+      if (slot.item.type === 'consumable') {
+        useConsumable(slotId);
+      } else if (isPlaceable(slotId)) {
+        startPlacement(slotId);
+        onClose();
+      }
+    },
+    [getItem, useConsumable, isPlaceable, startPlacement, onClose]
+  );
+
+  const handleContextMenuDrop = useCallback(
+    (slotId: string, quantity: number) => {
+      // Remove items from inventory (dropped on ground)
+      removeItem(slotId, quantity);
+      console.log(`Dropped ${quantity} item(s) from slot ${slotId}`);
+    },
+    [removeItem]
+  );
+
+  const handleContextMenuSplit = useCallback(
+    (slotId: string, quantity: number) => {
+      const slot = getItem(slotId);
+      if (!slot || !slot.item.stackable || slot.quantity <= 1) return;
+
+      // Remove the split quantity from the original stack
+      removeItem(slotId, quantity);
+
+      // Add as a new stack
+      addItem(slot.item, quantity);
+      console.log(`Split ${quantity} from slot ${slotId}`);
+    },
+    [getItem, removeItem, addItem]
+  );
+
+  const handleContextMenuAssignHotbar = useCallback(
+    (slotId: string, hotbarIndex: number) => {
+      moveToHotbar(slotId, hotbarIndex);
+    },
+    [moveToHotbar]
+  );
 
   // Keyboard handler
   useInventoryKeyboard({
@@ -130,17 +214,35 @@ export function InventorySystem({ isOpen, onClose, avatarUrl }: InventorySystemP
     [startDrag]
   );
 
+  // Handle hotbar drag start
+  const handleHotbarDragStart = useCallback(
+    (slotId: string, slot: InventorySlot) => {
+      startDrag(slotId, slot, 'hotbar', { x: 0, y: 0 });
+    },
+    [startDrag]
+  );
+
   // Handle grid drag end
   const handleGridDragEnd = useCallback(() => {
-    cancelDrag();
-  }, [cancelDrag]);
+    // If dragging from hotbar and dropped on inventory area, move to inventory
+    if (dragState.dragSource === 'hotbar') {
+      dropFromHotbarToInventory();
+    } else {
+      cancelDrag();
+    }
+  }, [cancelDrag, dragState.dragSource, dropFromHotbarToInventory]);
 
   // Handle grid drop
   const handleGridDrop = useCallback(
     (targetSlotId: string) => {
-      dropOnInventory(targetSlotId);
+      // If dragging from hotbar, move to inventory (ignore specific target slot)
+      if (dragState.dragSource === 'hotbar') {
+        dropFromHotbarToInventory();
+      } else {
+        dropOnInventory(targetSlotId);
+      }
     },
-    [dropOnInventory]
+    [dropOnInventory, dragState.dragSource, dropFromHotbarToInventory]
   );
 
   // Handle double-click
@@ -271,6 +373,7 @@ export function InventorySystem({ isOpen, onClose, avatarUrl }: InventorySystemP
                     onDoubleClick={handleDoubleClick}
                     onSelect={setSelectedSlotId}
                     selectedSlotId={selectedSlotId}
+                    onContextMenu={handleContextMenuOpen}
                   />
                 </div>
 
@@ -293,7 +396,11 @@ export function InventorySystem({ isOpen, onClose, avatarUrl }: InventorySystemP
             hotbarSlots={hotbarSlots}
             activeSlot={activeHotbarSlot}
             onUse={handleHotbarUse}
-            onAssign={handleHotbarAssign}
+            isDragging={dragState.isDragging}
+            onDrop={handleHotbarDrop}
+            onDragStart={handleHotbarDragStart}
+            onDragEnd={handleGridDragEnd}
+            onContextMenu={handleContextMenuOpen}
           />
 
           {/* Item tooltip */}
@@ -303,6 +410,19 @@ export function InventorySystem({ isOpen, onClose, avatarUrl }: InventorySystemP
             equipped={tooltipItem?.equipped ?? false}
             position={tooltipItem?.position ?? null}
             isVisible={!!tooltipItem}
+          />
+
+          {/* Context menu */}
+          <ItemContextMenu
+            isVisible={contextMenu.isVisible}
+            position={contextMenu.position}
+            slot={contextMenu.slot}
+            slotId={contextMenu.slotId}
+            onClose={handleContextMenuClose}
+            onUse={handleContextMenuUse}
+            onDrop={handleContextMenuDrop}
+            onSplit={handleContextMenuSplit}
+            onAssignHotbar={handleContextMenuAssignHotbar}
           />
         </motion.div>
       )}

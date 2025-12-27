@@ -12,7 +12,7 @@
  * Layer 7: River Carving (hydrology simulation)
  */
 
-import { NoiseGenerator } from '../city/NoiseGenerator';
+import { NoiseGenerator } from './NoiseGenerator';
 import {
   CHUNK_SIZE,
   WATER_LEVEL,

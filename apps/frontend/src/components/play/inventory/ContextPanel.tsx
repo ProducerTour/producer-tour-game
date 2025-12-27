@@ -14,7 +14,7 @@ interface ContextPanelProps {
 
 export function ContextPanel({ selectedItem, onSort }: ContextPanelProps) {
   const rarityStyle = useMemo(() => {
-    if (!selectedItem) return null;
+    if (!selectedItem || !selectedItem.item) return null;
     return RARITY_COLORS[selectedItem.item.rarity];
   }, [selectedItem]);
 
@@ -35,7 +35,7 @@ export function ContextPanel({ selectedItem, onSort }: ContextPanelProps) {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        {selectedItem ? (
+        {selectedItem && selectedItem.item ? (
           <ItemDetails item={selectedItem} rarityStyle={rarityStyle} />
         ) : (
           <CraftingPanel onSort={onSort} />

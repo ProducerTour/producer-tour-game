@@ -21,6 +21,7 @@ import {
 } from './TerrainConfig';
 
 import { HeightmapGenerator, type ChunkHeightmap } from './HeightmapGenerator';
+import { getVisibilityManager } from '../visibility';
 
 // =============================================================================
 // CHUNK DATA TYPES
@@ -83,6 +84,9 @@ export class ChunkManager {
   private loadQueue: ChunkCoord[] = [];
   private frameCount = 0;
 
+  // Visibility integration
+  private visibilityEnabled = true;
+
   // Callbacks for React integration
   private onChunkLoad?: (chunk: ChunkData) => void;
   private onChunkUnload?: (coord: ChunkCoord) => void;
@@ -90,6 +94,20 @@ export class ChunkManager {
 
   constructor(heightmapGen?: HeightmapGenerator) {
     this.heightmapGen = heightmapGen || new HeightmapGenerator();
+  }
+
+  /**
+   * Enable or disable visibility-based prioritization
+   */
+  setVisibilityEnabled(enabled: boolean): void {
+    this.visibilityEnabled = enabled;
+  }
+
+  /**
+   * Check if visibility prioritization is enabled
+   */
+  isVisibilityEnabled(): boolean {
+    return this.visibilityEnabled;
   }
 
   // ===========================================================================
@@ -119,6 +137,7 @@ export class ChunkManager {
   update(playerX: number, playerZ: number): ChunkUpdate[] {
     this.frameCount++;
     const updates: ChunkUpdate[] = [];
+    const visibility = this.visibilityEnabled ? getVisibilityManager() : null;
 
     // Calculate which chunks should be loaded
     const chunksToLoad = this.getChunksInRadius(playerX, playerZ, CHUNK_LOAD_RADIUS);
@@ -126,7 +145,10 @@ export class ChunkManager {
     // Update distances and priorities for all chunks
     for (const chunk of this.chunks.values()) {
       chunk.distance = distanceToChunk(playerX, playerZ, chunk.coord.x, chunk.coord.z);
-      chunk.priority = chunk.distance;
+      // Priority: visible chunks get lower priority value (= higher priority)
+      // Invisible chunks get distance + 1000 to push them back
+      const isVisible = visibility?.isChunkVisible(chunk.coord.x, chunk.coord.z) ?? true;
+      chunk.priority = isVisible ? chunk.distance : chunk.distance + 1000;
     }
 
     // Mark chunks for loading
@@ -135,6 +157,19 @@ export class ChunkManager {
       if (!this.chunks.has(key)) {
         this.queueChunkLoad(coord, playerX, playerZ);
       }
+    }
+
+    // Re-sort load queue by visibility-aware priority
+    if (visibility && this.loadQueue.length > 1) {
+      this.loadQueue.sort((a, b) => {
+        const distA = distanceToChunk(playerX, playerZ, a.x, a.z);
+        const distB = distanceToChunk(playerX, playerZ, b.x, b.z);
+        const visA = visibility.isChunkVisible(a.x, a.z);
+        const visB = visibility.isChunkVisible(b.x, b.z);
+        const priorityA = visA ? distA : distA + 1000;
+        const priorityB = visB ? distB : distB + 1000;
+        return priorityA - priorityB;
+      });
     }
 
     // Process load queue (limited per frame)
@@ -230,6 +265,11 @@ export class ChunkManager {
   private loadChunk(chunk: ChunkData): void {
     const { coord, lod } = chunk;
 
+    // Register with visibility system
+    if (this.visibilityEnabled) {
+      getVisibilityManager().registerChunk(coord.x, coord.z);
+    }
+
     // Generate heightmap
     chunk.heightmap = this.heightmapGen.generateChunkHeightmap(coord.x, coord.z, lod);
 
@@ -252,9 +292,13 @@ export class ChunkManager {
    */
   private unloadDistantChunks(_playerX: number, _playerZ: number): ChunkCoord[] {
     const unloaded: ChunkCoord[] = [];
+    const visibility = this.visibilityEnabled ? getVisibilityManager() : null;
 
     for (const [key, chunk] of this.chunks.entries()) {
       if (chunk.distance > CHUNK_UNLOAD_RADIUS) {
+        // Unregister from visibility system
+        visibility?.unregisterChunk(chunk.coord.x, chunk.coord.z);
+
         this.chunks.delete(key);
         unloaded.push(chunk.coord);
         this.onChunkUnload?.(chunk.coord);
@@ -368,6 +412,18 @@ export class ChunkManager {
   getActiveChunks(): ChunkData[] {
     return Array.from(this.chunks.values()).filter(
       (chunk) => chunk.state === ChunkState.Active
+    );
+  }
+
+  /**
+   * Get only visible active chunks (filtered by visibility system)
+   */
+  getVisibleChunks(): ChunkData[] {
+    const visibility = this.visibilityEnabled ? getVisibilityManager() : null;
+    return Array.from(this.chunks.values()).filter(
+      (chunk) =>
+        chunk.state === ChunkState.Active &&
+        (visibility?.isChunkVisible(chunk.coord.x, chunk.coord.z) ?? true)
     );
   }
 

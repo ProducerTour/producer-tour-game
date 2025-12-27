@@ -144,7 +144,7 @@ const CircularEquipmentSlot = React.memo(function CircularEquipmentSlot({
   onUnequip,
 }: CircularSlotProps) {
   const rarityStyle = useMemo(() => {
-    if (!slot) return null;
+    if (!slot || !slot.item) return null;
     return RARITY_COLORS[slot.item.rarity];
   }, [slot]);
 
@@ -184,7 +184,7 @@ const CircularEquipmentSlot = React.memo(function CircularEquipmentSlot({
         onClick={() => slot && onUnequip()}
         onPointerUp={isDropTarget ? onDrop : undefined}
       >
-        {slot ? (
+        {slot && slot.item ? (
           <div className="w-full h-full flex items-center justify-center p-2">
             {slot.item.icon ? (
               <img

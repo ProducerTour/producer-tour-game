@@ -32,6 +32,8 @@ interface UseHitDetectionOptions {
   getCurrentSpread?: () => number;
   // Called after successful fire - for recoil/bloom
   onFire?: () => void;
+  // Called when fire is blocked (reloading or empty) - for playing empty SFX
+  onFireBlocked?: (reason: 'reloading' | 'empty') => void;
 }
 
 export function useHitDetection(options: UseHitDetectionOptions = {}) {
@@ -83,8 +85,13 @@ export function useHitDetection(options: UseHitDetectionOptions = {}) {
       return { hit: false, isCritical: false, damage: 0 };
     }
 
-    // Try to fire (checks ammo, fire rate)
-    if (!fire()) {
+    // Try to fire (checks ammo, fire rate, reload status)
+    const fireResult = fire();
+    if (fireResult !== true) {
+      // Fire was blocked - notify caller to play empty SFX
+      if (fireResult === 'reloading' || fireResult === 'empty') {
+        options.onFireBlocked?.(fireResult);
+      }
       return { hit: false, isCritical: false, damage: 0 };
     }
 
@@ -230,6 +237,7 @@ export function useHitDetection(options: UseHitDetectionOptions = {}) {
     options.debug,
     options.getCurrentSpread,
     options.onFire,
+    options.onFireBlocked,
     targets,
     damageTarget,
   ]);

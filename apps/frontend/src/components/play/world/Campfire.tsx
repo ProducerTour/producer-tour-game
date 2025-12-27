@@ -270,16 +270,17 @@ export function Campfire({
         ))}
 
         {/* Fire parts - visible when lit, scaled by fireScale */}
-        <group scale={fireScale}>
+        {/* Y offset of 0.8 moves flames up into the campfire base */}
+        <group scale={fireScale} position={[0, 0.8, 0]}>
           {fireObjects.map((obj, i) => (
             <primitive key={`fire-${i}`} object={obj} />
           ))}
         </group>
 
-        {/* Point light for fire glow */}
+        {/* Point light for fire glow - positioned at flame center */}
         <pointLight
           ref={lightRef}
-          position={[0, 0.5 * fireScale, 0]}
+          position={[0, 1.3 * fireScale, 0]}
           color={0xff6633}
           intensity={isLit ? LIGHT_INTENSITY_BASE * lightIntensity : 0}
           distance={lightDistance}
@@ -289,7 +290,7 @@ export function Campfire({
 
         {/* Ambient ember glow (always visible, dimmer when unlit) */}
         <pointLight
-          position={[0, 0.2 * fireScale, 0]}
+          position={[0, 1.0 * fireScale, 0]}
           color={0xff3300}
           intensity={isLit ? 3 * lightIntensity : 0.5}
           distance={lightDistance * 0.4}

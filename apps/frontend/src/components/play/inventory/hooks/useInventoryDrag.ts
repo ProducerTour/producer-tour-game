@@ -31,6 +31,8 @@ export function useInventoryDrag() {
   const equipItem = useInventoryStore((s) => s.equipItem);
   const unequipItem = useInventoryStore((s) => s.unequipItem);
   const equippedItems = useInventoryStore((s) => s.equippedItems);
+  const moveToHotbar = useInventoryStore((s) => s.moveToHotbar);
+  const moveFromHotbar = useInventoryStore((s) => s.moveFromHotbar);
 
   /**
    * Start dragging an item
@@ -178,6 +180,51 @@ export function useInventoryDrag() {
   );
 
   /**
+   * Handle drop on hotbar slot
+   * Moves the item from inventory to hotbar (not just a reference)
+   */
+  const dropOnHotbar = useCallback(
+    (hotbarIndex: number): boolean => {
+      if (!dragState.draggedSlotId || !dragState.draggedItem) {
+        cancelDrag();
+        return false;
+      }
+
+      // Move the item from inventory to hotbar
+      const success = moveToHotbar(dragState.draggedSlotId, hotbarIndex);
+      cancelDrag();
+      return success;
+    },
+    [dragState, cancelDrag, moveToHotbar]
+  );
+
+  /**
+   * Handle drop from hotbar to inventory
+   * Moves the item from hotbar back to inventory grid
+   */
+  const dropFromHotbarToInventory = useCallback(
+    (): boolean => {
+      if (dragState.dragSource !== 'hotbar' || !dragState.draggedSlotId) {
+        cancelDrag();
+        return false;
+      }
+
+      // Extract hotbar index from synthetic slotId (e.g., "hotbar-0" -> 0)
+      const hotbarIndex = parseInt(dragState.draggedSlotId.replace('hotbar-', ''), 10);
+      if (isNaN(hotbarIndex)) {
+        cancelDrag();
+        return false;
+      }
+
+      // Move the item from hotbar back to inventory
+      const success = moveFromHotbar(hotbarIndex);
+      cancelDrag();
+      return success;
+    },
+    [dragState, cancelDrag, moveFromHotbar]
+  );
+
+  /**
    * Long press handler for touch devices
    */
   const startLongPress = useCallback(
@@ -213,6 +260,8 @@ export function useInventoryDrag() {
     isValidDropTarget,
     dropOnInventory,
     dropOnEquipment,
+    dropOnHotbar,
+    dropFromHotbarToInventory,
     unequipToInventory,
     startLongPress,
     cancelLongPress,

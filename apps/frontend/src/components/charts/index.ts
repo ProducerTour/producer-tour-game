@@ -10,5 +10,3 @@ export { NivoPieChart } from './NivoPieChart';
 
 // Recharts
 export { RechartsRevenueChart } from './RechartsRevenueChart';
-export { Sparkline, SPARKLINE_COLORS } from './Sparkline';
-export type { SparklineProps, SparklineColorKey } from './Sparkline';

@@ -158,8 +158,12 @@ export function mouseToKeyBinding(button: number): KeyBinding {
   };
 }
 
+// Aim mode: 'hold' requires holding right-click, 'toggle' clicks to start/stop aiming
+export type AimMode = 'hold' | 'toggle';
+
 interface KeybindsState {
   keybinds: KeybindMap;
+  aimMode: AimMode;
 
   // Check if a key code matches an action
   isAction: (action: GameAction, code: string) => boolean;
@@ -178,12 +182,16 @@ interface KeybindsState {
 
   // Reset single action to default
   resetAction: (action: GameAction) => void;
+
+  // Set aim mode (hold or toggle)
+  setAimMode: (mode: AimMode) => void;
 }
 
 export const useKeybindsStore = create<KeybindsState>()(
   persist(
     (set, get) => ({
       keybinds: { ...DEFAULT_KEYBINDS },
+      aimMode: 'hold' as AimMode,
 
       isAction: (action, code) => {
         const bindings = get().keybinds[action];
@@ -248,6 +256,10 @@ export const useKeybindsStore = create<KeybindsState>()(
             [action]: [...DEFAULT_KEYBINDS[action]],
           },
         }));
+      },
+
+      setAimMode: (mode) => {
+        set({ aimMode: mode });
       },
     }),
     {

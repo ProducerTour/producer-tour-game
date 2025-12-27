@@ -1,13 +1,15 @@
 import { useRef, useState, Suspense, useEffect, useCallback, useMemo } from 'react';
 import { useThree } from '@react-three/fiber';
 import {
-  ContactShadows,
   Stars,
   Sky,
   Environment,
 } from '@react-three/drei';
 import { Physics } from '@react-three/rapier';
 import * as THREE from 'three';
+
+// Import asset path helpers
+import { getSkyboxPath, getModelPath } from '../../config/assetPaths';
 
 /**
  * ShaderPrewarmer - Pre-compiles all shaders in the scene to eliminate frame spikes
@@ -25,15 +27,15 @@ function ShaderPrewarmer() {
     if (hasCompiled.current) return;
     hasCompiled.current = true;
 
-    // Small delay to ensure all materials are loaded
+    // Small delay to ensure all materials are loaded (including weapon warmup meshes)
     const timer = setTimeout(() => {
       try {
         gl.compile(scene, camera);
-        if (DEBUG_WORLD) console.log('🔧 Shaders pre-compiled successfully');
+        if (DEBUG_WORLD) console.log('🔧 Scene shaders pre-compiled successfully');
       } catch (error) {
         console.warn('Shader pre-compilation failed:', error);
       }
-    }, 100);
+    }, 200); // Increased delay to ensure weapon warmup meshes are in scene
 
     return () => clearTimeout(timer);
   }, [gl, scene, camera]);
@@ -55,10 +57,12 @@ import { useGameSettings } from '../../store/gameSettings.store';
 import { AnimatedAvatar, MixamoAnimatedAvatar, PlaceholderAvatar } from './avatars';
 
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
-import { getSkyboxPath, getModelPath } from '../../config/assetPaths';
 import { StaticTerrain, TerrainPhysics } from './terrain';
+import { GameLighting, type ShadowQuality, type TimeOfDay, type LightingState } from './lighting/GameLighting';
+import { EnhancedSky } from './lighting/EnhancedSky';
 import { WATER_LEVEL, heightmapGenerator, terrainGenerator } from '../../lib/terrain';
 import { Water } from './world/Water';
+import { VisibilityUpdater } from './visibility';
 import { WorldBoundary } from './world/WorldBoundary';
 import { Campfire } from './world/Campfire';
 import { Yacht } from './world/Yacht';
@@ -82,26 +86,46 @@ function HDRISkybox({
   file,
   intensity = 1.0,
   blur = 0,
+  backgroundIntensity = 1.0,
 }: {
   file: string;
   intensity?: number;
   blur?: number;
+  backgroundIntensity?: number;
 }) {
   const { gl } = useThree();
 
-  // Apply intensity via tone mapping exposure
+  // Apply proper tone mapping for HDR content
   useEffect(() => {
+    // Store previous settings for cleanup
+    const prevToneMapping = gl.toneMapping;
+    const prevExposure = gl.toneMappingExposure;
+
+    // Use ACES Filmic tone mapping for better HDR handling
+    // This provides better contrast and color saturation than default
+    gl.toneMapping = THREE.ACESFilmicToneMapping;
     gl.toneMappingExposure = intensity;
-    if (DEBUG_WORLD) console.log(`🌤️ HDRI Skybox: ${file}, intensity=${intensity}, blur=${blur}`);
-  }, [intensity, gl, file, blur]);
+
+    if (DEBUG_WORLD) {
+      console.log(`🌤️ HDRI Skybox: ${file}, intensity=${intensity}, bgIntensity=${backgroundIntensity}, blur=${blur}`);
+    }
+
+    // Cleanup: restore previous tone mapping settings
+    return () => {
+      gl.toneMapping = prevToneMapping;
+      gl.toneMappingExposure = prevExposure;
+    };
+  }, [intensity, gl, file, blur, backgroundIntensity]);
 
   // Use drei's Environment component - handles HDR/EXR/JPG automatically
   // Sets both scene.background and scene.environment for reflections
+  // backgroundIntensity controls skybox brightness separately from environment reflections
   return (
     <Environment
       files={getSkyboxPath(file)}
       background
       backgroundBlurriness={blur}
+      backgroundIntensity={backgroundIntensity}
       environmentIntensity={intensity}
     />
   );
@@ -128,6 +152,7 @@ export function PlayWorld({
   onMultiplayerReady,
   onPlayersChange,
   preloadedTerrain,
+  onGrassGenerationProgress,
 }: {
   avatarUrl?: string;
   isPaused?: boolean;
@@ -137,12 +162,27 @@ export function PlayWorld({
   onMultiplayerReady?: (data: { playerCount: number; isConnected: boolean }) => void;
   onPlayersChange?: (players: PlayerInfo[]) => void;
   preloadedTerrain?: PreloadedTerrain | null;
+  /** Called with grass generation progress (0-100) during loading */
+  onGrassGenerationProgress?: (percent: number) => void;
 }) {
   const [playerPos, setPlayerPos] = useState(new THREE.Vector3(0, 0, 5));
   const playerRotation = useRef(new THREE.Euler());
   const [physicsDebug, setPhysicsDebug] = useState(false);
-  const [weaponType, setWeaponType] = useState<WeaponType>(null);
-  const setStoreWeapon = useCombatStore((s) => s.setWeapon);
+
+  // Weapon state from combat store (controlled by hotbar selection)
+  const currentWeapon = useCombatStore((s) => s.currentWeapon);
+  const weaponType: WeaponType = currentWeapon === 'none' ? null : currentWeapon;
+
+  // Lighting state for terrain/grass shader sync
+  const lightingStateRef = useRef<LightingState | null>(null);
+  const [, setLightingUpdate] = useState(0); // Force re-render when lighting changes
+
+  // Callback to receive lighting updates from GameLighting
+  const handleLightingUpdate = useCallback((state: LightingState) => {
+    lightingStateRef.current = state;
+    // Trigger re-render to update terrain material uniforms
+    setLightingUpdate(n => n + 1);
+  }, []);
 
   // Initialize combat sounds (plays weapon SFX on fire/reload)
   useCombatSounds({ enabled: true, volume: 1.0 });
@@ -250,27 +290,9 @@ export function PlayWorld({
     });
   }, [cityMapControls.terrainSeed, cityMapControls.terrainRadius, onTerrainSettingsChange]);
 
-  // Weapon toggle (Q key) - cycles: none -> pistol -> rifle -> none
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'KeyQ') {
-        e.preventDefault();
-        setWeaponType(prev => {
-          const next = prev === null ? 'pistol' : prev === 'pistol' ? 'rifle' : null;
-          if (DEBUG_WORLD) console.log('🔫 Weapon:', next || 'none');
-          return next;
-        });
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Sync weapon state with combat store (for aim/fire/crosshair)
-  useEffect(() => {
-    const storeWeapon = weaponType === null ? 'none' : weaponType;
-    setStoreWeapon(storeWeapon);
-  }, [weaponType, setStoreWeapon]);
+  // Note: Weapon switching is now handled by hotbar number keys (1-9)
+  // via useHotbarSelection hook in HotbarHUD. Q key can still be used
+  // for quick weapon toggle via the keybinds system.
 
   // Physics debug toggle (F3 key)
   useEffect(() => {
@@ -371,16 +393,50 @@ export function PlayWorld({
   return (
     <GamePauseProvider isPaused={isPaused}>
       {/* PERF: Pre-compile shaders during load to eliminate frame spikes */}
+      {/* Note: Weapon shaders are now pre-compiled in PlayPage's loading screen */}
       <ShaderPrewarmer />
 
-      {/* Lighting - simplified for performance */}
-      <ambientLight intensity={0.5} />
-      <directionalLight
-        position={[50, 80, 30]}
-        intensity={1.2}
-        castShadow={false}
+      {/* Visibility System - runs at priority -1 before other systems */}
+      {/* Phase 1: CPU frustum culling for chunks */}
+      {/* Future phases will add HZB, occlusion queries, per-instance culling */}
+      <VisibilityUpdater
+        enabled={cityMapControls.visibilityEnabled}
+        config={{
+          enabled: cityMapControls.visibilityEnabled,
+          hzbEnabled: cityMapControls.visibilityHzbEnabled,
+          temporalCoherenceEnabled: cityMapControls.visibilityTemporalCoherence,
+          perInstanceCullingEnabled: cityMapControls.visibilityPerInstanceCulling,
+          conservativeMargin: cityMapControls.visibilityConservativeMargin,
+          debugMode: cityMapControls.visibilityDebug,
+        }}
       />
-      <hemisphereLight args={['#87CEEB', '#3d7a37', 0.6]} />
+
+      {/* Game Lighting System - shadows, time of day, day/night cycle */}
+      <GameLighting
+        shadowsEnabled={cityMapControls.shadowsEnabled}
+        shadowQuality={cityMapControls.shadowQuality as ShadowQuality}
+        shadowBias={cityMapControls.shadowBias}
+        shadowNormalBias={cityMapControls.shadowNormalBias}
+        sunIntensity={cityMapControls.sunIntensity}
+        sunColor={cityMapControls.sunColor}
+        sunPosition={cityMapControls.sunPosition}
+        ambientIntensity={cityMapControls.ambientIntensity}
+        skyColor={cityMapControls.lightingSkyColor}
+        groundColor={cityMapControls.lightingGroundColor}
+        contactShadowsEnabled={cityMapControls.contactShadowsEnabled}
+        contactShadowOpacity={cityMapControls.contactShadowOpacity}
+        timeOfDay={cityMapControls.timeOfDay as TimeOfDay | 'cycle'}
+        playerPosition={playerPos}
+        shadowCameraSize={cityMapControls.shadowCameraSize}
+        // Day/Night Cycle
+        dayNightCycleEnabled={cityMapControls.dayNightCycleEnabled}
+        cycleDuration={cityMapControls.cycleDuration}
+        timeSpeed={cityMapControls.timeSpeed}
+        // Lighting state callback for terrain/grass shader sync
+        onLightingUpdate={handleLightingUpdate}
+      />
+
+      {/* Flashlight spotlight is now integrated into EquipmentAttachment for accurate model-based lighting */}
 
       {/* Note: Fog is now handled by terrain shader (manual fog) for better performance */}
       {/* The fogEnabled/fogNear/fogFar controls are passed to StaticTerrain */}
@@ -408,22 +464,36 @@ export function PlayWorld({
       {(cityMapControls.skyboxType === 'sunset' ||
         cityMapControls.skyboxType === 'dawn' ||
         cityMapControls.skyboxType === 'night') && (
-        <Sky
-          distance={450000}
-          sunPosition={[
-            cityMapControls.sunPosition.x,
-            cityMapControls.skyboxType === 'night' ? -10 :
-            cityMapControls.skyboxType === 'dawn' ? 5 :
-            cityMapControls.sunPosition.y,
-            cityMapControls.sunPosition.z
-          ]}
-          turbidity={cityMapControls.skyboxType === 'night' ? 20 : cityMapControls.turbidity}
-          rayleigh={cityMapControls.skyboxType === 'night' ? 0 : cityMapControls.rayleigh}
-          mieCoefficient={cityMapControls.mieCoefficient}
-          mieDirectionalG={cityMapControls.mieDirectionalG}
-          inclination={0.5}
-          azimuth={0.25}
-        />
+        // Use EnhancedSky when day/night cycle is enabled for better time-of-day visuals
+        cityMapControls.dayNightCycleEnabled ? (
+          <EnhancedSky
+            showSunDisk={cityMapControls.enhancedSkyShowSunDisk}
+            showStars={cityMapControls.enhancedSkyShowStars}
+            starsIntensity={cityMapControls.enhancedSkyStarsIntensity}
+            turbidity={cityMapControls.turbidity}
+            rayleigh={cityMapControls.rayleigh}
+            mieCoefficient={cityMapControls.mieCoefficient}
+            mieDirectionalG={cityMapControls.mieDirectionalG}
+          />
+        ) : (
+          // Fallback to drei Sky for static presets
+          <Sky
+            distance={450000}
+            sunPosition={[
+              cityMapControls.sunPosition.x,
+              cityMapControls.skyboxType === 'night' ? -10 :
+              cityMapControls.skyboxType === 'dawn' ? 5 :
+              cityMapControls.sunPosition.y,
+              cityMapControls.sunPosition.z
+            ]}
+            turbidity={cityMapControls.skyboxType === 'night' ? 20 : cityMapControls.turbidity}
+            rayleigh={cityMapControls.skyboxType === 'night' ? 0 : cityMapControls.rayleigh}
+            mieCoefficient={cityMapControls.mieCoefficient}
+            mieDirectionalG={cityMapControls.mieDirectionalG}
+            inclination={0.5}
+            azimuth={0.25}
+          />
+        )
       )}
 
       {/* Custom HDRI skybox - equirectangular images */}
@@ -433,6 +503,7 @@ export function PlayWorld({
             file={cityMapControls.hdriFile}
             intensity={cityMapControls.hdriIntensity}
             blur={cityMapControls.hdriBlur}
+            backgroundIntensity={cityMapControls.hdriBackgroundIntensity}
           />
         </Suspense>
       )}
@@ -471,6 +542,13 @@ export function PlayWorld({
             treesEnabled={cityMapControls.treesEnabled}
             oakTreeDensity={cityMapControls.oakTreeDensity}
             palmTreeDensity={cityMapControls.palmTreeDensity}
+            // Procedural grass (SimonDev Quick_Grass style)
+            proceduralGrassEnabled={cityMapControls.proceduralGrassEnabled}
+            proceduralGrassBladesPerChunk={cityMapControls.proceduralGrassBladesPerChunk}
+            proceduralGrassMaxRenderDistance={cityMapControls.proceduralGrassMaxRenderDistance}
+            proceduralGrassDensity={cityMapControls.proceduralGrassDensity}
+            proceduralGrassBladeScale={cityMapControls.proceduralGrassBladeScale}
+            proceduralGrassWindSpeed={cityMapControls.proceduralGrassWindSpeed}
             rockDensity={cityMapControls.rockDensity}
             rockSizeMultiplier={cityMapControls.rockSizeMultiplier}
             rockSizeVariation={cityMapControls.rockSizeVariation}
@@ -498,6 +576,15 @@ export function PlayWorld({
             fogNear={effectiveFogNear}
             fogFar={effectiveFogFar}
             fogColor={cityMapControls.fogColor}
+            // Dynamic lighting from GameLighting (synced with time of day)
+            sunDirection={lightingStateRef.current?.sunDirection}
+            sunColor={lightingStateRef.current?.sunColor}
+            sunIntensity={lightingStateRef.current?.sunIntensity}
+            ambientSkyColor={lightingStateRef.current?.skyColor}
+            ambientGroundColor={lightingStateRef.current?.groundColor}
+            timeOfDayFogColor={lightingStateRef.current?.fogColor}
+            // Grass generation progress callback
+            onGrassGenerationProgress={onGrassGenerationProgress}
           />
 
           {/* Global water plane at sea level - animated shader water */}
@@ -570,6 +657,7 @@ export function PlayWorld({
                         velocityY={velocityY}
                         weaponType={weaponType}
                         aimPitch={aimPitch}
+                        isPlayer
                       />
                     </AnimationErrorBoundary>
                   ) : (
@@ -606,16 +694,6 @@ export function PlayWorld({
               playerPosition={playerPos}
             />
           )}
-
-          {/* Contact shadow - sits just above ground */}
-          <ContactShadows
-            position={[playerPos.x, 0.005, playerPos.z]}
-            opacity={0.6}
-            scale={10}
-            blur={1.5}
-            far={3}
-            color="#8b5cf6"
-          />
 
           {/* Player-placed objects */}
           <PlacedObjectsManager playerPosition={playerPos} />

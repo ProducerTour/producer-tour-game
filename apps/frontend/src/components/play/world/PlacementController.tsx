@@ -37,6 +37,8 @@ export function PlacementController({ terrainRef }: PlacementControllerProps) {
 
   // Inventory store for removing item on placement
   const useItem = useInventoryStore((s) => s.useItem);
+  const hotbarSlots = useInventoryStore((s) => s.hotbarSlots);
+  const setHotbarSlot = useInventoryStore((s) => s.setHotbarSlot);
 
   // Handle placement confirmation
   const handleConfirmPlacement = useCallback(() => {
@@ -44,11 +46,27 @@ export function PlacementController({ terrainRef }: PlacementControllerProps) {
 
     const placedObject = confirmPlacement();
     if (placedObject) {
-      // Remove item from inventory
-      useItem(activeSlotId, 1);
-      console.log('Placed object:', placedObject);
+      // Check if this is a hotbar slot (synthetic ID like "hotbar-0")
+      if (activeSlotId.startsWith('hotbar-')) {
+        const hotbarIndex = parseInt(activeSlotId.replace('hotbar-', ''), 10);
+        const slot = hotbarSlots[hotbarIndex];
+        if (slot) {
+          if (slot.quantity > 1) {
+            // Decrement quantity
+            setHotbarSlot(hotbarIndex, { ...slot, quantity: slot.quantity - 1 });
+          } else {
+            // Last one - clear the slot
+            setHotbarSlot(hotbarIndex, null);
+          }
+          console.log(`Placed ${placedObject.type} from hotbar slot ${hotbarIndex}`);
+        }
+      } else {
+        // Regular inventory slot
+        useItem(activeSlotId, 1);
+        console.log('Placed object:', placedObject);
+      }
     }
-  }, [isPlacementMode, isValidPlacement, activeSlotId, confirmPlacement, useItem]);
+  }, [isPlacementMode, isValidPlacement, activeSlotId, confirmPlacement, useItem, hotbarSlots, setHotbarSlot]);
 
   // Handle cancel
   const handleCancel = useCallback(() => {
