@@ -1601,3 +1601,43 @@ export const corporateApi = {
   sendComplianceNotification: (userIds: string[], complianceItemId: string) =>
     api.post('/corporate/notifications/compliance', { userIds, complianceItemId }),
 };
+
+// Avatar API - Character Creator avatar configuration
+export const avatarApi = {
+  // Get current user's avatar configuration
+  getConfig: () => api.get('/avatar/config'),
+
+  // Save avatar configuration
+  saveConfig: (config: {
+    version: number;
+    bodyType: string;
+    skinTone: string;
+    height: number;
+    build: string;
+    facePreset: number;
+    eyeSize: number;
+    eyeSpacing: number;
+    noseWidth: number;
+    noseLength: number;
+    jawWidth: number;
+    chinLength: number;
+    lipFullness: number;
+    cheekboneHeight: number;
+    hairStyleId: string | null;
+    hairColor: string;
+    hairHighlightColor?: string;
+    eyeColor: string;
+    createdAt: string;
+    updatedAt: string;
+  }) => api.put('/avatar/config', { config }),
+
+  // Delete avatar configuration
+  deleteConfig: () => api.delete('/avatar/config'),
+
+  // Get another player's avatar configuration (for multiplayer)
+  getPlayerConfig: (userId: string) => api.get(`/avatar/player/${userId}`),
+
+  // Get multiple players' avatar configurations (batch for multiplayer)
+  getPlayerConfigs: (playerIds: string[]) =>
+    api.post('/avatar/players', { playerIds }),
+};

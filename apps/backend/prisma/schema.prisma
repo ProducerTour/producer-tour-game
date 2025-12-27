@@ -297,6 +297,9 @@ model User {
   // E-signature agreements
   agreements               Agreement[]
 
+  // Character creator avatar config
+  userAvatar               UserAvatar?
+
   @@map("users")
 }
 
@@ -2983,4 +2986,25 @@ model Agreement {
   @@index([status])
   @@index([firmaSigningRequestId])
   @@map("agreements")
+}
+
+// ========================================
+// CHARACTER CREATOR - User Avatar Configuration
+// ========================================
+
+model UserAvatar {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  version     Int      @default(1)
+  configJson  Json     // CharacterConfig serialized (body, face, hair settings)
+  bodyType    String   // Denormalized: 'male', 'female', 'neutral' for quick queries
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_avatars")
 }

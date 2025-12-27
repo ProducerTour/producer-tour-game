@@ -16,6 +16,7 @@ import {
   Pause,
   Play,
   Save,
+  UserRoundCog,
 } from 'lucide-react';
 import { Leva } from 'leva';
 import { PlayWorld, type PlayerInfo } from '../components/play/PlayWorld';
@@ -128,11 +129,13 @@ function loadWorldState(): Partial<WorldState> | null {
 function PauseMenu({
   onResume,
   onSettings,
+  onCustomize,
   onQuit,
   stats,
 }: {
   onResume: () => void;
   onSettings: () => void;
+  onCustomize: () => void;
   onQuit: () => void;
   stats: { level: number; xp: number; maxXp: number; playTime: number };
 }) {
@@ -193,6 +196,16 @@ function PauseMenu({
               >
                 <Play className="w-5 h-5" />
                 Resume
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onCustomize}
+                className="w-full py-3 px-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+              >
+                <UserRoundCog className="w-5 h-5" />
+                Customize Character
               </motion.button>
 
               <motion.button
@@ -1046,6 +1059,7 @@ export default function PlayPage() {
               focusContainer();
             }}
             onSettings={() => setShowSettings(true)}
+            onCustomize={() => navigate('/character-creator')}
             onQuit={() => navigate('/')}
             stats={playerStats}
           />

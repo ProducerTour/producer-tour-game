@@ -55,6 +55,7 @@ import productivityRoutes from './routes/productivity.routes';
 import audioRoutes from './routes/audio.routes';
 import aiRoutes from './routes/ai.routes';
 import corporateStructureRoutes from './routes/corporate-structure.routes';
+import avatarRoutes from './routes/avatar.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -211,6 +212,7 @@ app.use('/api/productivity', productivityRoutes); // Productivity dashboard widg
 app.use('/api/audio', audioRoutes); // Audio streaming proxy for ambient sounds/music
 app.use('/api/ai', aiRoutes); // AI-powered legal tools and contract analysis
 app.use('/api/corporate', corporateStructureRoutes); // Corporate structure quests and compliance
+app.use('/api/avatar', avatarRoutes); // Character creator avatar configuration
 
 // Error handling
 app.use(notFoundHandler);

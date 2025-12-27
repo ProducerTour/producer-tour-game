@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from '../components/ui';
 
-type SettingsSection = 'profile' | 'password' | 'payments' | 'notifications' | 'chat' | 'publishers' | 'documentation' | 'system' | 'tourhub' | 'appearance';
+type SettingsSection = 'profile' | 'password' | 'payments' | 'notifications' | 'chat' | 'publishers' | 'documentation' | 'system' | 'tourhub' | 'appearance' | 'avatar';
 
 export default function SettingsPage() {
   const { user, updateUser, logout } = useAuthStore();
@@ -45,7 +45,7 @@ export default function SettingsPage() {
 
   // Check for section query param (e.g., /settings?section=tourhub)
   const sectionParam = searchParams.get('section') as SettingsSection | null;
-  const validSections: SettingsSection[] = ['profile', 'password', 'payments', 'notifications', 'chat', 'publishers', 'documentation', 'system', 'tourhub', 'appearance'];
+  const validSections: SettingsSection[] = ['profile', 'password', 'payments', 'notifications', 'chat', 'publishers', 'documentation', 'system', 'tourhub', 'appearance', 'avatar'];
   const initialSection: SettingsSection = sectionParam && validSections.includes(sectionParam) ? sectionParam : 'profile';
 
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
@@ -680,6 +680,19 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-3">
                   <Plane className="w-4 h-4" />
                   <span className="font-medium">My Tour Profile</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveSection('avatar')}
+                className={`w-full text-left px-4 py-3 transition-colors ${
+                  activeSection === 'avatar'
+                    ? 'bg-theme-primary-10 text-theme-primary border-l-2 border-theme-primary'
+                    : 'text-theme-foreground-secondary hover:bg-theme-card-hover hover:text-theme-foreground border-l-2 border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <User className="w-4 h-4" />
+                  <span className="font-medium">3D Avatar</span>
                 </div>
               </button>
               {user?.role === 'ADMIN' && (
@@ -2008,6 +2021,37 @@ export default function SettingsPage() {
                   <h2 className="text-2xl font-bold text-theme-foreground mb-6">Appearance</h2>
                   <p className="text-theme-foreground-muted mb-8">Customize how your dashboard looks and feels</p>
                   <ThemeSelector />
+                </div>
+              )}
+
+              {/* 3D Avatar Section */}
+              {activeSection === 'avatar' && (
+                <div>
+                  <h2 className="text-2xl font-bold text-theme-foreground mb-2">3D Avatar</h2>
+                  <p className="text-theme-foreground-muted mb-8">
+                    Customize your 3D avatar for Producer Tour Play and multiplayer experiences
+                  </p>
+
+                  <div className="bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-2xl p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center flex-shrink-0">
+                        <User className="w-8 h-8 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-theme-foreground mb-2">Character Creator</h3>
+                        <p className="text-theme-foreground-muted text-sm mb-4">
+                          Create and customize your unique 3D avatar. Choose your body type, skin tone, facial features, hair style, and more.
+                        </p>
+                        <Link
+                          to="/character-creator"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-medium rounded-lg transition-all"
+                        >
+                          <Camera className="w-4 h-4" />
+                          Open Character Creator
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

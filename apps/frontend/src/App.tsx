@@ -20,6 +20,7 @@ import { MobileLayout } from './components/mobile/MobileLayout';
 const PlayPage = lazy(() => import('./pages/PlayPage'));
 const HoldingsInteriorPage = lazy(() => import('./pages/HoldingsInteriorPage'));
 const ThumbnailGenerator = lazy(() => import('./utils/ThumbnailGenerator'));
+const CharacterCreatorPage = lazy(() => import('./pages/CharacterCreatorPage'));
 
 // Loading fallback for lazy-loaded 3D pages
 function GameLoadingFallback() {
@@ -385,6 +386,13 @@ function App() {
         <Route path="/play" element={
           <Suspense fallback={<GameLoadingFallback />}>
             <PlayPage />
+          </Suspense>
+        } />
+
+        {/* Character Creator - Custom avatar creation */}
+        <Route path="/character-creator" element={
+          <Suspense fallback={<GameLoadingFallback />}>
+            <CharacterCreatorPage />
           </Suspense>
         } />
 
