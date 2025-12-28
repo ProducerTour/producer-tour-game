@@ -135,8 +135,9 @@ export function applyFaceMorphs(
   const preset = FACE_PRESETS.find((p) => p.id === config.facePreset);
   const presetDefaults = preset?.morphDefaults ?? {};
 
-  // Face morph targets
+  // Face morph targets - basic + extended for RPM-like detail
   const faceMorphs: [string, number][] = [
+    // Basic face morphs
     [MORPH_TARGET_NAMES.eyeSize, config.eyeSize],
     [MORPH_TARGET_NAMES.eyeSpacing, config.eyeSpacing],
     [MORPH_TARGET_NAMES.noseWidth, config.noseWidth],
@@ -145,6 +146,29 @@ export function applyFaceMorphs(
     [MORPH_TARGET_NAMES.chinLength, config.chinLength],
     [MORPH_TARGET_NAMES.lipFullness, config.lipFullness],
     [MORPH_TARGET_NAMES.cheekboneHeight, config.cheekboneHeight],
+    // Extended morphs - Eyes
+    [MORPH_TARGET_NAMES.eyeTilt, config.eyeTilt ?? 0],
+    [MORPH_TARGET_NAMES.eyeDepth, config.eyeDepth ?? 0],
+    [MORPH_TARGET_NAMES.upperEyelid, config.upperEyelid ?? 0],
+    [MORPH_TARGET_NAMES.lowerEyelid, config.lowerEyelid ?? 0],
+    // Extended morphs - Eyebrows
+    [MORPH_TARGET_NAMES.eyebrowHeight, config.eyebrowHeight ?? 0],
+    [MORPH_TARGET_NAMES.eyebrowArch, config.eyebrowArch ?? 0],
+    // Extended morphs - Nose
+    [MORPH_TARGET_NAMES.noseBridge, config.noseBridge ?? 0],
+    [MORPH_TARGET_NAMES.noseTip, config.noseTip ?? 0],
+    [MORPH_TARGET_NAMES.nostrilFlare, config.nostrilFlare ?? 0],
+    [MORPH_TARGET_NAMES.noseProfile, config.noseProfile ?? 0],
+    // Extended morphs - Mouth
+    [MORPH_TARGET_NAMES.mouthWidth, config.mouthWidth ?? 0],
+    [MORPH_TARGET_NAMES.upperLipSize, config.upperLipSize ?? 0],
+    [MORPH_TARGET_NAMES.lowerLipSize, config.lowerLipSize ?? 0],
+    [MORPH_TARGET_NAMES.mouthCorners, config.mouthCorners ?? 0],
+    // Extended morphs - Jaw/Face Shape
+    [MORPH_TARGET_NAMES.chinProtrusion, config.chinProtrusion ?? 0],
+    [MORPH_TARGET_NAMES.chinCleft, config.chinCleft ?? 0],
+    [MORPH_TARGET_NAMES.faceLength, config.faceLength ?? 0],
+    [MORPH_TARGET_NAMES.foreheadHeight, config.foreheadHeight ?? 0],
   ];
 
   // Apply face preset first (if morphs exist)

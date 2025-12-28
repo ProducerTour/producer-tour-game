@@ -48,6 +48,44 @@ export interface CharacterConfig {
   /** Cheekbone height adjustment: -1.0 to 1.0 */
   cheekboneHeight: number;
 
+  // === Extended Face Customization ===
+  /** Eye tilt: -1.0 (outer down) to 1.0 (outer up) */
+  eyeTilt: number;
+  /** Eye depth: -1.0 (sunken) to 1.0 (protruding) */
+  eyeDepth: number;
+  /** Upper eyelid: -1.0 (hooded) to 1.0 (open) */
+  upperEyelid: number;
+  /** Lower eyelid: -1.0 (baggy) to 1.0 (tight) */
+  lowerEyelid: number;
+  /** Eyebrow height: -1.0 (low) to 1.0 (high) */
+  eyebrowHeight: number;
+  /** Eyebrow arch: -1.0 (flat) to 1.0 (arched) */
+  eyebrowArch: number;
+  /** Nose bridge: -1.0 (narrow) to 1.0 (wide) */
+  noseBridge: number;
+  /** Nose tip: -1.0 (downturned) to 1.0 (upturned) */
+  noseTip: number;
+  /** Nostril flare: -1.0 (narrow) to 1.0 (wide) */
+  nostrilFlare: number;
+  /** Nose profile: -1.0 (flat) to 1.0 (prominent) */
+  noseProfile: number;
+  /** Mouth width: -1.0 (narrow) to 1.0 (wide) */
+  mouthWidth: number;
+  /** Upper lip size: -1.0 (thin) to 1.0 (full) */
+  upperLipSize: number;
+  /** Lower lip size: -1.0 (thin) to 1.0 (full) */
+  lowerLipSize: number;
+  /** Mouth corners: -1.0 (down) to 1.0 (up) */
+  mouthCorners: number;
+  /** Chin protrusion: -1.0 (receding) to 1.0 (prominent) */
+  chinProtrusion: number;
+  /** Chin cleft: 0.0 (none) to 1.0 (deep dimple) */
+  chinCleft: number;
+  /** Face length: -1.0 (short) to 1.0 (long) */
+  faceLength: number;
+  /** Forehead height: -1.0 (low) to 1.0 (high) */
+  foreheadHeight: number;
+
   // === Hair Customization ===
   /** Hair style asset ID (null = bald) */
   hairStyleId: string | null;
@@ -99,6 +137,25 @@ export interface FacePreset {
     chinLength: number;
     lipFullness: number;
     cheekboneHeight: number;
+    // Extended morphs
+    eyeTilt?: number;
+    eyeDepth?: number;
+    upperEyelid?: number;
+    lowerEyelid?: number;
+    eyebrowHeight?: number;
+    eyebrowArch?: number;
+    noseBridge?: number;
+    noseTip?: number;
+    nostrilFlare?: number;
+    noseProfile?: number;
+    mouthWidth?: number;
+    upperLipSize?: number;
+    lowerLipSize?: number;
+    mouthCorners?: number;
+    chinProtrusion?: number;
+    chinCleft?: number;
+    faceLength?: number;
+    foreheadHeight?: number;
   };
 }
 

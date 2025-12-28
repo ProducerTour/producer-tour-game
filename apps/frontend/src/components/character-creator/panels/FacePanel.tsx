@@ -10,16 +10,39 @@ import { useCharacterCreatorStore, useCharacterConfig } from '../../../stores/ch
 import { SliderControl } from '../controls/SliderControl';
 import { FACE_PRESETS } from '../../../lib/character/defaults';
 
-// Face morph sliders configuration
+// Face morph sliders configuration - organized by facial region
 const FACE_MORPHS: { key: string; label: string; category: string }[] = [
-  { key: 'eyeSize', label: 'Eye Size', category: 'Eyes' },
-  { key: 'eyeSpacing', label: 'Eye Spacing', category: 'Eyes' },
-  { key: 'noseWidth', label: 'Nose Width', category: 'Nose' },
-  { key: 'noseLength', label: 'Nose Length', category: 'Nose' },
-  { key: 'jawWidth', label: 'Jaw Width', category: 'Jaw' },
-  { key: 'chinLength', label: 'Chin Length', category: 'Jaw' },
-  { key: 'lipFullness', label: 'Lip Fullness', category: 'Mouth' },
-  { key: 'cheekboneHeight', label: 'Cheekbones', category: 'Cheeks' },
+  // Eyes
+  { key: 'eyeSize', label: 'Size', category: 'Eyes' },
+  { key: 'eyeSpacing', label: 'Spacing', category: 'Eyes' },
+  { key: 'eyeTilt', label: 'Tilt', category: 'Eyes' },
+  { key: 'eyeDepth', label: 'Depth', category: 'Eyes' },
+  { key: 'upperEyelid', label: 'Upper Lid', category: 'Eyes' },
+  { key: 'lowerEyelid', label: 'Lower Lid', category: 'Eyes' },
+  // Eyebrows
+  { key: 'eyebrowHeight', label: 'Height', category: 'Eyebrows' },
+  { key: 'eyebrowArch', label: 'Arch', category: 'Eyebrows' },
+  // Nose
+  { key: 'noseWidth', label: 'Width', category: 'Nose' },
+  { key: 'noseLength', label: 'Length', category: 'Nose' },
+  { key: 'noseBridge', label: 'Bridge', category: 'Nose' },
+  { key: 'noseTip', label: 'Tip', category: 'Nose' },
+  { key: 'nostrilFlare', label: 'Nostrils', category: 'Nose' },
+  { key: 'noseProfile', label: 'Profile', category: 'Nose' },
+  // Mouth & Lips
+  { key: 'mouthWidth', label: 'Width', category: 'Mouth' },
+  { key: 'upperLipSize', label: 'Upper Lip', category: 'Mouth' },
+  { key: 'lowerLipSize', label: 'Lower Lip', category: 'Mouth' },
+  { key: 'lipFullness', label: 'Fullness', category: 'Mouth' },
+  { key: 'mouthCorners', label: 'Corners', category: 'Mouth' },
+  // Jaw & Face Shape
+  { key: 'jawWidth', label: 'Jaw Width', category: 'Face Shape' },
+  { key: 'chinLength', label: 'Chin Length', category: 'Face Shape' },
+  { key: 'chinProtrusion', label: 'Chin Projection', category: 'Face Shape' },
+  { key: 'chinCleft', label: 'Chin Cleft', category: 'Face Shape' },
+  { key: 'faceLength', label: 'Face Length', category: 'Face Shape' },
+  { key: 'foreheadHeight', label: 'Forehead', category: 'Face Shape' },
+  { key: 'cheekboneHeight', label: 'Cheekbones', category: 'Face Shape' },
 ];
 
 export function FacePanel() {

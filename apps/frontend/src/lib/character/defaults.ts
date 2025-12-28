@@ -30,7 +30,7 @@ export function createDefaultCharacterConfig(): CharacterConfig {
     height: 0.5, // Average height (1.75m)
     build: 'average',
 
-    // Face
+    // Face - Basic
     facePreset: 1,
     eyeSize: 0,
     eyeSpacing: 0,
@@ -40,6 +40,26 @@ export function createDefaultCharacterConfig(): CharacterConfig {
     chinLength: 0,
     lipFullness: 0,
     cheekboneHeight: 0,
+
+    // Face - Extended (RPM-like detail)
+    eyeTilt: 0,
+    eyeDepth: 0,
+    upperEyelid: 0,
+    lowerEyelid: 0,
+    eyebrowHeight: 0,
+    eyebrowArch: 0,
+    noseBridge: 0,
+    noseTip: 0,
+    nostrilFlare: 0,
+    noseProfile: 0,
+    mouthWidth: 0,
+    upperLipSize: 0,
+    lowerLipSize: 0,
+    mouthCorners: 0,
+    chinProtrusion: 0,
+    chinCleft: 0,
+    faceLength: 0,
+    foreheadHeight: 0,
 
     // Hair
     hairStyleId: 'short_fade',
@@ -319,6 +339,14 @@ export const HAIR_STYLES: HairStyle[] = [
     compatibleWith: ['male', 'female', 'neutral'],
     supportsHighlights: true,
   },
+  {
+    id: 'mohawk',
+    name: 'Mohawk',
+    modelPath: '/models/Characters/Hair/mohawk.glb',
+    thumbnailPath: '/images/character/hair/mohawk.webp',
+    compatibleWith: ['male', 'female', 'neutral'],
+    supportsHighlights: true,
+  },
 ];
 
 /**
@@ -375,6 +403,26 @@ export const MORPH_TARGET_NAMES = {
   chinLength: 'ChinLength',
   lipFullness: 'LipFullness',
   cheekboneHeight: 'CheekboneHeight',
+
+  // Extended face morphs (RPM-like detail)
+  eyeTilt: 'EyeTilt',
+  eyeDepth: 'EyeDepth',
+  upperEyelid: 'UpperEyelid',
+  lowerEyelid: 'LowerEyelid',
+  eyebrowHeight: 'EyebrowHeight',
+  eyebrowArch: 'EyebrowArch',
+  noseBridge: 'NoseBridge',
+  noseTip: 'NoseTip',
+  nostrilFlare: 'NostrilFlare',
+  noseProfile: 'NoseProfile',
+  mouthWidth: 'MouthWidth',
+  upperLipSize: 'UpperLipSize',
+  lowerLipSize: 'LowerLipSize',
+  mouthCorners: 'MouthCorners',
+  chinProtrusion: 'ChinProtrusion',
+  chinCleft: 'ChinCleft',
+  faceLength: 'FaceLength',
+  foreheadHeight: 'ForeheadHeight',
 
   // Body morphs (on Body mesh)
   build_slim: 'Build_Slim',
