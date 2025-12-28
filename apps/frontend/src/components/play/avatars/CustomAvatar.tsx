@@ -13,10 +13,7 @@ import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 
 import type { CharacterConfig } from '../../../lib/character/types';
-import { HEIGHT_CONFIG } from '../../../lib/character/defaults';
 import {
-  applyFaceMorphs,
-  applyBuildMorphs,
   applySkinMaterial,
   applyEyeMaterial,
   cloneMaterials,
@@ -287,24 +284,12 @@ export function CustomAvatar({
     const configHash = JSON.stringify({
       skinTone: config.skinTone,
       eyeColor: config.eyeColor,
-      build: config.build,
-      facePreset: config.facePreset,
-      eyeSize: config.eyeSize,
-      eyeSpacing: config.eyeSpacing,
-      noseWidth: config.noseWidth,
-      noseLength: config.noseLength,
-      jawWidth: config.jawWidth,
-      chinLength: config.chinLength,
-      lipFullness: config.lipFullness,
-      cheekboneHeight: config.cheekboneHeight,
     });
 
     if (configHash === lastConfigHashRef.current) return;
     lastConfigHashRef.current = configHash;
 
-    // Apply customizations
-    applyFaceMorphs(meshes, config);
-    applyBuildMorphs(meshes, config.build);
+    // Apply color customizations (morphs removed for MVP)
     applySkinMaterial(meshes, config.skinTone);
     applyEyeMaterial(meshes, config.eyeColor);
   }, [config]);
@@ -480,11 +465,8 @@ export function CustomAvatar({
   const currentSpinePitch = useRef(0);
   const baseSpineRotationX = useRef(0);
 
-  // Calculate height scale
-  const heightScale = useMemo(() => {
-    const heightMeters = HEIGHT_CONFIG.toMeters(config.height);
-    return heightMeters / 1.75;
-  }, [config.height]);
+  // Fixed scale (height customization removed for MVP)
+  const heightScale = 1;
 
   // Animation frame updates
   useFrame((_, delta) => {

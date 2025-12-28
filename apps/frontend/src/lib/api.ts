@@ -243,11 +243,11 @@ export const userApi = {
   sendSupportMessage: (data: { subject: string; message: string }) =>
     api.post('/users/support-message', data),
 
-  // Get current user's avatar URL (Ready Player Me)
+  // Get current user's avatar URL (legacy, prefer avatarApi.getConfig)
   getAvatar: () =>
     api.get('/users/avatar'),
 
-  // Update current user's avatar URL (Ready Player Me)
+  // Update current user's avatar URL (legacy, prefer avatarApi.saveConfig)
   updateAvatar: (avatarUrl: string | null) =>
     api.patch('/users/avatar', { avatarUrl }),
 };
@@ -1446,6 +1446,10 @@ export const aiApi = {
     jurisdiction?: string;
     actionData?: Record<string, unknown>;
   }) => api.post('/ai/explain-quest-step', context),
+
+  // Analyze a selfie and extract facial features for avatar generation
+  analyzeSelfie: (imageData: string) =>
+    api.post('/ai/analyze-selfie', { imageData }),
 };
 
 // Corporate Structure API - Quest System & Compliance
@@ -1602,31 +1606,20 @@ export const corporateApi = {
     api.post('/corporate/notifications/compliance', { userIds, complianceItemId }),
 };
 
-// Avatar API - Character Creator avatar configuration
+// Avatar API - Character Creator avatar configuration (simplified for MVP)
 export const avatarApi = {
   // Get current user's avatar configuration
   getConfig: () => api.get('/avatar/config'),
 
-  // Save avatar configuration
+  // Save avatar configuration (simplified - colors only)
   saveConfig: (config: {
     version: number;
     bodyType: string;
     skinTone: string;
-    height: number;
-    build: string;
-    facePreset: number;
-    eyeSize: number;
-    eyeSpacing: number;
-    noseWidth: number;
-    noseLength: number;
-    jawWidth: number;
-    chinLength: number;
-    lipFullness: number;
-    cheekboneHeight: number;
+    eyeColor: string;
     hairStyleId: string | null;
     hairColor: string;
     hairHighlightColor?: string;
-    eyeColor: string;
     createdAt: string;
     updatedAt: string;
   }) => api.put('/avatar/config', { config }),

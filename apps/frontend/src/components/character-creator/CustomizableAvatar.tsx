@@ -1,88 +1,101 @@
 /**
  * CustomizableAvatar
- * 3D avatar component that loads base mesh GLB and applies customizations from CharacterConfig.
+ * 3D avatar component that loads base mesh GLB and applies color customizations.
  * Used in the character creator for real-time preview.
+ *
+ * NOTE: Simplified to colors-only - no morph targets
  */
 
 import { useRef, useMemo, useEffect, useCallback } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
+import { useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 
 import type { CharacterConfig } from '../../lib/character/types';
-import { HEIGHT_CONFIG } from '../../lib/character/defaults';
 import {
   findAllMeshes,
-  applyFaceMorphs,
-  applyBuildMorphs,
   applySkinMaterial,
   applyEyeMaterial,
   cloneMaterials,
-  logMorphTargets,
-  logMaterials,
 } from '../../lib/character/morphUtils';
 import { HairAttachment } from './HairAttachment';
 
-/**
- * Create a default skin material for meshes without materials
- */
-function createDefaultSkinMaterial(skinColor: string): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({
-    color: new THREE.Color(skinColor),
-    roughness: 0.6,
-    metalness: 0.0,
-    side: THREE.DoubleSide,
-  });
-}
-
-/**
- * Ensure all meshes have proper materials
- * Creates default materials if none exist, and converts non-PBR materials to MeshStandardMaterial
- */
-function ensureMaterials(meshes: THREE.Mesh[], skinColor: string): void {
-  for (const mesh of meshes) {
-    // Handle array materials
-    if (Array.isArray(mesh.material)) {
-      mesh.material = mesh.material.map((mat) => {
-        if (!mat || !(mat instanceof THREE.MeshStandardMaterial)) {
-          return createDefaultSkinMaterial(skinColor);
-        }
-        return mat;
-      });
-    } else {
-      // Handle single material
-      const mat = mesh.material;
-      const needsNewMaterial =
-        !mat ||
-        mat instanceof THREE.MeshBasicMaterial ||
-        (mat.type === 'MeshBasicMaterial');
-
-      if (needsNewMaterial) {
-        console.log(`  Creating default material for mesh: ${mesh.name}`);
-        mesh.material = createDefaultSkinMaterial(skinColor);
-      } else if (!(mat instanceof THREE.MeshStandardMaterial)) {
-        // Convert non-standard materials to standard
-        console.log(`  Converting material for mesh: ${mesh.name}`);
-        mesh.material = createDefaultSkinMaterial(skinColor);
-      }
-    }
-  }
-}
-
-// Debug logging
+// Debug logging (set to false for production)
 const DEBUG_AVATAR = false;
 
 // Base mesh paths by body type
 const BASE_MESH_PATHS: Record<string, string> = {
   male: '/assets/avatars/base_male.glb',
   female: '/assets/avatars/base_female.glb',
-  neutral: '/assets/avatars/base_male.glb', // Fallback to male for neutral
 };
 
 // Preload both base meshes
 useGLTF.preload(BASE_MESH_PATHS.male);
 useGLTF.preload(BASE_MESH_PATHS.female);
+
+// Preview animation paths
+const PREVIEW_ANIMATIONS = {
+  idle: '/animations/idle.glb',
+  walk: '/animations/walking.glb',
+  dance: '/animations/dance1.glb',
+};
+
+// Preload animations
+Object.values(PREVIEW_ANIMATIONS).forEach(url => useGLTF.preload(url));
+
+/**
+ * Detect the bone naming prefix used in the skeleton
+ */
+function detectBonePrefix(root: THREE.Object3D): string {
+  let prefix = '';
+  root.traverse((child) => {
+    if ((child as THREE.Bone).isBone && child.name.toLowerCase().includes('hips')) {
+      if (child.name.startsWith('mixamorig:')) {
+        prefix = 'mixamorig:';
+      } else if (child.name.startsWith('mixamorig')) {
+        prefix = 'mixamorig';
+      }
+    }
+  });
+  return prefix;
+}
+
+/**
+ * Process animation clip: strip root motion and remap bone names for target skeleton
+ */
+function processAnimationClip(clip: THREE.AnimationClip, targetPrefix: string): THREE.AnimationClip {
+  const newClip = clip.clone();
+
+  newClip.tracks = newClip.tracks
+    .filter(track => {
+      // Strip position/scale from Hips to prevent character drift
+      if (track.name.toLowerCase().includes('hips')) {
+        return track.name.endsWith('.quaternion');
+      }
+      return true;
+    })
+    .map(track => {
+      // Parse the track name (e.g., "Hips.quaternion" or "mixamorig:Hips.quaternion")
+      const dotIndex = track.name.indexOf('.');
+      if (dotIndex === -1) return track;
+
+      let boneName = track.name.substring(0, dotIndex);
+      const property = track.name.substring(dotIndex + 1);
+
+      // Strip any existing prefix from the bone name
+      if (boneName.startsWith('mixamorig:')) {
+        boneName = boneName.substring('mixamorig:'.length);
+      } else if (boneName.startsWith('mixamorig')) {
+        boneName = boneName.substring('mixamorig'.length);
+      }
+
+      // Apply the target prefix
+      track.name = `${targetPrefix}${boneName}.${property}`;
+      return track;
+    });
+
+  return newClip;
+}
 
 export interface CustomizableAvatarProps {
   config: CharacterConfig;
@@ -107,8 +120,13 @@ export function CustomizableAvatar({
   // Load the base mesh
   const { scene } = useGLTF(meshPath);
 
-  // Clone scene for this instance
-  const clonedScene = useMemo(() => {
+  // Load animation files
+  const idleGltf = useGLTF(PREVIEW_ANIMATIONS.idle);
+  const walkGltf = useGLTF(PREVIEW_ANIMATIONS.walk);
+  const danceGltf = useGLTF(PREVIEW_ANIMATIONS.dance);
+
+  // Clone scene for this instance and detect bone prefix
+  const { clonedScene, bonePrefix } = useMemo(() => {
     const clone = SkeletonUtils.clone(scene);
 
     // Enable shadows on all meshes
@@ -123,26 +141,53 @@ export function CustomizableAvatar({
     const meshes = findAllMeshes(clone);
     meshesRef.current = meshes;
 
-    if (DEBUG_AVATAR) {
-      console.log(`🧍 Loaded ${config.bodyType} base mesh with ${meshes.length} meshes`);
-      meshes.forEach((mesh) => {
-        console.log(`  Mesh: ${mesh.name}, Material: ${mesh.material ? (Array.isArray(mesh.material) ? mesh.material.map(m => m?.type).join(', ') : mesh.material.type) : 'none'}`);
-        logMorphTargets(mesh);
-      });
-    }
+    // Detect bone prefix from skeleton
+    const prefix = detectBonePrefix(clone);
 
-    // Ensure all meshes have proper materials (create defaults if missing)
-    ensureMaterials(meshes, config.skinTone);
+    if (DEBUG_AVATAR) {
+      console.log(`Loaded ${config.bodyType} base mesh with ${meshes.length} meshes, bone prefix: "${prefix}"`);
+
+      // Log bone names
+      const bones: string[] = [];
+      clone.traverse((child) => {
+        if ((child as THREE.Bone).isBone) {
+          bones.push(child.name);
+        }
+      });
+      console.log(`Skeleton bones (first 10):`, bones.slice(0, 10));
+    }
 
     // Clone materials to avoid shared material issues
     cloneMaterials(meshes);
 
-    if (DEBUG_AVATAR) {
-      logMaterials(meshes);
-    }
+    return { clonedScene: clone, bonePrefix: prefix };
+  }, [scene, config.bodyType]);
 
-    return clone;
-  }, [scene, config.bodyType, config.skinTone]);
+  // Process and collect animations with correct bone prefix
+  const animations = useMemo(() => {
+    const clips: THREE.AnimationClip[] = [];
+
+    const addClip = (gltf: { animations: THREE.AnimationClip[] }, name: string) => {
+      if (gltf.animations[0]) {
+        const clip = processAnimationClip(gltf.animations[0], bonePrefix);
+        clip.name = name;
+        clips.push(clip);
+
+        if (DEBUG_AVATAR) {
+          console.log(`Animation "${name}" tracks:`, clip.tracks.slice(0, 3).map(t => t.name));
+        }
+      }
+    };
+
+    addClip(idleGltf, 'idle');
+    addClip(walkGltf, 'walk');
+    addClip(danceGltf, 'dance');
+
+    return clips;
+  }, [idleGltf, walkGltf, danceGltf, bonePrefix]);
+
+  // Setup animations with useAnimations hook - pass clonedScene directly
+  const { actions } = useAnimations(animations, clonedScene);
 
   // Apply customizations when config changes
   const applyCustomizations = useCallback(() => {
@@ -153,16 +198,6 @@ export function CustomizableAvatar({
     const configHash = JSON.stringify({
       skinTone: config.skinTone,
       eyeColor: config.eyeColor,
-      build: config.build,
-      facePreset: config.facePreset,
-      eyeSize: config.eyeSize,
-      eyeSpacing: config.eyeSpacing,
-      noseWidth: config.noseWidth,
-      noseLength: config.noseLength,
-      jawWidth: config.jawWidth,
-      chinLength: config.chinLength,
-      lipFullness: config.lipFullness,
-      cheekboneHeight: config.cheekboneHeight,
     });
 
     // Skip if config hasn't changed
@@ -170,12 +205,8 @@ export function CustomizableAvatar({
     lastConfigRef.current = configHash;
 
     if (DEBUG_AVATAR) {
-      console.log('🎨 Applying customizations:', config);
+      console.log('Applying customizations:', config);
     }
-
-    // Apply morph targets (will silently fail if morphs don't exist yet)
-    applyFaceMorphs(meshes, config);
-    applyBuildMorphs(meshes, config.build);
 
     // Apply material colors
     applySkinMaterial(meshes, config.skinTone);
@@ -187,55 +218,48 @@ export function CustomizableAvatar({
     applyCustomizations();
   }, [applyCustomizations]);
 
-  // Calculate scale based on height
-  const heightScale = useMemo(() => {
-    const heightMeters = HEIGHT_CONFIG.toMeters(config.height);
-    return heightMeters / 1.75; // 1.75m is baseline
-  }, [config.height]);
+  // Play animation based on prop
+  useEffect(() => {
+    if (!actions) return;
 
-  // Simple idle animation
-  useFrame((state) => {
-    if (!groupRef.current) return;
+    // Map animation prop to clip name (wave falls back to idle)
+    const clipName = animation === 'wave' ? 'idle' : animation;
+    const action = actions[clipName];
 
-    const time = state.clock.elapsedTime;
-
-    switch (animation) {
-      case 'idle':
-        // Subtle breathing motion
-        groupRef.current.position.y = Math.sin(time * 2) * 0.005;
-        break;
-
-      case 'walk':
-        // Walking bob
-        groupRef.current.position.y = Math.abs(Math.sin(time * 6)) * 0.02;
-        groupRef.current.rotation.y = Math.sin(time * 3) * 0.05;
-        break;
-
-      case 'dance':
-        // Dancing motion
-        groupRef.current.position.y = Math.abs(Math.sin(time * 4)) * 0.03;
-        groupRef.current.rotation.y = Math.sin(time * 2) * 0.2;
-        break;
-
-      case 'wave':
-        // Subtle wave motion
-        groupRef.current.rotation.y = Math.sin(time * 3) * 0.1;
-        break;
+    if (action) {
+      // Fade out all other actions
+      Object.values(actions).forEach(a => {
+        if (a && a !== action && a.isRunning()) {
+          a.fadeOut(0.3);
+        }
+      });
+      // Play this action
+      action.reset().fadeIn(0.3).play();
     }
-  });
+  }, [animation, actions]);
+
+  // Cleanup animations on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (actions) {
+        Object.values(actions).forEach(action => action?.stop());
+      }
+    };
+  }, [actions]);
 
   return (
-    <group ref={groupRef} scale={heightScale}>
+    <group ref={groupRef}>
       <group ref={avatarRef}>
-        <primitive object={clonedScene} />
-        {/* Hair attachment */}
-        <HairAttachment
-          avatarRef={avatarRef}
-          hairStyleId={config.hairStyleId}
-          hairColor={config.hairColor}
-          highlightColor={config.hairHighlightColor}
-        />
+        {/* Rotate -90deg on X axis to fix Mixamo animation orientation, position to ground feet */}
+        <primitive object={clonedScene} rotation={[-Math.PI / 2, 0, 0]} position={[0, 1, 0]} />
       </group>
+      {/* Hair attachment - outside avatar group to use world coordinates */}
+      <HairAttachment
+        avatarRef={avatarRef}
+        hairStyleId={config.hairStyleId}
+        hairColor={config.hairColor}
+        highlightColor={config.hairHighlightColor}
+      />
     </group>
   );
 }

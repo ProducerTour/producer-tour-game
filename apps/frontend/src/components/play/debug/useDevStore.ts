@@ -28,6 +28,12 @@ interface DevState {
   // Dev mode
   isDevMode: boolean;
 
+  // Debug logging flags (environment-based)
+  debugTerrain: boolean;
+  debugPhysics: boolean;
+  debugCombat: boolean;
+  debugAnimation: boolean;
+
   // UI State (for disabling game input when menus are open)
   isConsoleOpen: boolean;
 
@@ -51,6 +57,12 @@ interface DevState {
 
   // Actions - Dev mode
   toggleDevMode: () => void;
+
+  // Actions - Debug logging
+  toggleDebugTerrain: () => void;
+  toggleDebugPhysics: () => void;
+  toggleDebugCombat: () => void;
+  toggleDebugAnimation: () => void;
 
   // Actions - UI State
   setConsoleOpen: (isOpen: boolean) => void;
@@ -81,6 +93,12 @@ const DEFAULT_DEV_STATE = {
   // Dev mode
   isDevMode: import.meta.env.DEV, // Auto-enable in dev builds
 
+  // Debug logging flags - disabled by default, enable via env vars or toggles
+  debugTerrain: import.meta.env.VITE_DEBUG_TERRAIN === 'true',
+  debugPhysics: import.meta.env.VITE_DEBUG_PHYSICS === 'true',
+  debugCombat: import.meta.env.VITE_DEBUG_COMBAT === 'true',
+  debugAnimation: import.meta.env.VITE_DEBUG_ANIMATION === 'true',
+
   // UI State
   isConsoleOpen: false,
 };
@@ -108,6 +126,12 @@ export const useDevStore = create<DevState>((set) => ({
 
   // Dev mode
   toggleDevMode: () => set((state) => ({ isDevMode: !state.isDevMode })),
+
+  // Debug logging toggles
+  toggleDebugTerrain: () => set((state) => ({ debugTerrain: !state.debugTerrain })),
+  toggleDebugPhysics: () => set((state) => ({ debugPhysics: !state.debugPhysics })),
+  toggleDebugCombat: () => set((state) => ({ debugCombat: !state.debugCombat })),
+  toggleDebugAnimation: () => set((state) => ({ debugAnimation: !state.debugAnimation })),
 
   // UI State
   setConsoleOpen: (isOpen) => set({ isConsoleOpen: isOpen }),

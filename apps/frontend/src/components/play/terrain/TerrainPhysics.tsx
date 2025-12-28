@@ -53,7 +53,6 @@ export const TerrainPhysics = React.memo(function TerrainPhysics({
     // If we have preloaded terrain, use it directly
     if (preloadedTerrain) {
       const v = preloadedTerrain.vertices;
-      const numVerts = v.length / 3;
 
       // Calculate terrain bounds for debugging
       let minX = Infinity, maxX = -Infinity;
@@ -67,14 +66,6 @@ export const TerrainPhysics = React.memo(function TerrainPhysics({
         if (v[i+2] < minZ) minZ = v[i+2];
         if (v[i+2] > maxZ) maxZ = v[i+2];
       }
-
-      console.log(`🏔️ TerrainPhysics: Using preloaded mesh`);
-      console.log(`   ${numVerts.toLocaleString()} vertices, ${preloadedTerrain.triangleCount.toLocaleString()} triangles`);
-      console.log(`   X range: ${minX.toFixed(1)} to ${maxX.toFixed(1)}`);
-      console.log(`   Y range: ${minY.toFixed(1)} to ${maxY.toFixed(1)}`);
-      console.log(`   Z range: ${minZ.toFixed(1)} to ${maxZ.toFixed(1)}`);
-      console.log(`   First vertex: (${v[0]?.toFixed(2)}, ${v[1]?.toFixed(2)}, ${v[2]?.toFixed(2)})`);
-      console.log(`   First 3 indices: ${preloadedTerrain.indices[0]}, ${preloadedTerrain.indices[1]}, ${preloadedTerrain.indices[2]}`);
 
       return {
         vertices: preloadedTerrain.vertices,

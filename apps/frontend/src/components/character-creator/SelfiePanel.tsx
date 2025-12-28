@@ -1,9 +1,6 @@
 /**
  * SelfiePanel
- * Selfie-to-avatar AI generation with:
- * - Camera capture
- * - Photo upload
- * - Generation trigger
+ * Selfie-to-avatar AI generation (simplified for MVP - colors only)
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -17,13 +14,80 @@ import {
 } from 'lucide-react';
 import { useCharacterCreatorStore } from '../../stores/characterCreator.store';
 import { createDefaultCharacterConfig } from '../../lib/character/defaults';
+import { aiApi } from '../../lib/api';
+import { ConfidenceBadge } from './ConfidenceBadge';
 
 type CaptureMode = 'camera' | 'upload' | null;
+
+/**
+ * Smart hair style matching from AI suggestion
+ * Handles compound descriptions like "short curly" or "medium wavy"
+ */
+function matchHairStyle(suggestion: string): string {
+  const lower = suggestion.toLowerCase().trim();
+
+  // Direct matches for exact terms
+  const directMap: Record<string, string> = {
+    bald: 'bald',
+    buzzcut: 'buzzcut',
+    'buzz cut': 'buzzcut',
+    afro: 'afro_medium',
+    ponytail: 'ponytail',
+    braids: 'braids',
+    mohawk: 'mohawk',
+  };
+
+  if (directMap[lower]) {
+    return directMap[lower];
+  }
+
+  // Check for texture keywords
+  const isCurly = lower.includes('curl');
+  const isWavy = lower.includes('wav');
+  const isStraight = lower.includes('straight');
+  const isAfro = lower.includes('afro');
+
+  // Check for length keywords
+  const isShort = lower.includes('short') || lower.includes('buzz');
+  const isLong = lower.includes('long');
+  const isMedium = lower.includes('medium') || lower.includes('mid');
+
+  // Special styles
+  if (isAfro) return 'afro_medium';
+  if (lower.includes('ponytail')) return 'ponytail';
+  if (lower.includes('braid')) return 'braids';
+
+  // Length + texture combinations
+  if (isShort) {
+    if (isCurly) return 'curly_short';
+    return 'short_fade';
+  }
+
+  if (isLong) {
+    if (isWavy) return 'long_wavy';
+    return 'long_straight';
+  }
+
+  if (isMedium) {
+    if (isWavy) return 'medium_wavy';
+    if (isStraight) return 'medium_straight';
+    return 'medium_wavy';
+  }
+
+  // Texture-only fallbacks
+  if (isCurly) return 'curly_short';
+  if (isWavy) return 'medium_wavy';
+  if (isStraight) return 'medium_straight';
+
+  // Default fallback
+  return 'short_fade';
+}
 
 export function SelfiePanel() {
   const [captureMode, setCaptureMode] = useState<CaptureMode>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [lastConfidence, setLastConfidence] = useState<number | null>(null);
 
   const {
     selfieImage,
@@ -118,47 +182,61 @@ export function SelfiePanel() {
     [setSelfieImage, setGenerationError]
   );
 
-  // Trigger generation
+  // Trigger generation (simplified for MVP - colors only)
   const handleGenerate = useCallback(async () => {
     if (!selfieImage) return;
 
     startGeneration();
 
-    // Simulate AI generation process
-    // In production, this would call your AI backend
-    const steps: Array<{ status: Parameters<typeof updateGenerationProgress>[0]; progress: number; delay: number }> = [
-      { status: 'analyzing', progress: 15, delay: 800 },
-      { status: 'analyzing', progress: 30, delay: 600 },
-      { status: 'generating_mesh', progress: 45, delay: 1000 },
-      { status: 'generating_mesh', progress: 60, delay: 800 },
-      { status: 'applying_textures', progress: 75, delay: 700 },
-      { status: 'applying_textures', progress: 85, delay: 500 },
-      { status: 'finalizing', progress: 95, delay: 400 },
-      { status: 'complete', progress: 100, delay: 300 },
-    ];
+    try {
+      // Show initial analyzing progress
+      updateGenerationProgress('analyzing', 15);
 
-    for (const step of steps) {
-      await new Promise((resolve) => setTimeout(resolve, step.delay));
-      updateGenerationProgress(step.status, step.progress);
+      // Call the real AI endpoint
+      const response = await aiApi.analyzeSelfie(selfieImage);
+
+      // Update progress as we process the response
+      updateGenerationProgress('analyzing', 50);
+
+      if (!response.data.success || !response.data.analysis) {
+        throw new Error(response.data.error || 'Failed to analyze selfie');
+      }
+
+      const analysis = response.data.analysis;
+
+      // Show generating progress
+      updateGenerationProgress('generating', 70);
+
+      // Create config from AI analysis (colors only for MVP)
+      const generatedConfig = createDefaultCharacterConfig();
+
+      // Apply detected colors from AI
+      generatedConfig.bodyType = analysis.bodyType || 'male';
+      generatedConfig.skinTone = analysis.skinTone || generatedConfig.skinTone;
+      generatedConfig.eyeColor = analysis.eyeColor || generatedConfig.eyeColor;
+      generatedConfig.hairColor = analysis.hairColor || generatedConfig.hairColor;
+
+      // Smart hair style matching from AI suggestion
+      if (analysis.hairStyleSuggestion) {
+        generatedConfig.hairStyleId = matchHairStyle(analysis.hairStyleSuggestion);
+      }
+
+      // Small delay for visual feedback
+      updateGenerationProgress('generating', 90);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Apply the generated config
+      updateGenerationProgress('complete', 100);
+      applyGeneratedConfig(generatedConfig);
+
+      // Store confidence for display
+      setLastConfidence(analysis.confidence ?? null);
+    } catch (error) {
+      console.error('Selfie analysis error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to analyze selfie';
+      setGenerationError(errorMessage);
     }
-
-    // Apply a "generated" config based on the selfie
-    // In production, this would come from AI analysis
-    const generatedConfig = createDefaultCharacterConfig();
-    // Simulate some random customization as if AI detected features
-    generatedConfig.skinTone = ['#FFE0BD', '#DFAD69', '#C68642', '#8D5524'][
-      Math.floor(Math.random() * 4)
-    ];
-    generatedConfig.hairColor = ['#1A1A1A', '#3B2417', '#6B4423', '#D4A853'][
-      Math.floor(Math.random() * 4)
-    ];
-    generatedConfig.eyeColor = ['#6B4423', '#4A7023', '#4B88A2'][
-      Math.floor(Math.random() * 3)
-    ];
-    generatedConfig.facePreset = Math.floor(Math.random() * 6) + 1;
-
-    applyGeneratedConfig(generatedConfig);
-  }, [selfieImage, startGeneration, updateGenerationProgress, applyGeneratedConfig]);
+  }, [selfieImage, startGeneration, updateGenerationProgress, applyGeneratedConfig, setGenerationError]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -349,9 +427,14 @@ export function SelfiePanel() {
           animate={{ opacity: 1, y: 0 }}
           className="p-4 rounded-xl bg-emerald-500/20 border border-emerald-500/30"
         >
-          <p className="text-sm text-emerald-400 text-center">
-            Avatar generated! Switch to Customize mode to fine-tune your look.
-          </p>
+          <div className="flex flex-col items-center gap-3">
+            {lastConfidence !== null && (
+              <ConfidenceBadge confidence={lastConfidence} />
+            )}
+            <p className="text-sm text-emerald-400 text-center">
+              Avatar generated! Switch to Customize mode to fine-tune your look.
+            </p>
+          </div>
         </motion.div>
       )}
 

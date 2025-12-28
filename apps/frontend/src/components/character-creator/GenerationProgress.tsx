@@ -1,42 +1,27 @@
 /**
  * GenerationProgress
- * Progress overlay for AI avatar generation
+ * Progress overlay for AI avatar generation (simplified for MVP)
  */
 
 import { motion } from 'framer-motion';
-import { Sparkles, Scan, Box, Palette, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Sparkles, Scan, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useGenerationStatus, type GenerationStatus } from '../../stores/characterCreator.store';
 
-// Status step configuration
+// Simplified status step configuration
 const GENERATION_STEPS: {
   status: GenerationStatus;
   label: string;
   icon: typeof Sparkles;
-  progressRange: [number, number];
 }[] = [
   {
     status: 'analyzing',
-    label: 'Analyzing facial features...',
+    label: 'Analyzing photo...',
     icon: Scan,
-    progressRange: [0, 35],
   },
   {
-    status: 'generating_mesh',
-    label: 'Generating 3D mesh...',
-    icon: Box,
-    progressRange: [35, 70],
-  },
-  {
-    status: 'applying_textures',
-    label: 'Applying textures...',
-    icon: Palette,
-    progressRange: [70, 95],
-  },
-  {
-    status: 'finalizing',
-    label: 'Finalizing avatar...',
+    status: 'generating',
+    label: 'Generating avatar...',
     icon: Sparkles,
-    progressRange: [95, 100],
   },
 ];
 
@@ -136,7 +121,7 @@ export function GenerationProgress() {
       </div>
 
       {/* Step indicators */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-center gap-4">
         {GENERATION_STEPS.map((step, index) => {
           const isActive = index === currentStepIndex;
           const isComplete = index < currentStepIndex;

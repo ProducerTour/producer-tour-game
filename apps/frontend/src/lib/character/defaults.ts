@@ -1,12 +1,13 @@
 /**
  * Character Creator Defaults
  * Default values, presets, and palettes for character customization
+ *
+ * NOTE: Simplified to colors-only for MVP - no morph targets
  */
 
 import type {
   CharacterConfig,
   SkinToneOption,
-  FacePreset,
   HairStyle,
   BodyType,
 } from './types';
@@ -14,7 +15,7 @@ import type {
 /**
  * Current schema version for migrations
  */
-export const CHARACTER_CONFIG_VERSION = 1;
+export const CHARACTER_CONFIG_VERSION = 2; // Bumped for simplified schema
 
 /**
  * Default character configuration
@@ -25,49 +26,14 @@ export function createDefaultCharacterConfig(): CharacterConfig {
     version: CHARACTER_CONFIG_VERSION,
     bodyType: 'male',
 
-    // Body
+    // Colors
     skinTone: '#C68642', // Medium brown
-    height: 0.5, // Average height (1.75m)
-    build: 'average',
-
-    // Face - Basic
-    facePreset: 1,
-    eyeSize: 0,
-    eyeSpacing: 0,
-    noseWidth: 0,
-    noseLength: 0,
-    jawWidth: 0,
-    chinLength: 0,
-    lipFullness: 0,
-    cheekboneHeight: 0,
-
-    // Face - Extended (RPM-like detail)
-    eyeTilt: 0,
-    eyeDepth: 0,
-    upperEyelid: 0,
-    lowerEyelid: 0,
-    eyebrowHeight: 0,
-    eyebrowArch: 0,
-    noseBridge: 0,
-    noseTip: 0,
-    nostrilFlare: 0,
-    noseProfile: 0,
-    mouthWidth: 0,
-    upperLipSize: 0,
-    lowerLipSize: 0,
-    mouthCorners: 0,
-    chinProtrusion: 0,
-    chinCleft: 0,
-    faceLength: 0,
-    foreheadHeight: 0,
+    eyeColor: '#6B4423', // Brown
 
     // Hair
     hairStyleId: 'short_fade',
     hairColor: '#1A1A1A', // Near black
     hairHighlightColor: undefined,
-
-    // Eyes
-    eyeColor: '#6B4423', // Brown
 
     // Metadata
     createdAt: now,
@@ -138,104 +104,7 @@ export const HAIR_COLOR_PALETTE: SkinToneOption[] = [
 ];
 
 /**
- * Face presets - predefined face shapes
- */
-export const FACE_PRESETS: FacePreset[] = [
-  {
-    id: 1,
-    name: 'Classic',
-    thumbnailPath: '/images/character/faces/preset_01.webp',
-    morphDefaults: {
-      eyeSize: 0,
-      eyeSpacing: 0,
-      noseWidth: 0,
-      noseLength: 0,
-      jawWidth: 0,
-      chinLength: 0,
-      lipFullness: 0,
-      cheekboneHeight: 0,
-    },
-  },
-  {
-    id: 2,
-    name: 'Sharp',
-    thumbnailPath: '/images/character/faces/preset_02.webp',
-    morphDefaults: {
-      eyeSize: -0.2,
-      eyeSpacing: 0.1,
-      noseWidth: -0.3,
-      noseLength: 0.2,
-      jawWidth: -0.2,
-      chinLength: 0.2,
-      lipFullness: -0.2,
-      cheekboneHeight: 0.3,
-    },
-  },
-  {
-    id: 3,
-    name: 'Soft',
-    thumbnailPath: '/images/character/faces/preset_03.webp',
-    morphDefaults: {
-      eyeSize: 0.2,
-      eyeSpacing: 0,
-      noseWidth: 0.1,
-      noseLength: -0.1,
-      jawWidth: 0.2,
-      chinLength: -0.2,
-      lipFullness: 0.3,
-      cheekboneHeight: -0.1,
-    },
-  },
-  {
-    id: 4,
-    name: 'Strong',
-    thumbnailPath: '/images/character/faces/preset_04.webp',
-    morphDefaults: {
-      eyeSize: -0.1,
-      eyeSpacing: 0.15,
-      noseWidth: 0.2,
-      noseLength: 0,
-      jawWidth: 0.4,
-      chinLength: 0.1,
-      lipFullness: 0,
-      cheekboneHeight: 0.2,
-    },
-  },
-  {
-    id: 5,
-    name: 'Refined',
-    thumbnailPath: '/images/character/faces/preset_05.webp',
-    morphDefaults: {
-      eyeSize: 0.1,
-      eyeSpacing: -0.1,
-      noseWidth: -0.2,
-      noseLength: 0.1,
-      jawWidth: -0.3,
-      chinLength: 0.15,
-      lipFullness: 0.1,
-      cheekboneHeight: 0.15,
-    },
-  },
-  {
-    id: 6,
-    name: 'Natural',
-    thumbnailPath: '/images/character/faces/preset_06.webp',
-    morphDefaults: {
-      eyeSize: 0.05,
-      eyeSpacing: 0.05,
-      noseWidth: 0.1,
-      noseLength: 0.05,
-      jawWidth: 0.1,
-      chinLength: 0,
-      lipFullness: 0.15,
-      cheekboneHeight: 0,
-    },
-  },
-];
-
-/**
  * Hair styles catalog
- * Note: These will need actual GLB files to be created
  */
 export const HAIR_STYLES: HairStyle[] = [
   // Short styles
@@ -244,7 +113,7 @@ export const HAIR_STYLES: HairStyle[] = [
     name: 'Bald',
     modelPath: '', // No model needed
     thumbnailPath: '/images/character/hair/bald.webp',
-    compatibleWith: ['male', 'female', 'neutral'],
+    compatibleWith: ['male', 'female'],
     supportsHighlights: false,
   },
   {
@@ -252,7 +121,7 @@ export const HAIR_STYLES: HairStyle[] = [
     name: 'Buzz Cut',
     modelPath: '/models/Characters/Hair/buzzcut.glb',
     thumbnailPath: '/images/character/hair/buzzcut.webp',
-    compatibleWith: ['male', 'female', 'neutral'],
+    compatibleWith: ['male', 'female'],
     supportsHighlights: false,
   },
   {
@@ -260,7 +129,7 @@ export const HAIR_STYLES: HairStyle[] = [
     name: 'Short Fade',
     modelPath: '/models/Characters/Hair/short_fade.glb',
     thumbnailPath: '/images/character/hair/short_fade.webp',
-    compatibleWith: ['male', 'female', 'neutral'],
+    compatibleWith: ['male', 'female'],
     supportsHighlights: true,
   },
   {
@@ -268,7 +137,7 @@ export const HAIR_STYLES: HairStyle[] = [
     name: 'Short Textured',
     modelPath: '/models/Characters/Hair/short_textured.glb',
     thumbnailPath: '/images/character/hair/short_textured.webp',
-    compatibleWith: ['male', 'female', 'neutral'],
+    compatibleWith: ['male', 'female'],
     supportsHighlights: true,
   },
   {
@@ -276,7 +145,7 @@ export const HAIR_STYLES: HairStyle[] = [
     name: 'Curly Short',
     modelPath: '/models/Characters/Hair/curly_short.glb',
     thumbnailPath: '/images/character/hair/curly_short.webp',
-    compatibleWith: ['male', 'female', 'neutral'],
+    compatibleWith: ['male', 'female'],
     supportsHighlights: true,
   },
 
@@ -286,7 +155,7 @@ export const HAIR_STYLES: HairStyle[] = [
     name: 'Medium Wavy',
     modelPath: '/models/Characters/Hair/medium_wavy.glb',
     thumbnailPath: '/images/character/hair/medium_wavy.webp',
-    compatibleWith: ['male', 'female', 'neutral'],
+    compatibleWith: ['male', 'female'],
     supportsHighlights: true,
   },
   {
@@ -294,7 +163,7 @@ export const HAIR_STYLES: HairStyle[] = [
     name: 'Medium Straight',
     modelPath: '/models/Characters/Hair/medium_straight.glb',
     thumbnailPath: '/images/character/hair/medium_straight.webp',
-    compatibleWith: ['male', 'female', 'neutral'],
+    compatibleWith: ['male', 'female'],
     supportsHighlights: true,
   },
   {
@@ -302,7 +171,7 @@ export const HAIR_STYLES: HairStyle[] = [
     name: 'Afro',
     modelPath: '/models/Characters/Hair/afro_medium.glb',
     thumbnailPath: '/images/character/hair/afro_medium.webp',
-    compatibleWith: ['male', 'female', 'neutral'],
+    compatibleWith: ['male', 'female'],
     supportsHighlights: true,
   },
 
@@ -312,7 +181,7 @@ export const HAIR_STYLES: HairStyle[] = [
     name: 'Long Straight',
     modelPath: '/models/Characters/Hair/long_straight.glb',
     thumbnailPath: '/images/character/hair/long_straight.webp',
-    compatibleWith: ['male', 'female', 'neutral'],
+    compatibleWith: ['male', 'female'],
     supportsHighlights: true,
   },
   {
@@ -320,7 +189,7 @@ export const HAIR_STYLES: HairStyle[] = [
     name: 'Long Wavy',
     modelPath: '/models/Characters/Hair/long_wavy.glb',
     thumbnailPath: '/images/character/hair/long_wavy.webp',
-    compatibleWith: ['male', 'female', 'neutral'],
+    compatibleWith: ['male', 'female'],
     supportsHighlights: true,
   },
   {
@@ -328,7 +197,7 @@ export const HAIR_STYLES: HairStyle[] = [
     name: 'Ponytail',
     modelPath: '/models/Characters/Hair/ponytail.glb',
     thumbnailPath: '/images/character/hair/ponytail.webp',
-    compatibleWith: ['male', 'female', 'neutral'],
+    compatibleWith: ['male', 'female'],
     supportsHighlights: true,
   },
   {
@@ -336,7 +205,7 @@ export const HAIR_STYLES: HairStyle[] = [
     name: 'Braids',
     modelPath: '/models/Characters/Hair/braids.glb',
     thumbnailPath: '/images/character/hair/braids.webp',
-    compatibleWith: ['male', 'female', 'neutral'],
+    compatibleWith: ['male', 'female'],
     supportsHighlights: true,
   },
   {
@@ -344,89 +213,15 @@ export const HAIR_STYLES: HairStyle[] = [
     name: 'Mohawk',
     modelPath: '/models/Characters/Hair/mohawk.glb',
     thumbnailPath: '/images/character/hair/mohawk.webp',
-    compatibleWith: ['male', 'female', 'neutral'],
+    compatibleWith: ['male', 'female'],
     supportsHighlights: true,
   },
 ];
 
 /**
- * Build type descriptions
+ * Body type options for UI
  */
-export const BUILD_TYPES: { type: BodyType extends infer T ? T : never; id: string; name: string; description: string }[] = [
-  { type: 'male' as BodyType, id: 'slim', name: 'Slim', description: 'Lean and slender build' },
-  { type: 'male' as BodyType, id: 'average', name: 'Average', description: 'Balanced proportions' },
-  { type: 'male' as BodyType, id: 'athletic', name: 'Athletic', description: 'Toned and fit' },
-  { type: 'male' as BodyType, id: 'heavy', name: 'Heavy', description: 'Broad and sturdy' },
+export const BODY_TYPES: { id: BodyType; name: string; description: string }[] = [
+  { id: 'male', name: 'Male', description: 'Masculine body type' },
+  { id: 'female', name: 'Female', description: 'Feminine body type' },
 ];
-
-/**
- * Height range configuration
- */
-export const HEIGHT_CONFIG = {
-  min: 1.55, // meters
-  max: 1.95, // meters
-  default: 1.75, // meters
-  /** Convert 0-1 slider value to actual height in meters */
-  toMeters: (value: number): number => {
-    return HEIGHT_CONFIG.min + value * (HEIGHT_CONFIG.max - HEIGHT_CONFIG.min);
-  },
-  /** Convert height in meters to 0-1 slider value */
-  toSlider: (meters: number): number => {
-    return (meters - HEIGHT_CONFIG.min) / (HEIGHT_CONFIG.max - HEIGHT_CONFIG.min);
-  },
-  /** Format height for display */
-  format: (value: number): string => {
-    const meters = HEIGHT_CONFIG.toMeters(value);
-    const feet = Math.floor(meters * 3.28084);
-    const inches = Math.round((meters * 3.28084 - feet) * 12);
-    return `${meters.toFixed(2)}m / ${feet}'${inches}"`;
-  },
-};
-
-/**
- * Morph target name mapping
- * Maps our config keys to actual morph target names in the GLB
- */
-export const MORPH_TARGET_NAMES = {
-  // Face morphs (on Head mesh)
-  facePreset_1: 'FacePreset_01',
-  facePreset_2: 'FacePreset_02',
-  facePreset_3: 'FacePreset_03',
-  facePreset_4: 'FacePreset_04',
-  facePreset_5: 'FacePreset_05',
-  facePreset_6: 'FacePreset_06',
-  eyeSize: 'EyeSize',
-  eyeSpacing: 'EyeSpacing',
-  noseWidth: 'NoseWidth',
-  noseLength: 'NoseLength',
-  jawWidth: 'JawWidth',
-  chinLength: 'ChinLength',
-  lipFullness: 'LipFullness',
-  cheekboneHeight: 'CheekboneHeight',
-
-  // Extended face morphs (RPM-like detail)
-  eyeTilt: 'EyeTilt',
-  eyeDepth: 'EyeDepth',
-  upperEyelid: 'UpperEyelid',
-  lowerEyelid: 'LowerEyelid',
-  eyebrowHeight: 'EyebrowHeight',
-  eyebrowArch: 'EyebrowArch',
-  noseBridge: 'NoseBridge',
-  noseTip: 'NoseTip',
-  nostrilFlare: 'NostrilFlare',
-  noseProfile: 'NoseProfile',
-  mouthWidth: 'MouthWidth',
-  upperLipSize: 'UpperLipSize',
-  lowerLipSize: 'LowerLipSize',
-  mouthCorners: 'MouthCorners',
-  chinProtrusion: 'ChinProtrusion',
-  chinCleft: 'ChinCleft',
-  faceLength: 'FaceLength',
-  foreheadHeight: 'ForeheadHeight',
-
-  // Body morphs (on Body mesh)
-  build_slim: 'Build_Slim',
-  build_athletic: 'Build_Athletic',
-  build_heavy: 'Build_Heavy',
-  shoulderWidth: 'ShoulderWidth',
-};

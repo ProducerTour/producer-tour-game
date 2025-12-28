@@ -308,7 +308,7 @@ export const ChunkGrass = React.memo(function ChunkGrass({
       // =================================================================
       // DENSITY VARIATION
       // =================================================================
-      const densityNoise = (terrainGen as any).noise?.fbm2?.(x * 0.03, z * 0.03, 2, 0.5, 2.0, 1.0) ?? 0;
+      const densityNoise = terrainGen.noise.fbm2(x * 0.03, z * 0.03, 2, 0.5, 2.0, 1.0);
       const grassDensity = 0.7 + densityNoise * 0.3;
       if (randDensity > grassDensity) continue;
 

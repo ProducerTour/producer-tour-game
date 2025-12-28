@@ -62,6 +62,30 @@ interface QuestStepContext {
   actionData?: Record<string, unknown>;
 }
 
+/**
+ * Selfie analysis result - maps to CharacterConfig
+ */
+interface SelfieAnalysisResult {
+  bodyType: 'male' | 'female' | 'neutral';
+  skinTone: string; // hex color
+  eyeColor: string; // hex color
+  hairColor: string; // hex color
+  facePreset: number; // 1-6
+  build: 'slim' | 'average' | 'athletic' | 'heavy';
+  // Facial feature adjustments (-1 to 1)
+  eyeSize: number;
+  eyeSpacing: number;
+  noseWidth: number;
+  noseLength: number;
+  jawWidth: number;
+  chinLength: number;
+  lipFullness: number;
+  cheekboneHeight: number;
+  // Hair style suggestion (matches available hair styles)
+  hairStyleSuggestion: 'short' | 'medium' | 'long' | 'bald' | 'curly' | 'wavy' | 'straight' | 'afro' | 'ponytail' | 'braids' | 'buzzcut' | 'mohawk';
+  confidence: number; // 0-1 confidence in detection
+}
+
 class OpenAIService {
   private client: OpenAI | null = null;
   private enabled: boolean;
@@ -380,6 +404,101 @@ Provide a comprehensive explanation that helps a music producer understand exact
     }
 
     return JSON.parse(content) as QuestStepExplanation;
+  }
+
+  /**
+   * Analyze a selfie image and extract facial features for avatar generation
+   * Uses OpenAI Vision to detect skin tone, eye color, face shape, etc.
+   */
+  async analyzeSelfie(imageBase64: string): Promise<SelfieAnalysisResult> {
+    this.assertEnabled();
+
+    const systemPrompt = `You are an expert at analyzing human faces in photographs to create accurate 3D avatar representations. Analyze the provided selfie and return a JSON object with the following properties:
+
+{
+  "bodyType": "male" | "female" | "neutral",
+  "skinTone": "#XXXXXX" (hex color matching their actual skin tone),
+  "eyeColor": "#XXXXXX" (hex color of their iris),
+  "hairColor": "#XXXXXX" (hex color of their hair, or "#1A1A1A" if bald),
+  "facePreset": 1-6 (choose the closest match:
+    1 = Oval face, balanced features
+    2 = Round face, soft features
+    3 = Square face, strong jaw
+    4 = Heart-shaped face, wider forehead
+    5 = Oblong face, longer proportions
+    6 = Diamond face, prominent cheekbones),
+  "build": "slim" | "average" | "athletic" | "heavy" (estimate from visible features),
+  "eyeSize": -1 to 1 (negative = smaller, positive = larger than average),
+  "eyeSpacing": -1 to 1 (negative = closer, positive = wider apart),
+  "noseWidth": -1 to 1 (negative = narrower, positive = wider),
+  "noseLength": -1 to 1 (negative = shorter, positive = longer),
+  "jawWidth": -1 to 1 (negative = narrower, positive = wider),
+  "chinLength": -1 to 1 (negative = shorter, positive = longer),
+  "lipFullness": -1 to 1 (negative = thinner, positive = fuller),
+  "cheekboneHeight": -1 to 1 (negative = lower, positive = higher/more prominent),
+  "hairStyleSuggestion": "short" | "medium" | "long" | "bald" | "curly" | "wavy" | "straight" | "afro" | "ponytail" | "braids" | "buzzcut" | "mohawk",
+  "confidence": 0-1 (your confidence in the accuracy of this analysis)
+}
+
+Important guidelines:
+- Be accurate and objective in color detection
+- Use realistic hex values that match real human skin tones
+- Facial feature values should be subtle (-0.3 to 0.3 range) unless features are notably different from average
+- If the face is partially obscured, reduce confidence accordingly
+- Return valid JSON only, no additional text`;
+
+    // Remove the data URL prefix if present
+    let imageData = imageBase64;
+    if (imageData.startsWith('data:')) {
+      imageData = imageData.split(',')[1];
+    }
+
+    const response = await this.client!.chat.completions.create({
+      model: 'gpt-4o', // Vision-capable model
+      messages: [
+        { role: 'system', content: systemPrompt },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Analyze this selfie and extract facial features for avatar creation:',
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${imageData}`,
+                detail: 'high',
+              },
+            },
+          ],
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+      max_tokens: 1000,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No response from OpenAI');
+    }
+
+    const result = JSON.parse(content) as SelfieAnalysisResult;
+
+    // Validate and clamp values
+    result.facePreset = Math.max(1, Math.min(6, Math.round(result.facePreset)));
+    result.eyeSize = Math.max(-1, Math.min(1, result.eyeSize));
+    result.eyeSpacing = Math.max(-1, Math.min(1, result.eyeSpacing));
+    result.noseWidth = Math.max(-1, Math.min(1, result.noseWidth));
+    result.noseLength = Math.max(-1, Math.min(1, result.noseLength));
+    result.jawWidth = Math.max(-1, Math.min(1, result.jawWidth));
+    result.chinLength = Math.max(-1, Math.min(1, result.chinLength));
+    result.lipFullness = Math.max(-1, Math.min(1, result.lipFullness));
+    result.cheekboneHeight = Math.max(-1, Math.min(1, result.cheekboneHeight));
+    result.confidence = Math.max(0, Math.min(1, result.confidence));
+
+    return result;
   }
 }
 

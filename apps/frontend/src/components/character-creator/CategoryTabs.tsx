@@ -4,7 +4,7 @@
  */
 
 import { motion } from 'framer-motion';
-import { User, Smile, Scissors } from 'lucide-react';
+import { User, Scissors } from 'lucide-react';
 import {
   useCharacterCreatorStore,
   type CustomizeCategory,
@@ -14,6 +14,7 @@ interface CategoryTabsProps {
   horizontal?: boolean;
 }
 
+// Simplified for MVP - body + hair only (no face morphs)
 const CATEGORIES: {
   id: CustomizeCategory;
   label: string;
@@ -24,13 +25,7 @@ const CATEGORIES: {
     id: 'body',
     label: 'Body',
     icon: User,
-    description: 'Skin, height, build',
-  },
-  {
-    id: 'face',
-    label: 'Face',
-    icon: Smile,
-    description: 'Features & details',
+    description: 'Skin tone & type',
   },
   {
     id: 'hair',

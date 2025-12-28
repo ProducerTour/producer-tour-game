@@ -498,6 +498,35 @@ export interface StaticTerrainProps {
 
   /** Called with grass generation progress (0-100) during loading */
   onGrassGenerationProgress?: (percent: number) => void;
+
+  // === Spotlight (Flashlight) ===
+
+  /** Whether spotlight is enabled/on */
+  spotlightEnabled?: boolean;
+
+  /** Spotlight world position */
+  spotlightPosition?: THREE.Vector3;
+
+  /** Spotlight direction (normalized) */
+  spotlightDirection?: THREE.Vector3;
+
+  /** Spotlight color */
+  spotlightColor?: THREE.Color;
+
+  /** Spotlight intensity */
+  spotlightIntensity?: number;
+
+  /** Spotlight max distance */
+  spotlightDistance?: number;
+
+  /** Spotlight cone angle in radians */
+  spotlightAngle?: number;
+
+  /** Spotlight penumbra (0-1, edge softness) */
+  spotlightPenumbra?: number;
+
+  /** Spotlight decay (attenuation exponent) */
+  spotlightDecay?: number;
 }
 
 export function StaticTerrain({
@@ -559,6 +588,16 @@ export function StaticTerrain({
   ambientSkyColor,
   ambientGroundColor,
   timeOfDayFogColor,
+  // Spotlight (flashlight) props
+  spotlightEnabled,
+  spotlightPosition,
+  spotlightDirection,
+  spotlightColor,
+  spotlightIntensity,
+  spotlightDistance,
+  spotlightAngle,
+  spotlightPenumbra,
+  spotlightDecay,
   // Grass generation progress callback
   onGrassGenerationProgress,
 }: StaticTerrainProps) {
@@ -600,10 +639,6 @@ export function StaticTerrain({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   void hydrology; // Keep reference to prevent tree-shaking
 
-  // Debug: Log grass configuration on mount
-  useEffect(() => {
-    console.log(`🌾 ProceduralTerrain: proceduralGrassEnabled=${proceduralGrassEnabled}, terrainGen=${!!terrainGen}`);
-  }, [proceduralGrassEnabled, terrainGen]);
 
   // Convert hex color to THREE.Color for terrain material
   const fogColorThree = useMemo(() => new THREE.Color(fogColor), [fogColor]);
@@ -629,6 +664,16 @@ export function StaticTerrain({
     sunIntensity,
     ambientSkyColor,
     ambientGroundColor,
+    // Spotlight (flashlight) for terrain illumination
+    spotlightEnabled,
+    spotlightPosition,
+    spotlightDirection,
+    spotlightColor,
+    spotlightIntensity,
+    spotlightDistance,
+    spotlightAngle,
+    spotlightPenumbra,
+    spotlightDecay,
   });
   const fallbackMaterial = useFallbackMaterial(color);
   const material = textured ? terrainMaterial : fallbackMaterial;
@@ -724,12 +769,6 @@ export function StaticTerrain({
   // === TERRAIN VISIBILITY (hide until grass is ready to prevent green plane) ===
   const [terrainVisible, setTerrainVisible] = useState(!proceduralGrassEnabled);
 
-  // Log when grass manager is active
-  useEffect(() => {
-    if (proceduralGrassEnabled && terrainGen) {
-      console.log(`🌾 GrassManager: ${chunks.length} chunks will generate in background`);
-    }
-  }, [chunks.length, proceduralGrassEnabled, terrainGen]);
 
   return (
     <group name="static-terrain">

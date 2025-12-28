@@ -42,9 +42,8 @@ function WeaponPreloaderScene({ onReady }: { onReady: () => void }) {
     const timer = setTimeout(() => {
       try {
         gl.compile(scene, camera);
-        console.log('🔧 Weapon shaders pre-compiled during loading');
-      } catch (error) {
-        console.warn('Weapon shader pre-compilation failed:', error);
+      } catch {
+        // Shader pre-compilation failed, will compile on first use
       }
       onReady();
     }, 100);
@@ -105,14 +104,13 @@ function GrassPreloaderScene({ onReady }: { onReady: () => void }) {
 
         await new Promise(resolve => setTimeout(resolve, 50));
         gl.compile(scene, camera);
-        console.log('🌾 Grass shaders pre-compiled during loading');
 
         scene.remove(mesh);
         instancedGeometry.dispose();
         material.dispose();
         geometry.dispose();
-      } catch (error) {
-        console.warn('Grass shader pre-compilation failed:', error);
+      } catch {
+        // Grass shader pre-compilation failed, will compile on first use
       }
 
       onReady();

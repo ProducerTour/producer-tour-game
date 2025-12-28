@@ -82,3 +82,4 @@ apps/frontend/ios/DerivedData/
 # Local dev animations/models (use R2 CDN URLs in production)
 apps/frontend/public/animations/
 apps/frontend/public/models/
+scripts/blender/addons/CharMorph-db.zip

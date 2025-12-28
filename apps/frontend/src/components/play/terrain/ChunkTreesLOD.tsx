@@ -475,15 +475,7 @@ export const ChunkTreesLOD = React.memo(function ChunkTreesLOD({
       const mountainMask = terrainGen.getMountainZoneMask(x, z);
       if (mountainMask > 0.7) continue;
 
-      const densityNoise =
-        (terrainGen as any).noise?.fbm2?.(
-          x * 0.015,
-          z * 0.015,
-          2,
-          0.5,
-          2.0,
-          1.0
-        ) ?? 0;
+      const densityNoise = terrainGen.noise.fbm2(x * 0.015, z * 0.015, 2, 0.5, 2.0, 1.0);
       const forestDensity = 0.5 + densityNoise * 0.35;
       if (randDensity > forestDensity) continue;
 

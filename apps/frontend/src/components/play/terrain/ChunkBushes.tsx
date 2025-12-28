@@ -255,7 +255,7 @@ export const ChunkBushes = React.memo(function ChunkBushes({
       if (mountainMask > 0.5) continue;
 
       // Density variation - bushes cluster more than trees
-      const densityNoise = (terrainGen as any).noise?.fbm2?.(x * 0.03, z * 0.03, 2, 0.5, 2.0, 1.0) ?? 0;
+      const densityNoise = terrainGen.noise.fbm2(x * 0.03, z * 0.03, 2, 0.5, 2.0, 1.0);
       const bushDensity = 0.4 + densityNoise * 0.4;
       if (randDensity > bushDensity) continue;
 

@@ -3,6 +3,7 @@ import { useSocket } from '../../../hooks/useSocket';
 import { useAuthStore } from '../../../store/auth.store';
 import { usePlayerStore } from '../../../store/player.store';
 import * as THREE from 'three';
+import type { CharacterConfig } from '../../../lib/character/types';
 
 // Debug logging - set to false to reduce console spam
 const DEBUG_MULTIPLAYER = false;
@@ -14,6 +15,7 @@ export interface Player3D {
   rotation: { x: number; y: number; z: number };
   color: string;
   avatarUrl?: string;
+  avatarConfig?: CharacterConfig; // Custom avatar configuration
   animationState?: string; // Current animation name (idle, walking, running, etc.)
   weaponType?: 'none' | 'rifle' | 'pistol'; // Current equipped weapon
   lastUpdate: number;
@@ -22,6 +24,7 @@ export interface Player3D {
 interface UsePlayMultiplayerProps {
   enabled?: boolean;
   avatarUrl?: string;
+  avatarConfig?: CharacterConfig; // Custom avatar config for local player
 }
 
 interface UsePlayMultiplayerReturn {
@@ -36,6 +39,7 @@ interface UsePlayMultiplayerReturn {
 export function usePlayMultiplayer({
   enabled = true,
   avatarUrl,
+  avatarConfig,
 }: UsePlayMultiplayerProps = {}): UsePlayMultiplayerReturn {
   const { socket, isConnected } = useSocket();
   const { user } = useAuthStore();
@@ -65,6 +69,8 @@ export function usePlayMultiplayer({
         color,
         room: 'play',
         avatarUrl,
+        // Send avatarConfig for custom avatar rendering
+        ...(avatarConfig && { avatarConfig }),
       });
       setIsInRoom(true);
     } else if (!enabled && isInRoom) {
@@ -74,7 +80,7 @@ export function usePlayMultiplayer({
       setIsInRoom(false);
       setOtherPlayers([]);
     }
-  }, [enabled, socket, isConnected, isInRoom, username, color, avatarUrl]);
+  }, [enabled, socket, isConnected, isInRoom, username, color, avatarUrl, avatarConfig]);
 
   // Set up socket event listeners
   useEffect(() => {
@@ -134,6 +140,7 @@ export function usePlayMultiplayer({
       username?: string;
       color?: string;
       avatarUrl?: string;
+      avatarConfig?: CharacterConfig;
     }) => {
       setOtherPlayers((prev) =>
         prev.map((p) =>
@@ -143,6 +150,7 @@ export function usePlayMultiplayer({
                 ...(data.username && { username: data.username }),
                 ...(data.color && { color: data.color }),
                 ...(data.avatarUrl && { avatarUrl: data.avatarUrl }),
+                ...(data.avatarConfig && { avatarConfig: data.avatarConfig }),
               }
             : p
         )

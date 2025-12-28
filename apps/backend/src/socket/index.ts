@@ -37,6 +37,7 @@ interface Player3D {
   color: string;
   shipModel: 'rocket' | 'fighter' | 'unaf' | 'monkey';
   avatarUrl?: string; // For play room - Ready Player Me avatar
+  avatarConfig?: Record<string, unknown>; // Custom avatar configuration (CharacterConfig)
   animationState?: string; // Current animation (idle, walking, running, etc.)
   weaponType?: 'none' | 'rifle' | 'pistol'; // Current equipped weapon
   lastUpdate: number;
@@ -733,7 +734,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
     // === 3D MULTIPLAYER EVENTS ===
 
     // Join 3D room (space, holdings, or play)
-    socket.on('3d:join', async (data: { username: string; shipModel?: string; room?: 'space' | 'holdings' | 'play'; avatarUrl?: string; color?: string }) => {
+    socket.on('3d:join', async (data: { username: string; shipModel?: string; room?: 'space' | 'holdings' | 'play'; avatarUrl?: string; avatarConfig?: Record<string, unknown>; color?: string }) => {
       try {
         const username = data.username || `User_${socket.id.slice(0, 4)}`;
         const room = data.room || 'space';
@@ -767,6 +768,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
           color,
           shipModel,
           avatarUrl: data.avatarUrl, // Store avatar URL for play room
+          avatarConfig: data.avatarConfig, // Store custom avatar config
           lastUpdate: Date.now(),
           room,
         };
@@ -782,7 +784,8 @@ export function initializeSocket(httpServer: HttpServer): Server {
 
         // Log appropriate message based on room type
         if (room === 'play') {
-          console.log(`🎮 Player ${username} (${socket.id}) joined play-room${data.avatarUrl ? ' with avatar' : ''}`);
+          const avatarType = data.avatarConfig ? ' with custom avatar' : data.avatarUrl ? ' with RPM avatar' : '';
+          console.log(`🎮 Player ${username} (${socket.id}) joined play-room${avatarType}`);
         } else {
           console.log(`🚀 Player ${username} (${socket.id}) joined ${socketRoom} with ship: ${shipModel}`);
         }

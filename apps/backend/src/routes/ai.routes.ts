@@ -332,4 +332,69 @@ router.post('/explain-quest-step', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /api/ai/analyze-selfie
+ * Analyze a selfie image and extract facial features for avatar generation
+ */
+router.post('/analyze-selfie', async (req: Request, res: Response) => {
+  try {
+    if (!openaiService.isEnabled()) {
+      return res.status(503).json({
+        success: false,
+        error: 'AI service is not configured. Set OPENAI_API_KEY to enable.',
+      });
+    }
+
+    const { imageData } = req.body;
+
+    if (!imageData || typeof imageData !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Image data is required (base64 string)',
+      });
+    }
+
+    // Basic validation - check if it looks like base64 or data URL
+    const isDataUrl = imageData.startsWith('data:image/');
+    const isBase64 = /^[A-Za-z0-9+/=]+$/.test(imageData.replace(/\s/g, ''));
+
+    if (!isDataUrl && !isBase64) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid image data format. Expected base64 string or data URL.',
+      });
+    }
+
+    // Check approximate file size (base64 is ~4/3 of original)
+    const estimatedSize = (imageData.length * 3) / 4;
+    const maxSize = 10 * 1024 * 1024; // 10MB limit
+
+    if (estimatedSize > maxSize) {
+      return res.status(400).json({
+        success: false,
+        error: 'Image too large. Maximum size is 10MB.',
+      });
+    }
+
+    console.log('[analyze-selfie] Analyzing selfie image...');
+    const startTime = Date.now();
+
+    const analysis = await openaiService.analyzeSelfie(imageData);
+
+    const duration = Date.now() - startTime;
+    console.log(`[analyze-selfie] Analysis complete in ${duration}ms, confidence: ${analysis.confidence}`);
+
+    res.json({
+      success: true,
+      analysis,
+    });
+  } catch (error) {
+    console.error('[analyze-selfie] ERROR:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to analyze selfie',
+    });
+  }
+});
+
 export default router;

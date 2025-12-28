@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { Leva } from 'leva';
 import { PlayWorld, type PlayerInfo } from '../components/play/PlayWorld';
-import { AvatarCreator } from '../components/play/AvatarCreator';
 import { useTerrainPreloader } from '../components/play/hooks/useTerrainPreloader';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { Crosshair, HotbarHUD, DeathOverlay } from '../components/play/hud';
@@ -32,8 +31,9 @@ import { WorldMap } from '../components/play/ui/WorldMap';
 import { InventorySystem } from '../components/play/inventory';
 import { useInventoryStore } from '../lib/economy/inventoryStore';
 import { addSampleItemsToInventory, getItemById } from '../lib/economy/itemDatabase';
-import { userApi } from '../lib/api';
+import { userApi, avatarApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
+import type { CharacterConfig } from '../lib/character/types';
 import { useGameSettings, SHADOW_MAP_SIZES } from '../store/gameSettings.store';
 import { useSocket } from '../hooks/useSocket';
 import { useServerVersion } from '../hooks/useServerVersion';
@@ -718,7 +718,7 @@ export default function PlayPage() {
   const savedState = useRef(loadWorldState());
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(savedState.current?.avatarUrl || null);
-  const [isAvatarCreatorOpen, setIsAvatarCreatorOpen] = useState(false);
+  const [avatarConfig, setAvatarConfig] = useState<CharacterConfig | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   // Adaptive DPR - starts at 1.5, scales down on low FPS, up on high FPS
   const [dpr, setDpr] = useState(1);
@@ -881,22 +881,22 @@ export default function PlayPage() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        // Don't pause if welcome modal or avatar creator is open
-        if (showWelcome || isAvatarCreatorOpen) return;
+        // Don't pause if welcome modal is open
+        if (showWelcome) return;
         setIsPaused(prev => !prev);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showWelcome, isAvatarCreatorOpen]);
+  }, [showWelcome]);
 
   // Handle M key for world map toggle
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'KeyM') {
-        // Don't toggle map if welcome modal, pause, or avatar creator is open
-        if (showWelcome || isPaused || isAvatarCreatorOpen) return;
+        // Don't toggle map if welcome modal or pause is open
+        if (showWelcome || isPaused) return;
         e.preventDefault();
         setShowWorldMap(prev => !prev);
       }
@@ -904,7 +904,7 @@ export default function PlayPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showWelcome, isPaused, isAvatarCreatorOpen]);
+  }, [showWelcome, isPaused]);
 
   // Sync inventory open state with the inventory store
   const setInventoryOpen = useInventoryStore((s) => s.setInventoryOpen);
@@ -913,8 +913,8 @@ export default function PlayPage() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Tab' || e.code === 'KeyI') {
-        // Don't toggle inventory if welcome modal, pause, or avatar creator is open
-        if (showWelcome || isPaused || isAvatarCreatorOpen) return;
+        // Don't toggle inventory if welcome modal or pause is open
+        if (showWelcome || isPaused) return;
         e.preventDefault();
         setShowInventory(prev => !prev);
       }
@@ -922,7 +922,7 @@ export default function PlayPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showWelcome, isPaused, isAvatarCreatorOpen]);
+  }, [showWelcome, isPaused]);
 
   // Sync showInventory state with store for other components to read
   useEffect(() => {
@@ -951,6 +951,7 @@ export default function PlayPage() {
       if (user) {
         // User is logged in - load from backend
         try {
+          // Load RPM avatar URL (legacy)
           const response = await userApi.getAvatar();
           if (response.data.avatarUrl) {
             setAvatarUrl(response.data.avatarUrl);
@@ -964,49 +965,48 @@ export default function PlayPage() {
             setAvatarUrl(savedAvatar);
           }
         }
+
+        // Load custom avatar config (new system)
+        try {
+          const configResponse = await avatarApi.getConfig();
+          if (configResponse.data.config) {
+            setAvatarConfig(configResponse.data.config as CharacterConfig);
+            console.log('Custom avatar config loaded from backend');
+          }
+        } catch (error) {
+          // Custom avatar config is optional - don't log error if not found
+          console.log('No custom avatar config found, using RPM avatar if available');
+        }
       } else {
         // Guest user - load from localStorage
         const savedAvatar = localStorage.getItem('producerTour_avatarUrl');
         if (savedAvatar) {
           setAvatarUrl(savedAvatar);
         }
+        // Load custom avatar config from localStorage for guests
+        const savedConfig = localStorage.getItem('producerTour_avatarConfig');
+        if (savedConfig) {
+          try {
+            setAvatarConfig(JSON.parse(savedConfig) as CharacterConfig);
+          } catch (e) {
+            console.error('Failed to parse saved avatar config:', e);
+          }
+        }
       }
     };
     loadAvatar();
   }, [user]);
 
-  // Handle avatar creation - save to API if logged in, otherwise to localStorage
-  const handleAvatarCreated = async (url: string) => {
-    setAvatarUrl(url);
-    setIsAvatarCreatorOpen(false);
-
-    if (user) {
-      // User is logged in - save to backend
-      try {
-        await userApi.updateAvatar(url);
-        console.log('Avatar saved to backend');
-      } catch (error) {
-        console.error('Failed to save avatar to backend:', error);
-        // Fallback to localStorage
-        localStorage.setItem('producerTour_avatarUrl', url);
-      }
-    } else {
-      // Guest user - save to localStorage
-      localStorage.setItem('producerTour_avatarUrl', url);
-    }
-  };
+  // Navigate to character creator
+  const openCharacterCreator = useCallback(() => {
+    navigate('/character-creator');
+  }, [navigate]);
 
   // Handle entering the world
   const handleEnterWorld = useCallback(() => {
     setShowWelcome(false);
     // Remember that user has entered the world (persists for session)
     sessionStorage.setItem('producerTour_hasEnteredWorld', 'true');
-    focusContainer();
-  }, [focusContainer]);
-
-  // Handle closing avatar creator
-  const handleCloseAvatarCreator = useCallback(() => {
-    setIsAvatarCreatorOpen(false);
     focusContainer();
   }, [focusContainer]);
 
@@ -1043,13 +1043,6 @@ export default function PlayPage() {
         )}
       </AnimatePresence>
 
-      {/* Avatar Creator Modal */}
-      <AvatarCreator
-        isOpen={isAvatarCreatorOpen}
-        onClose={handleCloseAvatarCreator}
-        onAvatarCreated={handleAvatarCreated}
-      />
-
       {/* Pause Menu */}
       <AnimatePresence>
         {isPaused && !showSettings && (
@@ -1075,7 +1068,7 @@ export default function PlayPage() {
         )}
       </AnimatePresence>
 
-      {/* Avatar Button - Top Right */}
+      {/* Character Creator Button - Top Right */}
       {!showWelcome && (
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -1085,18 +1078,18 @@ export default function PlayPage() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setIsAvatarCreatorOpen(true)}
+            onClick={openCharacterCreator}
             className={`
               p-3 rounded-xl backdrop-blur-xl transition-all duration-300
-              ${avatarUrl
+              ${avatarConfig
                 ? 'bg-violet-600/30 border-violet-500/50'
                 : 'bg-black/40 border-white/10 hover:bg-white/10 hover:border-white/20'
               }
               border
             `}
-            title="Create Avatar"
+            title="Customize Character"
           >
-            <User className={`w-5 h-5 ${avatarUrl ? 'text-violet-400' : 'text-white/70'}`} />
+            <User className={`w-5 h-5 ${avatarConfig ? 'text-violet-400' : 'text-white/70'}`} />
           </motion.button>
         </motion.div>
       )}
@@ -1150,6 +1143,7 @@ export default function PlayPage() {
               {showFps && <Stats />}
               <PlayWorld
                 avatarUrl={avatarUrl || undefined}
+                avatarConfig={avatarConfig || undefined}
                 isPaused={showInventory || isPaused}
                 onPlayerPositionChange={(pos) => setPlayerCoords({ x: pos.x, y: pos.y, z: pos.z })}
                 onPlayerRotationChange={setPlayerRotation}

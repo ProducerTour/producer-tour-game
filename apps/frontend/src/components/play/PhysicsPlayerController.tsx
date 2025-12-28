@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { useControls, folder } from 'leva';
 import { useKeyboardControls } from './hooks/useKeyboardControls';
 import { useCombatStore } from './combat/useCombatStore';
+import { useFlashlightStore } from '../../stores/useFlashlightStore';
 import { useRecoil } from './combat/useRecoil';
 import { useHitDetection } from './combat/useHitDetection';
 import { useDevStore } from './debug/useDevStore';
@@ -123,7 +124,11 @@ export function PhysicsPlayerController({
 
   // Combat store for aim/fire state - use selectors to prevent re-renders
   const currentWeapon = useCombatStore((s) => s.currentWeapon);
+  const isFlashlightEquipped = useFlashlightStore((s) => s.isEquipped);
   const isAiming = useCombatStore((s) => s.isAiming);
+
+  // Combined equipment check - enables pointer lock for both weapons and flashlight
+  const hasEquipment = currentWeapon !== 'none' || isFlashlightEquipped;
   const setAiming = useCombatStore((s) => s.setAiming);
   const isFiring = useCombatStore((s) => s.isFiring);
   const setFiring = useCombatStore((s) => s.setFiring);
@@ -332,7 +337,6 @@ export function PhysicsPlayerController({
         rigidBodyRef.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
         movementCalculator.reset(); // Reset movement state on teleport
         slopeAlignment.reset();     // Reset slope tilt on teleport
-        console.log(`Teleported to (${x}, ${y}, ${z})`);
       }
     };
 
@@ -356,7 +360,6 @@ export function PhysicsPlayerController({
         // Reset fall damage tracking
         lastFallDamageTime.current = 0;
         previousAirState.current = 'grounded';
-        console.log('Player respawned at spawn point');
       }
     };
 
@@ -364,7 +367,7 @@ export function PhysicsPlayerController({
     return () => window.removeEventListener('player:respawn', handleRespawn);
   }, [movementCalculator, slopeAlignment, airStateMachine]);
 
-  // Mouse camera orbit with pointer lock when weapon equipped
+  // Mouse camera orbit with pointer lock when weapon OR flashlight equipped
   useEffect(() => {
     const canvas = gl.domElement;
     const sensitivity = 0.003;
@@ -377,22 +380,22 @@ export function PhysicsPlayerController({
       if (isPointerLocked.current) {
         canvas.style.cursor = 'none';
       } else {
-        canvas.style.cursor = currentWeapon !== 'none' ? 'crosshair' : 'grab';
+        canvas.style.cursor = hasEquipment ? 'crosshair' : 'grab';
       }
     };
 
     const onMouseDown = (e: MouseEvent) => {
       // Left-click (button 0) - orbit camera (or fire when aiming, handled in useKeyboardControls)
-      // Right-click (button 2) - aim (handled in useKeyboardControls) or orbit if no weapon
+      // Right-click (button 2) - aim (handled in useKeyboardControls) or orbit if no equipment
       if (e.button === 0) {
-        // Only orbit with left-click if NOT aiming and no weapon
-        if (!isAiming && currentWeapon === 'none') {
+        // Only orbit with left-click if NOT aiming and no equipment
+        if (!isAiming && !hasEquipment) {
           isDragging.current = true;
           lastMouse.current = { x: e.clientX, y: e.clientY };
         }
       } else if (e.button === 2) {
-        // Right-click: orbit only if no weapon equipped
-        if (currentWeapon === 'none') {
+        // Right-click: orbit only if no equipment
+        if (!hasEquipment) {
           isDragging.current = true;
           lastMouse.current = { x: e.clientX, y: e.clientY };
         }
@@ -423,7 +426,7 @@ export function PhysicsPlayerController({
         return;
       }
 
-      // Normal orbit when dragging (no weapon)
+      // Normal orbit when dragging (no equipment)
       if (!isDragging.current) return;
       orbitAngle.current -= (e.clientX - lastMouse.current.x) * sensitivity;
       // Pitch range: -0.6 (look up ~34°) to 1.2 (look down ~69°)
@@ -433,16 +436,16 @@ export function PhysicsPlayerController({
 
     const onContextMenu = (e: Event) => e.preventDefault();
 
-    // Update cursor based on weapon state
-    canvas.style.cursor = currentWeapon !== 'none' ? 'crosshair' : 'grab';
+    // Update cursor based on equipment state (weapon or flashlight)
+    canvas.style.cursor = hasEquipment ? 'crosshair' : 'grab';
 
-    // Automatically request pointer lock when weapon is equipped
-    if (currentWeapon !== 'none' && !isPointerLocked.current) {
+    // Automatically request pointer lock when equipment is equipped
+    if (hasEquipment && !isPointerLocked.current) {
       canvas.requestPointerLock?.();
     }
 
-    // Exit pointer lock when weapon is unequipped
-    if (currentWeapon === 'none' && isPointerLocked.current) {
+    // Exit pointer lock when equipment is unequipped
+    if (!hasEquipment && isPointerLocked.current) {
       document.exitPointerLock?.();
     }
 
@@ -461,7 +464,7 @@ export function PhysicsPlayerController({
       canvas.removeEventListener('contextmenu', onContextMenu);
       window.removeEventListener('mouseup', onMouseUp);
     };
-  }, [gl, isAiming, currentWeapon]);
+  }, [gl, isAiming, hasEquipment]);
 
   // Sync aim/fire keys with combat store
   useEffect(() => {
@@ -868,7 +871,6 @@ export function PhysicsPlayerController({
       if (damage > 0) {
         takeDamage(damage);
         lastFallDamageTime.current = currentTime;
-        console.log(`[FALL DAMAGE] Fell ${landingDistance.toFixed(1)}m, took ${damage} damage`);
       }
     }
 
@@ -880,22 +882,7 @@ export function PhysicsPlayerController({
     // This eliminates the duplicate state tracking that was causing inconsistency
     const shouldJump = (jumpKeyPressed && airStateResult.canJump) || airStateResult.shouldExecuteBufferedJump;
 
-    // DEBUG: Log jump state to diagnose multi-jump issue
-    if (jumpKeyPressed) {
-      console.log('[JUMP DEBUG]', {
-        jumpKeyPressed,
-        canJump: airStateResult.canJump,
-        hasJumped: airStateResult.hasJumped,
-        state: airStateResult.state,
-        isGrounded: groundState.isGrounded,
-        shouldJump,
-        vy: linvel.y,
-        posY: position.y,
-      });
-    }
-
     if (shouldJump) {
-      console.log('[JUMP EXECUTED] vy =', JUMP_FORCE);
       vy = JUMP_FORCE;
       // Notify air state machine that a jump was executed (it tracks hasJumped internally)
       airStateMachine.notifyJump();
@@ -1020,16 +1007,6 @@ export function PhysicsPlayerController({
       vz = 0;
       movementCalculator.reset(); // Reset hook's internal speed state
       slopeAlignment.reset();     // Reset slope tilt on recovery
-    }
-
-    // DEBUG: Log every 60 frames to see velocity trend
-    if (Math.random() < 0.02) {  // ~once per second at 60fps
-      console.log('[VELOCITY DEBUG]', {
-        vy: vy.toFixed(2),
-        isGrounded: groundState.isGrounded,
-        state: airStateResult.state,
-        posY: position.y.toFixed(2),
-      });
     }
 
     rb.setLinvel({ x: vx, y: vy, z: vz }, true);

@@ -1,17 +1,14 @@
 /**
  * Character Creator Store
- * Manages state for the character creation page including:
- * - Manual customization (body, face, hair)
- * - Selfie-to-avatar AI generation
- * - Undo/redo history
- * - Save/load persistence
+ * Simplified for colors-only customization (MVP)
  */
 
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { persist } from 'zustand/middleware';
-import type { CharacterConfig, BodyType, BuildType } from '../lib/character/types';
-import { createDefaultCharacterConfig, FACE_PRESETS } from '../lib/character/defaults';
+import { useShallow } from 'zustand/react/shallow';
+import type { CharacterConfig, BodyType } from '../lib/character/types';
+import { createDefaultCharacterConfig } from '../lib/character/defaults';
 import { avatarApi } from '../lib/api';
 
 // Generation status for AI selfie-to-avatar
@@ -20,18 +17,16 @@ export type GenerationStatus =
   | 'capturing'
   | 'uploading'
   | 'analyzing'
-  | 'generating_mesh'
-  | 'applying_textures'
-  | 'finalizing'
+  | 'generating'
   | 'complete'
   | 'error';
 
 // Tab modes for the character creator
 export type CreatorMode = 'customize' | 'selfie';
-export type CustomizeCategory = 'body' | 'face' | 'hair';
+export type CustomizeCategory = 'body' | 'hair';
 
 // Preview animation options
-export type PreviewAnimation = 'idle' | 'walk' | 'dance' | 'wave';
+export type PreviewAnimation = 'idle' | 'walk' | 'dance';
 
 interface CharacterCreatorState {
   // === Mode & Navigation ===
@@ -44,16 +39,16 @@ interface CharacterCreatorState {
   isDirty: boolean;
 
   // === Selfie-to-Avatar State ===
-  selfieImage: string | null; // Base64 or URL
+  selfieImage: string | null;
   selfieSource: 'camera' | 'upload' | null;
   generationStatus: GenerationStatus;
-  generationProgress: number; // 0-100
+  generationProgress: number;
   generationError: string | null;
 
   // === 3D Preview State ===
   previewAnimation: PreviewAnimation;
-  cameraRotation: number; // degrees
-  cameraZoom: number; // 0.5 - 2.0
+  cameraRotation: number;
+  cameraZoom: number;
 
   // === History (Undo/Redo) ===
   history: CharacterConfig[];
@@ -65,23 +60,16 @@ interface CharacterCreatorState {
   isSaving: boolean;
 
   // === Actions ===
-  // Mode
   setMode: (mode: CreatorMode) => void;
   setCustomizeCategory: (category: CustomizeCategory) => void;
 
   // Config updates
   setBodyType: (bodyType: BodyType) => void;
   setSkinTone: (hex: string) => void;
-  setHeight: (value: number) => void;
-  setBuild: (build: BuildType) => void;
-  setFacePreset: (presetId: number) => void;
-  setFaceMorph: (key: string, value: number) => void;
+  setEyeColor: (hex: string) => void;
   setHairStyle: (styleId: string | null) => void;
   setHairColor: (hex: string) => void;
   setHairHighlight: (hex: string | undefined) => void;
-  setEyeColor: (hex: string) => void;
-
-  // Batch update
   updateConfig: (partial: Partial<CharacterConfig>) => void;
 
   // Selfie-to-Avatar
@@ -112,8 +100,6 @@ interface CharacterCreatorState {
   resetToOriginal: () => void;
   randomize: () => void;
   setOriginalConfig: (config: CharacterConfig) => void;
-
-  // Loading
   setLoading: (loading: boolean) => void;
   setSaving: (saving: boolean) => void;
 }
@@ -175,51 +161,11 @@ export const useCharacterCreatorStore = create<CharacterCreatorState>()(
           state.config.updatedAt = new Date().toISOString();
           state.isDirty = true;
         });
-        // Don't push history on every color change - debounced externally
       },
 
-      setHeight: (value) => {
+      setEyeColor: (hex) => {
         set((state) => {
-          state.config.height = Math.max(0, Math.min(1, value));
-          state.config.updatedAt = new Date().toISOString();
-          state.isDirty = true;
-        });
-      },
-
-      setBuild: (build) => {
-        set((state) => {
-          state.config.build = build;
-          state.config.updatedAt = new Date().toISOString();
-          state.isDirty = true;
-        });
-        get().pushHistory();
-      },
-
-      setFacePreset: (presetId) => {
-        const preset = FACE_PRESETS.find((p) => p.id === presetId);
-        set((state) => {
-          state.config.facePreset = presetId;
-          if (preset) {
-            // Apply preset's default morph values
-            state.config.eyeSize = preset.morphDefaults.eyeSize;
-            state.config.eyeSpacing = preset.morphDefaults.eyeSpacing;
-            state.config.noseWidth = preset.morphDefaults.noseWidth;
-            state.config.noseLength = preset.morphDefaults.noseLength;
-            state.config.jawWidth = preset.morphDefaults.jawWidth;
-            state.config.chinLength = preset.morphDefaults.chinLength;
-            state.config.lipFullness = preset.morphDefaults.lipFullness;
-            state.config.cheekboneHeight = preset.morphDefaults.cheekboneHeight;
-          }
-          state.config.updatedAt = new Date().toISOString();
-          state.isDirty = true;
-        });
-        get().pushHistory();
-      },
-
-      setFaceMorph: (key, value) => {
-        set((state) => {
-          const clampedValue = Math.max(-1, Math.min(1, value));
-          (state.config as Record<string, unknown>)[key] = clampedValue;
+          state.config.eyeColor = hex;
           state.config.updatedAt = new Date().toISOString();
           state.isDirty = true;
         });
@@ -245,14 +191,6 @@ export const useCharacterCreatorStore = create<CharacterCreatorState>()(
       setHairHighlight: (hex) => {
         set((state) => {
           state.config.hairHighlightColor = hex;
-          state.config.updatedAt = new Date().toISOString();
-          state.isDirty = true;
-        });
-      },
-
-      setEyeColor: (hex) => {
-        set((state) => {
-          state.config.eyeColor = hex;
           state.config.updatedAt = new Date().toISOString();
           state.isDirty = true;
         });
@@ -306,7 +244,7 @@ export const useCharacterCreatorStore = create<CharacterCreatorState>()(
           state.generationStatus = 'complete';
           state.generationProgress = 100;
           state.isDirty = true;
-          state.mode = 'customize'; // Switch to customize mode for fine-tuning
+          state.mode = 'customize';
         });
         get().pushHistory();
       },
@@ -350,20 +288,19 @@ export const useCharacterCreatorStore = create<CharacterCreatorState>()(
       // === History Actions ===
       pushHistory: () => {
         set((state) => {
-          // Create a deep copy of current config
-          const configCopy = JSON.parse(JSON.stringify(state.config));
+          const currentConfig = JSON.parse(JSON.stringify(state.config));
 
-          // If we're not at the end of history, truncate forward history
+          // Remove any future history if we're not at the end
           if (state.historyIndex < state.history.length - 1) {
             state.history = state.history.slice(0, state.historyIndex + 1);
           }
 
           // Add new state
-          state.history.push(configCopy);
+          state.history.push(currentConfig);
 
-          // Trim history if too long
+          // Trim if too long
           if (state.history.length > state.maxHistoryLength) {
-            state.history = state.history.slice(-state.maxHistoryLength);
+            state.history.shift();
           }
 
           state.historyIndex = state.history.length - 1;
@@ -371,34 +308,29 @@ export const useCharacterCreatorStore = create<CharacterCreatorState>()(
       },
 
       undo: () => {
-        set((state) => {
-          if (state.historyIndex > 0) {
-            state.historyIndex -= 1;
-            state.config = JSON.parse(JSON.stringify(state.history[state.historyIndex]));
+        const { historyIndex, history } = get();
+        if (historyIndex > 0) {
+          set((state) => {
+            state.historyIndex = historyIndex - 1;
+            state.config = JSON.parse(JSON.stringify(history[historyIndex - 1]));
             state.isDirty = true;
-          }
-        });
+          });
+        }
       },
 
       redo: () => {
-        set((state) => {
-          if (state.historyIndex < state.history.length - 1) {
-            state.historyIndex += 1;
-            state.config = JSON.parse(JSON.stringify(state.history[state.historyIndex]));
+        const { historyIndex, history } = get();
+        if (historyIndex < history.length - 1) {
+          set((state) => {
+            state.historyIndex = historyIndex + 1;
+            state.config = JSON.parse(JSON.stringify(history[historyIndex + 1]));
             state.isDirty = true;
-          }
-        });
+          });
+        }
       },
 
-      canUndo: () => {
-        const state = get();
-        return state.historyIndex > 0;
-      },
-
-      canRedo: () => {
-        const state = get();
-        return state.historyIndex < state.history.length - 1;
-      },
+      canUndo: () => get().historyIndex > 0,
+      canRedo: () => get().historyIndex < get().history.length - 1,
 
       // === Persistence Actions ===
       loadConfig: (config) => {
@@ -411,158 +343,142 @@ export const useCharacterCreatorStore = create<CharacterCreatorState>()(
         });
       },
 
-      setOriginalConfig: (config) => {
-        set((state) => {
-          state.originalConfig = JSON.parse(JSON.stringify(config));
-        });
-      },
-
       loadFromServer: async () => {
-        set({ isLoading: true });
+        set((state) => {
+          state.isLoading = true;
+        });
 
         try {
           const response = await avatarApi.getConfig();
-          const { config } = response.data;
-
-          if (config) {
-            set((state) => {
-              state.config = config;
-              state.originalConfig = JSON.parse(JSON.stringify(config));
-              state.isDirty = false;
-              state.history = [JSON.parse(JSON.stringify(config))];
-              state.historyIndex = 0;
-              state.isLoading = false;
-            });
-          } else {
-            // No saved config, use default
-            const defaultConfig = createDefaultCharacterConfig();
-            set((state) => {
-              state.config = defaultConfig;
-              state.originalConfig = null;
-              state.isDirty = false;
-              state.history = [JSON.parse(JSON.stringify(defaultConfig))];
-              state.historyIndex = 0;
-              state.isLoading = false;
-            });
+          if (response.data?.config) {
+            get().loadConfig(response.data.config as CharacterConfig);
           }
         } catch (error) {
-          console.error('Failed to load avatar config:', error);
-          set({ isLoading: false });
-          // Don't throw - just use current/default config
+          console.error('Failed to load config from server:', error);
+        } finally {
+          set((state) => {
+            state.isLoading = false;
+          });
         }
       },
 
       saveConfig: async () => {
-        const state = get();
-        set({ isSaving: true });
+        set((state) => {
+          state.isSaving = true;
+        });
 
         try {
-          await avatarApi.saveConfig(state.config);
-
-          set((s) => {
-            s.originalConfig = JSON.parse(JSON.stringify(s.config));
-            s.isDirty = false;
-            s.isSaving = false;
+          const config = get().config;
+          await avatarApi.saveConfig(config);
+          set((state) => {
+            state.originalConfig = JSON.parse(JSON.stringify(config));
+            state.isDirty = false;
           });
         } catch (error) {
-          console.error('Failed to save avatar config:', error);
-          set({ isSaving: false });
-          throw new Error('Failed to save character configuration');
+          console.error('Failed to save config:', error);
+          throw error;
+        } finally {
+          set((state) => {
+            state.isSaving = false;
+          });
         }
       },
 
       resetToOriginal: () => {
-        set((state) => {
-          if (state.originalConfig) {
-            state.config = JSON.parse(JSON.stringify(state.originalConfig));
+        const { originalConfig } = get();
+        if (originalConfig) {
+          set((state) => {
+            state.config = JSON.parse(JSON.stringify(originalConfig));
             state.isDirty = false;
-          } else {
-            state.config = createDefaultCharacterConfig();
-            state.isDirty = false;
-          }
-        });
-        get().pushHistory();
+          });
+        }
       },
 
       randomize: () => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const defaults = require('../lib/character/defaults');
+        const SKIN_TONE_PALETTE = defaults.SKIN_TONE_PALETTE as { hex: string }[];
+        const EYE_COLOR_PALETTE = defaults.EYE_COLOR_PALETTE as { hex: string }[];
+        const HAIR_COLOR_PALETTE = defaults.HAIR_COLOR_PALETTE as { hex: string }[];
+        const HAIR_STYLES = defaults.HAIR_STYLES as { id: string }[];
+
         const randomFrom = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
-        const randomRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
         set((state) => {
-          // Randomize body
-          state.config.skinTone = randomFrom([
-            '#FFE0BD', '#FFCD94', '#EAC086', '#DFAD69',
-            '#D09B5C', '#C68642', '#B07B47', '#A66E3D',
-            '#8D5524', '#6B4423', '#4A3021', '#3B2417',
-          ]);
-          state.config.height = randomRange(0.2, 0.8);
-          state.config.build = randomFrom(['slim', 'average', 'athletic', 'heavy']);
-
-          // Randomize face
-          state.config.facePreset = Math.floor(randomRange(1, 7));
-          state.config.eyeSize = randomRange(-0.5, 0.5);
-          state.config.eyeSpacing = randomRange(-0.3, 0.3);
-          state.config.noseWidth = randomRange(-0.5, 0.5);
-          state.config.noseLength = randomRange(-0.3, 0.3);
-          state.config.jawWidth = randomRange(-0.5, 0.5);
-          state.config.chinLength = randomRange(-0.3, 0.3);
-          state.config.lipFullness = randomRange(-0.5, 0.5);
-          state.config.cheekboneHeight = randomRange(-0.3, 0.3);
-
-          // Randomize hair
-          state.config.hairStyleId = randomFrom([
-            'bald', 'buzzcut', 'short_fade', 'short_textured',
-            'curly_short', 'medium_wavy', 'medium_straight',
-            'afro_medium', 'long_straight', 'ponytail',
-          ]);
-          state.config.hairColor = randomFrom([
-            '#1A1A1A', '#3B2417', '#6B4423', '#A67B5B',
-            '#D4A853', '#B55239', '#6D3222', '#808080',
-          ]);
-
-          // Randomize eyes
-          state.config.eyeColor = randomFrom([
-            '#6B4423', '#3D2314', '#8E7618', '#4A7023',
-            '#4B88A2', '#6B7B8C', '#B5651D',
-          ]);
-
+          state.config.bodyType = Math.random() > 0.5 ? 'male' : 'female';
+          state.config.skinTone = randomFrom(SKIN_TONE_PALETTE).hex;
+          state.config.eyeColor = randomFrom(EYE_COLOR_PALETTE).hex;
+          state.config.hairStyleId = randomFrom(HAIR_STYLES).id;
+          state.config.hairColor = randomFrom(HAIR_COLOR_PALETTE).hex;
           state.config.updatedAt = new Date().toISOString();
           state.isDirty = true;
         });
         get().pushHistory();
       },
 
-      // === Loading Actions ===
+      setOriginalConfig: (config) => {
+        set((state) => {
+          state.originalConfig = JSON.parse(JSON.stringify(config));
+        });
+      },
+
       setLoading: (loading) => {
-        set({ isLoading: loading });
+        set((state) => {
+          state.isLoading = loading;
+        });
       },
 
       setSaving: (saving) => {
-        set({ isSaving: saving });
+        set((state) => {
+          state.isSaving = saving;
+        });
       },
     })),
     {
-      name: 'character-creator-draft',
-      // Only persist the draft config, not UI state
+      name: 'character-creator-storage',
       partialize: (state) => ({
         config: state.config,
-        isDirty: state.isDirty,
       }),
     }
   )
 );
 
-// Selector hooks for performance
-export const useCharacterConfig = () => useCharacterCreatorStore((s) => s.config);
-export const useCreatorMode = () => useCharacterCreatorStore((s) => s.mode);
-export const useCustomizeCategory = () => useCharacterCreatorStore((s) => s.customizeCategory);
-export const useGenerationStatus = () => useCharacterCreatorStore((s) => ({
-  status: s.generationStatus,
-  progress: s.generationProgress,
-  error: s.generationError,
-}));
-export const usePreviewState = () => useCharacterCreatorStore((s) => ({
-  animation: s.previewAnimation,
-  rotation: s.cameraRotation,
-  zoom: s.cameraZoom,
-}));
+// === Selector Hooks ===
+
+export const useCharacterConfig = () =>
+  useCharacterCreatorStore(useShallow((state) => state.config));
+
+export const usePreviewState = () =>
+  useCharacterCreatorStore(
+    useShallow((state) => ({
+      animation: state.previewAnimation,
+      rotation: state.cameraRotation,
+      zoom: state.cameraZoom,
+    }))
+  );
+
+export const useSelfieState = () =>
+  useCharacterCreatorStore(
+    useShallow((state) => ({
+      selfieImage: state.selfieImage,
+      selfieSource: state.selfieSource,
+      generationStatus: state.generationStatus,
+      generationProgress: state.generationProgress,
+      generationError: state.generationError,
+    }))
+  );
+
+export const useCreatorMode = () =>
+  useCharacterCreatorStore((state) => state.mode);
+
+export const useCustomizeCategory = () =>
+  useCharacterCreatorStore((state) => state.customizeCategory);
+
+export const useGenerationStatus = () =>
+  useCharacterCreatorStore(
+    useShallow((state) => ({
+      status: state.generationStatus,
+      progress: state.generationProgress,
+      error: state.generationError,
+    }))
+  );

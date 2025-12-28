@@ -4,5 +4,4 @@
  */
 
 export { BodyPanel } from './BodyPanel';
-export { FacePanel } from './FacePanel';
 export { HairPanel } from './HairPanel';

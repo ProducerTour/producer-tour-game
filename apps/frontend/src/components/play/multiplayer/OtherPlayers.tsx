@@ -7,6 +7,8 @@ import type { Player3D } from '../hooks/usePlayMultiplayer';
 import { ANIMATION_CONFIG } from '../animations.config';
 import { getPooledClipRPM } from '../avatars/AnimationClipPool';
 import { useGamePause } from '../context';
+import type { CharacterConfig } from '../../../lib/character/types';
+import CustomAvatar from '../avatars/CustomAvatar';
 
 // Debug logging - set to false to reduce console spam
 const DEBUG_OTHER_PLAYERS = false;
@@ -524,9 +526,48 @@ const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
   // Don't render if too far
   if (lod === 'hidden') return null;
 
-  return (
-    <group ref={groupRef} position={[player.position.x, player.position.y, player.position.z]}>
-      {lod === 'full' && player.avatarUrl ? (
+  // Parse animation state for CustomAvatar props
+  const animState = player.animationState || 'idle';
+  const isMoving = animState.includes('walk') || animState.includes('Walk') || animState.includes('running') || animState.includes('Run');
+  const isRunning = animState.includes('running') || animState.includes('Run');
+  const isCrouching = animState.includes('crouch') || animState.includes('Crouch');
+  const isDancing = animState.includes('dance') || animState.includes('Dance');
+  const isJumping = animState.includes('jump') || animState.includes('Jump');
+
+  // Render the appropriate avatar based on config
+  const renderAvatar = () => {
+    if (lod !== 'full') {
+      return <SimpleAvatar color={player.color} />;
+    }
+
+    // Prefer CustomAvatar if avatarConfig is present
+    if (player.avatarConfig) {
+      // Convert 'none' to null for WeaponType compatibility
+      const mappedWeaponType = player.weaponType === 'none' ? null : player.weaponType;
+      return (
+        <Suspense fallback={<SimpleAvatar color={player.color} />}>
+          <CustomAvatar
+            config={player.avatarConfig as CharacterConfig}
+            isMoving={isMoving}
+            isRunning={isRunning}
+            isCrouching={isCrouching}
+            isDancing={isDancing}
+            isJumping={isJumping}
+            weaponType={mappedWeaponType}
+            isPlayer={false}
+          />
+          {/* Color indicator ring for custom avatars */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+            <ringGeometry args={[0.4, 0.7, 32]} />
+            <meshBasicMaterial color={player.color} transparent opacity={0.4} />
+          </mesh>
+        </Suspense>
+      );
+    }
+
+    // Fall back to RPM avatar if avatarUrl is present
+    if (player.avatarUrl) {
+      return (
         <Suspense fallback={<SimpleAvatar color={player.color} />}>
           <FullAnimatedAvatar
             url={player.avatarUrl}
@@ -535,9 +576,16 @@ const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
             weaponType={player.weaponType}
           />
         </Suspense>
-      ) : (
-        <SimpleAvatar color={player.color} />
-      )}
+      );
+    }
+
+    // Default to simple avatar
+    return <SimpleAvatar color={player.color} />;
+  };
+
+  return (
+    <group ref={groupRef} position={[player.position.x, player.position.y, player.position.z]}>
+      {renderAvatar()}
 
       <Billboard position={[0, 2.2, 0]}>
         <Text
@@ -566,6 +614,7 @@ const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
     prev.animationState === next.animationState &&
     prev.weaponType === next.weaponType &&
     prev.avatarUrl === next.avatarUrl &&
+    prev.avatarConfig === next.avatarConfig &&
     prev.color === next.color
   );
 });

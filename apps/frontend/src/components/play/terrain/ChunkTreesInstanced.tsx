@@ -253,7 +253,7 @@ export const ChunkTreesInstanced = React.memo(function ChunkTreesInstanced({
       if (mountainMask > 0.7) continue;
 
       // Density variation using noise
-      const densityNoise = (terrainGen as any).noise?.fbm2?.(x * 0.015, z * 0.015, 2, 0.5, 2.0, 1.0) ?? 0;
+      const densityNoise = terrainGen.noise.fbm2(x * 0.015, z * 0.015, 2, 0.5, 2.0, 1.0);
       const forestDensity = 0.5 + densityNoise * 0.35;
       if (randDensity > forestDensity) continue;
 

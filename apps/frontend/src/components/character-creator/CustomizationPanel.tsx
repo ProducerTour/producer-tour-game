@@ -1,14 +1,13 @@
 /**
  * CustomizationPanel
  * Main container for customization options
- * Switches between Body, Face, and Hair panels
+ * Switches between Body and Hair panels
  */
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCharacterCreatorStore } from '../../stores/characterCreator.store';
 import { CategoryTabs } from './CategoryTabs';
 import { BodyPanel } from './panels/BodyPanel';
-import { FacePanel } from './panels/FacePanel';
 import { HairPanel } from './panels/HairPanel';
 
 export function CustomizationPanel() {
@@ -38,17 +37,6 @@ export function CustomizationPanel() {
               transition={{ duration: 0.15 }}
             >
               <BodyPanel />
-            </motion.div>
-          )}
-          {category === 'face' && (
-            <motion.div
-              key="face"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.15 }}
-            >
-              <FacePanel />
             </motion.div>
           )}
           {category === 'hair' && (

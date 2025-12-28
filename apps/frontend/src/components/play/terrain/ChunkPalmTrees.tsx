@@ -215,7 +215,7 @@ export const ChunkPalmTrees = React.memo(function ChunkPalmTrees({
       if (terrain.normal.y < 0.8) continue;
 
       // Density variation: natural clumping
-      const densityNoise = (terrainGen as any).noise?.fbm2?.(x * 0.02, z * 0.02, 2, 0.5, 2.0, 1.0) ?? 0;
+      const densityNoise = terrainGen.noise.fbm2(x * 0.02, z * 0.02, 2, 0.5, 2.0, 1.0);
       const palmDensity = 0.7 + densityNoise * 0.3;
       if (randDensity > palmDensity) continue;
 

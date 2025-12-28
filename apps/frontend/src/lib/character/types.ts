@@ -1,17 +1,16 @@
 /**
  * Character Creator Types
- * Core data models for the custom avatar system
+ * Simplified data models for the custom avatar system
+ *
+ * NOTE: Morphs have been removed - using colors-only customization for MVP
  */
 
 // Body type options
-export type BodyType = 'male' | 'female' | 'neutral';
-
-// Build presets
-export type BuildType = 'slim' | 'average' | 'athletic' | 'heavy';
+export type BodyType = 'male' | 'female';
 
 /**
  * CharacterConfig - The canonical data model stored per user
- * This replaces the RPM avatar URL with a structured configuration
+ * Simplified to colors-only customization (no morph targets)
  */
 export interface CharacterConfig {
   /** Schema version for migrations */
@@ -20,83 +19,19 @@ export interface CharacterConfig {
   /** Base body mesh to use */
   bodyType: BodyType;
 
-  // === Body Customization ===
+  // === Colors ===
   /** Skin color as hex string */
   skinTone: string;
-  /** Height multiplier: 0.0 = 1.55m, 0.5 = 1.75m, 1.0 = 1.95m */
-  height: number;
-  /** Body build preset */
-  build: BuildType;
+  /** Eye/iris color as hex string */
+  eyeColor: string;
 
-  // === Face Customization ===
-  /** Face preset index (1-6) */
-  facePreset: number;
-  /** Eye size adjustment: -1.0 to 1.0 */
-  eyeSize: number;
-  /** Eye spacing adjustment: -1.0 to 1.0 */
-  eyeSpacing: number;
-  /** Nose width adjustment: -1.0 to 1.0 */
-  noseWidth: number;
-  /** Nose length adjustment: -1.0 to 1.0 */
-  noseLength: number;
-  /** Jaw width adjustment: -1.0 to 1.0 */
-  jawWidth: number;
-  /** Chin length adjustment: -1.0 to 1.0 */
-  chinLength: number;
-  /** Lip fullness adjustment: -1.0 to 1.0 */
-  lipFullness: number;
-  /** Cheekbone height adjustment: -1.0 to 1.0 */
-  cheekboneHeight: number;
-
-  // === Extended Face Customization ===
-  /** Eye tilt: -1.0 (outer down) to 1.0 (outer up) */
-  eyeTilt: number;
-  /** Eye depth: -1.0 (sunken) to 1.0 (protruding) */
-  eyeDepth: number;
-  /** Upper eyelid: -1.0 (hooded) to 1.0 (open) */
-  upperEyelid: number;
-  /** Lower eyelid: -1.0 (baggy) to 1.0 (tight) */
-  lowerEyelid: number;
-  /** Eyebrow height: -1.0 (low) to 1.0 (high) */
-  eyebrowHeight: number;
-  /** Eyebrow arch: -1.0 (flat) to 1.0 (arched) */
-  eyebrowArch: number;
-  /** Nose bridge: -1.0 (narrow) to 1.0 (wide) */
-  noseBridge: number;
-  /** Nose tip: -1.0 (downturned) to 1.0 (upturned) */
-  noseTip: number;
-  /** Nostril flare: -1.0 (narrow) to 1.0 (wide) */
-  nostrilFlare: number;
-  /** Nose profile: -1.0 (flat) to 1.0 (prominent) */
-  noseProfile: number;
-  /** Mouth width: -1.0 (narrow) to 1.0 (wide) */
-  mouthWidth: number;
-  /** Upper lip size: -1.0 (thin) to 1.0 (full) */
-  upperLipSize: number;
-  /** Lower lip size: -1.0 (thin) to 1.0 (full) */
-  lowerLipSize: number;
-  /** Mouth corners: -1.0 (down) to 1.0 (up) */
-  mouthCorners: number;
-  /** Chin protrusion: -1.0 (receding) to 1.0 (prominent) */
-  chinProtrusion: number;
-  /** Chin cleft: 0.0 (none) to 1.0 (deep dimple) */
-  chinCleft: number;
-  /** Face length: -1.0 (short) to 1.0 (long) */
-  faceLength: number;
-  /** Forehead height: -1.0 (low) to 1.0 (high) */
-  foreheadHeight: number;
-
-  // === Hair Customization ===
+  // === Hair ===
   /** Hair style asset ID (null = bald) */
   hairStyleId: string | null;
   /** Primary hair color as hex string */
   hairColor: string;
   /** Optional secondary/highlight color */
   hairHighlightColor?: string;
-
-  // === Eye Color ===
-  /** Eye/iris color as hex string */
-  eyeColor: string;
 
   // === Metadata ===
   createdAt: string;
@@ -120,60 +55,12 @@ export interface HairStyle {
 }
 
 /**
- * Face preset definition
- */
-export interface FacePreset {
-  id: number;
-  name: string;
-  /** Thumbnail/preview image */
-  thumbnailPath: string;
-  /** Default morph values for this preset */
-  morphDefaults: {
-    eyeSize: number;
-    eyeSpacing: number;
-    noseWidth: number;
-    noseLength: number;
-    jawWidth: number;
-    chinLength: number;
-    lipFullness: number;
-    cheekboneHeight: number;
-    // Extended morphs
-    eyeTilt?: number;
-    eyeDepth?: number;
-    upperEyelid?: number;
-    lowerEyelid?: number;
-    eyebrowHeight?: number;
-    eyebrowArch?: number;
-    noseBridge?: number;
-    noseTip?: number;
-    nostrilFlare?: number;
-    noseProfile?: number;
-    mouthWidth?: number;
-    upperLipSize?: number;
-    lowerLipSize?: number;
-    mouthCorners?: number;
-    chinProtrusion?: number;
-    chinCleft?: number;
-    faceLength?: number;
-    foreheadHeight?: number;
-  };
-}
-
-/**
  * Skin tone palette option
  */
 export interface SkinToneOption {
   id: string;
   name: string;
   hex: string;
-}
-
-/**
- * Morph target mapping for Three.js
- */
-export interface MorphTargetMap {
-  /** Maps our config keys to actual morph target names in the GLB */
-  [configKey: string]: string;
 }
 
 /**
@@ -187,7 +74,7 @@ export interface CharacterCreatorState {
   /** Whether there are unsaved changes */
   isDirty: boolean;
   /** Currently active customization category */
-  activeCategory: 'body' | 'face' | 'hair';
+  activeCategory: 'body' | 'hair';
   /** Preview animation to play */
   previewAnimation: 'idle' | 'walk' | 'dance' | 'wave';
   /** Camera rotation angle (degrees) */

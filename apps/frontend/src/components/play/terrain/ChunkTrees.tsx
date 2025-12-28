@@ -254,7 +254,7 @@ export const ChunkTrees = React.memo(function ChunkTrees({
       // =================================================================
       // DENSITY VARIATION: Natural forest distribution
       // =================================================================
-      const densityNoise = (terrainGen as any).noise?.fbm2?.(x * 0.02, z * 0.02, 2, 0.5, 2.0, 1.0) ?? 0;
+      const densityNoise = terrainGen.noise.fbm2(x * 0.02, z * 0.02, 2, 0.5, 2.0, 1.0);
       const forestDensity = 0.6 + densityNoise * 0.3;  // Higher base density
       if (randDensity > forestDensity) { rejections.density++; continue; }
 

@@ -48,6 +48,7 @@ import { PhysicsPlayerController, type AnimationState } from './PhysicsPlayerCon
 import { AnimationErrorBoundary } from './AnimationErrorBoundary';
 import { type WeaponType } from './WeaponAttachment';
 import { useCombatStore } from './combat/useCombatStore';
+import { useFlashlightStore } from '../../stores/useFlashlightStore';
 import { useCombatSounds } from './audio';
 import { AmbientAudioManager } from './audio/AmbientAudioManager';
 import { useWorldControls } from '../../lib/config';
@@ -142,9 +143,13 @@ export interface PlayerInfo {
 // Import preloaded terrain type
 import type { PreloadedTerrain } from './hooks/useTerrainPreloader';
 
+// Import CharacterConfig type for custom avatars
+import type { CharacterConfig } from '../../lib/character/types';
+
 // Main world component
 export function PlayWorld({
   avatarUrl,
+  avatarConfig,
   isPaused = false,
   onPlayerPositionChange,
   onPlayerRotationChange,
@@ -155,6 +160,7 @@ export function PlayWorld({
   onGrassGenerationProgress,
 }: {
   avatarUrl?: string;
+  avatarConfig?: CharacterConfig;
   isPaused?: boolean;
   onPlayerPositionChange?: (pos: THREE.Vector3) => void;
   onPlayerRotationChange?: (rotationY: number) => void;
@@ -172,6 +178,11 @@ export function PlayWorld({
   // Weapon state from combat store (controlled by hotbar selection)
   const currentWeapon = useCombatStore((s) => s.currentWeapon);
   const weaponType: WeaponType = currentWeapon === 'none' ? null : currentWeapon;
+
+  // Flashlight state for terrain shader spotlight illumination
+  const isFlashlightOn = useFlashlightStore((s) => s.isOn);
+  const flashlightPosition = useFlashlightStore((s) => s.worldPosition);
+  const flashlightDirection = useFlashlightStore((s) => s.worldDirection);
 
   // Lighting state for terrain/grass shader sync
   const lightingStateRef = useRef<LightingState | null>(null);
@@ -330,6 +341,7 @@ export function PlayWorld({
   const { otherPlayers, playerCount, isConnected, updatePosition } = usePlayMultiplayer({
     enabled: true,
     avatarUrl,
+    avatarConfig,
   });
 
   // Notify parent of multiplayer status
@@ -583,6 +595,10 @@ export function PlayWorld({
             ambientSkyColor={lightingStateRef.current?.skyColor}
             ambientGroundColor={lightingStateRef.current?.groundColor}
             timeOfDayFogColor={lightingStateRef.current?.fogColor}
+            // Spotlight (flashlight) for terrain illumination
+            spotlightEnabled={isFlashlightOn}
+            spotlightPosition={flashlightPosition}
+            spotlightDirection={flashlightDirection}
             // Grass generation progress callback
             onGrassGenerationProgress={onGrassGenerationProgress}
           />

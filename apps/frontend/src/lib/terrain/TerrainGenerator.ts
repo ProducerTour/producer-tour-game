@@ -72,7 +72,12 @@ export interface ChunkTerrainData {
 // =============================================================================
 
 export class TerrainGenerator {
-  private noise: NoiseGenerator;
+  /**
+   * Noise generator instance - exposed publicly for chunk vegetation density calculations.
+   * Use `noise.fbm2()` for density noise sampling.
+   * Note: Not readonly to allow setSeed() to recreate with new seed.
+   */
+  public noise: NoiseGenerator;
   private seed: number;
   private hydrology: HydrologySimulator | null = null;
   private heightCache: Map<string, number> = new Map();

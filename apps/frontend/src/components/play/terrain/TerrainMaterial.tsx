@@ -4,7 +4,7 @@
  * Uses custom shader for blending grass, rock, and sand textures
  */
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { useTexture } from '@react-three/drei';
 import { TEXTURE_SCALE, MAX_HEIGHT, MIN_HEIGHT, WATER_LEVEL } from '../../../lib/terrain';
@@ -146,6 +146,17 @@ const terrainFragmentShader = /* glsl */ `
   uniform vec3 uAmbientGroundColor; // Hemisphere ground color
   uniform bool uUseDynamicLighting; // Toggle for dynamic vs legacy lighting
 
+  // Spotlight (flashlight) uniforms for terrain illumination
+  uniform bool uSpotlightEnabled;
+  uniform vec3 uSpotlightPosition;
+  uniform vec3 uSpotlightDirection;
+  uniform vec3 uSpotlightColor;
+  uniform float uSpotlightIntensity;
+  uniform float uSpotlightDistance;
+  uniform float uSpotlightAngleCos;  // cos(coneAngle/2), pre-computed
+  uniform float uSpotlightPenumbra;
+  uniform float uSpotlightDecay;
+
   varying vec2 vUv;
   varying vec3 vWorldPosition;
   varying vec3 vWorldNormal;
@@ -167,6 +178,38 @@ const terrainFragmentShader = /* glsl */ `
     float c = hash(i + vec2(0.0, 1.0));
     float d = hash(i + vec2(1.0, 1.0));
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+  }
+
+  // Calculate spotlight (flashlight) contribution to terrain lighting
+  vec3 calculateSpotlight(vec3 worldPos, vec3 worldNormal) {
+    if (!uSpotlightEnabled) return vec3(0.0);
+
+    // Vector from light to fragment
+    vec3 lightToFrag = worldPos - uSpotlightPosition;
+    float dist = length(lightToFrag);
+
+    // Early out if beyond max distance
+    if (dist > uSpotlightDistance) return vec3(0.0);
+
+    vec3 lightDir = normalize(lightToFrag);
+
+    // Cone angle check (uSpotlightAngleCos is cos of half-angle)
+    float angleCos = dot(lightDir, uSpotlightDirection);
+
+    // Early out if outside cone
+    if (angleCos < uSpotlightAngleCos) return vec3(0.0);
+
+    // Penumbra softness (smoothstep edge falloff)
+    float penumbraCos = mix(1.0, uSpotlightAngleCos, 1.0 - uSpotlightPenumbra);
+    float spotAtten = smoothstep(uSpotlightAngleCos, penumbraCos, angleCos);
+
+    // Distance attenuation with decay
+    float distAtten = pow(max(1.0 - dist / uSpotlightDistance, 0.0), uSpotlightDecay);
+
+    // Lambert diffuse (normal facing light)
+    float NdotL = max(dot(worldNormal, -lightDir), 0.0);
+
+    return uSpotlightColor * uSpotlightIntensity * NdotL * spotAtten * distAtten;
   }
 
   void main() {
@@ -352,6 +395,10 @@ const terrainFragmentShader = /* glsl */ `
     vec3 diffuse = finalColor * lightColor * lightIntensity * wrapLight * 0.7;
     finalColor = ambient * finalColor + diffuse;
 
+    // Add spotlight (flashlight) contribution
+    vec3 spotContrib = calculateSpotlight(vWorldPosition, vWorldNormal);
+    finalColor += spotContrib * 0.1;  // Modulate to blend naturally with terrain
+
     // Subtle variation based on world position (breaks up uniformity)
     // Use very low frequency noise to avoid grainy appearance
     float noiseVar = fract(sin(dot(vWorldPosition.xz * 0.02, vec2(12.9898, 78.233))) * 43758.5453);
@@ -464,6 +511,35 @@ export interface TerrainMaterialProps {
 
   /** Ambient ground color for hemisphere lighting (from GameLighting) */
   ambientGroundColor?: THREE.Color;
+
+  // === Spotlight (Flashlight) ===
+
+  /** Whether spotlight is enabled/on */
+  spotlightEnabled?: boolean;
+
+  /** Spotlight world position */
+  spotlightPosition?: THREE.Vector3;
+
+  /** Spotlight direction (normalized) */
+  spotlightDirection?: THREE.Vector3;
+
+  /** Spotlight color */
+  spotlightColor?: THREE.Color;
+
+  /** Spotlight intensity */
+  spotlightIntensity?: number;
+
+  /** Spotlight max distance */
+  spotlightDistance?: number;
+
+  /** Spotlight cone angle in radians */
+  spotlightAngle?: number;
+
+  /** Spotlight penumbra (0-1, edge softness) */
+  spotlightPenumbra?: number;
+
+  /** Spotlight decay (attenuation exponent) */
+  spotlightDecay?: number;
 }
 
 // Beach zone configuration (Rust-style wider beaches)
@@ -517,6 +593,16 @@ export function useTerrainMaterial({
   sunIntensity,
   ambientSkyColor,
   ambientGroundColor,
+  // Spotlight (flashlight) props
+  spotlightEnabled = false,
+  spotlightPosition,
+  spotlightDirection,
+  spotlightColor,
+  spotlightIntensity = 10.0,
+  spotlightDistance = 79.0,
+  spotlightAngle = 55 * Math.PI / 180,
+  spotlightPenumbra = 0.25,
+  spotlightDecay = 2.0,
 }: TerrainMaterialProps = {}) {
   // Load textures (with error handling)
   const grassTextures = useTexture({
@@ -642,12 +728,45 @@ export function useTerrainMaterial({
         uAmbientSkyColor: { value: ambientSkyColor || DEFAULT_AMBIENT_SKY },
         uAmbientGroundColor: { value: ambientGroundColor || DEFAULT_AMBIENT_GROUND },
         uUseDynamicLighting: { value: sunDirection !== undefined },
+        // Spotlight (flashlight) uniforms
+        uSpotlightEnabled: { value: spotlightEnabled },
+        uSpotlightPosition: { value: spotlightPosition || new THREE.Vector3() },
+        uSpotlightDirection: { value: spotlightDirection || new THREE.Vector3(0, 0, -1) },
+        uSpotlightColor: { value: spotlightColor || new THREE.Color('#fffae6') },
+        uSpotlightIntensity: { value: spotlightIntensity },
+        uSpotlightDistance: { value: spotlightDistance },
+        uSpotlightAngleCos: { value: Math.cos(spotlightAngle / 2) },
+        uSpotlightPenumbra: { value: spotlightPenumbra },
+        uSpotlightDecay: { value: spotlightDecay },
       },
       side: THREE.FrontSide,
     });
 
     return shaderMat;
+  // Note: spotlight props not in deps - updated via useEffect below to avoid recreating material every frame
   }, [grassTextures, rockTextures, sandTextures, grassScale, rockScale, sandScale, simple, debugWeights, fogEnabled, fogType, fogColor, fogNear, fogFar, fogDensity, fogHeightEnabled, fogBaseHeight, fogHeightFalloff, fogMinDensity, sunDirection, sunColor, sunIntensity, ambientSkyColor, ambientGroundColor]);
+
+  // Update spotlight uniforms each frame without recreating material
+  // This is critical for performance since spotlight position changes every frame
+  useEffect(() => {
+    if (material instanceof THREE.ShaderMaterial && material.uniforms) {
+      material.uniforms.uSpotlightEnabled.value = spotlightEnabled;
+      if (spotlightPosition) {
+        material.uniforms.uSpotlightPosition.value.copy(spotlightPosition);
+      }
+      if (spotlightDirection) {
+        material.uniforms.uSpotlightDirection.value.copy(spotlightDirection);
+      }
+      if (spotlightColor) {
+        material.uniforms.uSpotlightColor.value.copy(spotlightColor);
+      }
+      material.uniforms.uSpotlightIntensity.value = spotlightIntensity;
+      material.uniforms.uSpotlightDistance.value = spotlightDistance;
+      material.uniforms.uSpotlightAngleCos.value = Math.cos(spotlightAngle / 2);
+      material.uniforms.uSpotlightPenumbra.value = spotlightPenumbra;
+      material.uniforms.uSpotlightDecay.value = spotlightDecay;
+    }
+  }, [material, spotlightEnabled, spotlightPosition, spotlightDirection, spotlightColor, spotlightIntensity, spotlightDistance, spotlightAngle, spotlightPenumbra, spotlightDecay]);
 
   return material;
 }

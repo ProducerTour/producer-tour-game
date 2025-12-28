@@ -6,11 +6,11 @@
  * - Zoom controls
  */
 
-import { Suspense, useRef, useCallback, useMemo } from 'react';
+import { Suspense, useRef, useCallback, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
+import { OrbitControls, Environment, ContactShadows, Html, useProgress } from '@react-three/drei';
 import * as THREE from 'three';
-import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
+import { RotateCcw, ZoomIn, ZoomOut, AlertCircle, Loader2 } from 'lucide-react';
 
 import {
   useCharacterCreatorStore,
@@ -18,14 +18,13 @@ import {
   usePreviewState,
   type PreviewAnimation,
 } from '../../stores/characterCreator.store';
-import { HEIGHT_CONFIG } from '../../lib/character/defaults';
+import { CustomizableAvatar } from './CustomizableAvatar';
 
 // Animation button options
 const ANIMATIONS: { id: PreviewAnimation; label: string }[] = [
   { id: 'idle', label: 'Idle' },
   { id: 'walk', label: 'Walk' },
   { id: 'dance', label: 'Dance' },
-  { id: 'wave', label: 'Wave' },
 ];
 
 export function CharacterPreview3D() {
@@ -33,6 +32,10 @@ export function CharacterPreview3D() {
   const setPreviewAnimation = useCharacterCreatorStore((s) => s.setPreviewAnimation);
   const setCameraZoom = useCharacterCreatorStore((s) => s.setCameraZoom);
   const resetCamera = useCharacterCreatorStore((s) => s.resetCamera);
+
+  // State for error handling and fallback
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [usePlaceholder, setUsePlaceholder] = useState(false);
 
   const handleZoomIn = useCallback(() => {
     setCameraZoom(Math.min(zoom + 0.2, 2.0));
@@ -44,15 +47,28 @@ export function CharacterPreview3D() {
 
   return (
     <div className="relative w-full h-full bg-gradient-to-b from-[#1a1d21] to-[#0a0a0f]">
+      {/* Error indicator */}
+      {loadError && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3 py-2 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
+          <AlertCircle className="w-4 h-4" />
+          {loadError}
+        </div>
+      )}
+
       {/* 3D Canvas */}
       <Canvas
-        camera={{ position: [0, 1.2, 3], fov: 45 }}
+        camera={{ position: [0, 1.4, 2.5], fov: 50 }}
         gl={{ antialias: true, alpha: true }}
-        dpr={[1, 1.5]}
+        dpr={[1, 2]}
         shadows
+        onError={(error) => {
+          console.error('Canvas error:', error);
+          setLoadError('Failed to load 3D avatar');
+          setUsePlaceholder(true);
+        }}
       >
-        <Suspense fallback={null}>
-          <SceneContent zoom={zoom} />
+        <Suspense fallback={<LoadingIndicator />}>
+          <SceneContent zoom={zoom} usePlaceholder={usePlaceholder} />
         </Suspense>
       </Canvas>
 
@@ -109,61 +125,111 @@ export function CharacterPreview3D() {
 }
 
 /**
+ * Loading indicator shown while avatar loads
+ */
+function LoadingIndicator() {
+  const { progress } = useProgress();
+
+  return (
+    <Html center>
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="w-8 h-8 text-violet-400 animate-spin" />
+        <div className="text-white/60 text-sm font-medium">
+          Loading avatar... {Math.round(progress)}%
+        </div>
+      </div>
+    </Html>
+  );
+}
+
+/**
  * Scene content with avatar and environment
  */
-function SceneContent({ zoom }: { zoom: number }) {
+function SceneContent({ zoom, usePlaceholder }: { zoom: number; usePlaceholder: boolean }) {
   const config = useCharacterConfig();
   const { animation } = usePreviewState();
   const controlsRef = useRef<any>(null);
 
-  // Calculate avatar scale based on height
-  const avatarScale = useMemo(() => {
-    const heightMeters = HEIGHT_CONFIG.toMeters(config.height);
-    return heightMeters / 1.75; // 1.75m is baseline
-  }, [config.height]);
+  // Fixed avatar scale (height customization removed for MVP)
+  const avatarScale = 1;
 
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.5} />
+      {/* Lighting - Three-point setup for polished look */}
+      <ambientLight intensity={0.4} />
+
+      {/* Key light - main illumination from front-right */}
       <directionalLight
-        position={[5, 5, 5]}
-        intensity={1}
+        position={[3, 4, 4]}
+        intensity={1.2}
         castShadow
-        shadow-mapSize={[1024, 1024]}
+        shadow-mapSize={[2048, 2048]}
+        shadow-bias={-0.0001}
+        shadow-normalBias={0.02}
+        shadow-camera-near={0.1}
+        shadow-camera-far={15}
+        shadow-camera-left={-3}
+        shadow-camera-right={3}
+        shadow-camera-top={4}
+        shadow-camera-bottom={-2}
       />
-      <directionalLight position={[-5, 3, -5]} intensity={0.3} />
+
+      {/* Fill light - softer from front-left */}
+      <directionalLight position={[-3, 2, 3]} intensity={0.4} />
+
+      {/* Rim light - back lighting for definition */}
+      <directionalLight position={[0, 3, -4]} intensity={0.6} color="#b4c4ff" />
 
       {/* Environment for reflections */}
-      <Environment preset="city" />
+      <Environment preset="studio" />
 
-      {/* Ground shadow */}
+      {/* Ground shadow - centered under avatar */}
       <ContactShadows
-        position={[0, -0.01, 0]}
-        opacity={0.4}
-        scale={10}
-        blur={2}
-        far={4}
+        position={[0, 0, 0]}
+        opacity={0.5}
+        scale={4}
+        blur={2.5}
+        far={3}
       />
 
-      {/* Avatar Placeholder */}
-      <PlaceholderAvatar
-        config={config}
-        scale={avatarScale}
-        animation={animation}
-      />
+      {/* Subtle ground plane */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]} receiveShadow>
+        <circleGeometry args={[1.5, 64]} />
+        <meshStandardMaterial
+          color="#1a1a22"
+          roughness={0.9}
+          metalness={0.1}
+          transparent
+          opacity={0.8}
+        />
+      </mesh>
 
-      {/* Orbit Controls */}
+      {/* Avatar - use real CustomizableAvatar or fallback to placeholder */}
+      {usePlaceholder ? (
+        <PlaceholderAvatar
+          config={config}
+          scale={avatarScale}
+          animation={animation}
+        />
+      ) : (
+        <CustomizableAvatar
+          config={config}
+          animation={animation}
+        />
+      )}
+
+      {/* Orbit Controls - centered on avatar chest */}
       <OrbitControls
         ref={controlsRef}
-        target={[0, 1, 0]}
-        minPolarAngle={Math.PI * 0.2}
-        maxPolarAngle={Math.PI * 0.8}
-        minDistance={1.5 * zoom}
-        maxDistance={5 * zoom}
+        target={[0, 1.2, 0]}
+        minPolarAngle={Math.PI * 0.25}
+        maxPolarAngle={Math.PI * 0.75}
+        minDistance={1.2 / zoom}
+        maxDistance={4 / zoom}
         enablePan={false}
         enableDamping
-        dampingFactor={0.05}
+        dampingFactor={0.08}
+        rotateSpeed={0.5}
       />
     </>
   );
@@ -189,16 +255,8 @@ function PlaceholderAvatar({ config, scale, animation }: PlaceholderAvatarProps)
   const hairColor = useMemo(() => new THREE.Color(config.hairColor), [config.hairColor]);
   const eyeColor = useMemo(() => new THREE.Color(config.eyeColor), [config.eyeColor]);
 
-  // Calculate body proportions based on build
-  const bodyWidth = useMemo(() => {
-    switch (config.build) {
-      case 'slim': return 0.35;
-      case 'average': return 0.4;
-      case 'athletic': return 0.45;
-      case 'heavy': return 0.5;
-      default: return 0.4;
-    }
-  }, [config.build]);
+  // Fixed body proportions (build customization removed for MVP)
+  const bodyWidth = 0.4;
 
   // Simple idle animation
   useFrame((state) => {
@@ -227,13 +285,6 @@ function PlaceholderAvatar({ config, scale, animation }: PlaceholderAvatarProps)
         groupRef.current.rotation.y = Math.sin(time * 2) * 0.3;
         if (bodyRef.current) {
           bodyRef.current.rotation.z = Math.sin(time * 4) * 0.1;
-        }
-        break;
-
-      case 'wave':
-        // Wave animation - just head tilt
-        if (headRef.current) {
-          headRef.current.rotation.z = Math.sin(time * 3) * 0.1;
         }
         break;
     }

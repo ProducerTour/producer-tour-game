@@ -57,8 +57,9 @@ const FLASHLIGHT_LIGHT_DEFAULTS = {
   dirX: -0.1,
   dirY: 20,
   dirZ: 1,
-  // Stabilization - how much to smooth the light movement (0 = no smoothing, higher = more stable)
-  smoothing: 8,
+  // Base stabilization (Rust-style: velocity adds MORE smoothing on top of this)
+  // 12 = stable when standing, velocity boost adds up to +15 when running
+  smoothing: 12,
 };
 
 type EquipmentType = keyof typeof EQUIPMENT_MODEL_PATHS | null;
@@ -106,8 +107,8 @@ function findBone(root: THREE.Object3D, names: string[]): THREE.Bone | null {
 const DEG_TO_RAD = Math.PI / 180;
 
 export function EquipmentAttachment({ avatarRef }: EquipmentAttachmentProps) {
-  // Get scene reference for adding spotlight
-  const { scene } = useThree();
+  // Get scene and camera reference for spotlight direction
+  const { scene, camera } = useThree();
 
   // Track what we've attached
   const attachedEquipment = useRef<THREE.Group | null>(null);
@@ -123,7 +124,12 @@ export function EquipmentAttachment({ avatarRef }: EquipmentAttachmentProps) {
   // Smoothed position refs for stabilization (like most games do)
   const smoothedLightPos = useRef(new THREE.Vector3());
   const smoothedTargetPos = useRef(new THREE.Vector3());
+  const smoothedDirection = useRef(new THREE.Vector3(0, 0, -1));
   const isFirstFrame = useRef(true);
+
+  // Velocity tracking for Rust-style adaptive smoothing
+  const prevLightPos = useRef(new THREE.Vector3());
+  const velocitySmoothing = useRef(0); // Current velocity-based smoothing boost
 
   // Get active hotbar item
   const activeHotbarSlot = useInventoryStore((s) => s.activeHotbarSlot);
@@ -131,6 +137,7 @@ export function EquipmentAttachment({ avatarRef }: EquipmentAttachmentProps) {
 
   // Get flashlight state for visual feedback (used in useFrame for emissive glow)
   const isFlashlightOn = useFlashlightStore((s) => s.isOn);
+  const setFlashlightEquipped = useFlashlightStore((s) => s.setEquipped);
   const isFlashlightOnRef = useRef(isFlashlightOn);
   isFlashlightOnRef.current = isFlashlightOn;
 
@@ -140,6 +147,11 @@ export function EquipmentAttachment({ avatarRef }: EquipmentAttachmentProps) {
 
   // Determine equipment type from active item
   const equipmentType: EquipmentType = hasLightConfig ? 'flashlight' : null;
+
+  // Update flashlight equipped state for player controller (enables mouse look)
+  useEffect(() => {
+    setFlashlightEquipped(equipmentType === 'flashlight');
+  }, [equipmentType, setFlashlightEquipped]);
 
   // Preload flashlight model
   const flashlightGltf = useGLTF(getModelPath(EQUIPMENT_MODEL_PATHS.flashlight));
@@ -281,23 +293,26 @@ export function EquipmentAttachment({ avatarRef }: EquipmentAttachmentProps) {
           spotlightRef.current.angle = lightControls.angle * DEG_TO_RAD;
           spotlightRef.current.penumbra = lightControls.penumbra;
 
-          // Get world position of flashlight model
+          // Get world position of flashlight model (for light origin)
           const flashlightWorldPos = new THREE.Vector3();
           equipmentMeshRef.current.getWorldPosition(flashlightWorldPos);
 
-          // Get world quaternion for transforming local vectors to world space
+          // Get world quaternion for emission offset only (not direction)
           const worldQuat = new THREE.Quaternion();
           equipmentMeshRef.current.getWorldQuaternion(worldQuat);
 
-          // Get world direction the flashlight is pointing (configurable via Leva)
-          const flashlightDir = new THREE.Vector3(
-            lightControls.dirX,
-            lightControls.dirY,
-            lightControls.dirZ
-          ).normalize();
-          flashlightDir.applyQuaternion(worldQuat);
+          // ========================================
+          // USE CAMERA DIRECTION FOR LIGHT AIM
+          // This prevents wrist rotation from affecting where the light points
+          // The light always points where the player is looking
+          // ========================================
+          const cameraDir = new THREE.Vector3();
+          camera.getWorldDirection(cameraDir);
 
-          // Apply emission offset
+          // Store normalized camera direction for terrain shader
+          const normalizedDir = cameraDir.clone();
+
+          // Apply emission offset (still uses hand orientation for offset position)
           const emitOffset = new THREE.Vector3(
             lightControls.emitOffsetX,
             lightControls.emitOffsetY,
@@ -306,29 +321,64 @@ export function EquipmentAttachment({ avatarRef }: EquipmentAttachmentProps) {
           emitOffset.applyQuaternion(worldQuat);
 
           // Calculate raw (unsmoothed) positions
+          // Position comes from hand, but target direction comes from camera
           const rawLightPos = flashlightWorldPos.clone().add(emitOffset);
-          const rawTargetPos = flashlightWorldPos.clone().add(flashlightDir.multiplyScalar(lightControls.distance));
+          const rawTargetPos = rawLightPos.clone().add(cameraDir.clone().multiplyScalar(lightControls.distance));
 
-          // Apply smoothing/stabilization (like most games do with flashlights)
-          // Higher smoothing = more stable light, less hand wobble
-          const smoothFactor = lightControls.smoothing;
+          // ========================================
+          // RUST-STYLE VELOCITY-BASED SMOOTHING
+          // More movement = more stabilization
+          // ========================================
 
-          if (isFirstFrame.current || smoothFactor <= 0) {
+          // Calculate velocity (distance moved since last frame)
+          const velocity = rawLightPos.distanceTo(prevLightPos.current);
+          prevLightPos.current.copy(rawLightPos);
+
+          // Velocity thresholds (tuned for running vs walking vs standing)
+          const WALK_VELOCITY = 0.02;   // Below this = standing/slow walk
+          const RUN_VELOCITY = 0.08;    // Above this = full run
+          const MAX_VELOCITY_BOOST = 15; // Maximum extra smoothing when running
+
+          // Calculate velocity-based smoothing boost
+          // Maps velocity from [WALK, RUN] to [0, MAX_BOOST]
+          const velocityRatio = Math.min(1, Math.max(0, (velocity - WALK_VELOCITY) / (RUN_VELOCITY - WALK_VELOCITY)));
+          const targetVelocitySmoothing = velocityRatio * MAX_VELOCITY_BOOST;
+
+          // Smooth the smoothing factor itself (prevents jarring transitions)
+          velocitySmoothing.current += (targetVelocitySmoothing - velocitySmoothing.current) * 0.1;
+
+          // Total smoothing = base + velocity boost
+          const baseSmoothFactor = lightControls.smoothing;
+          const totalSmoothing = baseSmoothFactor + velocitySmoothing.current;
+
+          if (isFirstFrame.current || totalSmoothing <= 0) {
             // First frame or no smoothing - snap to position
             smoothedLightPos.current.copy(rawLightPos);
             smoothedTargetPos.current.copy(rawTargetPos);
+            smoothedDirection.current.copy(normalizedDir);
             isFirstFrame.current = false;
           } else {
-            // Lerp toward target position for smooth movement
-            // Using exponential smoothing: higher smoothFactor = slower/smoother
-            const lerpFactor = 1 - Math.exp(-smoothFactor * 0.016); // Assuming ~60fps
+            // Exponential smoothing with velocity-adaptive factor
+            const lerpFactor = 1 - Math.exp(-totalSmoothing * 0.016); // ~60fps
             smoothedLightPos.current.lerp(rawLightPos, lerpFactor);
             smoothedTargetPos.current.lerp(rawTargetPos, lerpFactor);
+
+            // Also smooth the direction (critical for stable terrain lighting)
+            smoothedDirection.current.lerp(normalizedDir, lerpFactor);
+            smoothedDirection.current.normalize();
           }
 
           // Position spotlight using smoothed values
           spotlightRef.current.position.copy(smoothedLightPos.current);
           spotlightTargetRef.current.position.copy(smoothedTargetPos.current);
+
+          // Update flashlight store with SMOOTHED direction for terrain shader
+          if (isFlashlightOnRef.current) {
+            useFlashlightStore.getState().updateWorldData(
+              smoothedLightPos.current,
+              smoothedDirection.current
+            );
+          }
         }
       }
       return;
