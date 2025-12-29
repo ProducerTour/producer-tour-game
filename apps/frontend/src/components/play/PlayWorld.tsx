@@ -651,6 +651,7 @@ export function PlayWorld({
                   isAiming={isAiming}
                   isFiring={isFiring}
                   velocityY={velocityY}
+                  weapon={weaponType}
                   isPlayer
                 />
               </Suspense>

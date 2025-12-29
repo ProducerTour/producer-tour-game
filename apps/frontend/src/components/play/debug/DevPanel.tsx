@@ -7,11 +7,13 @@
 import { useState, useEffect } from 'react';
 import { useDevStore } from './useDevStore';
 import { useCombatStore } from '../combat/useCombatStore';
+import { useGameSettings } from '../../../store/gameSettings.store';
 
 export function DevPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const devStore = useDevStore();
   const combatStore = useCombatStore();
+  const { showWeaponEditor, toggleWeaponEditor } = useGameSettings();
 
   // Toggle panel with F2 key
   useEffect(() => {
@@ -164,6 +166,22 @@ export function DevPanel() {
             }}
           />
         </div>
+      </div>
+
+      {/* Leva Controls */}
+      <div className="mb-4">
+        <h4 className="text-gray-400 text-xs uppercase mb-2">Advanced</h4>
+        <button
+          onClick={toggleWeaponEditor}
+          className={`w-full px-3 py-2 rounded text-sm font-medium transition-colors ${
+            showWeaponEditor
+              ? 'bg-purple-500 text-white'
+              : 'bg-purple-600 hover:bg-purple-500 text-white'
+          }`}
+        >
+          🎛️ Leva Controls {showWeaponEditor ? '(ON)' : '(OFF)'}
+        </button>
+        <p className="text-xs text-gray-500 mt-1">Weapon offsets, avatar transforms (F1)</p>
       </div>
 
       {/* Status */}

@@ -693,17 +693,18 @@ export default function PlayPage() {
   // Game settings - for weapon editor visibility
   const { showWeaponEditor, toggleWeaponEditor } = useGameSettings();
 
-  // F1 key to toggle debug panel (Leva) - admin only
+  // F1 key to toggle debug panel (Leva) - works in dev mode or for admins
+  const isDev = import.meta.env.DEV;
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F1' && isAdmin) {
+      if (e.key === 'F1' && (isDev || isAdmin)) {
         e.preventDefault();
         toggleWeaponEditor();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleWeaponEditor, isAdmin]);
+  }, [toggleWeaponEditor, isAdmin, isDev]);
 
   // Socket connection for multiplayer and server version checks
   const { socket, isConnected } = useSocket();
@@ -1023,9 +1024,9 @@ export default function PlayPage() {
         onRefreshNow={refreshNow}
       />
 
-      {/* Leva debug panel - admin only, toggle with F1 key or /weaponedit command */}
+      {/* Leva debug panel - toggle with F1 key (dev mode or admin) */}
       <Leva
-        hidden={!isAdmin || !showWeaponEditor}
+        hidden={!(isDev || isAdmin) || !showWeaponEditor}
         collapsed={false}
         titleBar={{ drag: true }}
         theme={{
@@ -1142,8 +1143,6 @@ export default function PlayPage() {
               {/* FPS/Performance stats - toggle via settings or /fps command */}
               {showFps && <Stats />}
               <PlayWorld
-                avatarUrl={avatarUrl || undefined}
-                avatarConfig={avatarConfig || undefined}
                 isPaused={showInventory || isPaused}
                 onPlayerPositionChange={(pos) => setPlayerCoords({ x: pos.x, y: pos.y, z: pos.z })}
                 onPlayerRotationChange={setPlayerRotation}
