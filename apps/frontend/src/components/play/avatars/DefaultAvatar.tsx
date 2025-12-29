@@ -23,6 +23,7 @@ import {
   type WeaponType as FSMWeaponType,
 } from '../hooks/useAnimationStateMachine';
 import { WeaponAttachment, type WeaponType } from '../WeaponAttachment';
+import { EquipmentAttachment } from '../EquipmentAttachment';
 
 // Default avatar model path
 const DEFAULT_AVATAR_PATH = '/assets/avatars/swat_operator.glb';
@@ -86,7 +87,7 @@ export function DefaultAvatar({
   isDying = false,
   velocityY = 0,
   weapon = null,
-  // isPlayer reserved for future use
+  isPlayer = false,
 }: DefaultAvatarProps) {
   const group = useRef<THREE.Group>(null);
   const avatarRef = useRef<THREE.Group>(null);
@@ -529,6 +530,8 @@ export function DefaultAvatar({
           currentAnimState={currentState}
         />
       )}
+      {/* Equipment attachment (flashlight, tools) - only for player */}
+      {isPlayer && <EquipmentAttachment avatarRef={avatarRef} />}
     </group>
   );
 }
