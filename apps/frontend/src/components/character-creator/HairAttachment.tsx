@@ -99,9 +99,9 @@ export function HairAttachment({
   avatarRef,
   hairStyleId,
   hairColor,
-  highlightColor,
-  offset = [0, 0, 0],
-  scale = 1,
+  highlightColor: _highlightColor,
+  offset: _offset = [0, 0, 0],
+  scale: _scale = 1,
 }: HairAttachmentProps) {
   const hairRef = useRef<THREE.Group>(null);
   const headBoneRef = useRef<THREE.Bone | null>(null);

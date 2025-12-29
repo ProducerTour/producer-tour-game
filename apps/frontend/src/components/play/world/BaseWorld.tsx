@@ -3,17 +3,14 @@ import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier';
 import { Stars, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 
-import { AnimatedAvatar, PlaceholderAvatar } from '../avatars';
+import { PlaceholderAvatar, DefaultAvatar } from '../avatars';
 import { OtherPlayers } from '../multiplayer';
 import { usePlayMultiplayer } from '../hooks/usePlayMultiplayer';
 import { PhysicsPlayerController } from '../PhysicsPlayerController';
-import { isValidAvatarUrl } from '../types';
 
 export interface BaseWorldProps {
   /** Spawn position for the player */
   spawn: [number, number, number];
-  /** Avatar URL for the player */
-  avatarUrl?: string;
   /** Callback when player position changes */
   onPlayerPositionChange?: (pos: THREE.Vector3) => void;
   /** Callback when multiplayer is ready */
@@ -47,7 +44,6 @@ export interface BaseWorldProps {
  */
 export function BaseWorld({
   spawn,
-  avatarUrl,
   onPlayerPositionChange,
   onMultiplayerReady,
   children,
@@ -58,9 +54,6 @@ export function BaseWorld({
   const [playerPos, setPlayerPos] = useState(new THREE.Vector3(...spawn));
   const playerRotation = useRef(new THREE.Euler());
   const [physicsDebug, setPhysicsDebug] = useState(false);
-
-  // Validate avatar URL
-  const validAvatarUrl = isValidAvatarUrl(avatarUrl) ? avatarUrl : undefined;
 
   // Physics debug toggle (F3 key)
   useEffect(() => {
@@ -80,7 +73,6 @@ export function BaseWorld({
   // Multiplayer
   const { otherPlayers, playerCount, isConnected, updatePosition } = usePlayMultiplayer({
     enabled: true,
-    avatarUrl,
   });
 
   // Notify parent of multiplayer status
@@ -132,11 +124,11 @@ export function BaseWorld({
           <PhysicsPlayerController onPositionChange={handlePositionChange}>
             {({ isMoving, isRunning }) => (
               <Suspense fallback={<PlaceholderAvatar isMoving={false} />}>
-                {validAvatarUrl ? (
-                  <AnimatedAvatar url={validAvatarUrl} isMoving={isMoving} isRunning={isRunning} />
-                ) : (
-                  <PlaceholderAvatar isMoving={isMoving} />
-                )}
+                <DefaultAvatar
+                  isMoving={isMoving}
+                  isRunning={isRunning}
+                  isPlayer={true}
+                />
               </Suspense>
             )}
           </PhysicsPlayerController>

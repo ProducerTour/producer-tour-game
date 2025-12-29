@@ -5,7 +5,7 @@ import { prisma } from '../lib/prisma';
 import { emailService } from '../services/email.service';
 import { pushService } from '../services/push.service';
 import { notificationService } from '../services/notification.service';
-import { registerUserConnection, unregisterUserConnection } from '../services/productivity.service';
+// Productivity tracking removed - game-only fork
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -466,10 +466,7 @@ export function initializeSocket(httpServer: HttpServer): Server {
     }
     onlineUsers.get(userId)!.add(socket.id);
 
-    // Register connection time for productivity widget
-    if (isNewConnection) {
-      registerUserConnection(userId);
-    }
+    // Connection tracking (productivity widget removed)
 
     // Broadcast online status
     io?.emit('user:online', { userId });
@@ -1247,8 +1244,6 @@ export function initializeSocket(httpServer: HttpServer): Server {
         userSockets.delete(socket.id);
         if (userSockets.size === 0) {
           onlineUsers.delete(userId);
-          // Unregister from productivity tracking
-          unregisterUserConnection(userId);
           // Broadcast offline status
           io?.emit('user:offline', { userId });
         }

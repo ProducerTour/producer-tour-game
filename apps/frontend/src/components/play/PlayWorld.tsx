@@ -45,7 +45,6 @@ function ShaderPrewarmer() {
 import { usePlayMultiplayer } from './hooks/usePlayMultiplayer';
 import { OtherPlayers } from './multiplayer/OtherPlayers';
 import { PhysicsPlayerController, type AnimationState } from './PhysicsPlayerController';
-import { AnimationErrorBoundary } from './AnimationErrorBoundary';
 import { type WeaponType } from './WeaponAttachment';
 import { useCombatStore } from './combat/useCombatStore';
 import { useFlashlightStore } from '../../stores/useFlashlightStore';
@@ -55,7 +54,7 @@ import { useWorldControls } from '../../lib/config';
 import { useGameSettings } from '../../store/gameSettings.store';
 
 // Import extracted avatar components
-import { AnimatedAvatar, MixamoAnimatedAvatar, PlaceholderAvatar } from './avatars';
+import { PlaceholderAvatar, DefaultAvatar } from './avatars';
 
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { StaticTerrain, TerrainPhysics } from './terrain';
@@ -72,9 +71,6 @@ import { PlacedObjectsManager } from './world/PlacedObjectsManager';
 import { NPCManager, createNPC } from './npc';
 import { useNPCStore } from './npc/useNPCStore';
 import { GamePauseProvider } from './context';
-
-// Flag to use Mixamo animations vs procedural
-const USE_MIXAMO_ANIMATIONS = true;
 
 // Debug logging - set to false to reduce console spam
 const DEBUG_WORLD = false;
@@ -143,13 +139,8 @@ export interface PlayerInfo {
 // Import preloaded terrain type
 import type { PreloadedTerrain } from './hooks/useTerrainPreloader';
 
-// Import CharacterConfig type for custom avatars
-import type { CharacterConfig } from '../../lib/character/types';
-
 // Main world component
 export function PlayWorld({
-  avatarUrl,
-  avatarConfig,
   isPaused = false,
   onPlayerPositionChange,
   onPlayerRotationChange,
@@ -159,8 +150,6 @@ export function PlayWorld({
   preloadedTerrain,
   onGrassGenerationProgress,
 }: {
-  avatarUrl?: string;
-  avatarConfig?: CharacterConfig;
   isPaused?: boolean;
   onPlayerPositionChange?: (pos: THREE.Vector3) => void;
   onPlayerRotationChange?: (rotationY: number) => void;
@@ -340,8 +329,6 @@ export function PlayWorld({
   // Multiplayer - connect to play room
   const { otherPlayers, playerCount, isConnected, updatePosition } = usePlayMultiplayer({
     enabled: true,
-    avatarUrl,
-    avatarConfig,
   });
 
   // Notify parent of multiplayer status
@@ -648,40 +635,24 @@ export function PlayWorld({
 
           {/* Physics Player Controller with animation state */}
           <PhysicsPlayerController onPositionChange={handlePositionChange} isPaused={isPaused}>
-            {({ isMoving, isRunning, isGrounded, isJumping, isFalling, isLanding, isDancing, dancePressed, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring, velocityY, aimPitch }) => (
+            {({ isMoving, isRunning, isGrounded, isJumping, isFalling, isDancing, dancePressed, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring, velocityY }) => (
               <Suspense fallback={<PlaceholderAvatar isMoving={false} />}>
-                {avatarUrl ? (
-                  USE_MIXAMO_ANIMATIONS ? (
-                    <AnimationErrorBoundary
-                      fallback={<AnimatedAvatar url={avatarUrl} isMoving={isMoving} isRunning={isRunning} />}
-                    >
-                      <MixamoAnimatedAvatar
-                        url={avatarUrl}
-                        isMoving={isMoving}
-                        isRunning={isRunning}
-                        isGrounded={isGrounded}
-                        isJumping={isJumping}
-                        isFalling={isFalling}
-                        isLanding={isLanding}
-                        isDancing={isDancing}
-                        dancePressed={dancePressed}
-                        isCrouching={isCrouching}
-                        isStrafingLeft={isStrafingLeft}
-                        isStrafingRight={isStrafingRight}
-                        isAiming={isAiming}
-                        isFiring={isFiring}
-                        velocityY={velocityY}
-                        weaponType={weaponType}
-                        aimPitch={aimPitch}
-                        isPlayer
-                      />
-                    </AnimationErrorBoundary>
-                  ) : (
-                    <AnimatedAvatar url={avatarUrl} isMoving={isMoving} isRunning={isRunning} />
-                  )
-                ) : (
-                  <PlaceholderAvatar isMoving={isMoving} />
-                )}
+                <DefaultAvatar
+                  isMoving={isMoving}
+                  isRunning={isRunning}
+                  isGrounded={isGrounded}
+                  isJumping={isJumping}
+                  isFalling={isFalling}
+                  isDancing={isDancing}
+                  dancePressed={dancePressed}
+                  isCrouching={isCrouching}
+                  isStrafingLeft={isStrafingLeft}
+                  isStrafingRight={isStrafingRight}
+                  isAiming={isAiming}
+                  isFiring={isFiring}
+                  velocityY={velocityY}
+                  isPlayer
+                />
               </Suspense>
             )}
           </PhysicsPlayerController>

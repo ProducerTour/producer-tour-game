@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Lock, ArrowLeft, ArrowRight, Music2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Lock, ArrowLeft, ArrowRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { authApi } from '../lib/api';
 
 export default function ResetPasswordPage() {
@@ -49,7 +49,6 @@ export default function ResetPasswordPage() {
       await authApi.resetPassword(token, newPassword);
       setSuccess(true);
 
-      // Redirect to login after 3 seconds
       setTimeout(() => {
         navigate('/login');
       }, 3000);
@@ -61,57 +60,30 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-6">
-      {/* Background Effects - Cassette Theme */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-theme-primary-10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-theme-primary-5 rounded-full blur-[100px]" />
-        {/* Grid overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
-            backgroundSize: '100px 100px'
-          }}
-        />
-      </div>
-
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md relative z-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-md"
       >
-        {/* Logo */}
-        <div className="mb-8 text-center">
-          <Link to="/" className="inline-flex items-center gap-3">
-            <div className="w-10 h-10 bg-theme-primary flex items-center justify-center">
-              <Music2 className="w-5 h-5 text-black" />
-            </div>
-            <span className="text-xl font-light text-white tracking-wide">PRODUCER TOUR</span>
-          </Link>
-        </div>
-
-        {/* Card */}
-        <div className="relative overflow-hidden bg-theme-card border border-theme-border-strong p-8">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 shadow-xl">
           {success ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-center"
             >
-              <div className="w-16 h-16 mx-auto mb-6 bg-theme-primary-10 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-theme-primary" />
+              <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-green-400" />
               </div>
-              <h2 className="text-2xl font-light text-white mb-3">Password reset!</h2>
-              <p className="text-theme-foreground-secondary mb-6">
-                Your password has been successfully reset. Redirecting you to login...
+              <h2 className="text-2xl font-semibold text-white mb-3">Password Reset!</h2>
+              <p className="text-slate-400 mb-6">
+                Your password has been successfully reset. Redirecting to login...
               </p>
               <Link
                 to="/login"
-                className="inline-flex items-center gap-2 py-3 px-6 bg-theme-primary text-black font-medium hover:bg-theme-primary-hover transition-colors"
+                className="inline-flex items-center gap-2 py-3 px-6 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
               >
                 Go to Login
                 <ArrowRight className="w-4 h-4" />
@@ -123,26 +95,26 @@ export default function ResetPasswordPage() {
               animate={{ opacity: 1, y: 0 }}
               className="text-center"
             >
-              <div className="w-16 h-16 mx-auto mb-6 bg-red-500/10 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-500/20 flex items-center justify-center">
                 <AlertCircle className="w-8 h-8 text-red-400" />
               </div>
-              <h2 className="text-2xl font-light text-white mb-3">Invalid link</h2>
-              <p className="text-theme-foreground-secondary mb-6">
-                This password reset link is invalid or has expired. Please request a new one.
+              <h2 className="text-2xl font-semibold text-white mb-3">Invalid Link</h2>
+              <p className="text-slate-400 mb-6">
+                This password reset link is invalid or has expired.
               </p>
               <Link
                 to="/forgot-password"
-                className="inline-flex items-center gap-2 py-3 px-6 bg-theme-primary text-black font-medium hover:bg-theme-primary-hover transition-colors"
+                className="inline-flex items-center gap-2 py-3 px-6 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
               >
-                Request new link
+                Request New Link
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </motion.div>
           ) : (
             <>
               <div className="mb-8 text-center">
-                <h2 className="text-2xl font-light text-white mb-2">Set new password</h2>
-                <p className="text-white/60">
+                <h2 className="text-2xl font-semibold text-white mb-2">Set New Password</h2>
+                <p className="text-slate-400 text-sm">
                   Enter your new password below
                 </p>
               </div>
@@ -152,20 +124,19 @@ export default function ResetPasswordPage() {
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-red-500/10 border border-red-500/20 p-4"
+                    className="bg-red-500/10 border border-red-500/20 rounded-lg p-4"
                   >
                     <p className="text-sm text-red-400">{error}</p>
                   </motion.div>
                 )}
 
-                {/* New Password Field */}
                 <div>
-                  <label htmlFor="newPassword" className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
-                    New password
+                  <label htmlFor="newPassword" className="block text-sm text-slate-400 mb-2">
+                    New Password
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Lock className="w-5 h-5 text-white/30" />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="w-4 h-4 text-slate-500" />
                     </div>
                     <input
                       id="newPassword"
@@ -173,22 +144,21 @@ export default function ResetPasswordPage() {
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
                       placeholder="Enter new password"
                       minLength={6}
                     />
                   </div>
-                  <p className="mt-2 text-xs text-white/30">Must be at least 6 characters</p>
+                  <p className="mt-2 text-xs text-slate-500">Must be at least 6 characters</p>
                 </div>
 
-                {/* Confirm Password Field */}
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
-                    Confirm password
+                  <label htmlFor="confirmPassword" className="block text-sm text-slate-400 mb-2">
+                    Confirm Password
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Lock className="w-5 h-5 text-white/30" />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="w-4 h-4 text-slate-500" />
                     </div>
                     <input
                       id="confirmPassword"
@@ -196,38 +166,36 @@ export default function ResetPasswordPage() {
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
                       placeholder="Confirm new password"
                       minLength={6}
                     />
                   </div>
                 </div>
 
-                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-theme-primary text-black font-medium hover:bg-theme-primary-hover focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Resetting password...
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Resetting...
                     </>
                   ) : (
                     <>
-                      Reset password
-                      <ArrowRight className="w-5 h-5" />
+                      Reset Password
+                      <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
               </form>
 
-              {/* Back to Login */}
               <div className="mt-6 text-center">
                 <Link
                   to="/login"
-                  className="inline-flex items-center gap-2 text-sm text-theme-foreground-muted hover:text-theme-primary transition-colors"
+                  className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back to login
