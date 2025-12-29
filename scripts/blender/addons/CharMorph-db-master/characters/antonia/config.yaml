@@ -1,0 +1,79 @@
+title: Antonia Polygon (CC-BY)
+author: Olaf Delgado-Friedrichs
+additional_authors: phantom3D, MikeJ, DieTrying (Morphs), Fenrissa and others
+url: https://sites.google.com/site/antoniapolygon/
+license: CC-BY 3.0
+
+char_obj: cm_antonia
+basis: Default
+default_hair_length: 0.3
+default_armature: rigify
+
+randomize_excl_regex: (left|right|gone)$
+
+materials:
+  - cm_antonia_cornea
+  - cm_antonia_iris
+  - cm_antonia_head
+  - cm_antonia_head
+  - cm_antonia_mouth
+  - cm_antonia_nails
+  - cm_antonia_nails
+  - charmorph_pupil
+  - cm_antonia_sclera
+  - cm_antonia_arms
+  - cm_antonia_body
+  - cm_antonia_head
+  - cm_antonia_legs
+  - cm_antonia_mouth
+  - cm_antonia_mouth
+  - charmorph_eyelashes
+
+underwear:
+  - panties
+  - bra
+
+hairstyles:
+  - eyelashes0
+
+armature:
+  rigify:
+    bones:
+      default:
+        axis_z: keep
+      #TODO: Bending angle!
+    ik_limits:
+      MCH-forearm_ik.L:
+        min: -40
+        max: 130
+      MCH-forearm_ik.R:
+        min: -40
+        max: 130
+      MCH-shin_ik.L:
+        min: -5
+        max: 160
+      MCH-shin_ik.R:
+        min: -5
+        max: 160
+    title: Default (Rigify)
+    type: rigify
+    file: metarig.blend
+    obj_name: metarig
+    tweaks:
+      - ../../tweaks/rigify_extended.yaml
+      #- tweaks/eyes.yaml
+    sliding_joints:
+      elbows:
+        upper_bone: upper_arm
+        lower_bone: forearm
+        side: [".L", ".R"]
+        verts_mul: [[7008, 20252], [2700, 25148], [6186, 20252], [1878, 25148]]
+        verts_div: [[6186, 7039], [1878, 2731]]
+        calc: (verts_mul/verts_div)**3*3.532
+        default_influence: 0.08
+
+      knees:
+        upper_bone: thigh
+        lower_bone: shin
+        side: [".L", ".R"]
+        influence: 0.05

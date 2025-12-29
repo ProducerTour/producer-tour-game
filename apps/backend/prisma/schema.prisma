@@ -1,0 +1,3010 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/generated/client"
+  engineType    = "binary"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  WRITER
+  LEGAL
+  MANAGER
+  PUBLISHER
+  STAFF
+  VIEWER
+  CUSTOMER
+}
+
+enum ProType {
+  BMI
+  ASCAP
+  SESAC
+  GMR
+  MLC
+  OTHER
+}
+
+enum StatementStatus {
+  UPLOADED
+  PROCESSING
+  PROCESSED
+  PUBLISHED
+  ERROR
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+}
+
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CONTACTED
+}
+
+enum ApplicationTier {
+  PRIORITY_A
+  PRIORITY_B
+  PRIORITY_C
+  PRIORITY_D
+}
+
+enum AgreementStatus {
+  PENDING    // Created but not sent
+  SENT       // Email sent to recipient
+  VIEWED     // Recipient opened the document
+  SIGNED     // Recipient signed
+  COMPLETED  // All parties signed, document finalized
+  CANCELLED  // Agreement cancelled
+  EXPIRED    // Signing link expired
+}
+
+enum OpportunityStatus {
+  OPEN
+  ON_HOLD
+  CLOSED
+}
+
+enum OpportunityPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum PlacementStatus {
+  PENDING            // User submitted, awaiting admin review
+  DOCUMENTS_REQUESTED // Admin needs more info from writer
+  APPROVED           // Admin approved, sent to placement tracker
+  DENIED             // Admin rejected submission
+  TRACKING           // Actively being tracked (formerly ACTIVE)
+  COMPLETED          // Case closed
+}
+
+enum StreamingPlatform {
+  SPOTIFY
+  APPLE_MUSIC
+  AMAZON_MUSIC
+  YOUTUBE_MUSIC
+  TIDAL
+  DEEZER
+  SOUNDCLOUD
+  OTHER
+}
+
+enum DocumentCategory {
+  PRE_PROCESSED_STATEMENT
+  PROCESSED_STATEMENT
+  CONTRACT
+  AGREEMENT
+  INVOICE
+  TAX_DOCUMENT
+  SPLIT_SHEET
+  PRODUCER_AGREEMENT
+  OTHER
+}
+
+enum DocumentVisibility {
+  ADMIN_ONLY
+  USER_SPECIFIC
+  ALL_WRITERS
+}
+
+enum NotificationType {
+  FOLLOW_REQUEST       // Someone wants to follow you
+  FOLLOW_ACCEPTED      // Your follow request was accepted
+  NEW_FOLLOWER         // Someone started following you
+  NEW_MESSAGE          // New chat message (when not in chat)
+  ACHIEVEMENT_UNLOCKED // Gamification achievement earned
+  LEVEL_UP             // Reached a new level
+  PLACEMENT_UPDATE     // Placement status changed
+  PAYMENT_RECEIVED     // Payment processed
+  REFERRAL_SIGNUP      // Someone signed up with your referral
+  REFERRAL_CONVERTED   // Referral became a paying user
+  SYSTEM_ANNOUNCEMENT  // Admin broadcast message
+  MILESTONE_REACHED    // Earnings/activity milestone
+  COMMENT_LIKED_BY_AUTHOR // Post author liked your comment
+}
+
+// Models
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      UserRole @default(WRITER)
+  firstName String?
+  middleName String?
+  lastName  String?
+  writerIpiNumber String?  // Writer IPI/CAE number for songwriter registration
+  publisherName String?  // Publisher name for songwriter registration
+  publisherIpiNumber String?  // Publisher IPI/CAE number for publishing registration
+  subPublisherName String?  // Sub Publisher Name / Administrator (not related to admin role)
+  subPublisherIpiNumber String?  // Sub Publisher IPI number
+  writerProAffiliation ProType?  // Writer's PRO affiliation (BMI, ASCAP, SESAC, GMR, MLC, OTHER) - consolidated from Producer
+  // Optional per-writer commission override (percentage 0.00-100.00). If null, use global CommissionSettings
+  commissionOverrideRate Decimal? @db.Decimal(5, 2)
+  // Upload access for VIEWER role (allows statement uploads)
+  canUploadStatements Boolean @default(false)
+
+  // Stripe Connect fields for payment processing
+  stripeAccountId         String? @unique // Stripe Connect Express account ID
+  stripeOnboardingComplete Boolean @default(false) // Whether onboarding is complete
+  stripeAccountStatus     String? // Stripe account status (pending, complete, restricted, etc.)
+  stripeDetailsSubmitted  Boolean @default(false) // Whether user submitted details to Stripe
+
+  // Stripe Customer ID for shop purchases
+  stripeCustomerId        String? @unique // Stripe Customer ID for checkout sessions
+
+  // Tax Information (for 1099 reporting via Stripe)
+  taxFormType             String?   // "W9" or "W8BEN"
+  taxInfoSubmittedAt      DateTime? // When tax info was submitted
+  taxInfoStatus           String?   // "pending" | "verified" | "needs_update"
+  taxFormLast4            String?   // Last 4 of SSN/EIN for display purposes only
+
+  // Password reset fields
+  resetToken        String?   @unique // Cryptographically secure token for password reset
+  resetTokenExpiry  DateTime? // Expiration time for reset token (1 hour recommended)
+
+  // Wallet balance fields for writer payouts
+  availableBalance  Decimal @default(0) @db.Decimal(12, 6) // Balance available for withdrawal
+  pendingBalance    Decimal @default(0) @db.Decimal(12, 6) // Balance in pending withdrawal requests
+  lifetimeEarnings  Decimal @default(0) @db.Decimal(12, 6) // Total all-time earnings
+
+  // Notification preferences
+  emailNotificationsEnabled      Boolean @default(true)  // Master email toggle
+  statementNotificationsEnabled  Boolean @default(true)  // Statement/payment emails
+  monthlySummaryEnabled          Boolean @default(false) // Monthly earning summaries
+
+  // Chat preferences
+  chatSoundEnabled        Boolean @default(true)  // Play sound on new messages
+  chatSoundType           String  @default("chime") // chime, pop, ding, bell, subtle
+  chatVisibilityStatus    String  @default("online") // online, away, invisible, do_not_disturb
+  chatShowOnlineStatus    Boolean @default(true)  // Show online status to others
+  chatShowTypingIndicator Boolean @default(true)  // Show typing indicator to others
+  chatMessagePreview      Boolean @default(true)  // Show message preview in notifications
+  chatDesktopNotifications Boolean @default(true) // Enable desktop push notifications
+
+  // Profile & Writer Tour Hub fields
+  profilePhotoUrl    String?   @db.Text // Base64 encoded profile photo or URL
+  coverBannerUrl     String?   @db.Text // Base64 encoded cover banner or URL
+  avatarUrl          String?   @db.Text // Ready Player Me 3D avatar GLB URL for Producer Tour Play
+  bio                String?   @db.Text // Writer bio/about section
+  location           String?   // City, State or Country
+  website            String?   // Personal website URL
+  spotifyArtistUrl   String?   // Spotify artist profile URL
+  instagramHandle    String?   // Instagram username (without @)
+  twitterHandle      String?   // Twitter/X username (without @)
+  linkedinUrl        String?   // LinkedIn profile URL
+  tiktokHandle       String?   // TikTok username (without @)
+  soundcloudUrl      String?   // SoundCloud profile URL
+  youtubeChannelUrl  String?   // YouTube channel URL
+  appleMusicUrl      String?   // Apple Music artist URL
+  isPublicProfile    Boolean   @default(false) // Whether profile is visible publicly
+  profileSlug        String?   @unique // URL slug for public profile (e.g., "john-smith")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  producer              Producer?
+  statementItems        StatementItem[]
+  publishedStatements   Statement[]       @relation("PublishedBy")
+  processedPayments     Statement[]       @relation("PaymentProcessedBy")
+  applications          Application[]
+  placements            Placement[]
+  placementCredits      PlacementCredit[] // Collaborator credits linking user to placements
+  credits               Credit[]
+  proSubmissions        ProSubmission[]
+  advanceScenarios      AdvanceScenario[]
+  uploadedDocuments     Document[]        @relation("UploadedBy")
+  userDocuments         Document[]        @relation("UserDocuments")
+  payoutRequests        PayoutRequest[]
+
+  // Session payout relations
+  sessionPayoutsSubmitted  SessionPayout[] @relation("SessionPayoutSubmitter")
+  sessionPayoutsReviewed   SessionPayout[] @relation("SessionPayoutReviewer")
+
+  // Invoice relations
+  invoicesSubmitted        Invoice[]       @relation("InvoiceSubmitter")
+  invoicesReviewed         Invoice[]       @relation("InvoiceReviewer")
+
+  // Gamification relations
+  gamificationPoints    GamificationPoints?
+  gamificationEvents    GamificationEvent[]
+  achievements          UserAchievement[]
+  rewardRedemptions     RewardRedemption[]
+  socialShares          SocialShare[]
+  dailyCheckIns         DailyCheckIn[]
+
+  // Badge & Border relations
+  badges                UserBadge[]
+  borders               UserBorder[]
+  equippedBadgeId       String?     // Quick reference to currently equipped badge
+  equippedBorderId      String?     // Quick reference to currently equipped border
+
+  // Chat relations
+  conversationParticipants ConversationParticipant[]
+  messages                 Message[]
+
+  // Tool subscription relations
+  toolSubscriptions        ToolSubscription[]
+
+  // Personal Marketplace relations
+  marketplaceListings      MarketplaceListing[]   @relation("MarketplaceListings")
+  marketplacePurchases     MarketplaceTransaction[] @relation("MarketplacePurchases")
+  marketplaceSales         MarketplaceTransaction[] @relation("MarketplaceSales")
+
+  // Social feed relations
+  activityFeedItems        ActivityFeedItem[]     @relation("ActivityFeedItems")
+
+  // Social graph relations
+  followers                Follow[]               @relation("Followers")   // Users who follow this user
+  following                Follow[]               @relation("Following")   // Users this user follows
+
+  // Feed engagement relations
+  feedLikes                FeedLike[]             @relation("FeedLikes")   // Likes on feed items
+  feedComments             FeedComment[]          @relation("FeedComments") // Comments on feed items
+  commentLikes             CommentLike[]          @relation("CommentLikes") // Likes on comments
+
+  // Push notification subscriptions
+  pushSubscriptions        PushSubscription[]
+
+  // In-app notifications
+  notifications            Notification[]     @relation("NotificationRecipient")
+  notificationsSent        Notification[]     @relation("NotificationActor")
+
+  // E-signature agreements
+  agreements               Agreement[]
+
+  // Character creator avatar config
+  userAvatar               UserAvatar?
+
+  @@map("users")
+}
+
+// In-app notification system
+model Notification {
+  id        String           @id @default(cuid())
+
+  // Who receives the notification
+  userId    String
+  user      User             @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Type of notification
+  type      NotificationType
+
+  // Display content
+  title     String
+  message   String           @db.Text
+
+  // Optional: Who triggered this notification (for social actions)
+  actorId   String?
+  actor     User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  // Optional: Link to related entity
+  entityType String?         // e.g., "placement", "achievement", "message"
+  entityId   String?         // ID of the related entity
+
+  // Action URL for clicking the notification
+  actionUrl  String?
+
+  // Read status
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+
+  // Timestamps
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// Push notification subscription for Web Push
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint   String   @unique // Push service endpoint URL
+  p256dh     String   // Public key for encryption
+  auth       String   // Auth secret
+  userAgent  String?  // Device/browser info
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+model Producer {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  producerName   String
+  writerIpiNumber      String?
+  publisherIpiNumber   String?
+  proAffiliation ProType?
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  statementItems StatementItem[]
+
+  @@index([writerIpiNumber])
+  @@index([publisherIpiNumber])
+  @@index([proAffiliation])
+  @@map("producers")
+}
+
+model Statement {
+  id                String          @id @default(cuid())
+  proType           ProType
+  filename          String
+  displayName       String?         // Custom display name for cleaner organization
+  filePath          String?
+  status            StatementStatus @default(UPLOADED)
+  uploadDate        DateTime        @default(now())
+  publishedAt       DateTime?
+  publishedById     String?
+  totalRevenue      Decimal         @default(0) @db.Decimal(12, 6) // Gross revenue (before commission)
+  totalPerformances Int             @default(0)
+
+  // Commission totals
+  totalCommission   Decimal         @default(0) @db.Decimal(12, 6) // Total commission amount
+  totalNet          Decimal         @default(0) @db.Decimal(12, 6) // Total net (after commission)
+
+  // Payment processing
+  paymentStatus        PaymentStatus @default(UNPAID)
+  paymentProcessedAt   DateTime?
+  paymentProcessedById String?
+  stripeTransferGroup  String? // Stripe transfer group ID for tracking related transfers
+  stripeTransferIds    Json? // Array of Stripe transfer IDs for writer payouts
+
+  statementPeriod   String?
+  periodStart       DateTime?
+  periodEnd         DateTime?
+  metadata          Json?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  publishedBy        User?           @relation("PublishedBy", fields: [publishedById], references: [id])
+  paymentProcessedBy User?           @relation("PaymentProcessedBy", fields: [paymentProcessedById], references: [id])
+  items              StatementItem[]
+  documents          Document[]
+
+  @@index([proType])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([uploadDate])
+  @@map("statements")
+}
+
+model StatementItem {
+  id              String   @id @default(cuid())
+  statementId     String
+  workTitle       String
+  userId          String
+  producerId      String?   // Optional - not all writers have producers
+  revenue         Decimal  @db.Decimal(12, 6) // Gross revenue (before commission) - increased precision for accuracy
+  performances    Int      @default(0)
+  splitPercentage Decimal? @default(100.00) @db.Decimal(5, 2) // Writer's percentage share (0.00-100.00)
+  writerIpiNumber String?  // IPI number at time of assignment
+
+  // Commission tracking
+  commissionRate     Decimal  @default(0.00) @db.Decimal(5, 2) // Commission percentage (0.00-100.00)
+  commissionAmount   Decimal  @default(0.00) @db.Decimal(12, 6) // Calculated commission in dollars - increased precision
+  commissionRecipient String? // Who receives commission (e.g., "Producer Tour", "Admin Fee")
+  netRevenue         Decimal  @default(0.00) @db.Decimal(12, 6) // Revenue after commission - increased precision
+
+  // Payment visibility
+  isVisibleToWriter Boolean  @default(false) // Controls whether writer can see this item
+  paidAt           DateTime? // When payment was processed and item became visible
+
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  // Relations
+  statement Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  producer  Producer? @relation(fields: [producerId], references: [id], onDelete: Cascade)
+
+  @@index([statementId])
+  @@index([userId])
+  @@index([producerId])
+  @@index([workTitle])
+  @@index([isVisibleToWriter])
+  @@map("statement_items")
+}
+
+model Application {
+  id               String            @id @default(cuid())
+  userId           String?
+  name             String
+  email            String
+  phone            String?
+  social           String?
+  primaryLink      String
+  otherLinks       String?
+  pro              String?
+  distributor      String?
+  catalogSize      String
+  placements       String
+  royalties        String
+  readiness        Json? // Array of readiness items
+  engagement       String
+  needs            Json? // Array of selected needs
+  notes            String?
+  score            Int               @default(0)
+  tier             ApplicationTier?
+  status           ApplicationStatus @default(PENDING)
+  internalNotes    String?
+  submittedAt      DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  agreements Agreement[]
+
+  @@index([email])
+  @@index([status])
+  @@index([tier])
+  @@index([score])
+  @@map("applications")
+}
+
+model Opportunity {
+  id           String              @id @default(cuid())
+  title        String
+  brief        String              @db.Text
+  genres       Json? // Array of genres
+  budget       String?
+  deadline     DateTime?
+  contact      String?
+  link         String?
+  status       OpportunityStatus   @default(OPEN)
+  priority     OpportunityPriority @default(MEDIUM)
+  notes        String?             @db.Text
+  tags         Json? // Array of tags
+  displayOrder Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([status])
+  @@index([priority])
+  @@index([deadline])
+  @@map("opportunities")
+}
+
+model Consultation {
+  id            String   @id @default(cuid())
+  companyName   String
+  contactName   String
+  email         String
+  phone         String?
+  title         String?
+  website       String?
+  businessType  String?
+  companySize   String?
+  budget        String?
+  services      Json? // Array of services
+  projectScope  String?  @db.Text
+  timeline      String?
+  volumeNeeds   String?
+  additionalInfo String? @db.Text
+  hearAbout     String?
+  status        String   @default("new")
+  internalNotes String?  @db.Text
+  submittedAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@map("consultations")
+}
+
+model Placement {
+  id              String            @id @default(cuid())
+  userId          String
+  title           String
+  artist          String
+  platform        StreamingPlatform @default(OTHER)
+  releaseDate     DateTime
+  isrc            String?
+  spotifyTrackId  String?
+  streams         Int               @default(0)
+  estimatedStreams Boolean          @default(false) // Flag for estimated vs real
+  status          PlacementStatus   @default(PENDING)
+  lastSyncedAt    DateTime?
+  metadata        Json? // Store additional track info (album, image, etc.)
+  notes           String?           @db.Text
+
+  // AudioDB enrichment fields
+  albumName       String?           // Album title from AudioDB
+  genre           String?           // Music genre (Hip-Hop, Pop, R&B, etc.)
+  releaseYear     String?           // Release year
+  label           String?           // Record label
+  albumArtUrl     String?           // Album artwork thumbnail
+  albumArtHQUrl   String?           // High-quality album artwork
+  artistThumbUrl  String?           // Artist thumbnail image
+  artistBio       String?           @db.Text // Artist biography
+  musicbrainzId   String?           // MusicBrainz ID for external linking
+  audioDbArtistId String?           // AudioDB artist ID
+  audioDbAlbumId  String?           // AudioDB album ID
+  audioDbData     Json?             // Complete AudioDB response for reference
+
+  // Work Registration workflow fields
+  submittedAt     DateTime?         // When writer submitted for review
+  reviewedAt      DateTime?         // When admin reviewed
+  reviewedBy      String?           // Admin user ID who reviewed
+  denialReason    String?           @db.Text // Reason if denied
+  documentsRequested String?        @db.Text // What documents admin needs
+
+  // Case/tracking info (for approved items)
+  caseNumber      String?           @unique // Auto-generated: PT-YYYY-###
+  dealTerms       String?           @db.Text // Deal terms and agreements
+  advanceAmount   Decimal?          @db.Decimal(12, 2) // Advance payment if any
+  royaltyPercentage Decimal?        @db.Decimal(5, 2) // Royalty split percentage
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credits PlacementCredit[]
+  documents Document[]
+
+  @@index([userId])
+  @@index([isrc])
+  @@index([spotifyTrackId])
+  @@index([platform])
+  @@index([status])
+  @@index([genre])
+  @@index([audioDbArtistId])
+  @@index([caseNumber])
+  @@index([submittedAt])
+  @@map("placements")
+}
+
+model PlacementCredit {
+  id              String   @id @default(cuid())
+  placementId     String   // FK to Placement
+  firstName       String   // Collaborator first name
+  lastName        String   // Collaborator last name
+  role            String   // Producer, Writer, Composer, etc.
+  splitPercentage Decimal  @db.Decimal(5, 2) // 0.00 to 100.00
+  pro             String?  // Performing Rights Organization (BMI, ASCAP, SESAC)
+  ipiNumber       String?  // IPI/CAE number if available (writer IPI)
+  isPrimary       Boolean  @default(false) // Is this the submitting user
+  notes           String?  @db.Text
+
+  // NEW: Link collaborator to User (for PT clients)
+  userId             String?  // FK to User (optional, for PT-registered writers)
+  publisherIpiNumber String?  // Collaborator's publisher IPI (determines PT representation)
+  isExternalWriter   Boolean  @default(false) // True if not a PT client (external collaborator)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  placement Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([placementId])
+  @@index([firstName, lastName])
+  @@index([userId])
+  @@index([ipiNumber])
+  @@index([publisherIpiNumber])
+  @@map("placement_credits")
+}
+
+model PlacementDeal {
+  id              String               @id @default(cuid())
+
+  // Core Placement Info
+  clientFullName  String               // Legal name
+  clientPKA       String               // p/k/a "Producer Name"
+  songTitle       String
+  artistName      String
+  streams         String?              // Text field for formatted numbers like "1,000,000"
+  label           String?
+  coProducers     String?              // Comma-separated or text
+
+  // Status & Action
+  status          String?              // e.g., "Pending Agreement", "Redline"
+  action          String?              // Action item
+
+  // Legal Fee Section
+  legalFeeAmount  String?              // e.g., "$500" or "10%"
+  legalFeeType    String               @default("Flat Fee") // "Flat Fee" or "Percentage"
+  legalFeePaymentSource String         @default("Out of Advance") // "Out of Advance" or "Paid Directly"
+  hasLegalFeeBeenPaid String           @default("No") // "No" or "Yes"
+
+  // Deal Terms
+  advance         String?              // Dollar amount as text
+  masterRoyalty   String?              // e.g., "2% PPD"
+  pubPercent      String?              // e.g., "50%"
+  sxLOD           String?              // e.g., "20%"
+
+  // Contracting Info
+  contractContactName      String?
+  contractCompany          String?
+  contractContactEmail     String?
+  contractMailingAddress   String?
+  contractSoundExchangePayee String?
+  contractCreditLine       String?
+
+  // Other
+  contractLink    String?              // URL
+  released        Boolean              @default(false)
+
+  // Checklist
+  advReceived     String               @default("Not Received") // "Not Received" or "Received"
+  masterCol       String               @default("Not Collecting") // "Not Collecting", "Collecting", "Advance hasn't recouped"
+  soundEx         String               @default("Not Collecting") // "Submitted LOD", "Not Collecting", "Collecting"
+  publicPerf      String               @default("Not Collecting") // "Not Collecting", "Collecting"
+  mech            String               @default("Not Collecting") // "Not Collecting", "Collecting"
+  agreement       String               @default("Draft has not been received") // Various states
+
+  // Notes
+  notes           String?              @db.Text
+
+  // Billing AI Fields
+  billingClientName        String?
+  billingClientPKA         String?
+  billingClientAddress     String?
+  billingClientCity        String?
+  billingProjectTitle      String?
+  billingInvoiceNumber     String?     @unique
+  billingArtistLegal       String?
+  billingArtistStage       String?
+  billingLabelName         String?
+  billingBillToEmail       String?
+  billingBillToContact     String?
+  billingIssueDate         String?     // Stored as text for flexibility
+  billingDueDate           String?
+  billingAmount            String?     // Dollar amount as text
+  billingCostsExpenses     String?
+  billingSalesTax          String?
+  billingAmountPaid        String?
+  billingServices          String?     @db.Text
+  billingPaymentTerms      String?     @db.Text
+  billingPaymentChannel    String?
+  billingBookkeepingNotes  String?     @db.Text
+
+  // Banking Details
+  billingBankAccountName   String?
+  billingBankName          String?
+  billingBankAddress       String?
+  billingRoutingNumber     String?
+  billingAccountNumber     String?
+  billingSwiftCode         String?
+
+  // Invoice Draft Storage
+  invoiceDraftHtml         String?     @db.Text
+
+  // Tracking
+  createdById     String?              // Admin who created
+  lastModifiedBy  String?              // Admin who last modified
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  // Relations
+  invoices        Invoice[]            // Invoices linked to this deal
+
+  @@index([clientFullName])
+  @@index([songTitle])
+  @@index([status])
+  @@index([billingInvoiceNumber])
+  @@map("placement_deals")
+}
+
+model Credit {
+  id              String   @id @default(cuid())
+  userId          String
+  songTitle       String
+  role            String   // Producer, Composer, Writer, etc.
+  ipiNumber       String?
+  splitPercentage Decimal  @db.Decimal(5, 2) // 0.00 to 100.00
+  metadata        Json? // Additional credit information
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([songTitle])
+  @@index([ipiNumber])
+  @@map("credits")
+}
+
+model ProSubmission {
+  id           String   @id @default(cuid())
+  userId       String
+  proName      ProType // ASCAP, BMI, SESAC
+  submittedAt  DateTime
+  placementIds Json? // Array of placement IDs submitted
+  metadata     Json? // Additional submission details
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([proName])
+  @@index([submittedAt])
+  @@map("pro_submissions")
+}
+
+model AdvanceScenario {
+  id                    String   @id @default(cuid())
+  userId                String
+  scenarioName          String   // User's name for this scenario
+
+  // Input parameters
+  catalogSize           Int      // Number of songs in catalog
+  monthlyRoyalties      Decimal  @db.Decimal(12, 2) // Average monthly royalties
+  contractLength        Int      // In months
+  artistIncome          Int      // Percentage (0-100) - income paid to artist during term
+  includeNewReleases    Boolean  @default(false) // Include future releases
+  switchDistributors    Boolean  @default(false) // Willing to switch distributors
+
+  // Calculated outputs (stored for historical reference)
+  upfrontAdvance        Decimal  @db.Decimal(12, 2)
+  newReleaseAdvance     Decimal? @db.Decimal(12, 2) // Only if includeNewReleases = true
+  optionAdvance         Decimal? @db.Decimal(12, 2)
+  recoupmentRate        Int      // Percentage (0-100)
+  estimatedTotal        Decimal  @db.Decimal(12, 2)
+
+  notes                 String?  @db.Text
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("advance_scenarios")
+}
+
+model Document {
+  id          String              @id @default(cuid())
+  filename    String
+  originalName String
+  fileSize    Int                 // Size in bytes
+  filePath    String              // S3 or local storage path
+  mimeType    String
+  category    DocumentCategory
+  description String?             @db.Text
+  visibility  DocumentVisibility  @default(ADMIN_ONLY)
+
+  // Relations
+  uploadedById String
+  uploadedBy   User               @relation("UploadedBy", fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  relatedUserId String?           // For user-specific documents
+  relatedUser   User?             @relation("UserDocuments", fields: [relatedUserId], references: [id], onDelete: Cascade)
+
+  statementId  String?            // For linking to statements (pre-processed, etc.)
+  statement    Statement?         @relation(fields: [statementId], references: [id], onDelete: SetNull)
+
+  placementId  String?            // For linking to placements (split sheets, agreements)
+  placement    Placement?         @relation(fields: [placementId], references: [id], onDelete: SetNull)
+
+  metadata    Json?               // Additional document metadata
+  tags        Json?               // Array of tags for organization
+
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([uploadedById])
+  @@index([relatedUserId])
+  @@index([statementId])
+  @@index([placementId])
+  @@index([category])
+  @@index([visibility])
+  @@map("documents")
+}
+
+model CommissionSettings {
+  id                String   @id @default(cuid())
+  commissionRate    Decimal  @db.Decimal(5, 2) // Commission percentage (0.00-100.00)
+  recipientName     String   // e.g., "Producer Tour", "Admin Fee"
+  description       String?  @db.Text // Optional description of rate change
+  effectiveDate     DateTime @default(now()) // When this rate became/becomes active
+  isActive          Boolean  @default(true) // Only one should be active at a time
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([effectiveDate])
+  @@map("commission_settings")
+}
+
+model ProducerTourPublisher {
+  id                String   @id @default(cuid())
+  ipiNumber         String   @unique // Helper: Producer Tour IPI that collects for writers without own publisher
+  publisherName     String   // e.g., "Producer Tour Publishing", "Producer Tour LLC (ASCAP)"
+  notes             String?  @db.Text // Optional notes about this publisher entity
+  isActive          Boolean  @default(true) // Can be deactivated without deleting
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([ipiNumber])
+  @@index([isActive])
+  @@map("producer_tour_publishers")
+}
+
+model PayoutRequest {
+  id                String        @id @default(cuid())
+  userId            String
+  amount            Decimal       @db.Decimal(12, 6) // Amount requested for withdrawal
+  status            PayoutStatus  @default(PENDING)
+  requestedAt       DateTime      @default(now())
+  approvedAt        DateTime?     // When admin approved
+  processedAt       DateTime?     // When Stripe transfer completed
+  completedAt       DateTime?     // When marked as completed
+  stripeTransferId  String?       // Stripe transfer ID if applicable
+  stripePayoutId    String?       // Stripe payout ID if applicable
+  failureReason     String?       @db.Text // Reason if failed
+  adminNotes        String?       @db.Text // Admin notes about this request
+  statementIds      Json?         // Array of statement IDs included in this payout
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([requestedAt])
+  @@map("payout_requests")
+}
+
+model SystemSettings {
+  id                      String   @id @default(cuid())
+  minimumWithdrawalAmount Decimal  @default(50) @db.Decimal(12, 2) // Minimum withdrawal amount in dollars
+  emailsEnabled           Boolean  @default(true) // Master toggle for all system emails (admin can disable for testing)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+// ========================================
+// UNIFIED INVOICE SYSTEM - All billing requests
+// ========================================
+
+enum InvoiceType {
+  SESSION   // Recording session payment - 0% commission
+  ADVANCE   // Advance on future royalties - 20% commission
+  FEE       // Producer/licensing fee - 20% commission
+}
+
+enum AdvanceType {
+  FUTURE_ROYALTY  // Advance against future royalty earnings
+  DEAL_ADVANCE    // Advance from a specific placement deal
+}
+
+enum InvoiceStatus {
+  PENDING     // Submitted, awaiting admin review
+  APPROVED    // Admin approved, ready for payment
+  PROCESSING  // Stripe transfer in progress
+  PAID        // Payment complete
+  REJECTED    // Admin rejected
+}
+
+model Invoice {
+  id                String        @id @default(cuid())
+  invoiceNumber     String        @unique  // INV-YYYY-####
+
+  // Type & Commission
+  type              InvoiceType
+
+  // Submitter (who's billing PT)
+  submittedById     String
+  submittedBy       User          @relation("InvoiceSubmitter", fields: [submittedById], references: [id], onDelete: Cascade)
+  submittedByName   String
+  submittedByEmail  String?
+
+  // Financial
+  grossAmount       Decimal       @db.Decimal(12, 2)  // Requested amount
+  commissionRate    Decimal       @db.Decimal(5, 2)   // 0 for sessions, 20 for advances/fees
+  commissionAmount  Decimal       @db.Decimal(12, 2)  // Calculated commission
+  netAmount         Decimal       @db.Decimal(12, 2)  // What submitter receives (gross - commission)
+
+  // Description/Details
+  description       String?       @db.Text
+  details           Json?         // Type-specific details (session info, etc.)
+
+  // For ADVANCE type - optional link to placement deal
+  placementDealId   String?
+  placementDeal     PlacementDeal? @relation(fields: [placementDealId], references: [id], onDelete: SetNull)
+  advanceType       AdvanceType?  // FUTURE_ROYALTY or DEAL_ADVANCE
+
+  // Status workflow
+  status            InvoiceStatus @default(PENDING)
+
+  // Review tracking
+  reviewedAt        DateTime?
+  reviewedById      String?
+  reviewedBy        User?         @relation("InvoiceReviewer", fields: [reviewedById], references: [id])
+  adminNotes        String?       @db.Text
+  rejectionReason   String?       @db.Text
+
+  // Stripe payment
+  stripeTransferId  String?
+  stripePayoutId    String?
+  paidAt            DateTime?
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([submittedById])
+  @@index([type])
+  @@index([status])
+  @@index([placementDealId])
+  @@index([createdAt])
+  @@map("invoices")
+}
+
+// ========================================
+// SESSION PAYOUT SYSTEM - Recording Session Payments
+// ========================================
+
+enum SessionPayoutStatus {
+  PENDING    // Submitted, awaiting admin review
+  APPROVED   // Admin approved, ready for Stripe payout
+  PROCESSING // Stripe transfer in progress
+  COMPLETED  // Payment sent successfully
+  REJECTED   // Admin rejected the request
+}
+
+model SessionPayout {
+  id                  String              @id @default(cuid())
+
+  // Session Details
+  sessionDate         DateTime
+  workOrderNumber     String?
+  artistName          String
+  songTitles          String
+
+  // Time tracking
+  startTime           String              // HH:mm format
+  finishTime          String              // HH:mm format
+  totalHours          Decimal             @db.Decimal(5, 2)
+
+  // Personnel
+  studioName          String
+  trackingEngineer    String
+  assistantEngineer   String?
+  mixEngineer         String?
+  masteringEngineer   String?
+  sessionNotes        String?             @db.Text
+
+  // Asset Links
+  masterLink          String
+  sessionFilesLink    String
+  beatStemsLink       String
+  beatLink            String
+  sampleInfo          String?
+  midiPresetsLink     String?
+
+  // Financial Structure
+  studioRateType      String              // 'hourly' or 'flat'
+  studioRate          Decimal             @db.Decimal(10, 2)
+  engineerRateType    String              // 'hourly' or 'flat'
+  engineerRate        Decimal             @db.Decimal(10, 2)
+  paymentSplit        String              // 'split' or 'combined'
+  depositPaid         Decimal             @default(0) @db.Decimal(10, 2)
+
+  // Calculated amounts
+  studioCost          Decimal             @db.Decimal(10, 2)
+  engineerFee         Decimal             @db.Decimal(10, 2)
+  totalSessionCost    Decimal             @db.Decimal(10, 2)
+  payoutAmount        Decimal             @db.Decimal(10, 2) // Final amount due to engineer
+
+  // Status & Processing
+  status              SessionPayoutStatus @default(PENDING)
+  submittedById       String              // User who submitted (engineer/producer)
+  submittedByName     String              // Name as entered in form
+  submittedByEmail    String?             // Email for payment
+
+  // Admin processing
+  reviewedAt          DateTime?
+  reviewedById        String?
+  adminNotes          String?             @db.Text
+  rejectionReason     String?             @db.Text
+
+  // Stripe payment
+  stripeTransferId    String?
+  stripePayoutId      String?
+  paidAt              DateTime?
+
+  // Relations
+  submittedBy         User                @relation("SessionPayoutSubmitter", fields: [submittedById], references: [id], onDelete: Cascade)
+  reviewedBy          User?               @relation("SessionPayoutReviewer", fields: [reviewedById], references: [id])
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([submittedById])
+  @@index([status])
+  @@index([sessionDate])
+  @@index([createdAt])
+  @@map("session_payouts")
+}
+
+// ========================================
+// GAMIFICATION SYSTEM - Producer Tour Miles
+// ========================================
+
+enum GamificationTier {
+  BRONZE   // 0-999 TP
+  SILVER   // 1,000-4,999 TP
+  GOLD     // 5,000-14,999 TP
+  DIAMOND  // 15,000-49,999 TP
+  ELITE    // 50,000+ TP
+}
+
+enum GamificationEventType {
+  DAILY_CHECK_IN
+  WEEKLY_STREAK_BONUS
+  MONTHLY_STREAK_BONUS
+  SOCIAL_SHARE
+  DISCORD_SHARE
+  REFERRAL_SIGNUP
+  REFERRAL_CONVERSION
+  PROFILE_COMPLETE
+  PROFILE_PHOTO_UPLOAD
+  STRIPE_CONNECTED
+  WORK_SUBMITTED
+  WORK_APPROVED
+  REVENUE_MILESTONE
+  PAYOUT_COMPLETED
+  STATEMENT_VIEWED
+  FEEDBACK_SUBMITTED
+  BUG_REPORTED
+  FEATURE_SUGGESTED
+  ACHIEVEMENT_UNLOCKED
+  LEVEL_UP
+  REWARD_REDEEMED
+  ADMIN_AWARDED
+  ADMIN_DEDUCTED
+  REWARD_REFUNDED
+  CONFIG_UPDATED
+}
+
+enum AchievementCategory {
+  SOCIAL
+  PLATFORM
+  REVENUE
+  COMMUNITY
+  ENGAGEMENT
+  MILESTONE
+}
+
+enum AchievementTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+}
+
+enum RewardCategory {
+  COMMISSION
+  PAYOUT
+  PLATFORM
+  SUBSCRIPTION
+  PHYSICAL
+}
+
+enum RedemptionStatus {
+  PENDING
+  APPROVED
+  COMPLETED
+  DENIED
+  EXPIRED
+}
+
+enum BadgeRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+// User's gamification points and level
+model GamificationPoints {
+  id          String            @id @default(cuid())
+  userId      String            @unique
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  points      Int               @default(0)           // Current point balance
+  totalEarned Int               @default(0)           // Lifetime points earned
+  totalSpent  Int               @default(0)           // Lifetime points spent on rewards
+  tier        GamificationTier  @default(BRONZE)      // Current tier level
+
+  // Streak tracking
+  lastCheckIn     DateTime?
+  currentStreak   Int           @default(0)           // Days in a row
+  longestStreak   Int           @default(0)           // All-time best
+
+  // Referral tracking
+  referralCode    String        @unique               // Unique code for this user
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([tier])
+  @@index([points])
+  @@map("gamification_points")
+}
+
+// Log of all point transactions
+model GamificationEvent {
+  id          String                @id @default(cuid())
+  userId      String
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  eventType   GamificationEventType
+  points      Int                   // Positive for earning, negative for spending
+  description String?
+  metadata    Json?                 // Additional context (e.g., work ID, reward ID)
+
+  // Admin actions
+  adminId     String?               // If manually awarded/deducted by admin
+  adminReason String?               // Required reason for manual adjustments
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("gamification_events")
+}
+
+// Achievement definitions
+model Achievement {
+  id          String               @id @default(cuid())
+  name        String               @unique
+  description String
+  icon        String               // URL or icon identifier
+  points      Int                  // Bonus points awarded when unlocked
+
+  // Criteria for unlocking (JSON rules)
+  criteria    Json                 // e.g., {"type": "work_count", "threshold": 5}
+
+  tier        AchievementTier
+  category    AchievementCategory
+  isActive    Boolean              @default(true)
+
+  // Relations
+  userAchievements UserAchievement[]
+  badge            Badge?            // Badge unlocked by this achievement
+  border           ProfileBorder?    // Border unlocked by this achievement
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([tier])
+  @@index([isActive])
+  @@map("achievements")
+}
+
+// User's unlocked achievements
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  unlockedAt    DateTime @default(now())
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+  @@map("user_achievements")
+}
+
+// Reward store items
+model Reward {
+  id          String         @id @default(cuid())
+  name        String
+  description String
+  cost        Int            // Point cost
+
+  category    RewardCategory
+  type        String         // COMMISSION_REDUCTION, PRIORITY_PAYOUT, CREDIT, etc.
+
+  // Restrictions
+  roleRestriction    String?          // null = all, or "WRITER", "VIEWER"
+  tierRestriction    GamificationTier? // Minimum tier required (e.g., ELITE for 10% reduction)
+  isActive           Boolean          @default(true)
+  inventory          Int?             // null = unlimited, number = limited stock
+
+  // Reward details (JSON)
+  details     Json           // e.g., {"percentage": 5, "applies_to": "single_payout"}
+
+  // Relations
+  redemptions RewardRedemption[]
+  badge       Badge?         // Badge purchasable via this reward
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([roleRestriction])
+  @@index([tierRestriction])
+  @@index([isActive])
+  @@map("rewards")
+}
+
+// User's reward redemptions
+model RewardRedemption {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rewardId    String
+  reward      Reward           @relation(fields: [rewardId], references: [id])
+
+  pointsCost  Int              // Cost at time of redemption
+  status      RedemptionStatus @default(PENDING)
+
+  // For physical items
+  adminId     String?          // Admin who approved/denied
+  adminNotes  String?
+
+  // For commission reductions (applies to single payout)
+  appliedToPayoutId String?    // ID of PayoutRequest this was applied to
+  expiresAt         DateTime?   // When this redemption expires (if applicable)
+  isActive          Boolean    @default(true)
+
+  redeemedAt  DateTime @default(now())
+  processedAt DateTime?
+
+  @@index([userId])
+  @@index([rewardId])
+  @@index([status])
+  @@index([appliedToPayoutId])
+  @@map("reward_redemptions")
+}
+
+// Social shares tracking
+model SocialShare {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  platform    String   // TWITTER, FACEBOOK, DISCORD, etc.
+  clicks      Int      @default(0)
+  signups     Int      @default(0)   // Referral signups
+  conversions Int      @default(0)   // Referral conversions to paying customers
+
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([platform])
+  @@map("social_shares")
+}
+
+// Daily check-ins
+model DailyCheckIn {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  checkInDate DateTime @db.Date     // Date only, no time
+  pointsEarned Int     @default(10)
+  streakDay   Int                   // Which day in the streak (1, 2, 3, etc.)
+
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, checkInDate])
+  @@index([userId])
+  @@index([checkInDate])
+  @@map("daily_check_ins")
+}
+
+// Gamification configuration (admin-managed)
+model GamificationConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique  // e.g., "point_values", "tier_thresholds", "multipliers"
+  value     Json                // Configuration values as JSON
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gamification_config")
+}
+
+// ========================================
+// CHAT SYSTEM - Real-time messaging
+// ========================================
+
+enum ConversationType {
+  DIRECT          // One-on-one conversation
+  GROUP           // Group chat (admin-to-writers, etc.)
+  SUPPORT         // Support ticket conversation
+}
+
+enum MessageType {
+  TEXT
+  FILE
+  SYSTEM          // System messages (user joined, left, etc.)
+}
+
+// Chat conversations
+model Conversation {
+  id          String           @id @default(cuid())
+  type        ConversationType @default(DIRECT)
+  name        String?          // Optional name for group chats
+  description String?          @db.Text
+
+  // For support conversations
+  subject     String?          // Support ticket subject
+  isClosed    Boolean          @default(false)
+  closedAt    DateTime?
+  closedById  String?
+
+  // Metadata
+  metadata    Json?            // Additional conversation data
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([type])
+  @@index([isClosed])
+  @@index([createdAt])
+  @@map("conversations")
+}
+
+// Links users to conversations with their settings
+model ConversationParticipant {
+  id             String       @id @default(cuid())
+  conversationId String
+  userId         String
+
+  // Participant settings
+  isAdmin        Boolean      @default(false)   // Can manage conversation
+  isMuted        Boolean      @default(false)   // Muted notifications
+  isPinned       Boolean      @default(false)   // Pinned conversation
+
+  // Read tracking
+  lastReadAt     DateTime?    // Last time user read this conversation
+  lastReadMsgId  String?      // Last message ID that was read
+
+  // Participation tracking
+  joinedAt       DateTime     @default(now())
+  leftAt         DateTime?    // If user left the conversation
+
+  // Relations
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
+  @@index([lastReadAt])
+  @@map("conversation_participants")
+}
+
+// Chat messages
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+
+  // Message content
+  type           MessageType  @default(TEXT)
+  content        String       @db.Text
+
+  // File attachments (if type = FILE)
+  fileName       String?
+  fileUrl        String?
+  fileSize       Int?
+  fileMimeType   String?
+
+  // Message metadata
+  isEdited       Boolean      @default(false)
+  editedAt       DateTime?
+  isDeleted      Boolean      @default(false)
+  deletedAt      DateTime?
+
+  // Reply to another message
+  replyToId      String?
+  replyTo        Message?     @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        Message[]    @relation("MessageReplies")
+
+  // Reactions (stored as JSON: {"👍": ["userId1", "userId2"], "❤️": ["userId3"]})
+  reactions      Json?
+
+  metadata       Json?        // Additional message data
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@index([replyToId])
+  @@map("messages")
+}
+
+// ========================================
+// TOOL SUBSCRIPTIONS - Customer tool access
+// ========================================
+
+enum ToolSubscriptionType {
+  FREE_TRIAL        // Limited trial access
+  TOUR_MILES        // Redeemed with Tour Miles
+  PAID              // Paid subscription via Stripe
+  ADMIN_GRANTED     // Manually granted by admin
+}
+
+enum ToolSubscriptionStatus {
+  ACTIVE            // Currently usable
+  EXPIRED           // Ran out of uses or time
+  CANCELLED         // User cancelled
+}
+
+// Tool access for customers
+model ToolSubscription {
+  id              String                  @id @default(cuid())
+  userId          String
+  user            User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  toolId          String                  // e.g., "type-beat-video-maker", "pub-deal-simulator"
+  toolName        String                  // Human-readable tool name
+
+  type            ToolSubscriptionType
+  status          ToolSubscriptionStatus  @default(ACTIVE)
+
+  // Usage tracking
+  usesRemaining   Int                     @default(0)      // Number of uses left (0 = unlimited for paid)
+  usesTotal       Int                     @default(0)      // Total uses purchased/granted
+  usesUsed        Int                     @default(0)      // Number of uses consumed
+
+  // Tour Miles redemption details
+  tourMilesCost   Int?                    // Points spent for this subscription
+  redemptionId    String?                 // Link to RewardRedemption if applicable
+
+  // Paid subscription details
+  stripeSubscriptionId String?            // Stripe subscription ID for paid plans
+  stripePriceId   String?                 // Stripe price ID
+
+  // Time-based access
+  expiresAt       DateTime?               // When access expires (null = no expiration)
+
+  // Admin grant details
+  grantedById     String?                 // Admin who granted access (for ADMIN_GRANTED type)
+  grantReason     String?                 // Reason for admin grant (beta tester, special access, etc.)
+
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@unique([userId, toolId, type])
+  @@index([userId])
+  @@index([toolId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("tool_subscriptions")
+}
+
+// ========================================
+// CONTACTS SYSTEM - User connections
+// ========================================
+
+enum ContactStatus {
+  PENDING     // Request sent, awaiting acceptance
+  ACCEPTED    // Both users are contacts
+  BLOCKED     // User has blocked the other
+}
+
+// User contacts/friends
+model Contact {
+  id          String        @id @default(cuid())
+  userId      String        // The user who owns this contact
+  contactId   String        // The contact user
+
+  status      ContactStatus @default(PENDING)
+  nickname    String?       // Optional nickname for the contact
+
+  // Who initiated the contact request
+  initiatedBy String
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  acceptedAt  DateTime?     // When the contact was accepted
+  blockedAt   DateTime?     // When the user was blocked
+
+  @@unique([userId, contactId])
+  @@index([userId])
+  @@index([contactId])
+  @@index([status])
+  @@map("contacts")
+}
+
+// ========================================
+// SHOP SYSTEM - E-commerce products and orders
+// ========================================
+
+enum ProductType {
+  SIMPLE          // Basic product with no variations
+  VARIABLE        // Product with multiple variations (size, color, etc.)
+  DIGITAL         // Digital product (access to content)
+  DOWNLOADABLE    // Downloadable files
+  PHYSICAL        // Physical product requiring shipping
+  SUBSCRIPTION    // Recurring subscription product
+}
+
+enum ProductStatus {
+  DRAFT           // Not yet published
+  ACTIVE          // Available for purchase
+  ARCHIVED        // Hidden but retained for history
+  OUT_OF_STOCK    // Temporarily unavailable
+}
+
+enum OrderStatus {
+  PENDING         // Order created, awaiting payment
+  PROCESSING      // Payment received, processing order
+  COMPLETED       // Order fulfilled
+  CANCELLED       // Order cancelled
+  REFUNDED        // Order refunded
+  FAILED          // Payment failed
+}
+
+enum ShopSubscriptionStatus {
+  ACTIVE          // Currently active subscription
+  PAUSED          // Temporarily paused
+  CANCELLED       // User cancelled
+  EXPIRED         // Subscription period ended
+  PAST_DUE        // Payment failed, grace period
+}
+
+enum ShopSubscriptionInterval {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+// Product categories for organization
+model ProductCategory {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?   @db.Text
+  imageUrl    String?
+  parentId    String?
+  parent      ProductCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    ProductCategory[] @relation("CategoryHierarchy")
+  displayOrder Int      @default(0)
+  isActive    Boolean   @default(true)
+
+  // Relations
+  products    ProductToCategory[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([parentId])
+  @@index([isActive])
+  @@map("product_categories")
+}
+
+// Main product model
+model Product {
+  id              String        @id @default(cuid())
+  name            String
+  slug            String        @unique
+  description     String?       @db.Text
+  shortDescription String?      @db.Text
+  type            ProductType   @default(SIMPLE)
+  status          ProductStatus @default(DRAFT)
+
+  // Pricing (for simple products and base price for variable)
+  price           Decimal       @db.Decimal(12, 2)
+  salePrice       Decimal?      @db.Decimal(12, 2)
+  saleStart       DateTime?
+  saleEnd         DateTime?
+
+  // Inventory (for physical products)
+  sku             String?       @unique
+  stockQuantity   Int?
+  manageStock     Boolean       @default(false)
+  lowStockThreshold Int?        @default(5)
+
+  // Subscription settings (for subscription products)
+  subscriptionInterval ShopSubscriptionInterval?
+  subscriptionIntervalCount Int? @default(1) // e.g., 1 month, 3 months
+  trialDays       Int?          @default(0)
+
+  // Stripe integration
+  stripeProductId String?       @unique
+  stripePriceId   String?       // Default price ID
+
+  // Media
+  featuredImageUrl String?
+  galleryUrls     Json?         // Array of image URLs
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?       @db.Text
+
+  // Settings
+  isFeatured      Boolean       @default(false)
+  isVirtual       Boolean       @default(false) // No shipping required
+  isTaxable       Boolean       @default(true)
+  taxClass        String?       @default("standard")
+  weight          Decimal?      @db.Decimal(8, 2) // For shipping
+  dimensions      Json?         // {length, width, height}
+
+  // Access/Limits (for digital/downloadable)
+  downloadLimit   Int?          // Max downloads per purchase
+  downloadExpiry  Int?          // Days until download expires
+
+  // Tool integration (links product to ToolSubscription)
+  toolId          String?       // e.g., "type-beat-video-maker"
+
+  // Relations
+  categories      ProductToCategory[]
+  variations      ProductVariation[]
+  files           ProductFile[]
+  attributes      ProductAttribute[]
+  orderItems      OrderItem[]
+  shopSubscriptions ShopSubscription[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([slug])
+  @@index([type])
+  @@index([status])
+  @@index([stripeProductId])
+  @@index([isFeatured])
+  @@map("products")
+}
+
+// Many-to-many relation for products and categories
+model ProductToCategory {
+  id          String          @id @default(cuid())
+  productId   String
+  categoryId  String
+  product     Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category    ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, categoryId])
+  @@index([productId])
+  @@index([categoryId])
+  @@map("product_to_categories")
+}
+
+// Product attributes for variable products (e.g., Size, Color)
+model ProductAttribute {
+  id          String    @id @default(cuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name        String    // e.g., "Size", "Color", "License Type"
+  options     Json      // Array of options: ["Small", "Medium", "Large"]
+  isVisible   Boolean   @default(true)
+  isVariation Boolean   @default(true) // Used for creating variations
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([productId])
+  @@map("product_attributes")
+}
+
+// Product variations for variable products
+model ProductVariation {
+  id              String    @id @default(cuid())
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Variation attributes (e.g., {"Size": "Large", "Color": "Blue"})
+  attributes      Json
+
+  // Pricing
+  price           Decimal   @db.Decimal(12, 2)
+  salePrice       Decimal?  @db.Decimal(12, 2)
+
+  // Inventory
+  sku             String?   @unique
+  stockQuantity   Int?
+  manageStock     Boolean   @default(false)
+
+  // Stripe
+  stripePriceId   String?   @unique
+
+  // Media
+  imageUrl        String?
+
+  // Status
+  isActive        Boolean   @default(true)
+
+  // Relations
+  files           ProductFile[]
+  orderItems      OrderItem[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([productId])
+  @@index([stripePriceId])
+  @@map("product_variations")
+}
+
+// Downloadable files for digital products
+model ProductFile {
+  id            String            @id @default(cuid())
+  productId     String
+  product       Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variationId   String?
+  variation     ProductVariation? @relation(fields: [variationId], references: [id], onDelete: Cascade)
+
+  name          String
+  filename      String
+  fileUrl       String            // S3 or storage path
+  fileSize      Int               // Size in bytes
+  mimeType      String
+  downloadCount Int               @default(0)
+
+  // Access control
+  isActive      Boolean           @default(true)
+  displayOrder  Int               @default(0)
+
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // Relations
+  downloads     OrderDownload[]
+
+  @@index([productId])
+  @@index([variationId])
+  @@map("product_files")
+}
+
+// Customer orders
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique // Human-readable order number (e.g., PT-2024-001)
+  userId          String?     // Can be null for guest checkout
+  email           String      // Customer email (for guest checkout)
+  status          OrderStatus @default(PENDING)
+
+  // Affiliate/Referral tracking
+  referralCode      String?     // Referral code used at checkout
+  referredByUserId  String?     // User ID of the referrer (resolved from referral code)
+
+  // Billing info
+  billingFirstName  String?
+  billingLastName   String?
+  billingCompany    String?
+  billingAddress1   String?
+  billingAddress2   String?
+  billingCity       String?
+  billingState      String?
+  billingPostcode   String?
+  billingCountry    String?
+  billingPhone      String?
+
+  // Shipping info (for physical products)
+  shippingFirstName String?
+  shippingLastName  String?
+  shippingCompany   String?
+  shippingAddress1  String?
+  shippingAddress2  String?
+  shippingCity      String?
+  shippingState     String?
+  shippingPostcode  String?
+  shippingCountry   String?
+  shippingPhone     String?
+  shippingMethod    String?
+  shippingCost      Decimal?    @db.Decimal(12, 2)
+
+  // Totals
+  subtotal          Decimal     @db.Decimal(12, 2)
+  taxAmount         Decimal     @default(0) @db.Decimal(12, 2)
+  discountAmount    Decimal     @default(0) @db.Decimal(12, 2)
+  totalAmount       Decimal     @db.Decimal(12, 2)
+
+  // Payment
+  paymentMethod     String?     // e.g., "stripe", "paypal"
+  stripePaymentIntentId String? @unique
+  stripeSessionId   String?
+  paidAt            DateTime?
+
+  // Coupon/discount
+  couponCode        String?
+  discountDetails   Json?       // Details about applied discounts
+
+  // Notes
+  customerNote      String?     @db.Text
+  adminNote         String?     @db.Text
+
+  // Metadata
+  ipAddress         String?
+  userAgent         String?
+  metadata          Json?
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  completedAt       DateTime?
+
+  // Relations
+  items             OrderItem[]
+  downloads         OrderDownload[]
+
+  @@index([userId])
+  @@index([email])
+  @@index([status])
+  @@index([stripePaymentIntentId])
+  @@index([createdAt])
+  @@index([referralCode])
+  @@index([referredByUserId])
+  @@map("orders")
+}
+
+// Individual items in an order
+model OrderItem {
+  id              String            @id @default(cuid())
+  orderId         String
+  order           Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product           @relation(fields: [productId], references: [id])
+  variationId     String?
+  variation       ProductVariation? @relation(fields: [variationId], references: [id])
+
+  // Snapshot of product at time of purchase
+  productName     String
+  productType     ProductType
+  variationName   String?           // e.g., "Large / Blue"
+  sku             String?
+
+  quantity        Int               @default(1)
+  price           Decimal           @db.Decimal(12, 2) // Price per unit
+  subtotal        Decimal           @db.Decimal(12, 2) // quantity * price
+  taxAmount       Decimal           @default(0) @db.Decimal(12, 2)
+  total           Decimal           @db.Decimal(12, 2)
+
+  // For subscriptions
+  subscriptionId  String?
+
+  // Metadata
+  metadata        Json?             // Additional item data
+
+  createdAt       DateTime          @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variationId])
+  @@map("order_items")
+}
+
+// Track file downloads per order
+model OrderDownload {
+  id            String      @id @default(cuid())
+  orderId       String
+  order         Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fileId        String
+  file          ProductFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  // Download tracking
+  downloadsUsed Int         @default(0)
+  downloadLimit Int?        // Snapshot of limit at purchase time
+  expiresAt     DateTime?   // When download access expires
+
+  // Access token for secure downloads
+  accessToken   String      @unique @default(cuid())
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  lastDownloadAt DateTime?
+
+  @@unique([orderId, fileId])
+  @@index([orderId])
+  @@index([fileId])
+  @@index([accessToken])
+  @@map("order_downloads")
+}
+
+// Shop subscriptions (different from ToolSubscription - this is for paid recurring products)
+model ShopSubscription {
+  id              String                    @id @default(cuid())
+  userId          String
+  productId       String
+  product         Product                   @relation(fields: [productId], references: [id])
+
+  status          ShopSubscriptionStatus    @default(ACTIVE)
+  interval        ShopSubscriptionInterval
+  intervalCount   Int                       @default(1)
+
+  // Pricing
+  price           Decimal                   @db.Decimal(12, 2)
+  currency        String                    @default("usd")
+
+  // Stripe subscription
+  stripeSubscriptionId String?              @unique
+  stripeCustomerId     String?
+  stripePriceId        String?
+
+  // Dates
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  trialStart         DateTime?
+  trialEnd           DateTime?
+  cancelledAt        DateTime?
+  cancelAtPeriodEnd  Boolean                @default(false)
+
+  // Billing history
+  lastPaymentAt      DateTime?
+  lastPaymentAmount  Decimal?               @db.Decimal(12, 2)
+  failedPaymentCount Int                    @default(0)
+
+  // Metadata
+  metadata           Json?
+
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+  @@index([stripeSubscriptionId])
+  @@map("shop_subscriptions")
+}
+
+// Tool Permissions - Admin-managed tool access by role
+model ToolPermission {
+  id          String   @id @default(cuid())
+  toolId      String   @unique  // e.g., "pub-deal-simulator", "work-registration"
+  toolName    String             // Human-readable name
+  roles       Json               // Array of roles that have access: ["ADMIN", "WRITER"]
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([toolId])
+  @@index([isActive])
+  @@map("tool_permissions")
+}
+
+// Coupons and discounts
+model Coupon {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  description     String?   @db.Text
+  discountType    String    // "percentage", "fixed_cart", "fixed_product"
+  discountAmount  Decimal   @db.Decimal(12, 2)
+
+  // Usage limits
+  usageLimit      Int?      // Total usage limit
+  usageLimitPerUser Int?    @default(1)
+  usageCount      Int       @default(0)
+
+  // Restrictions
+  minimumAmount   Decimal?  @db.Decimal(12, 2)
+  maximumAmount   Decimal?  @db.Decimal(12, 2)
+  productIds      Json?     // Array of product IDs (null = all)
+  categoryIds     Json?     // Array of category IDs (null = all)
+  excludedProductIds Json?
+  excludedCategoryIds Json?
+
+  // Validity
+  startDate       DateTime?
+  endDate         DateTime?
+  isActive        Boolean   @default(true)
+
+  // For first-time customers only
+  firstPurchaseOnly Boolean @default(false)
+
+  // Stripe
+  stripeCouponId  String?   @unique
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@index([stripeCouponId])
+  @@map("coupons")
+}
+
+// ========================================
+// BADGE & BORDER SYSTEM - Profile customization
+// ========================================
+
+// Badge/Emblem definitions (CoD MW2-style)
+model Badge {
+  id            String       @id @default(cuid())
+  name          String       @unique // "Platinum Producer", "First Blood", etc.
+  description   String?      // "Awarded for your first placement"
+  imageUrl      String       // URL to badge image/SVG
+  rarity        BadgeRarity  @default(COMMON)
+  category      String       // "achievement", "store", "special"
+
+  // Unlock conditions (optional - one or none)
+  achievementId String?      @unique // Links to Achievement if achievement-based
+  achievement   Achievement? @relation(fields: [achievementId], references: [id])
+  rewardId      String?      @unique // Links to Reward if store-purchasable
+  reward        Reward?      @relation(fields: [rewardId], references: [id])
+
+  // Ownership tracking
+  owners        UserBadge[]
+
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([category])
+  @@index([rarity])
+  @@index([isActive])
+  @@map("badges")
+}
+
+// User's owned badges
+model UserBadge {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId     String
+  badge       Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  unlockedAt  DateTime @default(now())
+  isEquipped  Boolean  @default(false) // Currently displayed badge
+
+  @@unique([userId, badgeId]) // User can only own each badge once
+  @@index([userId])
+  @@index([badgeId])
+  @@index([isEquipped])
+  @@map("user_badges")
+}
+
+// Profile Border definitions (Rocket League-style animated borders)
+model ProfileBorder {
+  id            String   @id @default(cuid())
+  name          String   @unique // "First Steps", "Elite Status", etc.
+  tier          String   // Matches achievement tier for progression
+  colors        Json     // Array of hex colors for gradient ["#4ade80", "#22c55e", "#16a34a"]
+  spinSpeed     Float    @default(4) // Animation duration in seconds (lower = faster)
+  glowIntensity Float    @default(1) // 1 = normal, 2 = intense
+  specialEffect String?  // "sparkles", "particles", "shimmer", "flame", null = basic
+
+  // Unlock condition
+  achievementId String?      @unique
+  achievement   Achievement? @relation(fields: [achievementId], references: [id])
+
+  // Ownership tracking
+  owners        UserBorder[]
+
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tier])
+  @@index([isActive])
+  @@map("profile_borders")
+}
+
+// User's owned borders
+model UserBorder {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  borderId    String
+  border      ProfileBorder @relation(fields: [borderId], references: [id], onDelete: Cascade)
+  unlockedAt  DateTime      @default(now())
+  isEquipped  Boolean       @default(false) // Currently displayed border
+
+  @@unique([userId, borderId]) // User can only own each border once
+  @@index([userId])
+  @@index([borderId])
+  @@index([isEquipped])
+  @@map("user_borders")
+}
+
+// ========================================
+// BUSINESS CONTACTS DIRECTORY
+// Admin contacts for labels, publishers, etc.
+// ========================================
+
+enum BusinessContactCategory {
+  LABEL
+  PUBLISHER
+  DISTRIBUTOR
+  ATTORNEY
+  MANAGER
+  OTHER
+}
+
+model BusinessContact {
+  id          String                  @id @default(cuid())
+  companyName String
+  contactName String
+  email       String
+  phone       String?
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?
+  country     String?                 @default("USA")
+  category    BusinessContactCategory @default(OTHER)
+  notes       String?                 @db.Text
+
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@index([category])
+  @@index([companyName])
+  @@index([email])
+  @@map("business_contacts")
+}
+
+// ========================================
+// INSIGHTS FEED - Music Industry News Hub
+// Aggregated content from music blogs, news, PROs
+// ========================================
+
+enum InsightCategory {
+  AGGREGATOR   // Hype Machine
+  TASTEMAKERS  // Pitchfork, FADER, NME, Pigeons & Planes
+  DISCOVERY    // Lyrical Lemonade, XXL, On The Radar, etc.
+  NEWS         // Billboard, Rolling Stone, MBW, Variety
+  PUBLISHERS   // ASCAP, BMI, The MLC
+}
+
+model InsightArticle {
+  id            String          @id @default(cuid())
+  url           String          @unique // Prevent duplicates
+  title         String
+  description   String?         @db.Text
+  imageUrl      String?
+  source        String          // "Billboard", "Pitchfork", etc.
+  category      InsightCategory
+  publishedAt   DateTime?       // When article was published
+  fetchedAt     DateTime        @default(now()) // When we fetched it
+
+  // Curation
+  isPinned      Boolean         @default(false)
+  isHidden      Boolean         @default(false)
+  pinnedBy      String?         // Admin who pinned
+  pinnedAt      DateTime?
+
+  // Manual entries (admin-added, not from RSS)
+  isManual      Boolean         @default(false)
+  addedBy       String?         // Admin who added manually
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([category])
+  @@index([source])
+  @@index([isPinned])
+  @@index([publishedAt])
+  @@index([fetchedAt])
+  @@map("insight_articles")
+}
+
+// Track RSS feed sources and their last fetch time
+model InsightFeedSource {
+  id            String          @id @default(cuid())
+  name          String          @unique // "Billboard", "Pitchfork", etc.
+  feedUrl       String          // RSS/Atom feed URL
+  category      InsightCategory
+  isActive      Boolean         @default(true)
+  lastFetchedAt DateTime?
+  lastError     String?         // Store last error for debugging
+  articleCount  Int             @default(0)
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([isActive])
+  @@index([category])
+  @@map("insight_feed_sources")
+}
+
+// ========================================
+// PERSONAL MARKETPLACE SYSTEM - Per-writer storefronts
+// ========================================
+
+enum MarketplaceListingStatus {
+  DRAFT       // Not yet published
+  ACTIVE      // Available for purchase
+  SOLD_OUT    // No longer available
+  ARCHIVED    // Hidden but retained for history
+}
+
+enum MarketplaceListingCategory {
+  BEATS           // Type beats, instrumentals
+  SAMPLES         // Sample packs, loops
+  PRESETS         // VST presets, sound kits
+  STEMS           // Track stems
+  SERVICES        // Mixing, mastering, production services
+  TEMPLATES       // FL Studio, Ableton templates
+  COURSES         // Educational content
+  OTHER
+}
+
+enum ActivityFeedType {
+  POST                  // User-generated post/status update
+  PLACEMENT             // New placement submitted/approved
+  ACHIEVEMENT           // Achievement unlocked
+  MARKETPLACE_LISTING   // New marketplace item listed
+  TOUR_MILES_EARNED     // Significant Tour Miles milestone
+  TIER_UP               // User leveled up to new tier
+  REFERRAL_JOINED       // Someone joined via referral
+  ANNOUNCEMENT          // Admin announcements
+  UPDATE                // Platform updates
+  TIP                   // Helpful tips
+  NEWS                  // Industry news
+}
+
+// Personal marketplace listings (separate from main Producer Tour shop)
+model MarketplaceListing {
+  id              String                      @id @default(cuid())
+  userId          String                      // Seller
+
+  // Listing details
+  title           String
+  description     String                      @db.Text
+  category        MarketplaceListingCategory
+  price           Decimal                     @db.Decimal(12, 2)
+
+  // Media
+  coverImageUrl   String?                     // Cover image
+  audioPreviewUrl String?                     // Audio preview for beats/samples
+  fileUrl         String?                     // Actual product file (S3 presigned URL)
+
+  // Metadata
+  slug            String                      @unique // URL-friendly slug
+  tags            Json?                       // Array of tags for search
+  status          MarketplaceListingStatus    @default(DRAFT)
+
+  // Stats
+  viewCount       Int                         @default(0)
+  purchaseCount   Int                         @default(0)
+
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+
+  // Relations
+  seller          User                        @relation("MarketplaceListings", fields: [userId], references: [id], onDelete: Cascade)
+  transactions    MarketplaceTransaction[]
+  feedItems       ActivityFeedItem[]
+
+  @@index([userId])
+  @@index([category])
+  @@index([status])
+  @@index([createdAt])
+  @@map("marketplace_listings")
+}
+
+// Marketplace purchase transactions with commission
+model MarketplaceTransaction {
+  id                  String              @id @default(cuid())
+  listingId           String
+  listing             MarketplaceListing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  // Buyer and Seller
+  buyerId             String
+  buyer               User                @relation("MarketplacePurchases", fields: [buyerId], references: [id], onDelete: Cascade)
+  sellerId            String
+  seller              User                @relation("MarketplaceSales", fields: [sellerId], references: [id], onDelete: Cascade)
+
+  // Financial breakdown
+  grossAmount         Decimal             @db.Decimal(12, 2)  // Full price
+  commissionRate      Decimal             @db.Decimal(5, 2)   // Commission percentage (0 for WRITER, 2-5 for CUSTOMER)
+  commissionAmount    Decimal             @db.Decimal(12, 2)  // Commission taken by PT
+  netAmount           Decimal             @db.Decimal(12, 2)  // Amount seller receives (gross - commission)
+
+  // Payment
+  stripePaymentIntentId String?           @unique
+  stripeTransferId      String?           // Transfer to seller's Stripe account
+  paidAt                DateTime?
+  transferredAt         DateTime?         // When seller was paid
+
+  // Metadata
+  metadata            Json?
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([listingId])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([createdAt])
+  @@map("marketplace_transactions")
+}
+
+// ========================================
+// SOCIAL FEED SYSTEM - Network activity feed
+// ========================================
+
+// Activity feed items for social feed
+model ActivityFeedItem {
+  id              String            @id @default(cuid())
+  userId          String            // User who generated this activity
+  user            User              @relation("ActivityFeedItems", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Activity type and content
+  activityType    ActivityFeedType
+  title           String            // Display title (e.g., "John unlocked Platinum Producer!")
+  description     String?           @db.Text
+
+  // Relations to source content (optional - one or none)
+  placementId     String?
+  achievementId   String?
+  listingId       String?
+  listing         MarketplaceListing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  metadata        Json?             // Additional context (points earned, tier name, etc.)
+  imageUrl        String?           // Optional image for the activity
+  audioUrl        String?           // Optional audio for the activity (beats, samples, etc.)
+
+  // Visibility
+  isPublic        Boolean           @default(true)  // Only public activities show in network feed
+
+  // Engagement
+  likes           FeedLike[]
+  comments        FeedComment[]
+  likeCount       Int               @default(0)
+  commentCount    Int               @default(0)
+
+  createdAt       DateTime          @default(now())
+
+  @@index([userId])
+  @@index([activityType])
+  @@index([createdAt])
+  @@index([isPublic])
+  @@map("activity_feed_items")
+}
+
+// Feed Likes - Tracks who liked which activity
+model FeedLike {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation("FeedLikes", fields: [userId], references: [id], onDelete: Cascade)
+  feedItemId  String
+  feedItem    ActivityFeedItem @relation(fields: [feedItemId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime         @default(now())
+
+  @@unique([userId, feedItemId])  // User can only like once
+  @@index([feedItemId])
+  @@index([userId])
+  @@map("feed_likes")
+}
+
+// Feed Comments - Comments on activity items with threading support
+model FeedComment {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation("FeedComments", fields: [userId], references: [id], onDelete: Cascade)
+  feedItemId  String
+  feedItem    ActivityFeedItem @relation(fields: [feedItemId], references: [id], onDelete: Cascade)
+  content     String           @db.Text
+
+  // Threading support
+  parentId    String?          // NULL = top-level comment, ID = reply to another comment
+  parent      FeedComment?     @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     FeedComment[]    @relation("CommentReplies")
+
+  // Like tracking
+  likes       CommentLike[]
+  likeCount   Int              @default(0) // Cached count for performance
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([feedItemId, parentId, createdAt])
+  @@index([userId])
+  @@index([parentId])
+  @@map("feed_comments")
+}
+
+// Comment Likes - Tracks who liked which comment
+model CommentLike {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation("CommentLikes", fields: [userId], references: [id], onDelete: Cascade)
+  commentId   String
+  comment     FeedComment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime     @default(now())
+
+  @@unique([userId, commentId])  // User can only like a comment once
+  @@index([commentId])
+  @@index([userId])
+  @@map("comment_likes")
+}
+
+// ========================================
+// SOCIAL GRAPH - Follow system
+// ========================================
+
+// Follow relationships for personalized feed
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String   // User who is following
+  follower    User     @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String   // User being followed
+  following   User     @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])  // Can't follow same user twice
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+// ========================================
+// PRODUCTIVITY DASHBOARD SYSTEM
+// Customizable admin widget dashboard
+// ========================================
+
+enum WidgetSize {
+  SMALL   // 1x1 grid cell
+  MEDIUM  // 2x1 grid cells
+  LARGE   // 2x2 grid cells
+  WIDE    // 3x1 grid cells
+  TALL    // 1x2 grid cells
+}
+
+// Layout presets for quick switching
+model DashboardLayoutPreset {
+  id          String   @id @default(cuid())
+  userId      String   // Admin who owns this preset
+  name        String   // "Default", "Focus Mode", "Analytics View"
+  isActive    Boolean  @default(false) // Currently active preset
+  isDefault   Boolean  @default(false) // System default preset
+
+  // Grid configuration
+  columns     Int      @default(12) // 12-column grid
+  rowHeight   Int      @default(80) // Pixels per row
+
+  // Widget positions stored as JSON
+  // Array of: { widgetType, x, y, w, h, config }
+  layout      Json
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([isActive])
+  @@map("dashboard_layout_presets")
+}
+
+// Individual widget configurations
+model DashboardWidget {
+  id            String     @id @default(cuid())
+  userId        String     // Admin who configured this widget
+  widgetType    String     // "quick-actions", "activity-feed", "pomodoro", etc.
+
+  // Position in grid
+  gridX         Int        @default(0)
+  gridY         Int        @default(0)
+  gridW         Int        @default(2) // Width in grid units
+  gridH         Int        @default(2) // Height in grid units
+  size          WidgetSize @default(MEDIUM)
+
+  // Widget-specific configuration
+  config        Json?      // { refreshInterval, showCount, filters, etc. }
+
+  // Visibility
+  isVisible     Boolean    @default(true)
+  isPinned      Boolean    @default(false) // Pinned widgets stay at top
+  displayOrder  Int        @default(0)
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@unique([userId, widgetType]) // One instance per widget type per user
+  @@index([userId])
+  @@index([widgetType])
+  @@map("dashboard_widgets")
+}
+
+// Admin notes/scratchpad persistence
+model AdminNote {
+  id          String   @id @default(cuid())
+  userId      String   @unique // One note pad per admin
+  content     String   @db.Text
+  updatedAt   DateTime @updatedAt
+
+  @@map("admin_notes")
+}
+
+// Daily goals tracking
+model DailyGoal {
+  id          String   @id @default(cuid())
+  userId      String
+  date        DateTime @db.Date
+  title       String
+  isCompleted Boolean  @default(false)
+  displayOrder Int     @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, date, title])
+  @@index([userId, date])
+  @@map("daily_goals")
+}
+
+// Pomodoro session tracking
+model PomodoroSession {
+  id            String   @id @default(cuid())
+  userId        String
+  startedAt     DateTime
+  completedAt   DateTime?
+  duration      Int      // Duration in minutes (25, 50, etc.)
+  isBreak       Boolean  @default(false)
+  wasCompleted  Boolean  @default(false)
+  label         String?  // Optional task label
+
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([startedAt])
+  @@map("pomodoro_sessions")
+}
+
+// Platform activity log for activity feed widget
+model ProductivityActivity {
+  id            String   @id @default(cuid())
+  activityType  String   // "USER_SIGNUP", "PLACEMENT_CREATED", "PAYMENT_SENT", etc.
+  actorId       String?  // User who performed action
+  actorName     String?  // Cached actor name for display
+  targetType    String?  // "user", "placement", "payment", etc.
+  targetId      String?  // ID of target entity
+  targetName    String?  // Cached target name for display
+  metadata      Json?    // Additional context
+
+  createdAt     DateTime @default(now())
+
+  @@index([activityType])
+  @@index([createdAt])
+  @@index([actorId])
+  @@map("productivity_activities")
+}
+
+// External API credentials storage (encrypted)
+model ExternalApiCredential {
+  id            String   @id @default(cuid())
+  userId        String   // Admin who owns these credentials
+  provider      String   // "google_calendar", "outlook", "spotify", etc.
+  accessToken   String   @db.Text // Encrypted
+  refreshToken  String?  @db.Text // Encrypted
+  expiresAt     DateTime?
+  scopes        Json?    // Array of granted scopes
+  metadata      Json?    // Provider-specific data
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("external_api_credentials")
+}
+
+// ============================================================================
+// CORPORATE STRUCTURE QUEST SYSTEM
+// Gamified entity formation, compliance, and document management
+// ============================================================================
+
+enum CorporateEntityType {
+  C_CORP
+  LLC
+}
+
+enum CorporateEntityStatus {
+  NOT_FORMED
+  PENDING
+  ACTIVE
+  DISSOLVED
+}
+
+enum QuestCategory {
+  FORMATION      // Entity formation steps
+  GOVERNANCE     // Bylaws, agreements, resolutions
+  COMPLIANCE     // Annual filings, taxes
+  FINANCIAL      // Banking, accounting setup
+  PROTECTION     // IP, insurance, risk management
+}
+
+enum QuestStatus {
+  LOCKED         // Prerequisites not met
+  AVAILABLE      // Can start
+  IN_PROGRESS    // Started
+  COMPLETED      // Done
+}
+
+enum QuestStepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum QuestStepActionType {
+  INFO           // Read information/instructions
+  EXTERNAL_LINK  // Go to external website (Bizee, state, IRS)
+  TEMPLATE       // Fill out/review a template
+  UPLOAD         // Upload completed document
+  VERIFY         // Manual verification checkbox
+}
+
+enum CorporateDocumentCategory {
+  FORMATION      // Articles, certificates of formation
+  GOVERNANCE     // Bylaws, operating agreements
+  OWNERSHIP      // Stock certs, membership interests
+  TAX            // EIN letters, tax filings
+  COMPLIANCE     // Annual reports, franchise tax receipts
+  CONTRACT       // Intercompany agreements
+  INSURANCE      // Policies, certificates
+}
+
+enum CorporateDocumentStatus {
+  DRAFT
+  PENDING_REVIEW
+  CURRENT
+  NEEDS_UPDATE
+  EXPIRED
+  ARCHIVED
+}
+
+enum ComplianceFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+enum ComplianceItemStatus {
+  UPCOMING
+  DUE_SOON       // Within reminder window
+  OVERDUE
+  COMPLETED
+}
+
+// Corporate Entity - Holdings, IP LLC, PT LLC, Ops LLC, Finance LLC
+model CorporateEntity {
+  id              String                 @id @default(cuid())
+  name            String                 // "Producer Tour Holdings, Inc."
+  shortName       String                 // "Holdings"
+  type            CorporateEntityType
+  jurisdiction    String                 // "Delaware", "Florida"
+  status          CorporateEntityStatus  @default(NOT_FORMED)
+  formedDate      DateTime?
+  ein             String?                // Employer Identification Number
+  stateFileNumber String?                // State filing/registration number
+  registeredAgent String?                // Registered agent name
+
+  // Visual/UI properties
+  color           String?                // Hex color for UI
+  biomeType       String?                // "vault_fortress", "crystal_archives", etc.
+
+  // Relationships
+  quests          CorporateQuest[]
+  documents       CorporateDocument[]
+  complianceItems ComplianceItem[]
+
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([status])
+  @@map("corporate_entities")
+}
+
+// Quest - A collection of steps to complete a business objective
+model CorporateQuest {
+  id              String         @id @default(cuid())
+  entityId        String
+  entity          CorporateEntity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  title           String         // "Birth Certificate"
+  description     String         // "File Articles of Incorporation with Delaware"
+  category        QuestCategory
+  order           Int            // Display order within entity
+  status          QuestStatus    @default(LOCKED)
+
+  // Prerequisites - quest IDs that must be complete first
+  prerequisiteIds String[]       @default([])
+
+  // Rewards/Progress
+  xpReward        Int            @default(100)
+  completedAt     DateTime?
+  completedBy     String?        // User ID who completed
+
+  // Steps
+  steps           CorporateQuestStep[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([entityId])
+  @@index([status])
+  @@index([category])
+  @@map("corporate_quests")
+}
+
+// Quest Step - Individual action within a quest
+model CorporateQuestStep {
+  id              String              @id @default(cuid())
+  questId         String
+  quest           CorporateQuest      @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  title           String              // "File with Delaware Division of Corporations"
+  description     String?             // Detailed instructions
+  order           Int                 // Step order within quest
+  status          QuestStepStatus     @default(PENDING)
+
+  // Action configuration
+  actionType      QuestStepActionType
+  actionData      Json?               // { url: "...", templateId: "...", etc. }
+
+  // Verification/Completion
+  requiresUpload  Boolean             @default(false)
+  documentId      String?             // Linked document when complete
+
+  completedAt     DateTime?
+  completedBy     String?             // User ID
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([questId])
+  @@index([status])
+  @@map("corporate_quest_steps")
+}
+
+// Corporate Document - Stored files for entities
+model CorporateDocument {
+  id              String                    @id @default(cuid())
+  entityId        String
+  entity          CorporateEntity           @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  name            String                    // "Articles of Incorporation"
+  category        CorporateDocumentCategory
+  status          CorporateDocumentStatus   @default(DRAFT)
+
+  // File storage
+  fileUrl         String?                   // Path or URL to file
+  fileName        String?                   // Original filename
+  fileSize        Int?                      // Size in bytes
+  mimeType        String?                   // "application/pdf", etc.
+
+  // Versioning
+  version         Int                       @default(1)
+  previousVersionId String?                 // Previous document ID for history
+
+  // Metadata
+  effectiveDate   DateTime?                 // When document became effective
+  expirationDate  DateTime?                 // When document expires (if applicable)
+  notes           String?                   @db.Text
+
+  // Audit trail
+  uploadedBy      String?                   // User ID
+  uploadedAt      DateTime?
+
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([entityId])
+  @@index([category])
+  @@index([status])
+  @@map("corporate_documents")
+}
+
+// Compliance Item - Recurring or one-time compliance requirements
+model ComplianceItem {
+  id              String               @id @default(cuid())
+  entityId        String
+  entity          CorporateEntity      @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  title           String               // "Delaware Franchise Tax"
+  description     String?              // Details about the requirement
+  frequency       ComplianceFrequency
+
+  // Timing
+  dueDate         DateTime?            // Next due date
+  reminderDays    Int                  @default(30) // Days before due to remind
+
+  // Status tracking
+  status          ComplianceItemStatus @default(UPCOMING)
+  completedAt     DateTime?
+  completedBy     String?              // User ID
+  documentId      String?              // Proof of completion
+
+  // For recurring items
+  lastCompletedAt DateTime?            // Last time this was completed
+  nextDueDate     DateTime?            // Auto-calculated next due
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([entityId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("compliance_items")
+}
+
+// User XP and Progress tracking for gamification
+model CorporateUserProgress {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+
+  totalXp         Int      @default(0)
+  level           Int      @default(1)
+
+  // Stats
+  questsCompleted Int      @default(0)
+  documentsUploaded Int    @default(0)
+  complianceStreak Int     @default(0) // Consecutive on-time completions
+
+  // Achievements (stored as JSON array of achievement IDs)
+  achievements    Json     @default("[]")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@map("corporate_user_progress")
+}
+
+// ============================================
+// Firma E-Signature Integration
+// ============================================
+
+model AgreementTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  firmaTemplateId String   @unique  // Firma's template UUID
+  firmaWorkspaceId String? // Firma workspace ID
+  status          String   @default("draft")  // draft, active, archived
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  agreements      Agreement[]
+
+  @@index([status])
+  @@map("agreement_templates")
+}
+
+model Agreement {
+  id                    String          @id @default(cuid())
+  templateId            String
+  applicationId         String?
+  userId                String?
+
+  // Recipient info (denormalized for record-keeping)
+  recipientName         String
+  recipientEmail        String
+
+  // Firma references
+  firmaSigningRequestId String          @unique
+  firmaSigningUrl       String?
+
+  // Status tracking
+  status                AgreementStatus @default(PENDING)
+  sentAt                DateTime?
+  viewedAt              DateTime?
+  signedAt              DateTime?
+  completedAt           DateTime?
+
+  // Signed document
+  signedDocumentUrl     String?
+
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  // Relations
+  template              AgreementTemplate @relation(fields: [templateId], references: [id])
+  application           Application?      @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  user                  User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([templateId])
+  @@index([applicationId])
+  @@index([userId])
+  @@index([status])
+  @@index([firmaSigningRequestId])
+  @@map("agreements")
+}
+
+// ========================================
+// CHARACTER CREATOR - User Avatar Configuration
+// ========================================
+
+model UserAvatar {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  version     Int      @default(1)
+  configJson  Json     // CharacterConfig serialized (body, face, hair settings)
+  bodyType    String   // Denormalized: 'male', 'female', 'neutral' for quick queries
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_avatars")
+}

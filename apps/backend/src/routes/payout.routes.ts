@@ -1,0 +1,545 @@
+import { Router, Response } from 'express';
+import { z } from 'zod';
+import { authenticate, AuthRequest, requireAdmin } from '../middleware/auth.middleware';
+import { prisma } from '../lib/prisma';
+import { stripeService } from '../services/stripe.service';
+import * as gamificationService from '../services/gamification.service';
+
+const router = Router();
+
+// Validation schemas
+const requestPayoutSchema = z.object({
+  amount: z.number().positive(), // Minimum validated dynamically
+});
+
+const approvePayoutSchema = z.object({
+  adminNotes: z.string().optional(),
+});
+
+/**
+ * GET /api/payouts/balance
+ * Get current user's wallet balance and withdrawal eligibility
+ */
+router.get('/balance', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    // Get system settings for minimum withdrawal
+    let settings = await prisma.systemSettings.findFirst();
+    if (!settings) {
+      settings = await prisma.systemSettings.create({
+        data: { minimumWithdrawalAmount: 50.00 }
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        availableBalance: true,
+        pendingBalance: true,
+        lifetimeEarnings: true,
+        stripeAccountId: true,
+        stripeOnboardingComplete: true,
+        taxFormType: true,
+        taxInfoStatus: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const availableBalance = Number(user.availableBalance);
+    const minimumAmount = Number(settings.minimumWithdrawalAmount);
+
+    // Eligibility checks
+    const hasStripeSetup = !!user.stripeAccountId && user.stripeOnboardingComplete;
+    const hasTaxInfo = !!user.taxFormType && ['verified', 'pending'].includes(user.taxInfoStatus || '');
+    const hasSufficientBalance = availableBalance >= minimumAmount;
+
+    // Can only withdraw if ALL requirements are met
+    const canWithdraw = hasStripeSetup && hasTaxInfo && hasSufficientBalance;
+
+    res.json({
+      availableBalance,
+      pendingBalance: Number(user.pendingBalance),
+      lifetimeEarnings: Number(user.lifetimeEarnings),
+      minimumWithdrawalAmount: minimumAmount,
+      // Eligibility info
+      canWithdraw,
+      requiresStripeSetup: !hasStripeSetup,
+      requiresTaxInfo: !hasTaxInfo,
+      hasSufficientBalance,
+    });
+  } catch (error) {
+    console.error('Get balance error:', error);
+    res.status(500).json({ error: 'Failed to get balance' });
+  }
+});
+
+/**
+ * POST /api/payouts/request
+ * Writer requests a payout from their available balance
+ * Uses a transaction to prevent race conditions
+ */
+router.post('/request', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { amount } = requestPayoutSchema.parse(req.body);
+
+    // Get system settings for minimum withdrawal amount
+    let settings = await prisma.systemSettings.findFirst();
+    if (!settings) {
+      settings = await prisma.systemSettings.create({
+        data: { minimumWithdrawalAmount: 50.00 }
+      });
+    }
+    const minimumAmount = Number(settings.minimumWithdrawalAmount);
+
+    // Check minimum payout amount (dynamic)
+    if (amount < minimumAmount) {
+      return res.status(400).json({
+        error: `Minimum payout amount is $${minimumAmount.toFixed(2)}`,
+        minimumAmount,
+      });
+    }
+
+    // Get user with Stripe account and tax info (pre-check before transaction)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        stripeAccountId: true,
+        stripeOnboardingComplete: true,
+        taxFormType: true,
+        taxInfoStatus: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Check if user has Stripe account connected
+    if (!user.stripeAccountId || !user.stripeOnboardingComplete) {
+      return res.status(400).json({
+        error: 'Please connect your Stripe account before requesting a payout',
+        requiresStripeSetup: true,
+      });
+    }
+
+    // Check if user has submitted tax information
+    const hasTaxInfo = !!user.taxFormType && ['verified', 'pending'].includes(user.taxInfoStatus || '');
+    if (!hasTaxInfo) {
+      return res.status(400).json({
+        error: 'Please submit your tax information (W-9/W-8BEN) before requesting a payout',
+        requiresTaxInfo: true,
+      });
+    }
+
+    // Use a transaction to atomically check balance, create request, and update balance
+    // This prevents race conditions where balance changes between check and update
+    const result = await prisma.$transaction(async (tx) => {
+      // Get fresh balance inside transaction (with implicit row lock)
+      const freshUser = await tx.user.findUnique({
+        where: { id: userId },
+        select: { availableBalance: true },
+      });
+
+      if (!freshUser) {
+        throw new Error('USER_NOT_FOUND');
+      }
+
+      const availableBalance = Number(freshUser.availableBalance);
+
+      // Check sufficient balance inside transaction
+      if (amount > availableBalance) {
+        throw new Error(`INSUFFICIENT_BALANCE:${availableBalance}`);
+      }
+
+      // Create payout request and update balance atomically
+      const payoutRequest = await tx.payoutRequest.create({
+        data: {
+          userId,
+          amount,
+          status: 'PENDING',
+        },
+      });
+
+      // Move amount from available to pending balance
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          availableBalance: { decrement: amount },
+          pendingBalance: { increment: amount },
+        },
+      });
+
+      return payoutRequest;
+    });
+
+    res.status(201).json({
+      message: 'Payout request submitted successfully',
+      request: {
+        id: result.id,
+        amount: Number(result.amount),
+        status: result.status,
+        requestedAt: result.requestedAt,
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+
+    // Handle our custom transaction errors
+    if (error instanceof Error) {
+      if (error.message === 'USER_NOT_FOUND') {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (error.message.startsWith('INSUFFICIENT_BALANCE:')) {
+        const availableBalance = parseFloat(error.message.split(':')[1]);
+        return res.status(400).json({
+          error: `Insufficient balance. Available: $${availableBalance.toFixed(2)}`,
+          availableBalance,
+        });
+      }
+    }
+
+    console.error('Request payout error:', error);
+    res.status(500).json({ error: 'Failed to request payout' });
+  }
+});
+
+/**
+ * GET /api/payouts/history
+ * Get current user's payout request history
+ */
+router.get('/history', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    const payouts = await prisma.payoutRequest.findMany({
+      where: { userId },
+      orderBy: { requestedAt: 'desc' },
+    });
+
+    res.json({
+      payouts: payouts.map((p) => ({
+        id: p.id,
+        amount: Number(p.amount),
+        status: p.status,
+        requestedAt: p.requestedAt,
+        approvedAt: p.approvedAt,
+        processedAt: p.processedAt,
+        completedAt: p.completedAt,
+        failureReason: p.failureReason,
+      })),
+      total: payouts.length,
+    });
+  } catch (error) {
+    console.error('Get payout history error:', error);
+    res.status(500).json({ error: 'Failed to get payout history' });
+  }
+});
+
+/**
+ * GET /api/payouts/all
+ * Get all payout requests with optional status filter (Admin only)
+ */
+router.get('/all', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { status } = req.query;
+
+    const where: any = {};
+    if (status && typeof status === 'string') {
+      where.status = status;
+    }
+
+    const payouts = await prisma.payoutRequest.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            stripeAccountId: true,
+            stripeOnboardingComplete: true,
+            stripeAccountStatus: true,
+          },
+        },
+      },
+      orderBy: { requestedAt: 'desc' },
+    });
+
+    res.json({
+      payouts: payouts.map((p) => ({
+        id: p.id,
+        amount: Number(p.amount),
+        status: p.status,
+        requestedAt: p.requestedAt,
+        approvedAt: p.approvedAt,
+        processedAt: p.processedAt,
+        completedAt: p.completedAt,
+        stripeTransferId: p.stripeTransferId,
+        failureReason: p.failureReason,
+        user: {
+          id: p.user.id,
+          email: p.user.email,
+          name: `${p.user.firstName || ''} ${p.user.lastName || ''}`.trim() || 'No name',
+          stripeConnected: !!p.user.stripeAccountId,
+          stripeOnboardingComplete: p.user.stripeOnboardingComplete,
+          stripeAccountStatus: p.user.stripeAccountStatus,
+        },
+        adminNotes: p.adminNotes,
+      })),
+      total: payouts.length,
+    });
+  } catch (error) {
+    console.error('Get all payouts error:', error);
+    res.status(500).json({ error: 'Failed to get payouts' });
+  }
+});
+
+/**
+ * GET /api/payouts/pending
+ * Get all pending payout requests (Admin only)
+ */
+router.get('/pending', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const payouts = await prisma.payoutRequest.findMany({
+      where: {
+        status: { in: ['PENDING', 'APPROVED', 'PROCESSING'] },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            stripeAccountId: true,
+            stripeOnboardingComplete: true,
+            stripeAccountStatus: true,
+          },
+        },
+      },
+      orderBy: { requestedAt: 'asc' },
+    });
+
+    res.json({
+      payouts: payouts.map((p) => ({
+        id: p.id,
+        amount: Number(p.amount),
+        status: p.status,
+        requestedAt: p.requestedAt,
+        approvedAt: p.approvedAt,
+        processedAt: p.processedAt,
+        user: {
+          id: p.user.id,
+          email: p.user.email,
+          name: `${p.user.firstName || ''} ${p.user.lastName || ''}`.trim() || 'No name',
+          stripeConnected: !!p.user.stripeAccountId,
+          stripeOnboardingComplete: p.user.stripeOnboardingComplete,
+          stripeAccountStatus: p.user.stripeAccountStatus,
+        },
+        adminNotes: p.adminNotes,
+      })),
+      total: payouts.length,
+    });
+  } catch (error) {
+    console.error('Get pending payouts error:', error);
+    res.status(500).json({ error: 'Failed to get pending payouts' });
+  }
+});
+
+/**
+ * POST /api/payouts/:id/approve
+ * Admin approves a payout request and initiates Stripe transfer
+ */
+router.post('/:id/approve', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id: payoutId } = req.params;
+    const { adminNotes } = approvePayoutSchema.parse(req.body);
+
+    // Get payout request
+    const payout = await prisma.payoutRequest.findUnique({
+      where: { id: payoutId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            stripeAccountId: true,
+            stripeOnboardingComplete: true,
+          },
+        },
+      },
+    });
+
+    if (!payout) {
+      return res.status(404).json({ error: 'Payout request not found' });
+    }
+
+    if (payout.status !== 'PENDING') {
+      return res.status(400).json({
+        error: `Cannot approve payout with status: ${payout.status}`,
+      });
+    }
+
+    // Check if user has Stripe account
+    if (!payout.user.stripeAccountId || !payout.user.stripeOnboardingComplete) {
+      return res.status(400).json({
+        error: 'Writer has not completed Stripe Connect onboarding',
+      });
+    }
+
+    // Update status to APPROVED
+    await prisma.payoutRequest.update({
+      where: { id: payoutId },
+      data: {
+        status: 'APPROVED',
+        approvedAt: new Date(),
+        adminNotes,
+      },
+    });
+
+    console.log(`💸 Creating Stripe transfer for payout ${payoutId}: $${payout.amount} to ${payout.user.email}`);
+
+    // Create Stripe transfer to writer's Connect account
+    let stripeTransferId: string | undefined;
+
+    try {
+      const amountCents = Math.round(Number(payout.amount) * 100);
+      stripeTransferId = await stripeService.createTransfer(
+        payout.user.stripeAccountId,
+        amountCents,
+        payoutId,
+        `Withdrawal: $${Number(payout.amount).toFixed(2)}`,
+        `payout_${payoutId}`
+      );
+
+      console.log(`✅ Stripe transfer created: ${stripeTransferId}`);
+    } catch (error: any) {
+      console.error(`❌ Stripe transfer failed:`, error);
+
+      // Mark payout as failed
+      await prisma.payoutRequest.update({
+        where: { id: payoutId },
+        data: {
+          status: 'FAILED',
+          failureReason: `Stripe transfer failed: ${error.message}`,
+        },
+      });
+
+      return res.status(500).json({
+        error: 'Stripe transfer failed',
+        details: error.message
+      });
+    }
+
+    // Stripe Connect transfers are instant - mark as completed immediately
+    // The transfer was successful if we got here (no error thrown above)
+    await prisma.payoutRequest.update({
+      where: { id: payoutId },
+      data: {
+        status: 'COMPLETED',
+        processedAt: new Date(),
+        completedAt: new Date(),
+        stripeTransferId,
+      },
+    });
+
+    // Move from pending to completed (remove from pending balance)
+    await prisma.user.update({
+      where: { id: payout.userId },
+      data: {
+        pendingBalance: { decrement: Number(payout.amount) },
+      },
+    });
+
+    console.log(`✅ Payout ${payoutId} completed: $${payout.amount} to ${payout.user.email}`);
+
+    // Award gamification points for payout completion
+    try {
+      await gamificationService.awardPoints(
+        payout.userId,
+        'PAYOUT_COMPLETED',
+        50,
+        `Payout completed: $${Number(payout.amount).toFixed(2)}`
+      );
+    } catch (gamError) {
+      console.error('Gamification award error:', gamError);
+    }
+
+    res.json({
+      message: 'Payout approved and completed',
+      payoutId,
+      stripeTransferId,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error('Approve payout error:', error);
+    res.status(500).json({ error: 'Failed to approve payout' });
+  }
+});
+
+/**
+ * POST /api/payouts/:id/cancel
+ * Cancel a pending payout request (Writer or Admin)
+ */
+router.post('/:id/cancel', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id: payoutId } = req.params;
+    const userId = req.user!.id;
+    const isAdmin = req.user!.role === 'ADMIN';
+
+    const payout = await prisma.payoutRequest.findUnique({
+      where: { id: payoutId },
+    });
+
+    if (!payout) {
+      return res.status(404).json({ error: 'Payout request not found' });
+    }
+
+    // Check permissions: writer can only cancel their own pending requests
+    if (!isAdmin && payout.userId !== userId) {
+      return res.status(403).json({ error: 'Not authorized to cancel this payout' });
+    }
+
+    // Can only cancel pending requests
+    if (payout.status !== 'PENDING') {
+      return res.status(400).json({
+        error: `Cannot cancel payout with status: ${payout.status}`,
+      });
+    }
+
+    // Cancel the request and return balance to available
+    await prisma.payoutRequest.update({
+      where: { id: payoutId },
+      data: { status: 'CANCELLED' },
+    });
+
+    await prisma.user.update({
+      where: { id: payout.userId },
+      data: {
+        availableBalance: { increment: Number(payout.amount) },
+        pendingBalance: { decrement: Number(payout.amount) },
+      },
+    });
+
+    res.json({
+      message: 'Payout request cancelled successfully',
+      payoutId,
+    });
+  } catch (error) {
+    console.error('Cancel payout error:', error);
+    res.status(500).json({ error: 'Failed to cancel payout' });
+  }
+});
+
+export default router;

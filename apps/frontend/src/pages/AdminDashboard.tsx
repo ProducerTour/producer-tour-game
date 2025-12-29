@@ -1,0 +1,4238 @@
+import { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { dashboardApi, statementApi, userApi, authApi, applicationApi, agreementApi } from '../lib/api';
+import type { WriterAssignmentsPayload } from '../lib/api';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Users, BarChart3, CheckCircle2, Music, DollarSign, FileText, TrendingUp, Sparkles, Loader2, AlertTriangle, X, Brain, Maximize2, Minimize2, MoreVertical, Eye, Pencil, Trash2, ClipboardList, Mail, Phone, Clock, XCircle, MessageSquare, ChevronDown, ChevronUp, ExternalLink, FileSignature, Upload, Send, Download } from 'lucide-react';
+import Sidebar from '../components/Sidebar';
+import { DashboardHeader } from '../components/DashboardHeader';
+import ToolsHub from '../components/ToolsHub';
+import ToolPermissionsSettings from '../components/ToolPermissionsSettings';
+import DocumentsTab from '../components/DocumentsTab';
+import PayoutsTab from '../components/PayoutsTab';
+import ImpersonationBanner from '../components/ImpersonationBanner';
+import PendingPlacementsQueue from './PendingPlacementsQueue';
+import ManagePlacements from './ManagePlacements';
+import TourMilesConfig from '../components/admin/TourMilesConfig';
+import DashboardOverviewTremor from '../components/admin/DashboardOverviewTremor';
+
+// Lazy load heavy components for better initial bundle size
+const PlacementTracker = lazy(() => import('../components/admin/PlacementTracker'));
+const RewardRedemptionsTab = lazy(() => import('../components/admin/RewardRedemptionsTab'));
+const RecordingSessionsTab = lazy(() => import('../components/admin/RecordingSessionsTab'));
+const BillingHub = lazy(() => import('../components/admin/BillingHub'));
+const GamificationAnalytics = lazy(() => import('../components/gamification/GamificationAnalytics'));
+const AnalyticsTabTremor = lazy(() => import('../components/admin/AnalyticsTabTremor'));
+const MLCAnalyticsTab = lazy(() => import('../components/admin/MLCAnalyticsTab'));
+const BMIAnalyticsTab = lazy(() => import('../components/admin/BMIAnalyticsTab'));
+const ShopTab = lazy(() => import('../components/admin/ShopTab'));
+const ContactsTab = lazy(() => import('../components/admin/ContactsTab'));
+const InsightsTab = lazy(() => import('../components/admin/InsightsTab'));
+const TourBillingTab = lazy(() => import('../components/admin/TourBillingTab'));
+const ProductivityDashboard = lazy(() => import('../components/productivity/ProductivityDashboard'));
+import { ChartCard } from '../components/ChartCard';
+import { TerritoryHeatmap } from '../components/TerritoryHeatmap';
+import { formatIpiDisplay } from '../utils/ipi-helper';
+import { useAuthStore } from '../store/auth.store';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/ui';
+
+type TabType = 'overview' | 'statements' | 'users' | 'analytics' | 'all-analytics' | 'mlc-analytics' | 'bmi-analytics' | 'documents' | 'tools' | 'commission' | 'payouts' | 'billing-hub' | 'recording-sessions' | 'active-placements' | 'pending-placements' | 'manage-placements' | 'tool-permissions' | 'reward-redemptions' | 'gamification-analytics' | 'tour-miles-config' | 'tour-billing' | 'shop' | 'contacts' | 'insights' | 'productivity';
+
+// Smart currency formatter for charts: 3 decimals for precision
+const formatChartCurrency = (value: any): string => {
+  const num = Number(value);
+  const rounded3 = Math.round(num * 1000) / 1000;
+  if (rounded3 === 0 && num > 0) {
+    return `$${(Math.round(num * 10000) / 10000).toFixed(4)}`;
+  }
+  return `$${rounded3.toFixed(3)}`;
+};
+
+// Loading skeleton for lazy-loaded tabs
+const TabSkeleton = () => (
+  <div className="space-y-6 animate-pulse">
+    <div className="h-8 bg-white/5 rounded-lg w-1/3" />
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="h-24 bg-white/5 rounded-xl" />
+      ))}
+    </div>
+    <div className="h-64 bg-white/5 rounded-xl" />
+  </div>
+);
+
+export default function AdminDashboard() {
+  const location = useLocation();
+  const initialTab = (location.state as { activeTab?: TabType })?.activeTab || 'overview';
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  // Handle navigation state changes when navigating back to dashboard
+  useEffect(() => {
+    const stateTab = (location.state as { activeTab?: TabType })?.activeTab;
+    if (stateTab) {
+      setActiveTab(stateTab);
+    }
+  }, [location.state]);
+
+  // Track sidebar collapse state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  });
+
+  useEffect(() => {
+    const handleSidebarToggle = (e: CustomEvent<{ isCollapsed: boolean }>) => {
+      setSidebarCollapsed(e.detail.isCollapsed);
+    };
+    window.addEventListener('sidebar-toggle', handleSidebarToggle as EventListener);
+    return () => window.removeEventListener('sidebar-toggle', handleSidebarToggle as EventListener);
+  }, []);
+
+  return (
+    <div className="flex flex-col h-screen bg-theme-background overflow-hidden">
+      {/* Background Effects - Theme aware */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-theme-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-theme-primary/3 rounded-full blur-[100px]" />
+      </div>
+      {/* Noise texture overlay */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.015] z-[1]">
+        <svg className="w-full h-full">
+          <filter id="adminNoise">
+            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#adminNoise)" />
+        </svg>
+      </div>
+
+      {/* Impersonation Banner */}
+      <ImpersonationBanner />
+
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Left Sidebar */}
+        <Sidebar
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab as TabType)}
+        />
+
+        {/* Main Content Area */}
+        <main className={`flex-1 ml-0 ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-64'} overflow-y-auto transition-all duration-300`}>
+          {/* Dashboard Header with Site Updates - Now visible on mobile */}
+          <DashboardHeader title="Admin Dashboard" showUpdates={true} />
+
+          <div className="px-3 sm:px-4 md:px-8 py-4 sm:py-8 pb-24 sm:pb-8">
+            {activeTab === 'overview' && <DashboardOverviewTremor />}
+            {activeTab === 'statements' && <StatementsTab />}
+            {activeTab === 'users' && <UsersTab />}
+            {(activeTab === 'analytics' || activeTab === 'all-analytics') && (
+              <Suspense fallback={<TabSkeleton />}><AnalyticsTabTremor /></Suspense>
+            )}
+            {activeTab === 'mlc-analytics' && (
+              <Suspense fallback={<TabSkeleton />}><MLCAnalyticsTab /></Suspense>
+            )}
+            {activeTab === 'bmi-analytics' && (
+              <Suspense fallback={<TabSkeleton />}><BMIAnalyticsTab /></Suspense>
+            )}
+            {activeTab === 'payouts' && <PayoutsTab />}
+            {activeTab === 'billing-hub' && (
+              <Suspense fallback={<TabSkeleton />}><BillingHub /></Suspense>
+            )}
+            {activeTab === 'recording-sessions' && (
+              <Suspense fallback={<TabSkeleton />}><RecordingSessionsTab /></Suspense>
+            )}
+            {activeTab === 'pending-placements' && <PendingPlacementsQueue />}
+            {activeTab === 'manage-placements' && <ManagePlacements />}
+            {activeTab === 'active-placements' && (
+              <Suspense fallback={<TabSkeleton />}><PlacementTracker /></Suspense>
+            )}
+            {activeTab === 'documents' && <DocumentsTab />}
+            {activeTab === 'tools' && <ToolsHub />}
+            {activeTab === 'tool-permissions' && <ToolPermissionsSettings />}
+            {activeTab === 'commission' && <CommissionSettingsPage />}
+            {activeTab === 'reward-redemptions' && (
+              <Suspense fallback={<TabSkeleton />}><RewardRedemptionsTab /></Suspense>
+            )}
+            {activeTab === 'gamification-analytics' && (
+              <Suspense fallback={<TabSkeleton />}><GamificationAnalytics /></Suspense>
+            )}
+            {activeTab === 'tour-miles-config' && <TourMilesConfig />}
+            {activeTab === 'tour-billing' && (
+              <Suspense fallback={<TabSkeleton />}><TourBillingTab /></Suspense>
+            )}
+            {activeTab === 'shop' && (
+              <Suspense fallback={<TabSkeleton />}><ShopTab /></Suspense>
+            )}
+            {activeTab === 'contacts' && (
+              <Suspense fallback={<TabSkeleton />}><ContactsTab /></Suspense>
+            )}
+            {activeTab === 'insights' && (
+              <Suspense fallback={<TabSkeleton />}><InsightsTab /></Suspense>
+            )}
+            {activeTab === 'productivity' && (
+              <Suspense fallback={<TabSkeleton />}><ProductivityDashboard /></Suspense>
+            )}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+import CommissionSettingsPage from './CommissionSettingsPage';
+
+// Legacy DashboardOverview - kept for reference, now using DashboardOverviewTremor
+// @ts-expect-error Unused legacy component kept for reference
+function _DashboardOverview() {
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['dashboard-overview'],
+    queryFn: async () => {
+      const response = await dashboardApi.getStats();
+      return response.data;
+    },
+    refetchOnMount: 'always',
+    staleTime: 0,
+  });
+
+  const { data: statementsData } = useQuery({
+    queryKey: ['recent-statements'],
+    queryFn: async () => {
+      const response = await statementApi.list();
+      return response.data;
+    },
+    refetchOnMount: 'always',
+    staleTime: 0,
+  });
+
+  const recentStatements = statementsData?.statements?.slice(0, 5) || [];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-theme-foreground-muted">Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Top Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Total Revenue"
+          value={`$${Number(stats?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+          percentage={stats?.totalRevenueChange !== null && stats?.totalRevenueChange !== undefined ? `${stats.totalRevenueChange > 0 ? '+' : ''}${stats.totalRevenueChange}%` : undefined}
+          trend={stats?.totalRevenueTrend || undefined}
+          icon={<DollarSign className="w-6 h-6 text-white" />}
+          gradient="from-blue-500 to-blue-600"
+        />
+        <StatCard
+          title="Total Writers"
+          value={stats?.totalWriters || 0}
+          percentage={stats?.totalWritersChange !== null && stats?.totalWritersChange !== undefined ? `${stats.totalWritersChange > 0 ? '+' : ''}${stats.totalWritersChange}%` : undefined}
+          trend={stats?.totalWritersTrend || undefined}
+          icon={<Users className="w-6 h-6 text-white" />}
+          gradient="from-cyan-500 to-cyan-600"
+        />
+        <StatCard
+          title="Active Statements"
+          value={stats?.processedStatements || 0}
+          percentage={stats?.processedStatementsChange !== null && stats?.processedStatementsChange !== undefined ? `${stats.processedStatementsChange > 0 ? '+' : ''}${stats.processedStatementsChange}%` : undefined}
+          trend={stats?.processedStatementsTrend || undefined}
+          icon={<BarChart3 className="w-6 h-6 text-white" />}
+          gradient="from-pink-500 to-pink-600"
+        />
+        <StatCard
+          title="Unique Works"
+          value={stats?.uniqueWorks || 0}
+          percentage={stats?.uniqueWorksChange !== null && stats?.uniqueWorksChange !== undefined ? `${stats.uniqueWorksChange > 0 ? '+' : ''}${stats.uniqueWorksChange}%` : undefined}
+          trend={stats?.uniqueWorksTrend || undefined}
+          icon={<Music className="w-6 h-6 text-white" />}
+          gradient="from-orange-500 to-orange-600"
+        />
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Revenue Chart */}
+        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-theme-foreground">Revenue Overview</h3>
+            <select className="bg-white/5 text-theme-foreground-muted text-sm rounded-xl px-3 py-2 border border-theme-border-strong focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/50">
+              <option>Last 12 months</option>
+              <option>Last 6 months</option>
+              <option>Last 3 months</option>
+            </select>
+          </div>
+          {stats?.revenueTimeline && stats.revenueTimeline.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={stats.revenueTimeline}>
+                <defs>
+                  <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis
+                  dataKey="month"
+                  stroke="#94a3b8"
+                  tick={{ fill: '#94a3b8', fontSize: 12 }}
+                />
+                <YAxis
+                  stroke="#94a3b8"
+                  tick={{ fill: '#94a3b8', fontSize: 12 }}
+                  tickFormatter={(value) => `$${value}`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1e293b',
+                    border: '1px solid #334155',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                  }}
+                  labelStyle={{ color: '#f1f5f9' }}
+                  itemStyle={{ color: '#3b82f6' }}
+                  formatter={(value: any) => [formatChartCurrency(value), 'Revenue']}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  dot={{ fill: '#3b82f6', r: 4 }}
+                  activeDot={{ r: 6 }}
+                  fill="url(#revenueGradient)"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-theme-foreground-muted">
+              No revenue data available
+            </div>
+          )}
+        </div>
+
+        {/* PRO Distribution */}
+        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-theme-foreground mb-6">Statement Distribution</h3>
+          {stats?.statementsByPRO && stats.statementsByPRO.length > 0 ? (
+            <div className="space-y-4">
+              {stats.statementsByPRO.map((item: any, index: number) => {
+                const total = stats.statementsByPRO.reduce((acc: number, curr: any) => acc + curr.count, 0);
+                const percentage = ((item.count / total) * 100).toFixed(1);
+                const colors = ['bg-blue-500', 'bg-cyan-500', 'bg-purple-500'];
+
+                return (
+                  <div key={item.proType} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${colors[index % 3]}`}></div>
+                        <span className="text-theme-foreground-muted font-medium">{item.proType}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-white font-semibold">{item.count}</span>
+                        <span className="text-theme-foreground-muted text-sm ml-2">{percentage}%</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2">
+                      <div
+                        className={`${colors[index % 3]} h-2 rounded-full transition-all duration-500`}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-64 text-theme-foreground-muted">
+              No statement data available
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Recent Activity & Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Statements */}
+        <div className="lg:col-span-2 rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-theme-foreground">Recent Statements</h3>
+            <button className="text-brand-blue hover:text-brand-blue/80 text-sm font-medium">
+              View All →
+            </button>
+          </div>
+          <div className="space-y-3">
+            {recentStatements.length > 0 ? (
+              recentStatements.map((statement: any) => (
+                <div
+                  key={statement.id}
+                  className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      statement.proType === 'BMI' ? 'bg-blue-500/20' :
+                      statement.proType === 'ASCAP' ? 'bg-cyan-500/20' :
+                      'bg-purple-500/20'
+                    }`}>
+                      <BarChart3 className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">{statement.filename}</p>
+                      <p className="text-theme-foreground-muted text-sm">
+                        {statement.proType} • {statement.itemCount || 0} items
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-green-400 font-semibold">
+                      ${Number(statement.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </p>
+                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                      statement.status === 'PUBLISHED' ? 'bg-green-500/20 text-green-400' :
+                      statement.status === 'PROCESSED' ? 'bg-theme-warning-20 text-theme-warning' :
+                      'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {statement.status}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-theme-foreground-muted py-8">No recent statements</div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-theme-foreground mb-6">Quick Actions</h3>
+          <div className="space-y-3">
+            <button className="w-full flex items-center gap-3 p-4 bg-gradient-to-r from-brand-blue to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl text-white font-medium transition-all shadow-lg shadow-brand-blue/30">
+              <BarChart3 className="w-5 h-5" />
+              <span>Upload Statement</span>
+            </button>
+            <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-theme-border-strong rounded-xl text-white font-medium transition-colors">
+              <Users className="w-5 h-5" />
+              <span>Add Writer</span>
+            </button>
+            <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-theme-border-strong rounded-xl text-white font-medium transition-colors">
+              <FileText className="w-5 h-5" />
+              <span>Upload Document</span>
+            </button>
+            <button className="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-theme-border-strong rounded-xl text-white font-medium transition-colors">
+              <TrendingUp className="w-5 h-5" />
+              <span>View Reports</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatementsTab() {
+  const queryClient = useQueryClient();
+  const [selectedPRO, setSelectedPRO] = useState<'BMI' | 'ASCAP' | 'SESAC' | 'MLC'>('BMI');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [reviewingStatement, setReviewingStatement] = useState<any>(null);
+  const [deletingStatement, setDeletingStatement] = useState<any>(null);
+
+  const { data: statementsData, isLoading } = useQuery({
+    queryKey: ['admin-statements'],
+    queryFn: async () => {
+      const response = await statementApi.list();
+      return response.data;
+    },
+    refetchOnMount: 'always', // Always refetch when tab becomes active
+    staleTime: 0, // Data is immediately stale, ensuring fresh data on navigation
+  });
+
+  const { data: usersData } = useQuery({
+    queryKey: ['admin-users-for-assignment'],
+    queryFn: async () => {
+      const response = await userApi.list();
+      return response.data;
+    },
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: (statementId: string) => statementApi.publish(statementId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-statements'] });
+      toast.success('Statement published successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to publish statement');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (statementId: string) => statementApi.delete(statementId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-statements'] });
+      toast.success('Statement deleted');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to delete statement');
+    },
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+      setUploadError(null);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setUploadError('Please select a file');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      await statementApi.upload(selectedFile, selectedPRO);
+      setSelectedFile(null);
+      queryClient.invalidateQueries({ queryKey: ['admin-statements'] });
+      // Reset file input
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    } catch (error: any) {
+      setUploadError(error.response?.data?.error || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Filter statements into queue (UPLOADED, PROCESSED) and completed (PUBLISHED)
+  const queueStatements = statementsData?.statements?.filter((s: any) =>
+    s.status === 'UPLOADED' || s.status === 'PROCESSED' || s.status === 'ERROR'
+  ) || [];
+
+  const completedStatements = statementsData?.statements?.filter((s: any) =>
+    s.status === 'PUBLISHED'
+  ) || [];
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-light text-theme-foreground mb-2">Statement Management</h2>
+        <p className="text-theme-foreground-muted">Upload and process PRO royalty statements</p>
+      </div>
+
+      {/* Upload Section */}
+      <div className="relative overflow-hidden bg-theme-card border border-theme-border p-6">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+        <h3 className="text-lg font-light text-theme-foreground mb-4">Upload New Statement</h3>
+
+        <div className="space-y-4">
+          {/* PRO Selector */}
+          <div>
+            <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+              Select Statement Type
+            </label>
+            <div className="flex gap-3">
+              {(['BMI', 'ASCAP', 'SESAC', 'MLC'] as const).map((pro) => (
+                <button
+                  key={pro}
+                  onClick={() => setSelectedPRO(pro)}
+                  className={`px-6 py-3 font-medium transition-colors ${
+                    selectedPRO === pro
+                      ? 'bg-theme-primary text-theme-primary-foreground'
+                      : 'bg-theme-input text-theme-foreground-secondary border border-theme-border-strong hover:border-theme-border-hover hover:text-theme-foreground'
+                  }`}
+                >
+                  {pro}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* File Upload */}
+          <div>
+            <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+              {selectedPRO === 'MLC' ? 'TSV File' : 'CSV File'}
+            </label>
+            <div className="flex items-center gap-4">
+              <input
+                id="file-upload"
+                type="file"
+                accept={selectedPRO === 'MLC' ? '.tsv,.txt' : '.csv'}
+                onChange={handleFileChange}
+                className="block w-full text-sm text-theme-foreground-muted
+                  file:mr-4 file:py-2 file:px-4
+                  file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-theme-primary file:text-theme-primary-foreground
+                  hover:file:bg-theme-primary-hover
+                  file:cursor-pointer cursor-pointer"
+              />
+              <button
+                onClick={handleUpload}
+                disabled={!selectedFile || uploading}
+                className="px-6 py-2.5 bg-theme-primary text-theme-primary-foreground font-medium hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {uploading ? 'Uploading...' : 'Upload & Process'}
+              </button>
+            </div>
+            {selectedFile && (
+              <p className="mt-2 text-sm text-theme-primary">
+                Selected: {selectedFile.name}
+              </p>
+            )}
+            {uploadError && (
+              <p className="mt-2 text-sm text-red-400">
+                {uploadError}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Statements Queue */}
+      <div>
+        <h3 className="text-lg font-light text-theme-foreground mb-4">Statement Queue</h3>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
+          </div>
+        ) : queueStatements.length > 0 ? (
+          <div className="space-y-3">
+            {queueStatements.map((statement: any) => (
+              <div
+                key={statement.id}
+                className="group relative overflow-hidden flex items-center justify-between p-4 bg-theme-card border border-theme-border hover:border-theme-border-hover transition-all duration-300"
+              >
+                <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <span className={`px-3 py-1 text-sm font-medium border ${
+                      statement.proType === 'BMI' ? 'bg-white/10 text-theme-foreground-secondary border-theme-border-strong' :
+                      statement.proType === 'ASCAP' ? 'bg-white/10 text-theme-foreground-secondary border-theme-border-strong' :
+                      statement.proType === 'MLC' ? 'bg-theme-primary-15 text-theme-primary border-theme-border-hover' :
+                      'bg-white/10 text-theme-foreground-secondary border-theme-border-strong'
+                    }`}>
+                      {statement.proType}
+                    </span>
+                    <span className="text-white font-medium">{statement.filename}</span>
+                    <span className={`px-2 py-1 text-xs font-medium border ${
+                      statement.status === 'PUBLISHED' ? 'bg-theme-primary-15 text-theme-primary border-theme-border-hover' :
+                      statement.status === 'PROCESSED' ? 'bg-theme-primary-10 text-theme-primary border-theme-primary-20' :
+                      statement.status === 'ERROR' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                      'bg-white/10 text-theme-foreground-secondary border-theme-border-strong'
+                    }`}>
+                      {statement.status}
+                    </span>
+                  </div>
+                  <div className="flex gap-4 mt-2 text-sm text-theme-foreground-muted">
+                    <span>Items: {statement.itemCount || 0}</span>
+                    <span>Performances: {Number(statement.totalPerformances).toLocaleString()}</span>
+                    <span className="text-theme-primary">
+                      ${Number(statement.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  {statement.status === 'UPLOADED' && (
+                    <button
+                      onClick={() => setReviewingStatement(statement)}
+                      className="px-4 py-2 bg-theme-primary text-theme-primary-foreground text-sm font-medium hover:bg-theme-primary-hover transition-colors"
+                    >
+                      Review & Assign
+                    </button>
+                  )}
+                  {statement.status === 'PROCESSED' && (
+                    <button
+                      onClick={() => publishMutation.mutate(statement.id)}
+                      disabled={publishMutation.isPending}
+                      className="px-4 py-2 bg-theme-primary text-theme-primary-foreground text-sm font-medium hover:bg-theme-primary-hover disabled:opacity-50 transition-colors"
+                    >
+                      Publish
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setDeletingStatement(statement)}
+                    disabled={deleteMutation.isPending}
+                    className="px-4 py-2 bg-white/5 text-theme-foreground-secondary border border-theme-border-strong text-sm font-medium hover:bg-white/10 hover:text-white disabled:opacity-50 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-theme-foreground-muted">
+            <FileText className="w-8 h-8 mb-2 text-theme-primary/50" />
+            <p>No statements in queue</p>
+          </div>
+        )}
+      </div>
+
+      {/* Completed Statements */}
+      <div>
+        <h3 className="text-lg font-light text-theme-foreground mb-4">Completed Statements</h3>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
+          </div>
+        ) : completedStatements.length > 0 ? (
+          <div className="space-y-3">
+            {completedStatements.map((statement: any) => (
+              <div
+                key={statement.id}
+                className="group relative overflow-hidden flex items-center justify-between p-4 bg-theme-card border border-theme-border hover:border-theme-border-hover transition-all duration-300"
+              >
+                <div className="absolute top-0 left-0 w-0 h-[2px] bg-theme-primary group-hover:w-full transition-all duration-500" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <span className={`px-3 py-1 text-sm font-medium border ${
+                      statement.proType === 'BMI' ? 'bg-white/10 text-theme-foreground-secondary border-theme-border-strong' :
+                      statement.proType === 'ASCAP' ? 'bg-white/10 text-theme-foreground-secondary border-theme-border-strong' :
+                      statement.proType === 'MLC' ? 'bg-theme-primary-15 text-theme-primary border-theme-border-hover' :
+                      'bg-white/10 text-theme-foreground-secondary border-theme-border-strong'
+                    }`}>
+                      {statement.proType}
+                    </span>
+                    <span className="text-white font-medium">{statement.filename}</span>
+                    <span className="px-2 py-1 text-xs font-medium bg-theme-primary-15 text-theme-primary border border-theme-border-hover">
+                      PUBLISHED
+                    </span>
+                  </div>
+                  <div className="flex gap-4 mt-2 text-sm text-theme-foreground-muted">
+                    <span>Items: {statement.itemCount || 0}</span>
+                    <span>Performances: {Number(statement.totalPerformances).toLocaleString()}</span>
+                    <span className="text-theme-primary">
+                      ${Number(statement.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setDeletingStatement(statement)}
+                    disabled={deleteMutation.isPending}
+                    className="px-4 py-2 bg-white/5 text-theme-foreground-secondary border border-theme-border-strong text-sm font-medium hover:bg-white/10 hover:text-white disabled:opacity-50 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-theme-foreground-muted">
+            <CheckCircle2 className="w-8 h-8 mb-2 text-theme-primary/50" />
+            <p>No completed statements</p>
+          </div>
+        )}
+      </div>
+
+      {/* Review & Assignment Modal */}
+      {reviewingStatement && (
+        <ReviewAssignmentModal
+          statement={reviewingStatement}
+          writers={usersData?.users || []}
+          onClose={() => setReviewingStatement(null)}
+          onSave={() => {
+            queryClient.invalidateQueries({ queryKey: ['admin-statements'] });
+            setReviewingStatement(null);
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingStatement && (
+        <DeleteConfirmationModal
+          statement={deletingStatement}
+          onClose={() => setDeletingStatement(null)}
+          onConfirm={() => {
+            deleteMutation.mutate(deletingStatement.id);
+            setDeletingStatement(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ReviewAssignmentModal({ statement, writers, onClose, onSave }: any) {
+  const [assignments, setAssignments] = useState<WriterAssignmentsPayload>({});
+  const [assignAllWriter, setAssignAllWriter] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+  const [smartAssigning, setSmartAssigning] = useState(false);
+  const [smartAssignResults, setSmartAssignResults] = useState<any>(null);
+
+  // Filter/Search/Sort state
+  const [statusFilter, setStatusFilter] = useState<'all' | 'tracked' | 'untracked'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'revenue-desc' | 'revenue-asc' | 'title-asc' | 'title-desc'>('revenue-desc');
+
+  // Fullscreen mode
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Virtual scrolling ref
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const writersList = writers.filter((w: any) => w.role === 'WRITER');
+
+  // Detect MLC format from statement metadata
+  const isMLC = statement.metadata?.pro === 'MLC';
+
+  // Get rows to display - MLC uses parsedItems (publisher rows), Traditional uses songs
+  const getDisplayRows = () => {
+    if (isMLC) {
+      // MLC: Each parsedItem is a publisher row
+      return (statement.metadata?.parsedItems || []).map((item: any) => ({
+        workTitle: item.workTitle,
+        revenue: item.revenue || 0,
+        performances: item.performances || 0,
+        publisherInfo: {
+          originalPublisherName: item.metadata?.originalPublisherName,
+          originalPublisherIpi: item.metadata?.originalPublisherIpi,
+          dspName: item.metadata?.dspName,
+          consumerOffering: item.metadata?.consumerOffering,
+          territory: item.metadata?.territory,
+          workWriterList: item.metadata?.workWriterList || []
+        }
+      }));
+    } else {
+      // Traditional: Aggregated songs
+      return (statement.metadata?.songs || []).map((song: any) => ({
+        workTitle: song.title,
+        revenue: song.totalRevenue || song.totalAmount || 0,
+        performances: song.performances || 0
+      }));
+    }
+  };
+
+  const displayRows = getDisplayRows();
+
+  // Generate key for row - composite for MLC, simple for traditional
+  const getRowKey = (row: any) => {
+    if (isMLC) {
+      const publisherIpi = row.publisherInfo?.originalPublisherIpi || 'none';
+      const dspName = row.publisherInfo?.dspName || 'none';
+      return `${row.workTitle}|${publisherIpi}|${dspName}`;
+    }
+    return row.workTitle;
+  };
+
+  // Memoized badge lookup map for performance - prevents repeated array searches
+  const badgeLookupMap = useMemo(() => {
+    if (!smartAssignResults) return new Map();
+
+    const map = new Map<string, { badge: string; class: string; level: string; source?: string; placementTitle?: string }>();
+
+    // Index tracked songs from Manage Placements (with calculated splits)
+    smartAssignResults.trackedSongs?.forEach((m: any) => {
+      const key = getRowKey(m);
+      map.set(key, {
+        badge: '✓ Tracked',
+        class: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        level: 'tracked',
+        source: 'placement',
+        placementTitle: m.placement?.title
+      });
+    });
+
+    // Index unmatched (not in Manage Placements - needs to be added first)
+    smartAssignResults.unmatched?.forEach((u: any) => {
+      const key = getRowKey(u);
+      if (!map.has(key)) {
+        map.set(key, { badge: '✗ Not Tracked', class: 'bg-red-500/20 text-red-400 border-red-500/30', level: 'untracked' });
+      }
+    });
+
+    return map;
+  }, [smartAssignResults, isMLC]);
+
+  // Get confidence badge info from memoized map - O(1) lookup instead of O(n)
+  const getConfidenceBadge = (rowKey: string) => {
+    return badgeLookupMap.get(rowKey) || null;
+  };
+
+  // Filter, search, and sort displayRows
+  const filteredAndSortedRows = useMemo(() => {
+    let rows = [...displayRows];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      rows = rows.filter((row: any) => {
+        const titleMatch = row.workTitle?.toLowerCase().includes(query);
+        const publisherMatch = row.publisherInfo?.originalPublisherName?.toLowerCase().includes(query);
+        return titleMatch || publisherMatch;
+      });
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      rows = rows.filter((row: any) => {
+        const rowKey = getRowKey(row);
+        const badge = getConfidenceBadge(rowKey);
+        if (statusFilter === 'tracked') return badge?.level === 'tracked';
+        if (statusFilter === 'untracked') return badge?.level === 'untracked' || !badge;
+        return true;
+      });
+    }
+
+    // Apply sorting
+    rows.sort((a: any, b: any) => {
+      if (sortBy === 'revenue-desc') return (b.revenue || 0) - (a.revenue || 0);
+      if (sortBy === 'revenue-asc') return (a.revenue || 0) - (b.revenue || 0);
+      if (sortBy === 'title-asc') return (a.workTitle || '').localeCompare(b.workTitle || '');
+      if (sortBy === 'title-desc') return (b.workTitle || '').localeCompare(a.workTitle || '');
+      return 0;
+    });
+
+    return rows;
+  }, [displayRows, searchQuery, statusFilter, sortBy, smartAssignResults, isMLC]);
+
+  const formatCurrency = (amount: number): string => {
+    // Use 3 decimals for precision in calculations
+    const rounded3 = Math.round(amount * 1000) / 1000;
+    if (rounded3 === 0 && amount > 0) {
+      // Micro-amount: use 4 decimals
+      return (Math.round(amount * 10000) / 10000).toFixed(4);
+    }
+    return rounded3.toFixed(3);
+  };
+
+  const handleAssignAll = () => {
+    if (!assignAllWriter) return;
+    const newAssignments: WriterAssignmentsPayload = { ...assignments };
+    const selectedWriter = writersList.find((w: any) => w.id === assignAllWriter);
+    filteredAndSortedRows.forEach((row: any) => {
+      newAssignments[getRowKey(row)] = [{
+        userId: assignAllWriter,
+        writerIpiNumber: selectedWriter?.writerIpiNumber || '',
+        publisherIpiNumber: selectedWriter?.publisherIpiNumber || '',
+        splitPercentage: 100
+      }];
+    });
+    setAssignments(newAssignments);
+  };
+
+  const handleSmartAssign = async () => {
+    setSmartAssigning(true);
+    try {
+      const response = await statementApi.smartAssign(statement.id);
+      const results = response.data;
+      setSmartAssignResults(results);
+
+      const newAssignments: WriterAssignmentsPayload = {};
+
+      // Process tracked songs from Manage Placements (with calculated splits)
+      results.trackedSongs?.forEach((match: any) => {
+        if (!match.writers || match.writers.length === 0) return;
+
+        const key = getRowKey(match);
+
+        // Use the splits from Manage Placements
+        newAssignments[key] = match.writers.map((w: any) => ({
+          userId: w.writer.id,
+          writerIpiNumber: w.writer.writerIpiNumber || '',
+          publisherIpiNumber: w.writer.publisherIpiNumber || '',
+          splitPercentage: w.splitPercentage || 0,
+          calculatedRevenue: w.calculatedRevenue
+        }));
+      });
+
+      setAssignments(newAssignments);
+
+      const trackedCount = results.summary.trackedSongsCount || 0;
+      const unmatchedCount = results.summary.unmatchedCount || 0;
+
+      if (unmatchedCount > 0) {
+        alert(`Smart Assign Complete!\n\n✓ Tracked: ${trackedCount} songs (with calculated splits)\n✗ Not Tracked: ${unmatchedCount} songs\n\nUntracked songs need to be added to Manage Placements first before royalties can be allocated.`);
+      } else {
+        alert(`Smart Assign Complete!\n\n✓ All ${trackedCount} songs matched from Manage Placements with calculated splits!`);
+      }
+    } catch (error: any) {
+      console.error('Smart assign error:', error);
+      alert(error.response?.data?.error || 'Failed to smart assign writers');
+    } finally {
+      setSmartAssigning(false);
+    }
+  };
+
+  const addWriter = (songTitle: string) => {
+    const currentAssignments = assignments[songTitle] || [];
+    const newWriterCount = currentAssignments.length + 1;
+    const equalSplit = parseFloat((100 / newWriterCount).toFixed(2));
+
+    const updatedAssignments = currentAssignments.map(a => ({
+      ...a,
+      splitPercentage: equalSplit
+    }));
+
+    setAssignments({
+      ...assignments,
+      [songTitle]: [...updatedAssignments, { userId: '', writerIpiNumber: '', publisherIpiNumber: '', splitPercentage: equalSplit }]
+    });
+  };
+
+  const removeWriter = (songTitle: string, index: number) => {
+    const currentAssignments = assignments[songTitle] || [];
+    if (currentAssignments.length <= 1) return;
+
+    const updatedAssignments = currentAssignments.filter((_, i) => i !== index);
+    const equalSplit = parseFloat((100 / updatedAssignments.length).toFixed(2));
+
+    setAssignments({
+      ...assignments,
+      [songTitle]: updatedAssignments.map(a => ({
+        ...a,
+        splitPercentage: equalSplit
+      }))
+    });
+  };
+
+  const updateWriter = (songTitle: string, index: number, field: 'userId' | 'writerIpiNumber' | 'publisherIpiNumber' | 'splitPercentage', value: any) => {
+    const currentAssignments = assignments[songTitle] || [];
+    const updatedAssignments = [...currentAssignments];
+
+    // Ensure the assignment object exists at this index
+    if (!updatedAssignments[index]) {
+      updatedAssignments[index] = { userId: '', writerIpiNumber: '', publisherIpiNumber: '', splitPercentage: 100 };
+    }
+
+    if (field === 'userId') {
+      const selectedWriter = writersList.find((w: any) => w.id === value);
+      updatedAssignments[index] = {
+        ...updatedAssignments[index],
+        userId: value,
+        writerIpiNumber: selectedWriter?.writerIpiNumber || updatedAssignments[index].writerIpiNumber || '',
+        publisherIpiNumber: selectedWriter?.publisherIpiNumber || updatedAssignments[index].publisherIpiNumber || ''
+      };
+    } else {
+      updatedAssignments[index] = {
+        ...updatedAssignments[index],
+        [field]: field === 'splitPercentage' ? parseFloat(value) || 0 : value
+      };
+    }
+
+    setAssignments({
+      ...assignments,
+      [songTitle]: updatedAssignments
+    });
+  };
+
+  const getSplitTotal = (songTitle: string) => {
+    const songAssignments = assignments[songTitle] || [];
+    return songAssignments.reduce((sum, a) => sum + (a.splitPercentage || 0), 0);
+  };
+
+  // Calculate summary stats
+  const summaryStats = useMemo(() => {
+    const totalRevenue = displayRows.reduce((sum: number, row: any) => sum + (row.revenue || 0), 0);
+    const trackedCount = smartAssignResults?.summary?.trackedSongsCount || 0;
+    const untrackedCount = smartAssignResults?.summary?.unmatchedCount || 0;
+
+    return {
+      totalRows: displayRows.length,
+      filteredRows: filteredAndSortedRows.length,
+      totalRevenue,
+      trackedCount,
+      untrackedCount
+    };
+  }, [displayRows, filteredAndSortedRows.length, smartAssignResults]);
+
+  // Virtual scrolling setup
+  const virtualizer = useVirtualizer({
+    count: filteredAndSortedRows.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 220, // Approximate row height in pixels
+    overscan: 5, // Render 5 extra rows above/below viewport for smoother scrolling
+  });
+
+  const handleSave = async () => {
+    // Check if all rows have at least one assignment
+    const unassigned = displayRows.filter((row: any) => {
+      const rowKey = getRowKey(row);
+      const rowAssignments = assignments[rowKey] || [];
+      return rowAssignments.length === 0 || rowAssignments.some(a => !a.userId);
+    });
+
+    if (unassigned.length > 0) {
+      alert(`Please assign writers to all rows. ${unassigned.length} ${isMLC ? 'publisher rows' : 'songs'} have incomplete assignments.`);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await statementApi.assignWriters(statement.id, assignments);
+      onSave();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to save assignments');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className={`rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-md w-full overflow-hidden flex flex-col transition-all duration-300 ${
+        isFullscreen ? 'max-w-none max-h-none h-full m-0' : 'max-w-4xl max-h-[90vh]'
+      }`}>
+        <div className="p-6 border-b border-white/[0.08] flex items-start justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-theme-foreground">Review & Assign Writers</h3>
+            <p className="text-sm text-theme-foreground-muted mt-1">
+              {statement.filename} • {displayRows.length} {isMLC ? 'publisher rows' : 'songs'}
+            </p>
+          </div>
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-2 bg-white/5 hover:bg-white/10 border border-theme-border-strong rounded-xl transition-colors"
+            title={isFullscreen ? 'Exit fullscreen' : 'Expand to fullscreen'}
+          >
+            {isFullscreen ? <Minimize2 className="w-5 h-5 text-white" /> : <Maximize2 className="w-5 h-5 text-white" />}
+          </button>
+        </div>
+
+        {/* Summary Stats Bar */}
+        <div className="px-6 pt-4 pb-2 bg-white/[0.02] border-b border-white/[0.06]">
+          <div className="grid grid-cols-3 gap-3 text-sm">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-3">
+              <div className="text-theme-foreground-muted text-xs mb-1">Total Revenue</div>
+              <div className="text-white font-semibold">${formatCurrency(summaryStats.totalRevenue)}</div>
+            </div>
+            {smartAssignResults && (
+              <>
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+                  <div className="text-emerald-400 text-xs mb-1">✓ Tracked (Manage Placements)</div>
+                  <div className="text-white font-semibold">{summaryStats.trackedCount}</div>
+                </div>
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+                  <div className="text-red-400 text-xs mb-1">✗ Not Tracked</div>
+                  <div className="text-white font-semibold">{summaryStats.untrackedCount}</div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Filter Toolbar */}
+        <div className="px-6 py-3 bg-white/[0.02] border-b border-white/[0.06] space-y-3">
+          <div className="flex gap-3">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder="Search songs or publishers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue/50 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-theme-foreground-muted hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Status Filter */}
+            {smartAssignResults && (
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                className="px-3 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+              >
+                <option value="all">All Rows</option>
+                <option value="tracked">Tracked (Manage Placements)</option>
+                <option value="untracked">Not Tracked</option>
+              </select>
+            )}
+
+            {/* Sort */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="px-3 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+            >
+              <option value="revenue-desc">Revenue: High → Low</option>
+              <option value="revenue-asc">Revenue: Low → High</option>
+              <option value="title-asc">Title: A → Z</option>
+              <option value="title-desc">Title: Z → A</option>
+            </select>
+          </div>
+
+          {/* Showing X of Y */}
+          <div className="text-xs text-theme-foreground-muted">
+            Showing {summaryStats.filteredRows} of {summaryStats.totalRows} rows
+            {summaryStats.filteredRows < summaryStats.totalRows && (
+              <span className="text-brand-blue ml-1">(filtered)</span>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+          {/* Smart Assign & Quick Assign Section */}
+          <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4 space-y-4">
+            {/* Smart Assign */}
+            <div>
+              <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2"><Brain className="w-4 h-4" /> Smart Assign (Manage Placements)</h4>
+              <p className="text-xs text-theme-foreground-muted mb-3">
+                Matches songs to Manage Placements and applies registered split percentages. Falls back to IPI matching for untracked songs.
+              </p>
+              <button
+                onClick={handleSmartAssign}
+                disabled={smartAssigning}
+                className="w-full px-4 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:bg-white/10 disabled:text-theme-foreground-muted disabled:cursor-not-allowed transition-colors"
+              >
+                {smartAssigning ? <><Loader2 className="w-4 h-4 mr-2 animate-spin inline" />Analyzing...</> : <><Sparkles className="w-4 h-4 mr-2 inline" />Smart Assign</>}
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-white/[0.08]"></div>
+
+            {/* Manual Assign All */}
+            <div>
+              <h4 className="text-sm font-medium text-white mb-3">Manual: Assign All to One Writer</h4>
+              <div className="flex gap-3">
+                <select
+                  value={assignAllWriter}
+                  onChange={(e) => setAssignAllWriter(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                >
+                  <option value="">Select a writer...</option>
+                  {writersList.map((writer: any) => (
+                    <option key={writer.id} value={writer.id}>
+                      {writer.firstName || writer.middleName || writer.lastName
+                        ? `${writer.firstName || ''} ${writer.middleName || ''} ${writer.lastName || ''}`.trim().replace(/\s+/g, ' ')
+                        : writer.email}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleAssignAll}
+                  disabled={!assignAllWriter}
+                  className="px-4 py-2 bg-brand-blue text-white rounded-xl font-medium hover:bg-brand-blue/90 disabled:bg-white/10 disabled:text-theme-foreground-muted disabled:cursor-not-allowed transition-colors"
+                >
+                  Assign All
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Individual Row Assignments - Unified UI for both MLC and Traditional */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium text-white">
+              {isMLC ? `MLC Publisher Rows (${summaryStats.filteredRows} rows)` : `Assign Writers to Songs (${summaryStats.filteredRows} songs)`}
+            </h4>
+            {isMLC && <p className="text-xs text-gray-400">Each row represents a unique publisher/platform combination</p>}
+
+            {/* Virtual scrolling container */}
+            <div
+              ref={scrollContainerRef}
+              className="overflow-auto"
+              style={{ maxHeight: isFullscreen ? 'calc(100vh - 420px)' : '500px' }}
+            >
+              <div
+                style={{
+                  height: `${virtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {virtualizer.getVirtualItems().map((virtualRow) => {
+                  const row = filteredAndSortedRows[virtualRow.index];
+                  const rowKey = getRowKey(row);
+                  const rowAssignments = assignments[rowKey] || [{ userId: '', writerIpiNumber: '', publisherIpiNumber: '', splitPercentage: 100 }];
+                  const splitTotal = getSplitTotal(rowKey);
+                  const badgeInfo = getConfidenceBadge(rowKey);
+
+                  return (
+                    <div
+                      key={virtualRow.key}
+                      data-index={virtualRow.index}
+                      ref={virtualizer.measureElement}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                      className="pb-4"
+                    >
+                      <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      {/* Title + Badge */}
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <p className="font-medium text-white">{row.workTitle}</p>
+                        {badgeInfo && (
+                          <span className={`px-2 py-0.5 text-xs border rounded-lg ${badgeInfo.class}`}>
+                            {badgeInfo.badge}
+                          </span>
+                        )}
+                        {badgeInfo?.source === 'placement' && badgeInfo?.placementTitle && (
+                          <span className="px-2 py-0.5 text-xs bg-white/[0.04] border border-white/[0.08] rounded-lg text-gray-400">
+                            Matched: {badgeInfo.placementTitle}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Revenue + Performances */}
+                      <p className="text-sm text-theme-foreground-muted mb-3">
+                        ${formatCurrency(row.revenue)} • {row.performances} performances
+                      </p>
+
+                      {/* MLC: Publisher Info Card */}
+                      {isMLC && row.publisherInfo && (
+                        <div className="bg-white/[0.03] rounded-xl p-3 space-y-2 border border-white/[0.06] mb-3">
+                          {row.publisherInfo.originalPublisherName && (
+                            <div className="flex items-start gap-2 text-sm">
+                              <span className="text-theme-foreground-muted font-medium min-w-[75px]">Publisher:</span>
+                              <div>
+                                <span className="text-brand-blue font-medium">{row.publisherInfo.originalPublisherName}</span>
+                                {row.publisherInfo.originalPublisherIpi && (
+                                  <span className="text-theme-foreground-muted text-xs ml-2">IPI: {row.publisherInfo.originalPublisherIpi}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {(row.publisherInfo.dspName || row.publisherInfo.territory) && (
+                            <div className="flex items-center gap-4 text-sm text-theme-foreground-muted">
+                              {row.publisherInfo.dspName && (
+                                <div>
+                                  <span className="text-theme-foreground-muted">Platform:</span> {row.publisherInfo.dspName}
+                                  {row.publisherInfo.consumerOffering && <span className="text-theme-foreground-muted"> ({row.publisherInfo.consumerOffering})</span>}
+                                </div>
+                              )}
+                              {row.publisherInfo.territory && (
+                                <div><span className="text-theme-foreground-muted">Territory:</span> {row.publisherInfo.territory}</div>
+                              )}
+                            </div>
+                          )}
+
+                          {row.publisherInfo.workWriterList && row.publisherInfo.workWriterList.length > 0 && (
+                            <div className="text-sm">
+                              <span className="text-theme-foreground-muted">Work Writers:</span>{' '}
+                              <span className="text-theme-foreground-muted">{row.publisherInfo.workWriterList.map((w: any) => w.name).join(', ')}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => addWriter(rowKey)}
+                      className="px-3 py-1.5 bg-brand-blue/20 text-brand-blue border border-brand-blue/30 rounded-xl text-sm font-medium hover:bg-brand-blue/30 transition-colors whitespace-nowrap"
+                    >
+                      + Add Writer
+                    </button>
+                  </div>
+
+                  {/* Writer Assignment Inputs */}
+                  <div className="space-y-2">
+                    {rowAssignments.map((assignment, writerIndex) => (
+                      <div key={writerIndex} className="grid grid-cols-12 gap-2 items-center">
+                        <select
+                          value={assignment.userId}
+                          onChange={(e) => updateWriter(rowKey, writerIndex, 'userId', e.target.value)}
+                          className={`col-span-4 px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-blue/50 ${
+                            assignment.userId ? 'bg-white/5 border-green-500/50 text-white' : 'bg-white/5 border-theme-border-strong text-theme-foreground-muted'
+                          }`}
+                        >
+                          <option value="">Select writer...</option>
+                          {writersList.map((writer: any) => (
+                            <option key={writer.id} value={writer.id}>
+                              {writer.firstName || writer.middleName || writer.lastName
+                                ? `${writer.firstName || ''} ${writer.middleName || ''} ${writer.lastName || ''}`.trim().replace(/\s+/g, ' ')
+                                : writer.email}
+                            </option>
+                          ))}
+                        </select>
+
+                        <input
+                          type="text"
+                          placeholder="Writer IPI"
+                          value={assignment.writerIpiNumber}
+                          onChange={(e) => updateWriter(rowKey, writerIndex, 'writerIpiNumber', e.target.value)}
+                          className="col-span-2 px-2 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                        />
+
+                        <input
+                          type="text"
+                          placeholder="Publisher IPI"
+                          value={assignment.publisherIpiNumber}
+                          onChange={(e) => updateWriter(rowKey, writerIndex, 'publisherIpiNumber', e.target.value)}
+                          className="col-span-2 px-2 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                        />
+
+                        <div className="col-span-2 relative">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={assignment.splitPercentage}
+                            onChange={(e) => updateWriter(rowKey, writerIndex, 'splitPercentage', e.target.value)}
+                            className="w-full px-2 py-2 bg-white/5 border border-theme-border-strong rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/50"
+                          />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-theme-foreground-muted text-xs pointer-events-none">%</span>
+                        </div>
+
+                        <button
+                          onClick={() => removeWriter(rowKey, writerIndex)}
+                          disabled={rowAssignments.length <= 1}
+                          className="col-span-2 px-2 py-2 bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-medium hover:bg-red-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Split Total Warning */}
+                  {Math.abs(splitTotal - 100) > 0.01 && (
+                    <div className="text-sm text-theme-warning bg-theme-warning-10 border border-theme-warning-20 rounded-xl px-3 py-2">
+                      Total: {splitTotal.toFixed(2)}% (Note: Splits don't equal 100%, but this is allowed)
+                    </div>
+                  )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <div className="p-6 border-t border-white/[0.08] flex gap-3">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 px-4 py-2.5 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 disabled:bg-white/10 disabled:text-theme-foreground-muted transition-colors"
+          >
+            {saving ? 'Saving...' : 'Save Assignments'}
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 bg-white/5 text-theme-foreground-muted border border-theme-border-strong rounded-xl font-medium hover:bg-white/10 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeleteConfirmationModal({ statement, onClose, onConfirm }: any) {
+  const [confirmText, setConfirmText] = useState('');
+  const isConfirmEnabled = confirmText.toLowerCase() === 'delete';
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-md p-6 max-w-md w-full mx-4">
+        <h3 className="text-xl font-semibold text-theme-foreground mb-4">Delete Statement</h3>
+
+        <div className="space-y-4">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+            <p className="text-red-400 text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> Warning: This action cannot be undone!
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-theme-foreground-muted">
+              You are about to delete the following statement:
+            </p>
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-3">
+              <p className="text-white font-medium">{statement.filename}</p>
+              <p className="text-sm text-theme-foreground-muted mt-1">
+                {statement.proType} • {statement.itemCount || 0} items
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-theme-foreground-muted text-sm">
+              This will permanently remove this statement and all associated data from the system.
+            </p>
+            <p className="text-theme-foreground-muted text-sm font-medium">
+              To confirm deletion, type <span className="text-red-400 font-mono">delete</span> below:
+            </p>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="Type 'delete' to confirm"
+              className="w-full px-4 py-2.5 bg-white/5 border border-theme-border-strong rounded-xl text-white placeholder-theme-foreground-muted focus:outline-none focus:ring-2 focus:ring-red-500/50"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 bg-white/5 text-theme-foreground-muted border border-theme-border-strong rounded-xl font-medium hover:bg-white/10 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={!isConfirmEnabled}
+            className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 disabled:bg-white/10 disabled:text-theme-foreground-muted disabled:cursor-not-allowed transition-colors"
+          >
+            Delete Statement
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UsersTab() {
+  const [activeSubTab, setActiveSubTab] = useState<'users' | 'applications' | 'agreements'>('users');
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-light text-theme-foreground mb-2">User Management</h2>
+        <p className="text-theme-foreground-muted">Manage writers, admins, and platform users</p>
+      </div>
+
+      {/* Sub-tabs */}
+      <div className="flex gap-1 p-1 bg-theme-background-30 border border-theme-border w-fit">
+        <button
+          onClick={() => setActiveSubTab('users')}
+          className={`px-4 py-2 text-sm font-medium transition-all ${
+            activeSubTab === 'users'
+              ? 'bg-theme-card text-theme-foreground shadow-sm border border-theme-border'
+              : 'text-theme-foreground-muted hover:text-theme-foreground'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Users
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveSubTab('applications')}
+          className={`px-4 py-2 text-sm font-medium transition-all ${
+            activeSubTab === 'applications'
+              ? 'bg-theme-card text-theme-foreground shadow-sm border border-theme-border'
+              : 'text-theme-foreground-muted hover:text-theme-foreground'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <ClipboardList className="w-4 h-4" />
+            Applications
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveSubTab('agreements')}
+          className={`px-4 py-2 text-sm font-medium transition-all ${
+            activeSubTab === 'agreements'
+              ? 'bg-theme-card text-theme-foreground shadow-sm border border-theme-border'
+              : 'text-theme-foreground-muted hover:text-theme-foreground'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <FileSignature className="w-4 h-4" />
+            Agreements
+          </span>
+        </button>
+      </div>
+
+      {activeSubTab === 'users' ? (
+        <UsersListSection />
+      ) : activeSubTab === 'applications' ? (
+        <ApplicationsSection />
+      ) : (
+        <AgreementsSection />
+      )}
+    </div>
+  );
+}
+
+// Applications Section - displays and manages applications
+function ApplicationsSection() {
+  const queryClient = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [tierFilter, setTierFilter] = useState<string>('all');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingNotes, setEditingNotes] = useState<{ id: string; notes: string } | null>(null);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
+  // Preview step states
+  const [modalStep, setModalStep] = useState<'select' | 'preview'>('select');
+  const [createdAgreements, setCreatedAgreements] = useState<any[]>([]);
+  const [previewAgreementId, setPreviewAgreementId] = useState<string | null>(null);
+  const [previewJwt, setPreviewJwt] = useState<string | null>(null);
+  const previewEditorRef = useRef<HTMLDivElement>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+
+  const { data: applicationsData, isLoading } = useQuery({
+    queryKey: ['admin-applications', statusFilter, tierFilter],
+    queryFn: async () => {
+      const params: any = {};
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (tierFilter !== 'all') params.tier = tierFilter;
+      const response = await applicationApi.list(params);
+      return response.data;
+    },
+  });
+
+  // Fetch agreement templates for the approve & send modal
+  const { data: templatesData } = useQuery({
+    queryKey: ['agreement-templates'],
+    queryFn: async () => {
+      const response = await agreementApi.listTemplates();
+      return response.data;
+    },
+  });
+  const templates = templatesData || [];
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => applicationApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-applications'] });
+      toast.success('Application updated');
+      setEditingNotes(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to update application');
+    },
+  });
+
+  // Create agreements (without sending) for preview
+  const handleCreateForPreview = async () => {
+    if (!selectedApplication || selectedTemplates.length === 0) return;
+
+    setIsCreating(true);
+    try {
+      const promises = selectedTemplates.map(async templateId => {
+        const response = await agreementApi.create({
+          templateId,
+          applicationId: selectedApplication.id,
+          recipientName: selectedApplication.name,
+          recipientEmail: selectedApplication.email,
+        });
+        return response.data;
+      });
+      const agreements = await Promise.all(promises);
+      setCreatedAgreements(agreements);
+      setModalStep('preview');
+
+      // Automatically load preview for the first agreement
+      if (agreements.length > 0) {
+        handleLoadPreview(agreements[0].id);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to create agreements');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // Load preview for a specific agreement
+  const handleLoadPreview = async (agreementId: string) => {
+    try {
+      setPreviewAgreementId(agreementId);
+      const response = await agreementApi.getEditorToken(agreementId);
+      setPreviewJwt(response.data.jwt);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to load preview');
+    }
+  };
+
+  // Initialize Firma signing request editor for preview
+  useEffect(() => {
+    if (previewJwt && previewAgreementId && previewEditorRef.current) {
+      // Load Firma's signing request editor script dynamically
+      const existingScript = document.getElementById('firma-signing-editor-script');
+      if (!existingScript) {
+        const script = document.createElement('script');
+        script.id = 'firma-signing-editor-script';
+        script.src = 'https://api.firma.dev/functions/v1/embed-proxy/signing-request-editor.js';
+        script.async = true;
+        document.body.appendChild(script);
+      }
+
+      const initEditor = () => {
+        // @ts-ignore - FirmaSigningRequestEditor is loaded from external script
+        if (window.FirmaSigningRequestEditor && previewEditorRef.current) {
+          previewEditorRef.current.innerHTML = ''; // Clear previous editor
+          // @ts-ignore
+          new window.FirmaSigningRequestEditor({
+            container: previewEditorRef.current,
+            jwt: previewJwt,
+            signingRequestId: previewAgreementId,
+            mode: 'preview', // Read-only preview mode
+            onError: (error: any) => {
+              console.error('Signing request editor error:', error);
+            },
+          });
+        }
+      };
+
+      // Try immediately, or wait for script to load
+      // @ts-ignore
+      if (window.FirmaSigningRequestEditor) {
+        initEditor();
+      } else {
+        const checkInterval = setInterval(() => {
+          // @ts-ignore
+          if (window.FirmaSigningRequestEditor) {
+            clearInterval(checkInterval);
+            initEditor();
+          }
+        }, 100);
+        // Clear interval after 10 seconds
+        setTimeout(() => clearInterval(checkInterval), 10000);
+      }
+    }
+  }, [previewJwt, previewAgreementId]);
+
+  // Send all created agreements and update application status
+  const handleSendAll = async () => {
+    if (createdAgreements.length === 0 || !selectedApplication) return;
+
+    setIsSending(true);
+    try {
+      // Send all agreements
+      await Promise.all(createdAgreements.map(agreement =>
+        agreementApi.send(agreement.id)
+      ));
+
+      // Update application status to APPROVED
+      await applicationApi.update(selectedApplication.id, { status: 'APPROVED' });
+
+      queryClient.invalidateQueries({ queryKey: ['admin-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+
+      // Reset modal state
+      setShowApproveModal(false);
+      setSelectedApplication(null);
+      setSelectedTemplates([]);
+      setModalStep('select');
+      setCreatedAgreements([]);
+      setPreviewAgreementId(null);
+      setPreviewJwt(null);
+
+      toast.success(`Application approved and ${createdAgreements.length} agreement(s) sent!`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to send agreements');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Reset modal state when closing
+  const handleCloseModal = () => {
+    setShowApproveModal(false);
+    setSelectedApplication(null);
+    setSelectedTemplates([]);
+    setModalStep('select');
+    setCreatedAgreements([]);
+    setPreviewAgreementId(null);
+    setPreviewJwt(null);
+  };
+
+  const handleStatusChange = (id: string, status: string) => {
+    updateMutation.mutate({ id, data: { status } });
+  };
+
+  const handleSaveNotes = () => {
+    if (editingNotes) {
+      updateMutation.mutate({ id: editingNotes.id, data: { internalNotes: editingNotes.notes } });
+    }
+  };
+
+  const getTierBadge = (tier: string) => {
+    const styles: Record<string, string> = {
+      PRIORITY_A: 'bg-green-500/20 text-green-400 border-green-500/30',
+      PRIORITY_B: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      PRIORITY_C: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      PRIORITY_D: 'bg-theme-background-30 text-theme-foreground-muted border-theme-border',
+    };
+    const labels: Record<string, string> = {
+      PRIORITY_A: 'A',
+      PRIORITY_B: 'B',
+      PRIORITY_C: 'C',
+      PRIORITY_D: 'D',
+    };
+    return (
+      <span className={`px-2 py-0.5 text-xs font-bold border ${styles[tier] || styles.PRIORITY_D}`}>
+        {labels[tier] || tier}
+      </span>
+    );
+  };
+
+  const getStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      PENDING: 'bg-yellow-500/20 text-yellow-400',
+      APPROVED: 'bg-green-500/20 text-green-400',
+      REJECTED: 'bg-red-500/20 text-red-400',
+      CONTACTED: 'bg-blue-500/20 text-blue-400',
+    };
+    return (
+      <span className={`px-2 py-1 text-xs font-medium ${styles[status] || 'bg-theme-background-30 text-theme-foreground-muted'}`}>
+        {status}
+      </span>
+    );
+  };
+
+  const applications = applicationsData?.applications || [];
+
+  // Calculate stats
+  const stats = {
+    total: applications.length,
+    pending: applications.filter((a: any) => a.status === 'PENDING').length,
+    priorityA: applications.filter((a: any) => a.tier === 'PRIORITY_A').length,
+    avgScore: applications.length > 0
+      ? Math.round(applications.reduce((sum: number, a: any) => sum + (a.score || 0), 0) / applications.length)
+      : 0,
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-theme-card border border-theme-border p-4">
+          <div className="text-2xl font-bold text-theme-foreground">{stats.total}</div>
+          <div className="text-xs text-theme-foreground-muted uppercase tracking-wider">Total Applications</div>
+        </div>
+        <div className="bg-theme-card border border-theme-border p-4">
+          <div className="text-2xl font-bold text-yellow-400">{stats.pending}</div>
+          <div className="text-xs text-theme-foreground-muted uppercase tracking-wider">Pending Review</div>
+        </div>
+        <div className="bg-theme-card border border-theme-border p-4">
+          <div className="text-2xl font-bold text-green-400">{stats.priorityA}</div>
+          <div className="text-xs text-theme-foreground-muted uppercase tracking-wider">Priority A</div>
+        </div>
+        <div className="bg-theme-card border border-theme-border p-4">
+          <div className="text-2xl font-bold text-theme-primary">{stats.avgScore}</div>
+          <div className="text-xs text-theme-foreground-muted uppercase tracking-wider">Avg Score</div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4">
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-3 py-2 bg-theme-input border border-theme-border text-theme-foreground text-sm focus:outline-none focus:border-theme-input-focus"
+        >
+          <option value="all">All Statuses</option>
+          <option value="PENDING">Pending</option>
+          <option value="CONTACTED">Contacted</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+        <select
+          value={tierFilter}
+          onChange={(e) => setTierFilter(e.target.value)}
+          className="px-3 py-2 bg-theme-input border border-theme-border text-theme-foreground text-sm focus:outline-none focus:border-theme-input-focus"
+        >
+          <option value="all">All Tiers</option>
+          <option value="PRIORITY_A">Priority A (80+)</option>
+          <option value="PRIORITY_B">Priority B (60-79)</option>
+          <option value="PRIORITY_C">Priority C (40-59)</option>
+          <option value="PRIORITY_D">Priority D (0-39)</option>
+        </select>
+      </div>
+
+      {/* Applications List */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
+        </div>
+      ) : applications.length > 0 ? (
+        <div className="space-y-3">
+          {applications.map((app: any) => (
+            <div
+              key={app.id}
+              className="bg-theme-card border border-theme-border overflow-hidden"
+            >
+              {/* Header Row */}
+              <div
+                className="flex items-center justify-between p-4 cursor-pointer hover:bg-theme-background-20 transition-colors"
+                onClick={() => setExpandedId(expandedId === app.id ? null : app.id)}
+              >
+                <div className="flex items-center gap-4">
+                  {/* Score Circle */}
+                  <div className="w-12 h-12 rounded-full bg-theme-background-30 border border-theme-border flex items-center justify-center">
+                    <span className="text-lg font-bold text-theme-foreground">{app.score || 0}</span>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-theme-foreground">{app.name}</span>
+                      {getTierBadge(app.tier)}
+                      {getStatusBadge(app.status)}
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-theme-foreground-muted mt-1">
+                      <span className="flex items-center gap-1">
+                        <Mail className="w-3 h-3" />
+                        {app.email}
+                      </span>
+                      {app.phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          {app.phone}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(app.submittedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Quick Actions */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="px-3 py-1.5 text-xs font-medium bg-theme-background-30 border border-theme-border text-theme-foreground-secondary hover:bg-theme-background-20 transition-colors"
+                      >
+                        Set Status
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'PENDING')}>
+                        <Clock className="w-4 h-4 mr-2 text-yellow-400" />
+                        Pending
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'CONTACTED')}>
+                        <MessageSquare className="w-4 h-4 mr-2 text-blue-400" />
+                        Contacted
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        setSelectedApplication(app);
+                        setShowApproveModal(true);
+                      }}>
+                        <FileSignature className="w-4 h-4 mr-2 text-green-400" />
+                        Approve & Send Agreement(s)
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'REJECTED')}>
+                        <XCircle className="w-4 h-4 mr-2 text-red-400" />
+                        Rejected
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {expandedId === app.id ? (
+                    <ChevronUp className="w-5 h-5 text-theme-foreground-muted" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-theme-foreground-muted" />
+                  )}
+                </div>
+              </div>
+
+              {/* Expanded Details */}
+              {expandedId === app.id && (
+                <div className="border-t border-theme-border p-4 bg-theme-background-20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Music Info */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Music Portfolio</h4>
+                      <div className="space-y-2">
+                        {app.primaryLink && (
+                          <a
+                            href={app.primaryLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm text-theme-primary hover:underline"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Primary Link
+                          </a>
+                        )}
+                        {app.otherLinks && (
+                          <div className="text-sm text-theme-foreground-secondary">
+                            <span className="text-theme-foreground-muted">Other Links:</span> {app.otherLinks}
+                          </div>
+                        )}
+                        {app.pro && (
+                          <div className="text-sm">
+                            <span className="text-theme-foreground-muted">PRO:</span>{' '}
+                            <span className="text-theme-foreground-secondary">{app.pro}</span>
+                          </div>
+                        )}
+                        {app.distributor && (
+                          <div className="text-sm">
+                            <span className="text-theme-foreground-muted">Distributor:</span>{' '}
+                            <span className="text-theme-foreground-secondary">{app.distributor}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Catalog Info */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Catalog Details</h4>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-theme-foreground-muted">Catalog Size:</span>{' '}
+                          <span className="text-theme-foreground-secondary">{app.catalogSize}</span>
+                        </div>
+                        <div>
+                          <span className="text-theme-foreground-muted">Placements:</span>{' '}
+                          <span className="text-theme-foreground-secondary">{app.placements}</span>
+                        </div>
+                        <div>
+                          <span className="text-theme-foreground-muted">Royalties:</span>{' '}
+                          <span className="text-theme-foreground-secondary">{app.royalties}</span>
+                        </div>
+                        <div>
+                          <span className="text-theme-foreground-muted">Engagement:</span>{' '}
+                          <span className="text-theme-foreground-secondary">{app.engagement}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Readiness & Needs */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Readiness</h4>
+                      {app.readiness && Array.isArray(app.readiness) && app.readiness.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {app.readiness.map((item: string, idx: number) => (
+                            <span key={idx} className="px-2 py-0.5 text-xs bg-theme-primary-15 text-theme-primary">
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-theme-foreground-muted">None specified</span>
+                      )}
+
+                      <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mt-4">Needs</h4>
+                      {app.needs && Array.isArray(app.needs) && app.needs.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {app.needs.map((item: string, idx: number) => (
+                            <span key={idx} className="px-2 py-0.5 text-xs bg-theme-background-30 text-theme-foreground-secondary">
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-theme-foreground-muted">None specified</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Notes Section */}
+                  {app.notes && (
+                    <div className="mt-4 pt-4 border-t border-theme-border">
+                      <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">Applicant Notes</h4>
+                      <p className="text-sm text-theme-foreground-secondary">{app.notes}</p>
+                    </div>
+                  )}
+
+                  {/* Internal Notes */}
+                  <div className="mt-4 pt-4 border-t border-theme-border">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">Internal Notes</h4>
+                      {editingNotes?.id !== app.id && (
+                        <button
+                          onClick={() => setEditingNotes({ id: app.id, notes: app.internalNotes || '' })}
+                          className="text-xs text-theme-primary hover:underline"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
+                    {editingNotes && editingNotes.id === app.id ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={editingNotes.notes}
+                          onChange={(e) => setEditingNotes({ id: editingNotes.id, notes: e.target.value })}
+                          className="w-full px-3 py-2 bg-theme-input border border-theme-border text-theme-foreground text-sm focus:outline-none focus:border-theme-input-focus resize-none"
+                          rows={3}
+                          placeholder="Add internal notes about this application..."
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleSaveNotes}
+                            disabled={updateMutation.isPending}
+                            className="px-3 py-1.5 text-xs font-medium bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover disabled:opacity-50 transition-colors"
+                          >
+                            {updateMutation.isPending ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            onClick={() => setEditingNotes(null)}
+                            className="px-3 py-1.5 text-xs font-medium bg-theme-background-30 text-theme-foreground-secondary hover:bg-theme-background-20 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-theme-foreground-secondary">
+                        {app.internalNotes || <span className="text-theme-foreground-muted italic">No internal notes</span>}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-12 text-theme-foreground-muted">
+          <ClipboardList className="w-12 h-12 mb-3 text-theme-primary/30" />
+          <p className="text-lg">No applications found</p>
+          <p className="text-sm">Applications will appear here when submitted</p>
+        </div>
+      )}
+
+      {/* Approve & Send Agreement(s) Modal - Two Step: Select Templates → Preview & Send */}
+      {showApproveModal && selectedApplication && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className={`bg-theme-card border border-theme-border mx-4 flex flex-col ${
+            modalStep === 'preview' ? 'w-full max-w-6xl h-[90vh]' : 'w-full max-w-lg'
+          }`}>
+            {/* Header */}
+            <div className="flex justify-between items-center p-4 border-b border-theme-border shrink-0">
+              <div>
+                <h3 className="text-lg font-medium text-theme-foreground">
+                  {modalStep === 'select' ? 'Approve & Send Agreement(s)' : 'Preview Agreement'}
+                </h3>
+                <div className="text-sm text-theme-foreground-muted mt-1">
+                  Sending to: <span className="font-medium text-theme-foreground">{selectedApplication.name}</span> ({selectedApplication.email})
+                </div>
+              </div>
+              <button
+                onClick={handleCloseModal}
+                className="p-2 text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-background-20 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Step 1: Template Selection */}
+            {modalStep === 'select' && (
+              <div className="p-6">
+                <h4 className="text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-3">
+                  Select Agreement Templates
+                </h4>
+                {templates.length > 0 ? (
+                  <div className="space-y-2 max-h-64 overflow-y-auto border border-theme-border mb-6">
+                    {templates.filter((t: any) => t.status !== 'archived').map((template: any) => (
+                      <label
+                        key={template.id}
+                        className="flex items-center gap-3 p-3 hover:bg-theme-background-20 cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedTemplates.includes(template.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedTemplates([...selectedTemplates, template.id]);
+                            } else {
+                              setSelectedTemplates(selectedTemplates.filter(id => id !== template.id));
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-theme-border text-theme-primary focus:ring-theme-primary"
+                        />
+                        <div>
+                          <span className="text-sm text-theme-foreground">{template.name}</span>
+                          {template.description && (
+                            <p className="text-xs text-theme-foreground-muted">{template.description}</p>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 border border-theme-border text-center text-theme-foreground-muted text-sm mb-6">
+                    No agreement templates available. Create templates in the Agreements tab first.
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={handleCloseModal}
+                    className="px-4 py-2 text-sm font-medium bg-theme-background-30 text-theme-foreground-secondary hover:bg-theme-background-20 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateForPreview}
+                    disabled={selectedTemplates.length === 0 || isCreating}
+                    className="px-4 py-2 text-sm font-medium bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  >
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-4 h-4" />
+                        Preview ({selectedTemplates.length})
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Preview & Send */}
+            {modalStep === 'preview' && (
+              <>
+                {/* Agreement tabs */}
+                {createdAgreements.length > 1 && (
+                  <div className="flex gap-2 px-4 pt-4 shrink-0 overflow-x-auto">
+                    {createdAgreements.map((agreement, index) => (
+                      <button
+                        key={agreement.id}
+                        onClick={() => handleLoadPreview(agreement.id)}
+                        className={`px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
+                          previewAgreementId === agreement.id
+                            ? 'bg-theme-primary text-theme-primary-foreground'
+                            : 'bg-theme-background-30 text-theme-foreground-secondary hover:bg-theme-background-20'
+                        }`}
+                      >
+                        Agreement {index + 1}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Preview Editor Container */}
+                <div
+                  ref={previewEditorRef}
+                  className="flex-1 w-full bg-gray-100 min-h-0 overflow-auto"
+                >
+                  {!previewJwt && (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="w-8 h-8 animate-spin text-theme-primary" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Actions */}
+                <div className="flex justify-between items-center p-4 border-t border-theme-border shrink-0 bg-theme-card">
+                  <button
+                    onClick={() => {
+                      setModalStep('select');
+                      setCreatedAgreements([]);
+                      setPreviewAgreementId(null);
+                      setPreviewJwt(null);
+                    }}
+                    className="px-4 py-2 text-sm font-medium bg-theme-background-30 text-theme-foreground-secondary hover:bg-theme-background-20 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-theme-foreground-muted">
+                      {createdAgreements.length} agreement{createdAgreements.length > 1 ? 's' : ''} ready to send
+                    </span>
+                    <button
+                      onClick={handleSendAll}
+                      disabled={isSending}
+                      className="px-4 py-2 text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    >
+                      {isSending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          Approve & Send All
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Agreements Section - E-signature management via Firma
+function AgreementsSection() {
+  const queryClient = useQueryClient();
+  const [activeView, setActiveView] = useState<'templates' | 'agreements'>('templates');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [templateEditorJwt, setTemplateEditorJwt] = useState<string | null>(null);
+  const [uploadForm, setUploadForm] = useState({ name: '', description: '', file: null as File | null });
+  const [sendForm, setSendForm] = useState({ templateId: '', recipientName: '', recipientEmail: '' });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const templateEditorRef = useRef<HTMLDivElement>(null);
+
+  // Fetch templates
+  const { data: templatesData, isLoading: templatesLoading } = useQuery({
+    queryKey: ['agreement-templates'],
+    queryFn: async () => {
+      const response = await agreementApi.listTemplates();
+      return response.data;
+    },
+  });
+
+  // Fetch agreements
+  const { data: agreementsData, isLoading: agreementsLoading } = useQuery({
+    queryKey: ['agreements'],
+    queryFn: async () => {
+      const response = await agreementApi.list();
+      return response.data;
+    },
+  });
+
+  // Create template mutation
+  const createTemplateMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await agreementApi.createTemplate(formData);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreement-templates'] });
+      setShowUploadModal(false);
+      setUploadForm({ name: '', description: '', file: null });
+      toast.success('Template created successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to create template');
+    },
+  });
+
+  // Send agreement mutation
+  const sendAgreementMutation = useMutation({
+    mutationFn: async (data: { templateId: string; recipientName: string; recipientEmail: string }) => {
+      const response = await agreementApi.create(data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      setShowSendModal(false);
+      setSendForm({ templateId: '', recipientName: '', recipientEmail: '' });
+      toast.success('Agreement sent successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to send agreement');
+    },
+  });
+
+  // Delete template mutation
+  const deleteTemplateMutation = useMutation({
+    mutationFn: (id: string) => agreementApi.deleteTemplate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreement-templates'] });
+      toast.success('Template archived');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to archive template');
+    },
+  });
+
+  // Cancel agreement mutation
+  const cancelAgreementMutation = useMutation({
+    mutationFn: (id: string) => agreementApi.cancel(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      toast.success('Agreement cancelled');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to cancel agreement');
+    },
+  });
+
+  // Resend agreement mutation
+  const resendAgreementMutation = useMutation({
+    mutationFn: (id: string) => agreementApi.send(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      toast.success('Agreement resent');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to resend agreement');
+    },
+  });
+
+  const handleUploadTemplate = () => {
+    if (!uploadForm.name || !uploadForm.file) {
+      toast.error('Name and PDF file are required');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('name', uploadForm.name);
+    formData.append('description', uploadForm.description);
+    formData.append('pdf', uploadForm.file);
+    createTemplateMutation.mutate(formData);
+  };
+
+  const handleSendAgreement = () => {
+    if (!sendForm.templateId || !sendForm.recipientName || !sendForm.recipientEmail) {
+      toast.error('All fields are required');
+      return;
+    }
+    sendAgreementMutation.mutate(sendForm);
+  };
+
+  // Open Firma template editor to configure signature fields
+  const handleConfigureTemplate = async (templateId: string, firmaTemplateId: string) => {
+    try {
+      const response = await agreementApi.getTemplateEditorToken(templateId);
+      setEditingTemplateId(firmaTemplateId);
+      setTemplateEditorJwt(response.data.jwt);
+      setShowTemplateEditor(true);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to open template editor');
+    }
+  };
+
+  // Initialize Firma template editor when modal opens
+  useEffect(() => {
+    if (showTemplateEditor && templateEditorJwt && editingTemplateId && templateEditorRef.current) {
+      // Load Firma's template editor script dynamically
+      const script = document.createElement('script');
+      script.src = 'https://api.firma.dev/functions/v1/embed-proxy/template-editor.js';
+      script.async = true;
+      script.onload = () => {
+        // @ts-ignore - FirmaTemplateEditor is loaded from external script
+        if (window.FirmaTemplateEditor) {
+          // @ts-ignore
+          new window.FirmaTemplateEditor({
+            container: templateEditorRef.current,
+            jwt: templateEditorJwt,
+            templateId: editingTemplateId,
+            onSave: () => {
+              toast.success('Template saved!');
+            },
+            onError: (error: any) => {
+              console.error('Template editor error:', error);
+              toast.error('Template editor error');
+            },
+          });
+        }
+      };
+      document.body.appendChild(script);
+
+      return () => {
+        // Cleanup script when modal closes
+        document.body.removeChild(script);
+      };
+    }
+  }, [showTemplateEditor, templateEditorJwt, editingTemplateId]);
+
+  const handleDownload = async (agreementId: string) => {
+    try {
+      const response = await agreementApi.download(agreementId);
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'signed-agreement.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to download agreement');
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusStyles: Record<string, string> = {
+      PENDING: 'bg-gray-100 text-gray-700',
+      SENT: 'bg-blue-100 text-blue-700',
+      VIEWED: 'bg-yellow-100 text-yellow-700',
+      SIGNED: 'bg-green-100 text-green-700',
+      COMPLETED: 'bg-emerald-100 text-emerald-700',
+      CANCELLED: 'bg-red-100 text-red-700',
+      EXPIRED: 'bg-orange-100 text-orange-700',
+    };
+    return (
+      <span className={`px-2 py-1 text-xs font-medium rounded ${statusStyles[status] || 'bg-gray-100 text-gray-700'}`}>
+        {status}
+      </span>
+    );
+  };
+
+  const templates = templatesData || [];
+  const agreements = agreementsData?.agreements || [];
+
+  return (
+    <div className="space-y-6">
+      {/* Sub-navigation */}
+      <div className="flex gap-4 border-b border-theme-border pb-4">
+        <button
+          onClick={() => setActiveView('templates')}
+          className={`px-4 py-2 text-sm font-medium transition-all ${
+            activeView === 'templates'
+              ? 'text-theme-primary border-b-2 border-theme-primary'
+              : 'text-theme-foreground-muted hover:text-theme-foreground'
+          }`}
+        >
+          Templates
+        </button>
+        <button
+          onClick={() => setActiveView('agreements')}
+          className={`px-4 py-2 text-sm font-medium transition-all ${
+            activeView === 'agreements'
+              ? 'text-theme-primary border-b-2 border-theme-primary'
+              : 'text-theme-foreground-muted hover:text-theme-foreground'
+          }`}
+        >
+          Sent Agreements
+        </button>
+      </div>
+
+      {activeView === 'templates' ? (
+        <div className="space-y-4">
+          {/* Header with Upload Button */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-theme-foreground">Agreement Templates</h3>
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              Upload Template
+            </button>
+          </div>
+
+          {/* Templates List */}
+          {templatesLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-theme-primary" />
+            </div>
+          ) : templates.length > 0 ? (
+            <div className="grid gap-4">
+              {templates.map((template: any) => (
+                <div
+                  key={template.id}
+                  className="p-4 bg-theme-card border border-theme-border hover:border-theme-border-strong transition-colors"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium text-theme-foreground">{template.name}</h4>
+                      {template.description && (
+                        <p className="text-sm text-theme-foreground-muted mt-1">{template.description}</p>
+                      )}
+                      <p className="text-xs text-theme-foreground-muted mt-2">
+                        Created: {new Date(template.createdAt).toLocaleDateString()}
+                        {template._count?.agreements > 0 && ` • ${template._count.agreements} agreements sent`}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleConfigureTemplate(template.id, template.firmaTemplateId)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-theme-background-30 text-theme-foreground-secondary hover:bg-theme-background-20 transition-colors"
+                        title="Configure signature fields on the PDF"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        Configure Fields
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSendForm({ ...sendForm, templateId: template.id });
+                          setShowSendModal(true);
+                        }}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover transition-colors"
+                      >
+                        <Send className="w-3 h-3" />
+                        Send
+                      </button>
+                      <button
+                        onClick={() => deleteTemplateMutation.mutate(template.id)}
+                        className="p-1.5 text-red-500 hover:bg-red-50 transition-colors"
+                        title="Archive template"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-theme-foreground-muted">
+              <FileSignature className="w-12 h-12 mb-3 text-theme-primary/30" />
+              <p className="text-lg">No templates yet</p>
+              <p className="text-sm">Upload a PDF to create your first agreement template</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Agreements List */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-theme-foreground">Sent Agreements</h3>
+            <button
+              onClick={() => setShowSendModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover transition-colors"
+            >
+              <Send className="w-4 h-4" />
+              Send New Agreement
+            </button>
+          </div>
+
+          {agreementsLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-theme-primary" />
+            </div>
+          ) : agreements.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-theme-border">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-theme-foreground-muted">Recipient</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-theme-foreground-muted">Template</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-theme-foreground-muted">Status</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-theme-foreground-muted">Sent</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-theme-foreground-muted">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agreements.map((agreement: any) => (
+                    <tr key={agreement.id} className="border-b border-theme-border hover:bg-theme-background-50">
+                      <td className="py-3 px-4">
+                        <div>
+                          <p className="font-medium text-theme-foreground">{agreement.recipientName}</p>
+                          <p className="text-sm text-theme-foreground-muted">{agreement.recipientEmail}</p>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-theme-foreground">{agreement.template?.name || 'Unknown'}</td>
+                      <td className="py-3 px-4">{getStatusBadge(agreement.status)}</td>
+                      <td className="py-3 px-4 text-sm text-theme-foreground-muted">
+                        {agreement.sentAt ? new Date(agreement.sentAt).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex justify-end gap-2">
+                          {(agreement.status === 'COMPLETED' || agreement.status === 'SIGNED') && (
+                            <button
+                              onClick={() => handleDownload(agreement.id)}
+                              className="p-1.5 text-theme-primary hover:bg-theme-primary/10 transition-colors"
+                              title="Download signed document"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          )}
+                          {(agreement.status === 'PENDING' || agreement.status === 'SENT') && (
+                            <>
+                              <button
+                                onClick={() => resendAgreementMutation.mutate(agreement.id)}
+                                className="p-1.5 text-blue-500 hover:bg-blue-50 transition-colors"
+                                title="Resend"
+                              >
+                                <Send className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => cancelAgreementMutation.mutate(agreement.id)}
+                                className="p-1.5 text-red-500 hover:bg-red-50 transition-colors"
+                                title="Cancel"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-theme-foreground-muted">
+              <FileSignature className="w-12 h-12 mb-3 text-theme-primary/30" />
+              <p className="text-lg">No agreements sent</p>
+              <p className="text-sm">Send your first agreement to get started</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Upload Template Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-theme-card border border-theme-border p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-theme-foreground mb-4">Upload Agreement Template</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-foreground-secondary mb-1">
+                  Template Name *
+                </label>
+                <input
+                  type="text"
+                  value={uploadForm.name}
+                  onChange={(e) => setUploadForm({ ...uploadForm, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
+                  placeholder="e.g., Publishing Admin Agreement"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-theme-foreground-secondary mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={uploadForm.description}
+                  onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus resize-none"
+                  rows={2}
+                  placeholder="Optional description..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-theme-foreground-secondary mb-1">
+                  PDF File *
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setUploadForm({ ...uploadForm, file: e.target.files?.[0] || null })}
+                  className="w-full text-sm text-theme-foreground file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-medium file:bg-theme-primary file:text-theme-primary-foreground hover:file:bg-theme-primary-hover"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleUploadTemplate}
+                disabled={createTemplateMutation.isPending}
+                className="flex-1 px-4 py-2 bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover disabled:opacity-50 transition-colors"
+              >
+                {createTemplateMutation.isPending ? 'Uploading...' : 'Upload Template'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setUploadForm({ name: '', description: '', file: null });
+                }}
+                className="px-4 py-2 border border-theme-border text-theme-foreground hover:bg-theme-background-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Agreement Modal */}
+      {showSendModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-theme-card border border-theme-border p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-theme-foreground mb-4">Send Agreement</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-theme-foreground-secondary mb-1">
+                  Template *
+                </label>
+                <select
+                  value={sendForm.templateId}
+                  onChange={(e) => setSendForm({ ...sendForm, templateId: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
+                >
+                  <option value="">Select a template...</option>
+                  {templates.map((template: any) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-theme-foreground-secondary mb-1">
+                  Recipient Name *
+                </label>
+                <input
+                  type="text"
+                  value={sendForm.recipientName}
+                  onChange={(e) => setSendForm({ ...sendForm, recipientName: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
+                  placeholder="Full name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-theme-foreground-secondary mb-1">
+                  Recipient Email *
+                </label>
+                <input
+                  type="email"
+                  value={sendForm.recipientEmail}
+                  onChange={(e) => setSendForm({ ...sendForm, recipientEmail: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus"
+                  placeholder="email@example.com"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleSendAgreement}
+                disabled={sendAgreementMutation.isPending}
+                className="flex-1 px-4 py-2 bg-theme-primary text-theme-primary-foreground hover:bg-theme-primary-hover disabled:opacity-50 transition-colors"
+              >
+                {sendAgreementMutation.isPending ? 'Sending...' : 'Send Agreement'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowSendModal(false);
+                  setSendForm({ templateId: '', recipientName: '', recipientEmail: '' });
+                }}
+                className="px-4 py-2 border border-theme-border text-theme-foreground hover:bg-theme-background-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template Editor Modal - Firma's embeddable editor for configuring signature fields */}
+      {showTemplateEditor && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-theme-card border border-theme-border w-full max-w-6xl h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="flex justify-between items-center p-4 border-b border-theme-border">
+              <div>
+                <h3 className="text-lg font-medium text-theme-foreground">Configure Signature Fields</h3>
+                <p className="text-sm text-theme-foreground-muted mt-1">
+                  Drag and drop signature fields onto the document. Don't forget to save when done.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowTemplateEditor(false);
+                  setEditingTemplateId(null);
+                  setTemplateEditorJwt(null);
+                }}
+                className="p-2 text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-background-20 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Editor Container */}
+            <div
+              ref={templateEditorRef}
+              className="flex-1 w-full bg-gray-100"
+              style={{ minHeight: '500px' }}
+            >
+              {/* Firma's template editor will be mounted here */}
+              {!templateEditorJwt && (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="w-8 h-8 animate-spin text-theme-primary" />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Users List Section - extracted from original UsersTab
+function UsersListSection() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { startImpersonation } = useAuthStore();
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [newUser, setNewUser] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    role: 'WRITER',
+    writerIpiNumber: '',
+    publisherName: '',
+    publisherIpiNumber: '',
+    subPublisherName: '',
+    subPublisherIpiNumber: '',
+    proAffiliation: 'BMI',
+    commissionOverrideRate: '',
+    canUploadStatements: false,
+  });
+
+  const { data: usersData, isLoading } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: async () => {
+      const response = await userApi.list();
+      return response.data;
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => userApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setShowAddModal(false);
+      setNewUser({ email: '', password: '', firstName: '', middleName: '', lastName: '', role: 'WRITER', writerIpiNumber: '', publisherName: '', publisherIpiNumber: '', subPublisherName: '', subPublisherIpiNumber: '', proAffiliation: 'BMI', commissionOverrideRate: '', canUploadStatements: false });
+      toast.success('User created successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to create user');
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => userApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setEditingUser(null);
+      toast.success('User updated successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to update user');
+    },
+  });
+
+  const userDeleteMutation = useMutation({
+    mutationFn: (userId: string) => userApi.delete(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success('User deleted');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to delete user');
+    },
+  });
+
+  const handleAddUser = () => {
+    if (!newUser.email || !newUser.password) {
+      toast.error('Email and password are required');
+      return;
+    }
+    // Prepare payload with optional commission override
+    const payload: any = { ...newUser };
+    if (payload.commissionOverrideRate === '') delete payload.commissionOverrideRate;
+    else payload.commissionOverrideRate = parseFloat(payload.commissionOverrideRate);
+    createMutation.mutate(payload);
+  };
+
+  const handleUpdateUser = () => {
+    if (!editingUser.email) {
+      toast.error('Email is required');
+      return;
+    }
+    const { id, ...data } = editingUser;
+    // Only include password if it was changed
+    if (!data.password) {
+      delete data.password;
+    }
+    // Normalize commission override rate
+    if (data.commissionOverrideRate === '') {
+      data.commissionOverrideRate = null;
+    } else if (data.commissionOverrideRate !== undefined) {
+      data.commissionOverrideRate = parseFloat(data.commissionOverrideRate);
+    }
+    // Flatten producer.proAffiliation into top-level update payload
+    if (data.producer && data.producer.proAffiliation !== undefined) {
+      data.proAffiliation = data.producer.proAffiliation;
+      delete data.producer;
+    }
+    updateMutation.mutate({ id, data });
+  };
+
+  const handleViewAs = async (user: any) => {
+    try {
+      const response = await authApi.impersonate(user.id);
+      const { token, user: impersonatedUser } = response.data;
+      startImpersonation(impersonatedUser, token);
+      toast.success(`Viewing as ${impersonatedUser.firstName} ${impersonatedUser.lastName}`);
+      // Redirect to dashboard
+      navigate('/dashboard');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to impersonate user');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div className="text-theme-foreground-muted text-sm">
+          {usersData?.users?.length || 0} users total
+        </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="px-4 py-2.5 bg-theme-primary text-theme-primary-foreground font-medium hover:bg-theme-primary-hover transition-colors"
+        >
+          + Add User
+        </button>
+      </div>
+
+      {/* Users Table */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="w-8 h-8 border-2 border-theme-primary-20 border-t-theme-primary rounded-full animate-spin" />
+        </div>
+      ) : usersData?.users?.length > 0 ? (
+        <div className="relative overflow-hidden bg-theme-card border border-theme-border">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+          <table className="w-full">
+            <thead className="bg-theme-background-30">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
+                  User
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
+                  Role
+                </th>
+                <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
+                  IPI Numbers
+                </th>
+                <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
+                  PRO
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-theme-foreground-muted uppercase tracking-wider">
+                  Commission
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-theme-foreground-muted uppercase tracking-wider w-16">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-theme-border/50">
+              {usersData.users.map((user: any) => (
+                <tr key={user.id} className="hover:bg-theme-background-20 transition-colors group">
+                  {/* User: Name + Email stacked */}
+                  <td className="px-4 py-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-theme-foreground truncate">
+                        {user.firstName || user.middleName || user.lastName
+                          ? `${user.firstName || ''} ${user.middleName || ''} ${user.lastName || ''}`.trim().replace(/\s+/g, ' ')
+                          : '-'}
+                      </div>
+                      <div className="text-xs text-theme-foreground-muted truncate">{user.email}</div>
+                    </div>
+                  </td>
+                  {/* Role badge */}
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded ${
+                      user.role === 'ADMIN'
+                        ? 'bg-red-500/20 text-red-400'
+                        : user.role === 'CUSTOMER'
+                        ? 'bg-theme-background-30 text-theme-foreground-secondary'
+                        : 'bg-theme-primary-15 text-theme-primary'
+                    }`}>
+                      {user.role}
+                    </span>
+                  </td>
+                  {/* IPI Numbers: Writer + Publisher stacked */}
+                  <td className="hidden md:table-cell px-4 py-3">
+                    {user.role === 'CUSTOMER' ? (
+                      <span className="text-sm text-theme-foreground-muted">-</span>
+                    ) : (
+                      <div className="text-xs space-y-0.5">
+                        <div className="text-theme-foreground-secondary">
+                          <span className="text-theme-foreground-muted">W:</span> {formatIpiDisplay(user.writerIpiNumber)}
+                        </div>
+                        <div className="text-theme-foreground-secondary">
+                          <span className="text-theme-foreground-muted">P:</span> {formatIpiDisplay(user.publisherIpiNumber)}
+                        </div>
+                      </div>
+                    )}
+                  </td>
+                  {/* PRO affiliation */}
+                  <td className="hidden lg:table-cell px-4 py-3">
+                    <div className="text-sm text-theme-foreground-secondary">
+                      {user.role === 'CUSTOMER' ? '-' : (user.producer?.proAffiliation || '-')}
+                    </div>
+                  </td>
+                  {/* Commission rate */}
+                  <td className="px-4 py-3">
+                    <div className="text-sm text-theme-foreground-secondary">
+                      {user.role === 'CUSTOMER' ? '-' : (user.commissionOverrideRate != null ? `${Number(user.commissionOverrideRate).toFixed(2)}%` : 'Default')}
+                    </div>
+                  </td>
+                  {/* Actions dropdown */}
+                  <td className="px-4 py-3 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1.5 rounded-lg text-theme-foreground-muted hover:text-theme-foreground hover:bg-theme-background-30 transition-colors focus:outline-none focus:ring-2 focus:ring-theme-primary/50">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem onClick={() => handleViewAs(user)}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          View As
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEditingUser({ ...user, password: '' })}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        {user.role !== 'ADMIN' && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem
+                                  className="text-red-400 focus:text-red-400 focus:bg-red-500/10"
+                                  onSelect={(e) => e.preventDefault()}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete {user.email}? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => userDeleteMutation.mutate(user.id)}
+                                    className="bg-red-500 hover:bg-red-600"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-8 text-theme-foreground-muted">
+          <Users className="w-8 h-8 mb-2 text-theme-primary/50" />
+          <p>No users found</p>
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="relative overflow-hidden bg-theme-card border border-theme-border-strong p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+            <h3 className="text-xl font-light text-white mb-4">Add New User</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+                  placeholder="user@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                  Password *
+                </label>
+                <input
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                  Role *
+                </label>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white focus:outline-none focus:border-theme-input-focus"
+                >
+                  <option value="WRITER">Writer</option>
+                  <option value="CUSTOMER">Customer</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="LEGAL">Legal</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="PUBLISHER">Publisher</option>
+                  <option value="STAFF">Staff</option>
+                  <option value="VIEWER">Viewer</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  value={newUser.firstName}
+                  onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                  Middle Name
+                </label>
+                <input
+                  type="text"
+                  value={newUser.middleName}
+                  onChange={(e) => setNewUser({ ...newUser, middleName: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+                  placeholder="Optional"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  value={newUser.lastName}
+                  onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+                />
+              </div>
+
+              {/* Writer and Publisher specific fields */}
+              {(newUser.role === 'WRITER' || newUser.role === 'PUBLISHER') && (
+                <>
+                  {newUser.role === 'WRITER' && (
+                    <div>
+                      <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                        Writer IPI Number
+                      </label>
+                      <input
+                        type="text"
+                        value={newUser.writerIpiNumber}
+                        onChange={(e) => setNewUser({ ...newUser, writerIpiNumber: e.target.value })}
+                        className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+                        placeholder="Writer IPI/CAE Number"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                      Publisher Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.publisherName}
+                      onChange={(e) => setNewUser({ ...newUser, publisherName: e.target.value })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+                      placeholder="Publisher Name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                      Publisher IPI Number
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.publisherIpiNumber}
+                      onChange={(e) => setNewUser({ ...newUser, publisherIpiNumber: e.target.value })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+                      placeholder="Publisher IPI/CAE Number"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                      Sub Publisher Name / Administrator
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.subPublisherName}
+                      onChange={(e) => setNewUser({ ...newUser, subPublisherName: e.target.value })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+                      placeholder="Sub Publisher Name / Administrator"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                      Sub Publisher IPI Number
+                    </label>
+                    <input
+                      type="text"
+                      value={newUser.subPublisherIpiNumber}
+                      onChange={(e) => setNewUser({ ...newUser, subPublisherIpiNumber: e.target.value })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+                      placeholder="Sub Publisher IPI Number"
+                    />
+                  </div>
+                  {newUser.role === 'WRITER' && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                          PRO Affiliation
+                        </label>
+                        <select
+                          value={newUser.proAffiliation}
+                          onChange={(e) => setNewUser({ ...newUser, proAffiliation: e.target.value })}
+                          className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white focus:outline-none focus:border-theme-input-focus"
+                        >
+                          <option value="BMI">BMI</option>
+                          <option value="ASCAP">ASCAP</option>
+                          <option value="SESAC">SESAC</option>
+                          <option value="GMR">GMR</option>
+                          <option value="OTHER">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                          Commission Override (%)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.01}
+                          value={newUser.commissionOverrideRate}
+                          onChange={(e) => setNewUser({ ...newUser, commissionOverrideRate: e.target.value })}
+                          className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-white placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus"
+                          placeholder="Leave blank to use default"
+                        />
+                        <p className="text-xs text-theme-foreground-muted mt-1">If left blank, uses the global commission rate.</p>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Viewer-specific fields */}
+              {newUser.role === 'VIEWER' && (
+                <div className="flex items-center gap-2 p-3 bg-theme-background-30 border border-theme-border-strong">
+                  <input
+                    type="checkbox"
+                    id="canUploadStatements"
+                    checked={newUser.canUploadStatements}
+                    onChange={(e) => setNewUser({ ...newUser, canUploadStatements: e.target.checked })}
+                    className="w-4 h-4 bg-theme-input border-theme-border-strong accent-theme-primary"
+                  />
+                  <label htmlFor="canUploadStatements" className="text-sm text-theme-foreground-secondary">
+                    Allow statement uploads
+                  </label>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleAddUser}
+                disabled={createMutation.isPending}
+                className="flex-1 px-4 py-2.5 bg-theme-primary text-theme-primary-foreground font-medium hover:bg-theme-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {createMutation.isPending ? 'Creating...' : 'Create User'}
+              </button>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="flex-1 px-4 py-2.5 bg-white/5 text-theme-foreground-secondary border border-theme-border-strong font-medium hover:bg-white/10 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="relative overflow-hidden bg-theme-card border border-theme-border-strong p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-theme-primary via-theme-primary-50 to-transparent" />
+            <h3 className="text-xl font-light text-theme-foreground mb-4">Edit User</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                  New Password (leave blank to keep current)
+                </label>
+                <input
+                  type="password"
+                  value={editingUser.password || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                  placeholder="Leave blank to keep current password"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                  Role *
+                </label>
+                <select
+                  value={editingUser.role}
+                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus transition-colors"
+                >
+                  <option value="WRITER">Writer</option>
+                  <option value="CUSTOMER">Customer</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="LEGAL">Legal</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="PUBLISHER">Publisher</option>
+                  <option value="STAFF">Staff</option>
+                  <option value="VIEWER">Viewer</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  value={editingUser.firstName || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                  Middle Name
+                </label>
+                <input
+                  type="text"
+                  value={editingUser.middleName || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, middleName: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                  placeholder="Optional"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  value={editingUser.lastName || ''}
+                  onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
+                  className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                />
+              </div>
+
+              {/* Writer and Publisher specific fields */}
+              {(editingUser.role === 'WRITER' || editingUser.role === 'PUBLISHER') && (
+                <>
+                  {editingUser.role === 'WRITER' && (
+                    <div>
+                      <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                        Writer IPI Number
+                      </label>
+                      <input
+                        type="text"
+                        value={editingUser.writerIpiNumber || ''}
+                        onChange={(e) => setEditingUser({ ...editingUser, writerIpiNumber: e.target.value })}
+                        className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                        placeholder="Writer IPI/CAE Number"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                      Publisher Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUser.publisherName || ''}
+                      onChange={(e) => setEditingUser({ ...editingUser, publisherName: e.target.value })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                      placeholder="Publisher Name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                      Publisher IPI Number
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUser.publisherIpiNumber || ''}
+                      onChange={(e) => setEditingUser({ ...editingUser, publisherIpiNumber: e.target.value })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                      placeholder="Publisher IPI/CAE Number"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                      Sub Publisher Name / Administrator
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUser.subPublisherName || ''}
+                      onChange={(e) => setEditingUser({ ...editingUser, subPublisherName: e.target.value })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                      placeholder="Sub Publisher Name / Administrator"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                      Sub Publisher IPI Number
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUser.subPublisherIpiNumber || ''}
+                      onChange={(e) => setEditingUser({ ...editingUser, subPublisherIpiNumber: e.target.value })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                      placeholder="Sub Publisher IPI Number"
+                    />
+                  </div>
+                  {editingUser.role === 'WRITER' && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                          PRO Affiliation
+                        </label>
+                        <select
+                          value={editingUser.producer?.proAffiliation || 'OTHER'}
+                          onChange={(e) => setEditingUser({ ...editingUser, producer: { ...(editingUser.producer || {}), proAffiliation: e.target.value } })}
+                          className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground focus:outline-none focus:border-theme-input-focus transition-colors"
+                        >
+                          <option value="BMI">BMI</option>
+                          <option value="ASCAP">ASCAP</option>
+                          <option value="SESAC">SESAC</option>
+                          <option value="GMR">GMR</option>
+                          <option value="OTHER">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-theme-foreground-muted uppercase tracking-wider mb-2">
+                          Commission Override (%)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.01}
+                          value={editingUser.commissionOverrideRate ?? ''}
+                          onChange={(e) => setEditingUser({ ...editingUser, commissionOverrideRate: e.target.value })}
+                          className="w-full px-3 py-2 bg-theme-input border border-theme-border-strong text-theme-foreground placeholder-theme-foreground-muted focus:outline-none focus:border-theme-input-focus transition-colors"
+                          placeholder="Leave blank to use default"
+                        />
+                        <p className="text-xs text-theme-foreground-muted mt-1">Writer sees net = writer split minus commission. Blank uses global rate.</p>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Viewer-specific fields */}
+              {editingUser.role === 'VIEWER' && (
+                <div className="flex items-center gap-2 p-3 bg-theme-background-30 border border-theme-border-strong">
+                  <input
+                    type="checkbox"
+                    id="editCanUploadStatements"
+                    checked={editingUser.canUploadStatements || false}
+                    onChange={(e) => setEditingUser({ ...editingUser, canUploadStatements: e.target.checked })}
+                    className="w-4 h-4 accent-theme-primary bg-theme-input border-theme-border-strong focus:ring-theme-input-focus focus:ring-2"
+                  />
+                  <label htmlFor="editCanUploadStatements" className="text-sm text-theme-foreground-secondary">
+                    Allow statement uploads
+                  </label>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleUpdateUser}
+                disabled={updateMutation.isPending}
+                className="flex-1 px-4 py-2.5 bg-theme-primary text-theme-primary-foreground font-medium hover:bg-theme-primary-hover disabled:bg-white/10 disabled:text-theme-foreground-muted transition-colors"
+              >
+                {updateMutation.isPending ? 'Updating...' : 'Update User'}
+              </button>
+              <button
+                onClick={() => setEditingUser(null)}
+                className="flex-1 px-4 py-2.5 bg-white/5 text-theme-foreground-secondary border border-theme-border-strong font-medium hover:bg-white/10 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Legacy AnalyticsTab - kept for reference, now using AnalyticsTabTremor
+// @ts-expect-error Unused legacy component kept for reference
+function _AnalyticsTab() {
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: async () => {
+      const response = await dashboardApi.getStats();
+      return response.data;
+    },
+  });
+
+  const { data: platformData, isLoading: platformLoading } = useQuery({
+    queryKey: ['platform-breakdown'],
+    queryFn: async () => {
+      const response = await dashboardApi.getPlatformBreakdown();
+      return response.data;
+    },
+  });
+
+  const { data: organizationData, isLoading: organizationLoading } = useQuery({
+    queryKey: ['organization-breakdown'],
+    queryFn: async () => {
+      const response = await dashboardApi.getOrganizationBreakdown();
+      return response.data;
+    },
+  });
+
+  const { data: territoryData, isLoading: territoryLoading } = useQuery({
+    queryKey: ['territory-breakdown'],
+    queryFn: async () => {
+      const response = await dashboardApi.getTerritoryBreakdown();
+      return response.data;
+    },
+  });
+
+  const [expandedCharts, setExpandedCharts] = useState<Record<string, boolean>>({});
+
+  const toggleChartExpansion = (chartId: string) => {
+    setExpandedCharts(prev => ({
+      ...prev,
+      [chartId]: !prev[chartId]
+    }));
+  };
+
+  const COLORS = [
+    '#3b82f6', // Blue
+    '#10b981', // Green
+    '#8b5cf6', // Purple
+    '#f59e0b', // Amber
+    '#ef4444', // Red
+    '#ec4899', // Pink
+    '#f97316', // Orange
+    '#06b6d4', // Cyan
+    '#84cc16', // Lime
+    '#a855f7', // Violet
+    '#f43f5e', // Rose
+    '#14b8a6', // Teal
+  ];
+
+  // Smart pie chart label configuration based on item count
+  const getSmartPieLabel = (itemCount: number) => {
+    if (itemCount <= 3) {
+      // 1-3 items: Full labels with name, amount, and percentage
+      return (props: any) => {
+        const { name, percent, value, revenue } = props;
+        const amount = Number(revenue || value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        return `${name} - $${amount} (${(percent * 100).toFixed(0)}%)`;
+      };
+    } else if (itemCount <= 6) {
+      // 4-6 items: Compact labels (percentage only)
+      return (props: any) => {
+        const { name, percent } = props;
+        return `${name} ${(percent * 100).toFixed(0)}%`;
+      };
+    } else {
+      // 7+ items: No labels (legend only to avoid overlap)
+      return false;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h3 className="text-lg font-medium text-white">Platform Analytics</h3>
+
+      {isLoading ? (
+        <div className="text-center text-theme-foreground-muted py-8">Loading...</div>
+      ) : (
+        <>
+          {/* Stats Cards - 5 across */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <StatCard
+              title="Total Writers"
+              value={stats?.totalWriters || 0}
+              icon={<Users className="w-6 h-6 text-blue-400" />}
+              color="blue"
+            />
+            <StatCard
+              title="Total Statements"
+              value={stats?.totalStatements || 0}
+              icon={<BarChart3 className="w-6 h-6 text-green-400" />}
+              color="green"
+            />
+            <StatCard
+              title="Processed Statements"
+              value={stats?.processedStatements || 0}
+              icon={<CheckCircle2 className="w-6 h-6 text-purple-400" />}
+              color="purple"
+            />
+            <StatCard
+              title="Unique Works"
+              value={stats?.uniqueWorks || 0}
+              icon={<Music className="w-6 h-6 text-orange-400" />}
+              color="orange"
+            />
+            <StatCard
+              title="Total Revenue"
+              value={`$${Number(stats?.totalRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+              icon={<DollarSign className="w-6 h-6 text-teal-400" />}
+              color="teal"
+            />
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Revenue Timeline Chart */}
+            {stats?.revenueTimeline && stats.revenueTimeline.length > 0 && (
+              <ChartCard
+                title="Revenue Over Time (12 Months)"
+                chartId="revenue-timeline"
+                isExpanded={expandedCharts['revenue-timeline'] || false}
+                onToggleExpand={toggleChartExpansion}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={stats.revenueTimeline}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                    <XAxis
+                      dataKey="month"
+                      stroke="#94a3b8"
+                      tick={{ fill: '#94a3b8' }}
+                    />
+                    <YAxis
+                      stroke="#94a3b8"
+                      tick={{ fill: '#94a3b8' }}
+                      tickFormatter={(value) => `$${value}`}
+                    />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                      labelStyle={{ color: '#f1f5f9' }}
+                      itemStyle={{ color: '#10b981' }}
+                      formatter={(value: any) => [formatChartCurrency(value), 'Revenue']}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={{ fill: '#10b981' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            )}
+
+            {/* PRO Breakdown Pie Chart */}
+            {stats?.proBreakdown && stats.proBreakdown.length > 0 && (
+              <ChartCard
+                title="Revenue by Statement"
+                chartId="revenue-by-pro"
+                isExpanded={expandedCharts['revenue-by-pro'] || false}
+                onToggleExpand={toggleChartExpansion}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.proBreakdown}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={getSmartPieLabel(stats.proBreakdown.length)}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="revenue"
+                      nameKey="proType"
+                    >
+                      {stats.proBreakdown.map((breakdown: any, index: number) => (
+                        <Cell
+                          key={`cell-${breakdown.proType ?? index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                      formatter={(value: any) => `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                    />
+                    {stats.proBreakdown.length > 6 && (
+                      <Legend
+                        verticalAlign="bottom"
+                        height={36}
+                        wrapperStyle={{ color: '#9ca3af', fontSize: '12px' }}
+                      />
+                    )}
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartCard>
+            )}
+          </div>
+
+          {/* PRO Breakdown Bar Chart */}
+          {stats?.proBreakdown && stats.proBreakdown.length > 0 && (
+            <ChartCard
+              title="PRO Statistics"
+              chartId="pro-statistics"
+              isExpanded={expandedCharts['pro-statistics'] || false}
+              onToggleExpand={toggleChartExpansion}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.proBreakdown}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis
+                    dataKey="proType"
+                    stroke="#94a3b8"
+                    tick={{ fill: '#94a3b8' }}
+                  />
+                  <YAxis
+                    stroke="#94a3b8"
+                    tick={{ fill: '#94a3b8' }}
+                    tickFormatter={(value) => `$${value}`}
+                  />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                    labelStyle={{ color: '#f1f5f9' }}
+                    formatter={(value: any, name: string) => {
+                      if (name === 'revenue') return [`$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 'Revenue'];
+                      return [value, 'Statements'];
+                    }}
+                  />
+                  <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                  <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
+                  <Bar dataKey="count" fill="#3b82f6" name="Statements" />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          )}
+
+          {/* Platform Breakdown (YouTube, Spotify, etc.) */}
+          {!platformLoading && platformData?.platforms && platformData.platforms.length > 0 && (
+            <div>
+              <h4 className="text-md font-medium text-white mb-3">Revenue by Platform (DSP)</h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Platform Pie Chart */}
+                <ChartCard
+                  title="Platform Distribution"
+                  chartId="platform-distribution"
+                  isExpanded={expandedCharts['platform-distribution'] || false}
+                  onToggleExpand={toggleChartExpansion}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={platformData.platforms}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={getSmartPieLabel(platformData.platforms.length)}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="revenue"
+                        nameKey="platform"
+                      >
+                        {platformData.platforms.map((p: any, index: number) => (
+                          <Cell
+                            key={`cell-${p.platform}-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                        formatter={(value: any) => `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                      />
+                      {platformData.platforms.length > 6 && (
+                        <Legend
+                          verticalAlign="bottom"
+                          height={36}
+                          wrapperStyle={{ color: '#9ca3af', fontSize: '12px' }}
+                        />
+                      )}
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+
+                {/* Platform Bar Chart */}
+                <ChartCard
+                  title="Platform Revenue"
+                  chartId="platform-revenue"
+                  isExpanded={expandedCharts['platform-revenue'] || false}
+                  onToggleExpand={toggleChartExpansion}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={platformData.platforms}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis
+                        dataKey="platform"
+                        stroke="#94a3b8"
+                        tick={{ fill: '#94a3b8', fontSize: 11 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                      />
+                      <YAxis
+                        stroke="#94a3b8"
+                        tick={{ fill: '#94a3b8' }}
+                        tickFormatter={(value) => `$${value}`}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                        labelStyle={{ color: '#f1f5f9' }}
+                        formatter={(value: any, name: string) => {
+                          if (name === 'revenue') return [`$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 'Revenue'];
+                          if (name === 'count') return [value, 'Items'];
+                          return [value, name];
+                        }}
+                      />
+                      <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                      <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
+                      <Bar dataKey="count" fill="#3b82f6" name="Items" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+
+              {/* Platform Details Table */}
+              <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h5 className="text-md font-medium text-white">Platform Details</h5>
+                  <span className="text-xs text-theme-foreground-muted">
+                    {platformData.platforms.length} platform{platformData.platforms.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="border-b-2 border-white/[0.12]">
+                      <tr>
+                        <th className="text-left text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Platform</th>
+                        <th className="text-left text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Service Type</th>
+                        <th className="text-right text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Items</th>
+                        <th className="text-right text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Gross Revenue</th>
+                        <th className="text-right text-xs font-semibold text-theme-foreground-muted uppercase tracking-wider py-3 px-2">Net Revenue</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {platformData.platforms.map((platform: any) => (
+                        <tr
+                          key={platform.platform}
+                          className="border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors"
+                        >
+                          <td className="py-3.5 px-2 text-white font-semibold">{platform.platform}</td>
+                          <td className="py-3.5 px-2 text-sm text-theme-foreground-muted">
+                            <span className="inline-flex flex-wrap gap-1">
+                              {platform.offerings.length > 0 ? (
+                                platform.offerings.map((offering: string, i: number) => (
+                                  <span key={i} className="px-2 py-0.5 bg-white/[0.08] rounded-lg text-xs">
+                                    {offering}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-theme-foreground-muted">-</span>
+                              )}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-2 text-right text-theme-foreground-muted font-medium">{platform.count.toLocaleString()}</td>
+                          <td className="py-3.5 px-2 text-right text-green-400 font-semibold">
+                            ${Number(platform.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-3.5 px-2 text-right text-green-300 font-medium">
+                            ${Number(platform.netRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t-2 border-white/[0.12] bg-white/[0.04]">
+                      <tr>
+                        <td className="py-3.5 px-2 text-white font-bold text-sm">TOTAL</td>
+                        <td className="py-3.5 px-2"></td>
+                        <td className="py-3.5 px-2 text-right text-white font-bold">{platformData.totalCount.toLocaleString()}</td>
+                        <td className="py-3.5 px-2 text-right text-green-400 font-bold">
+                          ${Number(platformData.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3.5 px-2 text-right text-green-300 font-bold">
+                          ${Number(platformData.totalNetRevenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Organization Breakdown (MLC, BMI, ASCAP, etc.) */}
+          {!organizationLoading && organizationData?.organizations && organizationData.organizations.length > 0 && (
+            <div>
+              <h4 className="text-md font-medium text-white mb-3">Revenue by Organization</h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Organization Pie Chart */}
+                <ChartCard
+                  title="Organization Distribution"
+                  chartId="organization-distribution"
+                  isExpanded={expandedCharts['organization-distribution'] || false}
+                  onToggleExpand={toggleChartExpansion}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={organizationData.organizations}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={getSmartPieLabel(organizationData.organizations.length)}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="revenue"
+                        nameKey="organization"
+                      >
+                        {organizationData.organizations.map((org: any, index: number) => (
+                          <Cell
+                            key={`cell-${org.organization}-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                        formatter={(value: any) => `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                      />
+                      {organizationData.organizations.length > 6 && (
+                        <Legend
+                          verticalAlign="bottom"
+                          height={36}
+                          wrapperStyle={{ color: '#9ca3af', fontSize: '12px' }}
+                        />
+                      )}
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+
+                {/* Organization Bar Chart */}
+                <ChartCard
+                  title="Organization Revenue"
+                  chartId="organization-revenue"
+                  isExpanded={expandedCharts['organization-revenue'] || false}
+                  onToggleExpand={toggleChartExpansion}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={organizationData.organizations}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                      <XAxis
+                        dataKey="organization"
+                        stroke="#94a3b8"
+                        tick={{ fill: '#94a3b8' }}
+                      />
+                      <YAxis
+                        stroke="#94a3b8"
+                        tick={{ fill: '#94a3b8' }}
+                        tickFormatter={(value) => `$${value}`}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                        labelStyle={{ color: '#f1f5f9' }}
+                        formatter={(value: any, name: string) => {
+                          if (name === 'revenue') return [`$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 'Revenue'];
+                          if (name === 'count') return [value, 'Statements'];
+                          return [value, name];
+                        }}
+                      />
+                      <Legend wrapperStyle={{ color: '#94a3b8' }} />
+                      <Bar dataKey="revenue" fill="#8b5cf6" name="Revenue" />
+                      <Bar dataKey="count" fill="#f59e0b" name="Statements" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+
+              {/* Organization Details Table */}
+              <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] p-6">
+                <h5 className="text-sm font-medium text-theme-foreground-muted mb-4">Organization Details</h5>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="border-b border-white/[0.12]">
+                      <tr>
+                        <th className="text-left text-xs font-medium text-theme-foreground-muted uppercase py-2">Organization</th>
+                        <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase py-2">Statements</th>
+                        <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase py-2">Revenue</th>
+                        <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase py-2">Net</th>
+                        <th className="text-right text-xs font-medium text-theme-foreground-muted uppercase py-2">Commission</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {organizationData.organizations.map((org: any) => (
+                        <tr key={org.organization} className="border-b border-white/[0.06]">
+                          <td className="py-3 text-white font-medium">{org.organization}</td>
+                          <td className="py-3 text-right text-theme-foreground-muted">{org.count}</td>
+                          <td className="py-3 text-right text-green-400 font-medium">
+                            ${Number(org.revenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-3 text-right text-green-300">
+                            ${Number(org.netRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-3 text-right text-blue-400">
+                            ${Number(org.commissionAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t border-white/[0.12]">
+                      <tr>
+                        <td className="py-3 text-white font-bold">Total</td>
+                        <td className="text-right text-white font-bold">{organizationData.totalCount}</td>
+                        <td className="text-right text-green-400 font-bold">
+                          ${Number(organizationData.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td></td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Territory Revenue Heatmap */}
+          <div>
+            <h4 className="text-md font-medium text-white mb-3">Revenue by Territory</h4>
+            <ChartCard
+              title="Global Revenue Heatmap"
+              chartId="territory-heatmap"
+              isExpanded={expandedCharts['territory-heatmap'] || false}
+              onToggleExpand={toggleChartExpansion}
+            >
+              {territoryLoading ? (
+                <div className="h-full flex items-center justify-center text-theme-foreground-muted">
+                  Loading territory data...
+                </div>
+              ) : territoryData?.territories && territoryData.territories.length > 0 ? (
+                <TerritoryHeatmap territories={territoryData.territories} />
+              ) : (
+                <div className="h-full flex items-center justify-center text-theme-foreground-muted">
+                  No territory data available yet. Territory information will appear once statements with location data are processed.
+                </div>
+              )}
+            </ChartCard>
+          </div>
+
+          {/* Recent Statements */}
+          {stats?.recentStatements?.length > 0 && (
+            <div>
+              <h4 className="text-md font-medium text-white mb-3">Recent Statements</h4>
+              <div className="space-y-2">
+                {stats.recentStatements.map((statement: any) => (
+                  <div
+                    key={statement.id}
+                    className="flex items-center justify-between p-3 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.06] transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        statement.proType === 'BMI' ? 'bg-blue-500/20 text-blue-400' :
+                        statement.proType === 'ASCAP' ? 'bg-green-500/20 text-green-400' :
+                        'bg-purple-500/20 text-purple-400'
+                      }`}>
+                        {statement.proType}
+                      </span>
+                      <span className="text-white text-sm">{statement.filename}</span>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        statement.status === 'PUBLISHED' ? 'bg-green-500/20 text-green-400' :
+                        statement.status === 'PROCESSED' ? 'bg-theme-warning-20 text-theme-warning' :
+                        'bg-blue-500/20 text-blue-400'
+                      }`}>
+                        {statement.status}
+                      </span>
+                    </div>
+                    <span className="text-green-400 text-sm font-medium">
+                      ${Number(statement.totalRevenue).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function StatCard({ title, value, icon, color, percentage, trend, gradient }: any) {
+  // Support both old color prop and new gradient prop
+  const colorClasses: Record<string, string> = {
+    blue: 'from-blue-500/20 to-blue-600/20 border-blue-500/30',
+    green: 'from-green-500/20 to-green-600/20 border-green-500/30',
+    purple: 'from-purple-500/20 to-purple-600/20 border-purple-500/30',
+    orange: 'from-orange-500/20 to-orange-600/20 border-orange-500/30',
+    teal: 'from-teal-500/20 to-teal-600/20 border-teal-500/30',
+  };
+
+  // New modern card design with gradient
+  if (gradient) {
+    return (
+      <div className="rounded-2xl bg-gradient-to-b from-white/[0.08] to-white/[0.02] border border-white/[0.08] backdrop-blur-sm p-6 hover:bg-white/[0.06] transition-colors">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-2xl shadow-lg`}>
+            {icon}
+          </div>
+          {percentage && (
+            <span className={`flex items-center gap-1 text-sm font-semibold ${
+              trend === 'up' ? 'text-green-400' : 'text-red-400'
+            }`}>
+              {trend === 'up' ? '↑' : '↓'} {percentage}
+            </span>
+          )}
+        </div>
+        <h3 className="text-sm font-medium text-theme-foreground-muted mb-2">{title}</h3>
+        <p className="text-3xl font-bold text-white">{value}</p>
+      </div>
+    );
+  }
+
+  // Legacy card design updated to premium style
+  return (
+    <div className={`rounded-2xl bg-gradient-to-br ${colorClasses[color]} border p-6 hover:bg-white/[0.02] transition-colors`}>
+      <div className="text-3xl mb-2">{icon}</div>
+      <h3 className="text-sm font-medium text-theme-foreground-muted mb-1">{title}</h3>
+      <p className="text-3xl font-bold text-white">{value}</p>
+    </div>
+  );
+}

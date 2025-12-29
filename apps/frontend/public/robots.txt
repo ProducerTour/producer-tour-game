@@ -1,0 +1,39 @@
+# Producer Tour - robots.txt
+# https://producertour.com
+
+User-agent: *
+Allow: /
+
+# Public pages
+Allow: /
+Allow: /pricing
+Allow: /shop
+Allow: /opportunities
+Allow: /apply
+Allow: /contact
+Allow: /tools/pub-deal-simulator
+Allow: /tools/consultation
+Allow: /tools/case-study
+Allow: /tools/opportunities
+Allow: /tools/advance-estimator
+Allow: /tools/metadata-index
+
+# Disallow private/admin areas
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /settings
+Disallow: /customer
+Disallow: /affiliates
+Disallow: /work-registration
+Disallow: /my-submissions
+Disallow: /tour-miles
+Disallow: /cart
+Disallow: /checkout
+
+# Disallow auth pages
+Disallow: /login
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# Sitemap
+Sitemap: https://producertour.com/sitemap.xml

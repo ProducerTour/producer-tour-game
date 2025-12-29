@@ -1,0 +1,514 @@
+import { useQuery } from '@tanstack/react-query';
+import { getAuthToken } from '../../lib/api';
+import {
+  TrendingUp,
+  Users,
+  Target,
+  Award,
+  Share2,
+  Gift,
+  Flame,
+  CheckCircle,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+  RefreshCw
+} from 'lucide-react';
+
+interface AnalyticsDashboard {
+  timestamp: string;
+  engagement: {
+    dau: { count: number; date: string };
+    dauTrend: { trend: Array<{ date: string; count: number }>; averageDAU: number };
+    participation: { totalUsers: number; participatingUsers: number; rate: number; target: number };
+    checkInRate: { totalUsers: number; checkIns: number; rate: number; target: number };
+    streaks: {
+      totalUsers: number;
+      streak7Plus: { count: number; rate: number; target: number };
+      streak30Plus: { count: number; rate: number };
+      streak100Plus: { count: number; rate: number };
+      averageStreak: number;
+      longestStreak: number;
+    };
+  };
+  growth: {
+    referrals: {
+      period: string;
+      totalNewUsers: number;
+      referralSignups: number;
+      referralConversions: number;
+      signupRate: number;
+      conversionRate: number;
+      targets: { signupGrowth: number; conversionRate: number };
+      topReferrers: Array<{ userId: string; name: string; referralCount: number; referralConversions: number }>;
+    };
+    socialShares: {
+      period: string;
+      totalUsers: number;
+      uniqueSharers: number;
+      shareRate: number;
+      target: number;
+      platformBreakdown: Record<string, number>;
+      totalShares: number;
+    };
+  };
+  platformHealth: {
+    workRegistration: { period: string; currentSubmissions: number; previousSubmissions: number; growth: number; target: number };
+    profileCompletion: { totalWriters: number; completeProfiles: number; partialProfiles: number; noProfile: number; completionRate: number; target: number };
+    stripeOnboarding: { totalWriters: number; stripeOnboarded: number; stripePending: number; noStripe: number; onboardingRate: number; target: number };
+    rewardRedemption: {
+      totalUsers: number;
+      usersWhoRedeemed: number;
+      redemptionRate: number;
+      target: number;
+      statusBreakdown: Record<string, number>;
+      popularRewards: Array<{ rewardId: string; name: string; redemptions: number }>;
+    };
+  };
+  gamification: {
+    tierDistribution: { total: number; tiers: Array<{ tier: string; count: number; percentage: number }> };
+    achievements: { totalUsers: number; achievements: Array<{ id: string; name: string; category: string; unlockCount: number; unlockRate: number }> };
+    pointEconomy: {
+      period: string;
+      pointsEarned: number;
+      pointsSpent: number;
+      earnToSpendRatio: number;
+      transactions: { earns: number; spends: number };
+      circulation: { totalInCirculation: number; totalEverEarned: number; totalEverSpent: number };
+      breakdown: Array<{ eventType: string; points: number; count: number }>;
+    };
+  };
+}
+
+const MetricCard = ({
+  title,
+  value,
+  target,
+  icon: Icon,
+  suffix = '',
+  trend
+}: {
+  title: string;
+  value: number | string;
+  target?: number;
+  icon: any;
+  suffix?: string;
+  trend?: 'up' | 'down' | 'neutral';
+}) => {
+  const numValue = typeof value === 'number' ? value : parseFloat(value);
+  const meetsTarget = target ? numValue >= target : true;
+
+  return (
+    <div className="bg-theme-card rounded-xl p-4 border border-theme-border">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-theme-foreground-muted text-sm">{title}</span>
+        <Icon className="w-5 h-5 text-theme-foreground-muted" />
+      </div>
+      <div className="flex items-end gap-2">
+        <span className="text-2xl font-bold text-theme-foreground">{value}{suffix}</span>
+        {trend && (
+          <span className={`flex items-center text-sm ${
+            trend === 'up' ? 'text-green-400' : trend === 'down' ? 'text-red-400' : 'text-theme-foreground-muted'
+          }`}>
+            {trend === 'up' ? <ArrowUp className="w-4 h-4" /> :
+             trend === 'down' ? <ArrowDown className="w-4 h-4" /> :
+             <Minus className="w-4 h-4" />}
+          </span>
+        )}
+      </div>
+      {target && (
+        <div className="mt-2">
+          <div className="flex justify-between text-xs mb-1">
+            <span className="text-theme-foreground-muted">Target: {target}{suffix}</span>
+            <span className={meetsTarget ? 'text-green-400' : 'text-yellow-400'}>
+              {meetsTarget ? 'On Track' : 'Below Target'}
+            </span>
+          </div>
+          <div className="w-full bg-theme-border rounded-full h-1.5">
+            <div
+              className={`h-1.5 rounded-full ${meetsTarget ? 'bg-green-500' : 'bg-yellow-500'}`}
+              style={{ width: `${Math.min(100, (numValue / target) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TierBadge = ({ tier, count, percentage }: { tier: string; count: number; percentage: number }) => {
+  const tierColors: Record<string, string> = {
+    BRONZE: 'from-amber-700 to-amber-900 border-amber-600',
+    SILVER: 'from-slate-400 to-slate-600 border-slate-300',
+    GOLD: 'from-yellow-500 to-yellow-700 border-yellow-400',
+    DIAMOND: 'from-cyan-400 to-blue-600 border-cyan-300',
+    ELITE: 'from-purple-500 to-pink-600 border-purple-400',
+  };
+
+  const tierTextColor: Record<string, string> = {
+    BRONZE: 'text-white',        // Dark background → white text
+    SILVER: 'text-gray-900',     // Light background → dark text
+    GOLD: 'text-gray-900',       // Medium background → dark text
+    DIAMOND: 'text-gray-900',    // Light-to-dark gradient → dark text
+    ELITE: 'text-white',         // Dark background → white text
+  };
+
+  const tierTextOpacity: Record<string, string> = {
+    BRONZE: 'text-white/70',
+    SILVER: 'text-gray-900/70',
+    GOLD: 'text-gray-900/70',
+    DIAMOND: 'text-gray-900/70',
+    ELITE: 'text-white/70',
+  };
+
+  const textColor = tierTextColor[tier] || tierTextColor.BRONZE;
+  const textOpacity = tierTextOpacity[tier] || tierTextOpacity.BRONZE;
+
+  return (
+    <div className={`bg-gradient-to-br ${tierColors[tier] || tierColors.BRONZE} rounded-lg p-3 border`}>
+      <div className="text-center">
+        <span className={`text-lg font-bold ${textColor}`}>{tier}</span>
+        <div className={`text-2xl font-black ${textColor}`}>{count}</div>
+        <div className={`text-xs ${textOpacity}`}>{percentage}%</div>
+      </div>
+    </div>
+  );
+};
+
+export default function GamificationAnalytics() {
+  const { data, isLoading, error, refetch } = useQuery<AnalyticsDashboard>({
+    queryKey: ['gamification-analytics'],
+    queryFn: async () => {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/gamification/admin/analytics`, {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch analytics');
+      return response.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
+        <p className="text-red-400">Failed to load analytics data</p>
+        <button
+          onClick={() => refetch()}
+          className="mt-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const { engagement, growth, platformHealth, gamification } = data;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-theme-foreground">Gamification Analytics</h2>
+          <p className="text-theme-foreground-muted text-sm">Last updated: {new Date(data.timestamp).toLocaleString()}</p>
+        </div>
+        <button
+          onClick={() => refetch()}
+          className="flex items-center gap-2 px-4 py-2 bg-theme-card text-theme-foreground rounded-lg hover:bg-theme-card-hover"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </button>
+      </div>
+
+      {/* Engagement Metrics */}
+      <div className="rounded-2xl bg-gradient-to-b from-theme-card/80 to-theme-card/50 border border-theme-border p-6">
+        <h3 className="text-lg font-semibold text-theme-foreground mb-4 flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-blue-400" />
+          Engagement Metrics
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <MetricCard
+            title="Daily Active Users"
+            value={engagement.dau.count}
+            icon={Users}
+            trend={engagement.dauTrend.averageDAU > 0 ? 'up' : 'neutral'}
+          />
+          <MetricCard
+            title="Participation Rate"
+            value={engagement.participation.rate}
+            target={engagement.participation.target}
+            suffix="%"
+            icon={Target}
+          />
+          <MetricCard
+            title="Daily Check-In Rate"
+            value={engagement.checkInRate.rate}
+            target={engagement.checkInRate.target}
+            suffix="%"
+            icon={CheckCircle}
+          />
+          <MetricCard
+            title="7-Day Streak Rate"
+            value={engagement.streaks.streak7Plus.rate}
+            target={engagement.streaks.streak7Plus.target}
+            suffix="%"
+            icon={Flame}
+          />
+        </div>
+
+        {/* DAU Trend Chart (simple bar representation) */}
+        <div className="mt-6">
+          <h4 className="text-sm font-medium text-theme-foreground-muted mb-3">DAU Trend (Last 7 Days)</h4>
+          {engagement.dauTrend.trend.length === 0 || engagement.dauTrend.trend.every(d => d.count === 0) ? (
+            <div className="h-24 flex items-center justify-center bg-theme-card rounded-lg border border-theme-border">
+              <p className="text-theme-foreground-muted text-sm">No activity data available yet</p>
+            </div>
+          ) : (
+            <div className="flex items-end gap-1 h-24">
+              {engagement.dauTrend.trend.map((day, i) => {
+                const maxCount = Math.max(...engagement.dauTrend.trend.map(d => d.count), 1);
+                const height = (day.count / maxCount) * 100;
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-xs text-blue-400 font-medium">{day.count}</span>
+                    <div
+                      className="w-full bg-blue-500/50 rounded-t hover:bg-blue-500/70 transition-colors"
+                      style={{ height: `${Math.max(height, 8)}%` }}
+                      title={`${day.date}: ${day.count} users`}
+                    />
+                    <span className="text-xs text-theme-foreground-muted">{day.date.split('-')[2]}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-sm text-theme-foreground-muted mt-2">Average: {engagement.dauTrend.averageDAU} users/day</p>
+        </div>
+
+        {/* Streak Stats */}
+        <div className="mt-6 grid grid-cols-3 gap-4">
+          <div className="bg-theme-card rounded-lg p-3 border border-theme-border text-center">
+            <div className="text-2xl font-bold text-orange-400">{engagement.streaks.streak30Plus.count}</div>
+            <div className="text-xs text-theme-foreground-muted">30+ Day Streaks</div>
+          </div>
+          <div className="bg-theme-card rounded-lg p-3 border border-theme-border text-center">
+            <div className="text-2xl font-bold text-yellow-400">{engagement.streaks.averageStreak}</div>
+            <div className="text-xs text-theme-foreground-muted">Avg Streak Days</div>
+          </div>
+          <div className="bg-theme-card rounded-lg p-3 border border-theme-border text-center">
+            <div className="text-2xl font-bold text-red-400">{engagement.streaks.longestStreak}</div>
+            <div className="text-xs text-theme-foreground-muted">Longest Streak</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Growth Metrics */}
+      <div className="rounded-2xl bg-gradient-to-b from-theme-card/80 to-theme-card/50 border border-theme-border p-6">
+        <h3 className="text-lg font-semibold text-theme-foreground mb-4 flex items-center gap-2">
+          <Users className="w-5 h-5 text-green-400" />
+          Growth Metrics
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <MetricCard
+            title="Referral Signups"
+            value={growth.referrals.referralSignups}
+            icon={Users}
+          />
+          <MetricCard
+            title="Referral Conversion"
+            value={growth.referrals.conversionRate}
+            target={growth.referrals.targets.conversionRate}
+            suffix="%"
+            icon={TrendingUp}
+          />
+          <MetricCard
+            title="Social Share Rate"
+            value={growth.socialShares.shareRate}
+            target={growth.socialShares.target}
+            suffix="%"
+            icon={Share2}
+          />
+          <MetricCard
+            title="Total Shares"
+            value={growth.socialShares.totalShares}
+            icon={Share2}
+          />
+        </div>
+
+        {/* Top Referrers */}
+        {growth.referrals.topReferrers.length > 0 && (
+          <div className="mt-6">
+            <h4 className="text-sm font-medium text-theme-foreground-muted mb-3">Top Referrers</h4>
+            <div className="space-y-2">
+              {growth.referrals.topReferrers.slice(0, 5).map((referrer, i) => (
+                <div key={referrer.userId} className="flex items-center justify-between bg-theme-card rounded-lg p-3 border border-theme-border">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-bold text-theme-foreground-muted">#{i + 1}</span>
+                    <span className="text-theme-foreground">{referrer.name}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-blue-400">{referrer.referralCount} referrals</span>
+                    <span className="text-green-400">{referrer.referralConversions} converted</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Social Platform Breakdown */}
+        <div className="mt-6">
+          <h4 className="text-sm font-medium text-theme-foreground-muted mb-3">Shares by Platform</h4>
+          <div className="grid grid-cols-4 gap-2">
+            {Object.entries(growth.socialShares.platformBreakdown).map(([platform, count]) => (
+              <div key={platform} className="bg-theme-card rounded-lg p-3 border border-theme-border text-center">
+                <div className="text-lg font-bold text-theme-foreground">{count}</div>
+                <div className="text-xs text-theme-foreground-muted">{platform}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Platform Health */}
+      <div className="rounded-2xl bg-gradient-to-b from-theme-card/80 to-theme-card/50 border border-theme-border p-6">
+        <h3 className="text-lg font-semibold text-theme-foreground mb-4 flex items-center gap-2">
+          <CheckCircle className="w-5 h-5 text-purple-400" />
+          Platform Health
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <MetricCard
+            title="Work Submissions Growth"
+            value={platformHealth.workRegistration.growth}
+            target={platformHealth.workRegistration.target}
+            suffix="%"
+            icon={TrendingUp}
+            trend={platformHealth.workRegistration.growth > 0 ? 'up' : 'down'}
+          />
+          <MetricCard
+            title="Profile Completion"
+            value={platformHealth.profileCompletion.completionRate}
+            target={platformHealth.profileCompletion.target}
+            suffix="%"
+            icon={Users}
+          />
+          <MetricCard
+            title="Stripe Onboarding"
+            value={platformHealth.stripeOnboarding.onboardingRate}
+            suffix="%"
+            icon={CheckCircle}
+          />
+          <MetricCard
+            title="Reward Redemption"
+            value={platformHealth.rewardRedemption.redemptionRate}
+            target={platformHealth.rewardRedemption.target}
+            suffix="%"
+            icon={Gift}
+          />
+        </div>
+
+        {/* Popular Rewards */}
+        {platformHealth.rewardRedemption.popularRewards.length > 0 && (
+          <div className="mt-6">
+            <h4 className="text-sm font-medium text-theme-foreground-muted mb-3">Most Popular Rewards</h4>
+            <div className="space-y-2">
+              {platformHealth.rewardRedemption.popularRewards.map((reward) => (
+                <div key={reward.rewardId} className="flex items-center justify-between bg-theme-card rounded-lg p-3 border border-theme-border">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">🎁</span>
+                    <span className="text-theme-foreground">{reward.name}</span>
+                  </div>
+                  <span className="text-yellow-400">{reward.redemptions} redeemed</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tier Distribution & Point Economy */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Tier Distribution */}
+        <div className="rounded-2xl bg-gradient-to-b from-theme-card/80 to-theme-card/50 border border-theme-border p-6">
+          <h3 className="text-lg font-semibold text-theme-foreground mb-4 flex items-center gap-2">
+            <Award className="w-5 h-5 text-yellow-400" />
+            Tier Distribution
+          </h3>
+          <div className="grid grid-cols-5 gap-2">
+            {gamification.tierDistribution.tiers.map(tier => (
+              <TierBadge key={tier.tier} {...tier} />
+            ))}
+          </div>
+          <p className="text-theme-foreground-muted text-sm mt-4 text-center">
+            Total Users: {gamification.tierDistribution.total}
+          </p>
+        </div>
+
+        {/* Point Economy */}
+        <div className="rounded-2xl bg-gradient-to-b from-theme-card/80 to-theme-card/50 border border-theme-border p-6">
+          <h3 className="text-lg font-semibold text-theme-foreground mb-4 flex items-center gap-2">
+            <Target className="w-5 h-5 text-blue-400" />
+            Point Economy (30 Days)
+          </h3>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-theme-foreground-muted">Points Earned</span>
+              <span className="text-green-400 font-bold">+{gamification.pointEconomy.pointsEarned.toLocaleString()} TM</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-theme-foreground-muted">Points Spent</span>
+              <span className="text-red-400 font-bold">-{gamification.pointEconomy.pointsSpent.toLocaleString()} TM</span>
+            </div>
+            <div className="border-t border-theme-border pt-4">
+              <div className="flex justify-between items-center">
+                <span className="text-theme-foreground-muted">In Circulation</span>
+                <span className="text-yellow-400 font-bold">{gamification.pointEconomy.circulation.totalInCirculation.toLocaleString()} TM</span>
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-theme-foreground-muted">Earn:Spend Ratio</span>
+              <span className={`font-bold ${gamification.pointEconomy.earnToSpendRatio > 0.3 ? 'text-green-400' : 'text-yellow-400'}`}>
+                {gamification.pointEconomy.earnToSpendRatio.toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Achievement Unlock Rates */}
+      <div className="rounded-2xl bg-gradient-to-b from-theme-card/80 to-theme-card/50 border border-theme-border p-6">
+        <h3 className="text-lg font-semibold text-theme-foreground mb-4 flex items-center gap-2">
+          <Award className="w-5 h-5 text-purple-400" />
+          Achievement Unlock Rates
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {gamification.achievements.achievements.slice(0, 8).map(achievement => (
+            <div key={achievement.id} className="bg-theme-card rounded-lg p-3 border border-theme-border">
+              <div className="text-sm font-medium text-theme-foreground truncate">{achievement.name}</div>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-xs text-theme-foreground-muted">{achievement.unlockCount} users</span>
+                <span className="text-xs text-purple-400">{achievement.unlockRate}%</span>
+              </div>
+              <div className="w-full bg-theme-border rounded-full h-1 mt-2">
+                <div
+                  className="h-1 rounded-full bg-purple-500"
+                  style={{ width: `${achievement.unlockRate}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

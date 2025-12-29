@@ -1,0 +1,319 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: #1F2937;
+  background-color: #F8FAFC;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Default theme variables (Light theme - will be overridden by JS) */
+  --theme-primary: #3B82F6;
+  --theme-primary-hover: #2563EB;
+  --theme-primary-foreground: #FFFFFF;
+  --theme-primary-glow: rgba(59, 130, 246, 0.2);
+  --theme-background: #F8FAFC;
+  --theme-background-alt: #F1F5F9;
+  --theme-card: #FFFFFF;
+  --theme-card-hover: #F8FAFC;
+  --theme-foreground: #1F2937;
+  --theme-foreground-secondary: #4B5563;
+  --theme-foreground-muted: #9CA3AF;
+  --theme-border: #E5E7EB;
+  --theme-border-hover: #3B82F6;
+  --theme-border-strong: #D1D5DB;
+  --theme-input: #FFFFFF;
+  --theme-input-focus: #3B82F6;
+  --theme-success: #22C55E;
+  --theme-success-bg: #DCFCE7;
+  --theme-error: #EF4444;
+  --theme-error-bg: #FEE2E2;
+  --theme-warning: #F97316;
+  --theme-warning-bg: #FEF3C7;
+  --theme-info: #3B82F6;
+  --theme-info-bg: #DBEAFE;
+  --theme-scrollbar-track: #F1F5F9;
+  --theme-scrollbar-thumb: #D1D5DB;
+  --theme-scrollbar-thumb-hover: #9CA3AF;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+}
+
+/* Custom scrollbar - Light theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* Cassette theme scrollbar */
+.scrollbar-cassette::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-cassette::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+.scrollbar-cassette::-webkit-scrollbar-thumb {
+  background: #19181a;
+  border: 1px solid rgba(240, 226, 38, 0.1);
+}
+
+.scrollbar-cassette::-webkit-scrollbar-thumb:hover {
+  background: #f0e226;
+  border: 1px solid rgba(240, 226, 38, 0.3);
+}
+
+/* Firefox scrollbar support for cassette theme */
+.scrollbar-cassette {
+  scrollbar-width: thin;
+  scrollbar-color: #19181a #000000;
+}
+
+/* Dynamic theme scrollbar */
+.scrollbar-theme::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-theme::-webkit-scrollbar-track {
+  background: var(--theme-scrollbar-track);
+}
+
+.scrollbar-theme::-webkit-scrollbar-thumb {
+  background: var(--theme-scrollbar-thumb);
+  border: 1px solid var(--theme-border);
+}
+
+.scrollbar-theme::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-scrollbar-thumb-hover);
+}
+
+/* Firefox scrollbar support for dynamic theme */
+.scrollbar-theme {
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-scrollbar-thumb) var(--theme-scrollbar-track);
+}
+
+
+
+@layer base {
+  :root {
+    /* Light theme as default */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 60%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --radius: 0.5rem;
+  }
+}
+
+
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+/* ============================================
+   iOS / Capacitor Mobile App Styles
+   ============================================ */
+
+/* Enable safe area insets for iOS notch and home indicator */
+@supports (padding: env(safe-area-inset-top)) {
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .safe-area-all {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Mobile layout styles */
+.mobile-layout {
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+}
+
+/* Native app specific styles */
+.native-app {
+  /* Prevent text selection on native for more app-like feel */
+  -webkit-user-select: none;
+  user-select: none;
+
+  /* Prevent overscroll bounce on iOS */
+  overscroll-behavior: none;
+
+  /* Prevent pull-to-refresh on iOS */
+  overflow: hidden;
+}
+
+/* Allow text selection in inputs and textareas */
+.native-app input,
+.native-app textarea,
+.native-app [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Prevent tap highlight on iOS */
+.native-app * {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Bottom tab bar styles */
+.bottom-tab-bar {
+  /* Ensure tab bar is above content */
+  z-index: 50;
+
+  /* iOS safe area padding handled by safe-area-bottom class */
+}
+
+/* Fix for iOS keyboard pushing content up */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .keyboard-open .bottom-tab-bar {
+    display: none;
+  }
+}
+
+/* Smooth scrolling for mobile */
+.mobile-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Hide desktop sidebar on mobile native app */
+@media (max-width: 767px) {
+  .native-app .desktop-sidebar {
+    display: none !important;
+  }
+}
+
+/* Status bar padding for native iOS */
+.native-app .status-bar-padding {
+  padding-top: env(safe-area-inset-top, 20px);
+}
+
+/* Animation for iOS install modal */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+}
+
+/* Chat button positioning - needs to be above bottom tab bar on mobile */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-area-bottom-offset {
+    /* Position above tab bar (64px) + safe area */
+    margin-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Mobile-specific adjustments for floating elements */
+@media (max-width: 767px) {
+  /* Ensure modals have proper safe area handling */
+  .mobile-modal {
+    max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  /* Full-width chat panel on mobile */
+  .chat-panel-mobile {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    border-radius: 1rem 1rem 0 0 !important;
+  }
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
