@@ -33,6 +33,11 @@ export type LocomotionAnimation =
   | 'strafeRightWalk'
   | 'turnLeft'
   | 'turnRight';
+  // TODO: Add crouch animations after downloading from Mixamo and converting with FBX2glTF
+  // | 'crouchIdle'
+  // | 'crouchWalk'
+  // | 'crouchStrafeLeft'
+  // | 'crouchStrafeRight'
 
 export type RifleAnimation =
   // Idle
@@ -96,6 +101,8 @@ export type RifleAnimation =
 export type PistolAnimation =
   | 'pistolIdle'
   | 'pistolKneelIdle'
+  | 'pistolCrouchIdle'
+  | 'pistolCrouchWalk'
   | 'pistolStandToKneel'
   | 'pistolKneelToStand'
   | 'pistolWalkFwd'
@@ -139,6 +146,11 @@ export const ANIMATIONS: Record<AnimationName, AnimationConfig> = {
   strafeRightWalk: { url: locomotion('strafe_right_walk.glb'), loop: true, fadeTime: 0.2 },
   turnLeft: { url: locomotion('turn_left.glb'), loop: false, fadeTime: 0.15 },
   turnRight: { url: locomotion('turn_right.glb'), loop: false, fadeTime: 0.15 },
+  // TODO: Add crouch animations after downloading from Mixamo and converting with FBX2glTF
+  // crouchIdle: { url: locomotion('crouch_idle.glb'), loop: true, fadeTime: 0.25 },
+  // crouchWalk: { url: locomotion('crouch_walk.glb'), loop: true, fadeTime: 0.2 },
+  // crouchStrafeLeft: { url: locomotion('crouch_strafe_left.glb'), loop: true, fadeTime: 0.2 },
+  // crouchStrafeRight: { url: locomotion('crouch_strafe_right.glb'), loop: true, fadeTime: 0.2 },
 
   // ============================================================
   // RIFLE
@@ -205,6 +217,8 @@ export const ANIMATIONS: Record<AnimationName, AnimationConfig> = {
   // ============================================================
   pistolIdle: { url: pistol('pistol_idle.glb'), loop: true, fadeTime: 0.2 },
   pistolKneelIdle: { url: pistol('pistol_kneel_idle.glb'), loop: true, fadeTime: 0.25 },
+  pistolCrouchIdle: { url: pistol('pistol_crouch_idle.glb'), loop: true, fadeTime: 0.25 },
+  pistolCrouchWalk: { url: pistol('pistol_crouch_walk.glb'), loop: true, fadeTime: 0.2 },
   pistolStandToKneel: { url: pistol('pistol_stand_to_kneel.glb'), loop: false, fadeTime: 0.15, clamp: true },
   pistolKneelToStand: { url: pistol('pistol_kneel_to_stand.glb'), loop: false, fadeTime: 0.15, clamp: true },
 
@@ -257,7 +271,7 @@ export const CRITICAL_ANIMATIONS: AnimationName[] = [
   'walk',
   'run',
   'rifleIdle',
-  'rifleRunFwd',
+  'rifleSprintFwd',
   'pistolIdle',
   'pistolRunFwd',
 ];
@@ -326,7 +340,8 @@ export function getAnimationForState(state: AnimationState): AnimationName {
     if (isAiming && !isMoving) return 'rifleAimIdle';
 
     if (isMoving) {
-      if (isSprinting) {
+      // Use sprint animations for running (more visually distinct than Mixamo's "run" which is a jog)
+      if (isRunning || isSprinting) {
         if (isMovingBackward) {
           if (isStrafingLeft) return 'rifleSprintBackLeft';
           if (isStrafingRight) return 'rifleSprintBackRight';
@@ -337,17 +352,7 @@ export function getAnimationForState(state: AnimationState): AnimationName {
         return 'rifleSprintFwd';
       }
 
-      if (isRunning) {
-        if (isMovingBackward) {
-          if (isStrafingLeft) return 'rifleRunBackLeft';
-          if (isStrafingRight) return 'rifleRunBackRight';
-          return 'rifleRunBack';
-        }
-        if (isStrafingLeft) return 'rifleRunLeft';
-        if (isStrafingRight) return 'rifleRunRight';
-        return 'rifleRunFwd';
-      }
-
+      // Walk animations for non-running movement
       if (isMovingBackward) {
         if (isStrafingLeft) return 'rifleWalkBackLeft';
         if (isStrafingRight) return 'rifleWalkBackRight';
@@ -363,6 +368,8 @@ export function getAnimationForState(state: AnimationState): AnimationName {
 
   // PISTOL
   if (weaponType === 'pistol') {
+    // Note: No proper pistol crouch walk animations available, fall back to kneel idle when not moving
+    // and walk animations when moving while crouched
     if (isCrouching && !isMoving) return 'pistolKneelIdle';
 
     if (isMoving) {
@@ -377,6 +384,7 @@ export function getAnimationForState(state: AnimationState): AnimationName {
         return 'pistolRunFwd';
       }
 
+      // Walk
       if (isMovingBackward) {
         if (isStrafingLeft) return 'pistolWalkBackLeft';
         if (isStrafingRight) return 'pistolWalkBackRight';
@@ -391,10 +399,15 @@ export function getAnimationForState(state: AnimationState): AnimationName {
   }
 
   // UNARMED
+  // Note: No proper unarmed crouch animations available yet (195-channel format causes fragmentation)
+  // TODO: Download proper crouch animations from Mixamo and convert with FBX2glTF
+  if (isCrouching && !isMoving) return 'idle'; // Fallback to idle when crouching stationary
+
   if (isMoving) {
     if (isStrafingLeft) return isRunning ? 'strafeLeftRun' : 'strafeLeftWalk';
     if (isStrafingRight) return isRunning ? 'strafeRightRun' : 'strafeRightWalk';
-    return isRunning ? 'run' : 'walk';
+    // Use walk for crouch movement fallback
+    return isRunning && !isCrouching ? 'run' : 'walk';
   }
 
   return 'idle';
