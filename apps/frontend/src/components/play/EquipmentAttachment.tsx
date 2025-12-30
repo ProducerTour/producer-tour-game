@@ -11,7 +11,7 @@ import { useControls, folder } from 'leva';
 import * as THREE from 'three';
 import { getModelPath } from '../../config/assetPaths';
 import { useInventoryStore } from '../../lib/economy/inventoryStore';
-import { useFlashlightStore } from '../../stores/useFlashlightStore';
+import { useFlashlightStore, flashlightData } from '../../stores/useFlashlightStore';
 
 // Debug logging
 const DEBUG_EQUIPMENT = false;
@@ -372,12 +372,11 @@ export function EquipmentAttachment({ avatarRef }: EquipmentAttachmentProps) {
           spotlightRef.current.position.copy(smoothedLightPos.current);
           spotlightTargetRef.current.position.copy(smoothedTargetPos.current);
 
-          // Update flashlight store with SMOOTHED direction for terrain shader
+          // Update flashlight singleton with SMOOTHED direction for terrain shader
+          // Using singleton instead of Zustand set() to avoid per-frame store updates
           if (isFlashlightOnRef.current) {
-            useFlashlightStore.getState().updateWorldData(
-              smoothedLightPos.current,
-              smoothedDirection.current
-            );
+            flashlightData.worldPosition.copy(smoothedLightPos.current);
+            flashlightData.worldDirection.copy(smoothedDirection.current);
           }
         }
       }

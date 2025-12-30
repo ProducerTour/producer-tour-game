@@ -5,27 +5,21 @@ import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import { BONE_NAMES, ARM_ROTATION, FOOT_ROTATION } from '../types';
 
-// Debug mode - toggle with backtick (`) key
+// Debug mode - toggle with backtick (`) key (intentionally global - keyboard toggle affects all instances)
 let DEBUG_MODE = false;
 
-// Store original bone quaternions for reference
-const originalArmQuaternions = {
-  leftArm: new THREE.Quaternion(),
-  rightArm: new THREE.Quaternion(),
-  leftForeArm: new THREE.Quaternion(),
-  rightForeArm: new THREE.Quaternion(),
-};
+// Type for quaternion refs (instance-specific, not global)
+interface ArmQuaternions {
+  leftArm: THREE.Quaternion;
+  rightArm: THREE.Quaternion;
+  leftForeArm: THREE.Quaternion;
+  rightForeArm: THREE.Quaternion;
+}
 
-const originalFootQuaternions = {
-  leftFoot: new THREE.Quaternion(),
-  rightFoot: new THREE.Quaternion(),
-};
-
-// Debug state for real-time adjustments
-const debugState = {
-  armDownAngle: ARM_ROTATION.angle,
-  showSkeleton: true,
-};
+interface FootQuaternions {
+  leftFoot: THREE.Quaternion;
+  rightFoot: THREE.Quaternion;
+}
 
 // Debug Panel Component - Draggable
 function DebugPanel({
@@ -211,7 +205,12 @@ function DebugPanel({
 }
 
 // Helper function to set idle pose with arms at sides and feet flat
-function setIdlePose(boneMap: Map<string, THREE.Bone>) {
+// Takes instance-specific quaternion refs to avoid global state issues
+function setIdlePose(
+  boneMap: Map<string, THREE.Bone>,
+  armQuaternions: ArmQuaternions,
+  footQuaternions: FootQuaternions
+) {
   const leftArm = boneMap.get(BONE_NAMES.leftArm);
   const rightArm = boneMap.get(BONE_NAMES.rightArm);
   const leftForeArm = boneMap.get(BONE_NAMES.leftForeArm);
@@ -226,17 +225,17 @@ function setIdlePose(boneMap: Map<string, THREE.Bone>) {
     leftArm.quaternion.identity();
     const rotQ = new THREE.Quaternion().setFromAxisAngle(xAxis, armAngle);
     leftArm.quaternion.multiply(rotQ);
-    originalArmQuaternions.leftArm.copy(leftArm.quaternion);
+    armQuaternions.leftArm.copy(leftArm.quaternion);
   }
   if (rightArm) {
     rightArm.quaternion.identity();
     const rotQ = new THREE.Quaternion().setFromAxisAngle(xAxis, armAngle);
     rightArm.quaternion.multiply(rotQ);
-    originalArmQuaternions.rightArm.copy(rightArm.quaternion);
+    armQuaternions.rightArm.copy(rightArm.quaternion);
   }
 
-  if (leftForeArm) originalArmQuaternions.leftForeArm.copy(leftForeArm.quaternion);
-  if (rightForeArm) originalArmQuaternions.rightForeArm.copy(rightForeArm.quaternion);
+  if (leftForeArm) armQuaternions.leftForeArm.copy(leftForeArm.quaternion);
+  if (rightForeArm) armQuaternions.rightForeArm.copy(rightForeArm.quaternion);
 
   const footAngle = FOOT_ROTATION.angle;
 
@@ -244,13 +243,13 @@ function setIdlePose(boneMap: Map<string, THREE.Bone>) {
     leftFoot.quaternion.identity();
     const rotQ = new THREE.Quaternion().setFromAxisAngle(xAxis, footAngle);
     leftFoot.quaternion.multiply(rotQ);
-    originalFootQuaternions.leftFoot.copy(leftFoot.quaternion);
+    footQuaternions.leftFoot.copy(leftFoot.quaternion);
   }
   if (rightFoot) {
     rightFoot.quaternion.identity();
     const rotQ = new THREE.Quaternion().setFromAxisAngle(xAxis, footAngle);
     rightFoot.quaternion.multiply(rotQ);
-    originalFootQuaternions.rightFoot.copy(rightFoot.quaternion);
+    footQuaternions.rightFoot.copy(rightFoot.quaternion);
   }
 }
 
@@ -278,6 +277,19 @@ export function AnimatedAvatar({
   const [boneMapState, setBoneMapState] = useState<Map<string, THREE.Bone>>(new Map());
   const [debugMode, setDebugMode] = useState(DEBUG_MODE);
 
+  // Instance-specific quaternion storage (not shared across avatar instances)
+  const originalArmQuaternions = useRef<ArmQuaternions>({
+    leftArm: new THREE.Quaternion(),
+    rightArm: new THREE.Quaternion(),
+    leftForeArm: new THREE.Quaternion(),
+    rightForeArm: new THREE.Quaternion(),
+  });
+
+  const originalFootQuaternions = useRef<FootQuaternions>({
+    leftFoot: new THREE.Quaternion(),
+    rightFoot: new THREE.Quaternion(),
+  });
+
   // Toggle debug mode with backtick key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -287,7 +299,7 @@ export function AnimatedAvatar({
         console.log(`🔧 Debug mode: ${DEBUG_MODE ? 'ON' : 'OFF'}`);
 
         if (!DEBUG_MODE && bones.current.size > 0) {
-          setIdlePose(bones.current);
+          setIdlePose(bones.current, originalArmQuaternions.current, originalFootQuaternions.current);
         }
       }
     };
@@ -326,7 +338,7 @@ export function AnimatedAvatar({
 
     console.log('🦴 Found bones:', Array.from(boneMap.keys()));
 
-    setIdlePose(boneMap);
+    setIdlePose(boneMap, originalArmQuaternions.current, originalFootQuaternions.current);
 
     if (DEBUG_MODE) {
       group.current.traverse((child) => {
@@ -357,6 +369,8 @@ export function AnimatedAvatar({
 
   const handleBoneAngleChange = useCallback((bone: 'arms' | 'feet', newAngle: number, axis: 'x' | 'y' | 'z' = 'x') => {
     const boneMap = bones.current;
+    const armQuats = originalArmQuaternions.current;
+    const footQuats = originalFootQuaternions.current;
 
     const axisVector = new THREE.Vector3(
       axis === 'x' ? 1 : 0,
@@ -372,14 +386,14 @@ export function AnimatedAvatar({
         leftArm.quaternion.identity();
         const rotQ = new THREE.Quaternion().setFromAxisAngle(axisVector, newAngle);
         leftArm.quaternion.multiply(rotQ);
-        originalArmQuaternions.leftArm.copy(leftArm.quaternion);
+        armQuats.leftArm.copy(leftArm.quaternion);
       }
       if (rightArm) {
         rightArm.quaternion.identity();
         const rightAngle = (axis === 'x') ? newAngle : -newAngle;
         const rotQ = new THREE.Quaternion().setFromAxisAngle(axisVector, rightAngle);
         rightArm.quaternion.multiply(rotQ);
-        originalArmQuaternions.rightArm.copy(rightArm.quaternion);
+        armQuats.rightArm.copy(rightArm.quaternion);
       }
     } else if (bone === 'feet') {
       const leftFoot = boneMap.get(BONE_NAMES.leftFoot);
@@ -389,13 +403,13 @@ export function AnimatedAvatar({
         leftFoot.quaternion.identity();
         const rotQ = new THREE.Quaternion().setFromAxisAngle(axisVector, newAngle);
         leftFoot.quaternion.multiply(rotQ);
-        originalFootQuaternions.leftFoot.copy(leftFoot.quaternion);
+        footQuats.leftFoot.copy(leftFoot.quaternion);
       }
       if (rightFoot) {
         rightFoot.quaternion.identity();
         const rotQ = new THREE.Quaternion().setFromAxisAngle(axisVector, newAngle);
         rightFoot.quaternion.multiply(rotQ);
-        originalFootQuaternions.rightFoot.copy(rightFoot.quaternion);
+        footQuats.rightFoot.copy(rightFoot.quaternion);
       }
     }
   }, []);
@@ -404,6 +418,9 @@ export function AnimatedAvatar({
   useFrame((_, delta) => {
     const boneMap = bones.current;
     if (boneMap.size === 0) return;
+
+    const armQuats = originalArmQuaternions.current;
+    const footQuats = originalFootQuaternions.current;
 
     const hips = boneMap.get(BONE_NAMES.hips);
     const spine = boneMap.get(BONE_NAMES.spine);
@@ -433,20 +450,20 @@ export function AnimatedAvatar({
       if (leftLeg) leftLeg.rotation.x = -Math.max(0, Math.sin(t - 0.5)) * kneeAmount;
       if (rightLeg) rightLeg.rotation.x = -Math.max(0, Math.sin(t + Math.PI - 0.5)) * kneeAmount;
 
-      if (leftFoot) leftFoot.quaternion.copy(originalFootQuaternions.leftFoot);
-      if (rightFoot) rightFoot.quaternion.copy(originalFootQuaternions.rightFoot);
+      if (leftFoot) leftFoot.quaternion.copy(footQuats.leftFoot);
+      if (rightFoot) rightFoot.quaternion.copy(footQuats.rightFoot);
 
       if (leftArm) {
         const swingQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.sin(t + Math.PI) * armSwingAmount);
-        leftArm.quaternion.copy(originalArmQuaternions.leftArm).multiply(swingQ);
+        leftArm.quaternion.copy(armQuats.leftArm).multiply(swingQ);
       }
       if (rightArm) {
         const swingQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.sin(t) * armSwingAmount);
-        rightArm.quaternion.copy(originalArmQuaternions.rightArm).multiply(swingQ);
+        rightArm.quaternion.copy(armQuats.rightArm).multiply(swingQ);
       }
 
-      if (leftForeArm) leftForeArm.quaternion.copy(originalArmQuaternions.leftForeArm);
-      if (rightForeArm) rightForeArm.quaternion.copy(originalArmQuaternions.rightForeArm);
+      if (leftForeArm) leftForeArm.quaternion.copy(armQuats.leftForeArm);
+      if (rightForeArm) rightForeArm.quaternion.copy(armQuats.rightForeArm);
 
       if (hips) {
         hips.position.y = Math.abs(Math.sin(t * 2)) * 0.008;
@@ -477,13 +494,13 @@ export function AnimatedAvatar({
       if (rightUpLeg) rightUpLeg.rotation.x = 0;
       if (leftLeg) leftLeg.rotation.x = 0;
       if (rightLeg) rightLeg.rotation.x = 0;
-      if (leftFoot) leftFoot.quaternion.copy(originalFootQuaternions.leftFoot);
-      if (rightFoot) rightFoot.quaternion.copy(originalFootQuaternions.rightFoot);
+      if (leftFoot) leftFoot.quaternion.copy(footQuats.leftFoot);
+      if (rightFoot) rightFoot.quaternion.copy(footQuats.rightFoot);
 
-      if (leftArm) leftArm.quaternion.copy(originalArmQuaternions.leftArm);
-      if (rightArm) rightArm.quaternion.copy(originalArmQuaternions.rightArm);
-      if (leftForeArm) leftForeArm.quaternion.copy(originalArmQuaternions.leftForeArm);
-      if (rightForeArm) rightForeArm.quaternion.copy(originalArmQuaternions.rightForeArm);
+      if (leftArm) leftArm.quaternion.copy(armQuats.leftArm);
+      if (rightArm) rightArm.quaternion.copy(armQuats.rightArm);
+      if (leftForeArm) leftForeArm.quaternion.copy(armQuats.leftForeArm);
+      if (rightForeArm) rightForeArm.quaternion.copy(armQuats.rightForeArm);
 
       const head = boneMap.get(BONE_NAMES.head);
       const neck = boneMap.get(BONE_NAMES.neck);

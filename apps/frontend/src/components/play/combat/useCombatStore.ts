@@ -1,10 +1,25 @@
 /**
  * Combat Store
  * Zustand store for combat state management
+ *
+ * PERFORMANCE NOTE: Per-frame values like cameraPitch use a singleton
+ * instead of Zustand set() to avoid triggering subscriber callbacks 60x/sec.
  */
 
 import { create } from 'zustand';
 import { useDevStore } from '../debug/useDevStore';
+import { combatTimers } from '../../../lib/utils/TimerManager';
+
+/**
+ * Singleton for per-frame combat data (camera pitch for spine aiming).
+ *
+ * This is mutated directly in useFrame without triggering React re-renders.
+ * Components that need this data should read from here in their own useFrame hooks.
+ */
+export const combatFrameData = {
+  /** Camera pitch angle in radians (for spine aiming) */
+  cameraPitch: 0,
+};
 
 export interface DamageNumber {
   id: string;
@@ -32,10 +47,10 @@ interface CombatState {
   respawnTimer: number; // Countdown in seconds (0 = not respawning)
 
   // Aiming state
+  // Note: cameraPitch moved to combatFrameData singleton for per-frame updates
   isAiming: boolean;
   isFiring: boolean;
   aimStartTime: number;
-  cameraPitch: number;  // Camera pitch angle in radians (for spine aiming)
 
   // Weapon state
   currentWeapon: 'none' | 'rifle' | 'pistol';
@@ -59,7 +74,6 @@ interface CombatState {
   setWeapon: (weapon: 'none' | 'rifle' | 'pistol') => void;
   setAiming: (isAiming: boolean) => void;
   setFiring: (isFiring: boolean) => void;
-  setCameraPitch: (pitch: number) => void;
   fire: () => boolean | 'reloading' | 'empty'; // Returns true if weapon fired, 'reloading' if blocked by reload, 'empty' if no ammo
   reload: () => void;
 
@@ -132,7 +146,6 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   isAiming: false,
   isFiring: false,
   aimStartTime: 0,
-  cameraPitch: 0,
 
   currentWeapon: 'none',
   ammo: {
@@ -177,7 +190,8 @@ export const useCombatStore = create<CombatState>((set, get) => ({
     }
 
     // Auto exit combat after 5 seconds of no damage
-    setTimeout(() => {
+    // Uses keyed timer to prevent stacking multiple timeouts
+    combatTimers.setTimeout('combat-exit', () => {
       const current = get();
       if (Date.now() - current.lastDamageTime >= 5000) {
         set({ isInCombat: false });
@@ -193,7 +207,15 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   },
 
   // Weapon actions
-  setWeapon: (weapon) => set({ currentWeapon: weapon }),
+  setWeapon: (weapon) => {
+    const prevWeapon = get().currentWeapon;
+    // Cancel pending reload timers for previous weapon
+    if (prevWeapon !== 'none') {
+      combatTimers.clearTimeout(`reload-sound-${prevWeapon}`);
+      combatTimers.clearTimeout(`reload-complete-${prevWeapon}`);
+    }
+    set({ currentWeapon: weapon, isReloading: false });
+  },
 
   setAiming: (isAiming) => set({
     isAiming,
@@ -201,8 +223,6 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   }),
 
   setFiring: (isFiring) => set({ isFiring }),
-
-  setCameraPitch: (pitch) => set({ cameraPitch: pitch }),
 
   fire: () => {
     const state = get();
@@ -252,13 +272,14 @@ export const useCombatStore = create<CombatState>((set, get) => ({
 
     // Play reload sound near the END of reload (400ms before completion)
     // This syncs the "magazine insertion" sound with when the weapon becomes usable
+    // Keyed timer auto-cancels if reload is triggered again
     const soundDelay = Math.max(0, config.reloadTime - 400);
-    setTimeout(() => {
+    combatTimers.setTimeout(`reload-sound-${currentWeapon}`, () => {
       set({ reloadSoundTrigger: Date.now() });
     }, soundDelay);
 
-    // Complete reload
-    setTimeout(() => {
+    // Complete reload - keyed by weapon so switching cancels pending reload
+    combatTimers.setTimeout(`reload-complete-${currentWeapon}`, () => {
       set((s) => ({
         isReloading: false,
         ammo: { ...s.ammo, [currentWeapon]: config.magazineSize },
@@ -297,9 +318,9 @@ export const useCombatStore = create<CombatState>((set, get) => ({
       createdAt: Date.now(),
     });
 
-    // Remove dead target
+    // Remove dead target (keyed to prevent duplicate removal attempts)
     if (newHealth <= 0) {
-      setTimeout(() => get().removeTarget(id), 100);
+      combatTimers.setTimeout(`remove-target-${id}`, () => get().removeTarget(id), 100);
     }
 
     set({ targets });
@@ -313,8 +334,8 @@ export const useCombatStore = create<CombatState>((set, get) => ({
       damageNumbers: [...state.damageNumbers, damage],
     }));
 
-    // Auto cleanup after 1.5s
-    setTimeout(() => {
+    // Auto cleanup after 1.5s (keyed by damage ID to prevent stacking)
+    combatTimers.setTimeout(`damage-number-${damage.id}`, () => {
       set((state) => ({
         damageNumbers: state.damageNumbers.filter((d) => d.id !== damage.id),
       }));
@@ -343,11 +364,11 @@ export const useCombatStore = create<CombatState>((set, get) => ({
       respawnTimer: 3, // 3 second respawn countdown
     });
 
-    // Countdown timer
-    const countdownInterval = setInterval(() => {
+    // Countdown timer (keyed so it can be cancelled on manual respawn)
+    combatTimers.setInterval('respawn-countdown', () => {
       const current = get();
       if (current.respawnTimer <= 1) {
-        clearInterval(countdownInterval);
+        combatTimers.clearInterval('respawn-countdown');
         get().respawn();
       } else {
         set({ respawnTimer: current.respawnTimer - 1 });
@@ -356,6 +377,9 @@ export const useCombatStore = create<CombatState>((set, get) => ({
   },
 
   respawn: () => {
+    // Clear respawn countdown (in case of manual respawn)
+    combatTimers.clearInterval('respawn-countdown');
+
     set({
       isDead: false,
       playerHealth: 100,
@@ -367,24 +391,77 @@ export const useCombatStore = create<CombatState>((set, get) => ({
     window.dispatchEvent(new CustomEvent('player:respawn'));
   },
 
-  reset: () => set({
-    playerHealth: 100,
-    isInCombat: false,
-    lastDamageTime: 0,
-    isDead: false,
-    respawnTimer: 0,
-    isAiming: false,
-    isFiring: false,
-    aimStartTime: 0,
-    cameraPitch: 0,
-    ammo: { rifle: 30, pistol: 12 },
-    isReloading: false,
-    reloadSoundTrigger: 0,
-    lastFireTime: 0,
-    targets: new Map(),
-    lockedTarget: null,
-    damageNumbers: [],
-  }),
+  reset: () => {
+    // Clear all combat-related timers
+    combatTimers.clearAll();
+
+    set({
+      playerHealth: 100,
+      isInCombat: false,
+      lastDamageTime: 0,
+      isDead: false,
+      respawnTimer: 0,
+      isAiming: false,
+      isFiring: false,
+      aimStartTime: 0,
+      ammo: { rifle: 30, pistol: 12 },
+      isReloading: false,
+      reloadSoundTrigger: 0,
+      lastFireTime: 0,
+      targets: new Map(),
+      lockedTarget: null,
+      damageNumbers: [],
+    });
+  },
 }));
 
 export default useCombatStore;
+
+// ============================================================
+// Selectors - Use these to prevent unnecessary re-renders
+// ============================================================
+
+/** Player health (0-100) */
+export const usePlayerHealth = () => useCombatStore((s) => s.playerHealth);
+
+/** Player max health */
+export const usePlayerMaxHealth = () => useCombatStore((s) => s.playerMaxHealth);
+
+/** Whether player is dead */
+export const useIsDead = () => useCombatStore((s) => s.isDead);
+
+/** Respawn countdown timer (seconds) */
+export const useRespawnTimer = () => useCombatStore((s) => s.respawnTimer);
+
+/** Whether player is in combat mode */
+export const useIsInCombat = () => useCombatStore((s) => s.isInCombat);
+
+/** Current weapon type */
+export const useCurrentWeapon = () => useCombatStore((s) => s.currentWeapon);
+
+/** Ammo for all weapons */
+export const useAmmo = () => useCombatStore((s) => s.ammo);
+
+/** Whether player is aiming */
+export const useIsAiming = () => useCombatStore((s) => s.isAiming);
+
+/** Whether player is firing */
+export const useIsFiring = () => useCombatStore((s) => s.isFiring);
+
+/** Whether currently reloading */
+export const useIsReloading = () => useCombatStore((s) => s.isReloading);
+
+/** Reload sound trigger timestamp */
+export const useReloadSoundTrigger = () => useCombatStore((s) => s.reloadSoundTrigger);
+
+/** Currently locked target ID */
+export const useLockedTarget = () => useCombatStore((s) => s.lockedTarget);
+
+/** Floating damage numbers array */
+export const useDamageNumbers = () => useCombatStore((s) => s.damageNumbers);
+
+/** Get a specific target by ID */
+export const useTarget = (id: string) => useCombatStore((s) => s.targets.get(id));
+
+/** Get all target IDs (for iteration without subscribing to full map) */
+export const useTargetIds = () => useCombatStore((s) => Array.from(s.targets.keys()));

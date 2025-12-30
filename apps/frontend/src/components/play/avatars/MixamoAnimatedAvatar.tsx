@@ -12,7 +12,7 @@ import { SkeletonUtils } from 'three-stdlib';
 import { WeaponAttachment, type WeaponType } from '../WeaponAttachment';
 import { EquipmentAttachment } from '../EquipmentAttachment';
 import { useGamePause } from '../context';
-import { useCombatStore } from '../combat/useCombatStore';
+import { combatFrameData } from '../combat/useCombatStore';
 import {
   ANIMATION_CONFIG,
   type AnimationName,
@@ -785,8 +785,8 @@ export function MixamoAnimatedAvatar({
     // === UPPER BODY AIMING - Rotate spine bone to follow camera pitch ===
     // This makes the character look up/down when aiming or moving mouse
     // spineAimAlways: track mouse whenever weapon equipped (not just when aiming)
-    // Read cameraPitch directly from store (updates every frame, not dependent on React re-renders)
-    const cameraPitch = useCombatStore.getState().cameraPitch;
+    // Read cameraPitch from singleton (avoids per-frame store overhead)
+    const cameraPitch = combatFrameData.cameraPitch;
     const shouldTrackSpine = spineAimEnabled && weaponType && (spineAimAlways || isAiming);
 
     if (spineRef.current && shouldTrackSpine) {

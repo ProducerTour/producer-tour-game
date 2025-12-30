@@ -5,7 +5,7 @@
  * Includes comprehensive Leva debug controls for development.
  */
 
-import { useRef, useMemo, useEffect, useState } from 'react';
+import { useRef, useMemo, useEffect, useState, memo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { useControls, folder, button } from 'leva';
@@ -24,7 +24,7 @@ import {
 } from '../hooks/useAnimationStateMachine';
 import { WeaponAttachment, type WeaponType } from '../WeaponAttachment';
 import { EquipmentAttachment } from '../EquipmentAttachment';
-import { useCombatStore } from '../combat/useCombatStore';
+import { combatFrameData } from '../combat/useCombatStore';
 
 // Default avatar model path
 const DEFAULT_AVATAR_PATH = '/assets/avatars/swat_operator.glb';
@@ -70,9 +70,35 @@ export interface DefaultAvatarProps {
 }
 
 /**
- * DefaultAvatar - Animated avatar with comprehensive debug controls
+ * Custom comparison for React.memo - only re-render if animation-affecting props change.
+ * Skips velocityY since it changes every frame but doesn't affect animation state directly.
  */
-export function DefaultAvatar({
+function arePropsEqual(prev: DefaultAvatarProps, next: DefaultAvatarProps): boolean {
+  return (
+    prev.isMoving === next.isMoving &&
+    prev.isRunning === next.isRunning &&
+    prev.isGrounded === next.isGrounded &&
+    prev.isJumping === next.isJumping &&
+    prev.isFalling === next.isFalling &&
+    prev.isDancing === next.isDancing &&
+    prev.dancePressed === next.dancePressed &&
+    prev.isCrouching === next.isCrouching &&
+    prev.isStrafingLeft === next.isStrafingLeft &&
+    prev.isStrafingRight === next.isStrafingRight &&
+    prev.isAiming === next.isAiming &&
+    prev.isFiring === next.isFiring &&
+    prev.isDying === next.isDying &&
+    prev.weapon === next.weapon &&
+    prev.isPlayer === next.isPlayer
+    // Note: velocityY intentionally skipped - changes every frame but only used for fall damage
+  );
+}
+
+/**
+ * DefaultAvatar - Animated avatar with comprehensive debug controls
+ * Memoized to prevent re-renders when parent updates but props haven't changed.
+ */
+const DefaultAvatarInner = memo(function DefaultAvatar({
   isMoving = false,
   isRunning = false,
   isGrounded = true,
@@ -108,6 +134,9 @@ export function DefaultAvatar({
   const detectedBonePrefixRef = useRef<'none' | 'mixamorig' | 'mixamorig:'>('none');
   const detectedBoneSuffixRef = useRef<string>('');
 
+  // FSM state ref for immediate access in useFrame (avoids React state async lag)
+  const currentStateRef = useRef<string>('idle');
+
   // Comprehensive Leva controls
   const controls = useControls('🎮 Avatar', {
     // Transform
@@ -137,9 +166,9 @@ export function DefaultAvatar({
       meshCount: { value: boneInfo.meshCount, editable: false, label: 'Meshes' },
     }, { collapsed: true }),
 
-    // Animation state
+    // Animation state - shows current FSM state for debugging
     'Animation': folder({
-      currentAnim: { value: currentAnimState, editable: false, label: 'Current' },
+      currentAnim: { value: currentAnimState, editable: false, label: 'Current State' },
       logBones: button(() => {
         console.log('🦴 Bone structure:', {
           prefix: detectedBonePrefixRef.current,
@@ -158,33 +187,17 @@ export function DefaultAvatar({
       logAnimations: button(() => {
         console.log('🎬 Available animations:', Object.keys(ANIMATION_CONFIG));
       }, { disabled: false }),
-    }, { collapsed: true }),
+    }, { collapsed: false }),
 
-    // Character lean/tilt per animation state (fixes leaning back when running)
+    // Character lean/tilt per movement state (uses actual props, not animation state)
     'Character Lean': folder({
-      leanLerpSpeed: { value: 8, min: 1, max: 20, step: 1, label: 'Lerp Speed' },
+      leanLerpSpeed: { value: 15, min: 1, max: 25, step: 1, label: 'Lerp Speed' },
       idleLeanX: { value: 0, min: -30, max: 30, step: 1, label: 'Idle Lean X°' },
       walkLeanX: { value: 0, min: -30, max: 30, step: 1, label: 'Walk Lean X°' },
       runLeanX: { value: 18, min: -30, max: 30, step: 1, label: 'Run Lean X°' },
       aimLeanX: { value: 0, min: -30, max: 30, step: 1, label: 'Aim Lean X°' },
       fireLeanX: { value: 0, min: -30, max: 30, step: 1, label: 'Fire Lean X°' },
     }, { collapsed: false }),
-
-    // Weapon state rotation corrections (Y axis - horizontal facing)
-    'Weapon Offsets': folder({
-      lerpSpeed: { value: 8, min: 1, max: 20, step: 1, label: 'Lerp Speed' },
-      rifleIdleRotY: { value: -45, min: -90, max: 90, step: 1, label: 'Rifle Idle Y°' },
-      rifleWalkRotY: { value: -45, min: -90, max: 90, step: 1, label: 'Rifle Walk Y°' },
-      rifleRunRotY: { value: 0, min: -90, max: 90, step: 1, label: 'Rifle Run Y°' },
-      rifleAimIdleRotY: { value: -50, min: -90, max: 90, step: 1, label: 'Rifle Aim Idle Y°' },
-      rifleAimWalkRotY: { value: -41, min: -90, max: 90, step: 1, label: 'Rifle Aim Walk Y°' },
-      rifleFireRotY: { value: 0, min: -90, max: 90, step: 1, label: 'Rifle Fire Y°' },
-      pistolIdleRotY: { value: -45, min: -90, max: 90, step: 1, label: 'Pistol Idle Y°' },
-      pistolWalkRotY: { value: 0, min: -90, max: 90, step: 1, label: 'Pistol Walk Y°' },
-      pistolAimIdleRotY: { value: 0, min: -90, max: 90, step: 1, label: 'Pistol Aim Idle Y°' },
-      pistolAimWalkRotY: { value: 0, min: -90, max: 90, step: 1, label: 'Pistol Aim Walk Y°' },
-      pistolFireRotY: { value: 0, min: -90, max: 90, step: 1, label: 'Pistol Fire Y°' },
-    }, { collapsed: true }),
 
     // Spine aiming - upper body follows camera pitch when weapon equipped
     'Spine Aim': folder({
@@ -194,6 +207,24 @@ export function DefaultAvatar({
       spineAimMaxAngle: { value: 45, min: 15, max: 75, step: 5, label: 'Max Angle°' },
       spineAimSmoothing: { value: 10, min: 2, max: 20, step: 1, label: 'Smoothing' },
     }, { collapsed: true }),
+
+    // Animation Y corrections - applied at render time to avatar group
+    // These correct for animations that face the wrong direction
+    '🔧 Anim Y Offset': folder({
+      debugYEnabled: { value: true, label: 'Enable Y Offset' },
+      rifleIdleY: { value: 0, min: -180, max: 180, step: 1, label: 'rifleIdle Y°' },
+      rifleWalkY: { value: 0, min: -180, max: 180, step: 1, label: 'rifleWalk Y°' },
+      rifleRunY: { value: 0, min: -180, max: 180, step: 1, label: 'rifleRun Y°' },
+      rifleAimIdleY: { value: 0, min: -180, max: 180, step: 1, label: 'rifleAimIdle Y°' },
+      rifleAimWalkY: { value: 0, min: -180, max: 180, step: 1, label: 'rifleAimWalk Y°' },
+      rifleFireStillY: { value: 0, min: -180, max: 180, step: 1, label: 'rifleFireStill Y°' },
+      rifleFireWalkY: { value: 0, min: -180, max: 180, step: 1, label: 'rifleFireWalk Y°' },
+      crouchRifleIdleY: { value: 0, min: -180, max: 180, step: 1, label: 'crouchRifleIdle Y°' },
+      crouchRifleWalkY: { value: 0, min: -180, max: 180, step: 1, label: 'crouchRifleWalk Y°' },
+      pistolIdleY: { value: 0, min: -180, max: 180, step: 1, label: 'pistolIdle Y°' },
+      pistolWalkY: { value: 0, min: -180, max: 180, step: 1, label: 'pistolWalk Y°' },
+      pistolRunY: { value: 0, min: -180, max: 180, step: 1, label: 'pistolRun Y°' },
+    }, { collapsed: false }),
   }, [boneInfo, currentAnimState]);
 
   // Load the avatar model
@@ -231,14 +262,14 @@ export function DefaultAvatar({
   const crouchPistolWalkGltf = useGLTF(ANIMATIONS.crouchPistolWalk);
 
   // Clone scene and detect bone structure
-  const { clonedScene } = useMemo(() => {
+  const sceneData = useMemo(() => {
     const clone = SkeletonUtils.clone(originalScene);
 
     const bones: string[] = [];
     const skinnedMeshes: THREE.SkinnedMesh[] = [];
     let foundSkeleton: THREE.Skeleton | null = null;
 
-    clone.traverse((child) => {
+    clone.traverse((child: THREE.Object3D) => {
       if ((child as THREE.Mesh).isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
@@ -284,20 +315,31 @@ export function DefaultAvatar({
     detectedBonePrefixRef.current = prefix;
     detectedBoneSuffixRef.current = suffix;
 
-    // Update bone info state
-    setTimeout(() => {
-      setBoneInfo({
-        prefix: prefix === 'none' ? 'Standard' : prefix,
-        suffix: suffix,
-        boneCount: bones.length,
-        meshCount: skinnedMeshes.length,
-      });
-    }, 0);
-
     console.log(`🦴 Avatar loaded: ${bones.length} bones, ${skinnedMeshes.length} meshes, prefix: "${prefix}"`);
 
-    return { clonedScene: clone, skeleton: foundSkeleton };
+    // Return detected info along with scene (avoids setTimeout race condition)
+    return {
+      scene: clone,
+      skeleton: foundSkeleton,
+      detectedPrefix: prefix === 'none' ? 'Standard' : prefix,
+      detectedSuffix: suffix,
+      detectedBoneCount: bones.length,
+      detectedMeshCount: skinnedMeshes.length,
+    };
   }, [originalScene]);
+
+  // Extract values from useMemo result
+  const clonedScene = sceneData.scene;
+
+  // Update bone info state from useMemo result (avoids setTimeout race condition)
+  useEffect(() => {
+    setBoneInfo({
+      prefix: sceneData.detectedPrefix,
+      suffix: sceneData.detectedSuffix,
+      boneCount: sceneData.detectedBoneCount,
+      meshCount: sceneData.detectedMeshCount,
+    });
+  }, [sceneData]);
 
   // Create skeleton helper
   useEffect(() => {
@@ -349,85 +391,59 @@ export function DefaultAvatar({
     }
   });
 
-  // Refs for smooth weapon rotation and lean interpolation
-  const currentWeaponRotY = useRef(0);
+  // Ref for smooth lean interpolation (X-axis only - purely visual, doesn't affect world-space facing)
   const currentLeanX = useRef(0);
 
-  // Apply weapon rotation and character lean per animation state
+  // Apply character lean based on movement state
+  // NOTE: Y rotation is handled EXCLUSIVELY by PhysicsPlayerController (single source of truth)
   useFrame((_, delta) => {
     if (!avatarRef.current) return;
 
-    // Determine target Y rotation and lean based on current animation state
-    let targetRotY = 0;
+    // Determine target lean based on movement props (not animation state)
     let targetLeanX = 0;
-
-    // Categorize animation state
-    const isFireState = currentAnimState.startsWith('rifleFire') || currentAnimState.startsWith('pistolFire');
-    const isAimState = currentAnimState.includes('Aim');
-    const isRunState = currentAnimState.includes('Run') || currentAnimState === 'running';
-    const isWalkState = currentAnimState.includes('Walk') || currentAnimState === 'walking';
-    const isIdleState = currentAnimState === 'idle' || currentAnimState.endsWith('Idle');
-
-    // === WEAPON ROTATION (Y axis) ===
-    if (isFireState) {
-      // Firing: use fire-specific rotation
-      if (currentAnimState.startsWith('rifleFire')) {
-        targetRotY = controls.rifleFireRotY;
-      } else {
-        targetRotY = controls.pistolFireRotY;
-      }
-    } else if (isAimState) {
-      // Aiming: differentiate between aim idle and aim walk
-      const isAimWalking = currentAnimState.includes('Walk') || currentAnimState.includes('walk');
-      if (currentAnimState.includes('rifle') || currentAnimState.includes('Rifle')) {
-        targetRotY = isAimWalking ? controls.rifleAimWalkRotY : controls.rifleAimIdleRotY;
-      } else {
-        targetRotY = isAimWalking ? controls.pistolAimWalkRotY : controls.pistolAimIdleRotY;
-      }
-    } else {
-      // Hip-fire states: use standard weapon offsets
-      if (currentAnimState === 'rifleIdle') {
-        targetRotY = controls.rifleIdleRotY;
-      } else if (currentAnimState === 'rifleWalk') {
-        targetRotY = controls.rifleWalkRotY;
-      } else if (currentAnimState === 'rifleRun') {
-        targetRotY = controls.rifleRunRotY;
-      } else if (currentAnimState === 'pistolIdle') {
-        targetRotY = controls.pistolIdleRotY;
-      } else if (currentAnimState === 'pistolWalk' || currentAnimState === 'pistolRun') {
-        targetRotY = controls.pistolWalkRotY;
-      } else if (currentAnimState === 'crouchRifleIdle' || currentAnimState === 'crouchRifleWalk') {
-        targetRotY = controls.rifleIdleRotY;
-      } else if (currentAnimState === 'crouchPistolIdle' || currentAnimState === 'crouchPistolWalk') {
-        targetRotY = controls.pistolIdleRotY;
-      }
-    }
-
-    // === CHARACTER LEAN (X axis) ===
-    if (isFireState) {
+    if (isFiring) {
       targetLeanX = controls.fireLeanX;
-    } else if (isAimState) {
+    } else if (isAiming) {
       targetLeanX = controls.aimLeanX;
-    } else if (isRunState) {
+    } else if (isRunning) {
       targetLeanX = controls.runLeanX;
-    } else if (isWalkState) {
+    } else if (isMoving) {
       targetLeanX = controls.walkLeanX;
-    } else if (isIdleState) {
+    } else {
       targetLeanX = controls.idleLeanX;
     }
 
-    // Smooth lerp towards target rotation
-    const t = 1 - Math.exp(-controls.lerpSpeed * delta);
-    currentWeaponRotY.current += (targetRotY - currentWeaponRotY.current) * t;
-
+    // Smooth lerp towards target lean
     const leanT = 1 - Math.exp(-controls.leanLerpSpeed * delta);
     currentLeanX.current += (targetLeanX - currentLeanX.current) * leanT;
 
-    // Apply rotations to avatar
-    const weaponRotYRad = (currentWeaponRotY.current * Math.PI) / 180;
+    // Apply lean rotation (X-axis only)
     const leanXRad = (currentLeanX.current * Math.PI) / 180;
-    avatarRef.current.rotation.y = weaponRotYRad;
     avatarRef.current.rotation.x = leanXRad;
+
+    // Apply debug Y correction based on current animation state
+    // Uses ref instead of React state to avoid 1-frame lag during transitions
+    if (controls.debugYEnabled) {
+      const debugYMap: Record<string, number> = {
+        rifleIdle: controls.rifleIdleY,
+        rifleWalk: controls.rifleWalkY,
+        rifleRun: controls.rifleRunY,
+        rifleAimIdle: controls.rifleAimIdleY,
+        rifleAimWalk: controls.rifleAimWalkY,
+        rifleFireStill: controls.rifleFireStillY,
+        rifleFireWalk: controls.rifleFireWalkY,
+        crouchRifleIdle: controls.crouchRifleIdleY,
+        crouchRifleWalk: controls.crouchRifleWalkY,
+        pistolIdle: controls.pistolIdleY,
+        pistolWalk: controls.pistolWalkY,
+        pistolRun: controls.pistolRunY,
+      };
+      const animState = currentStateRef.current;
+      const debugY = debugYMap[animState] || 0;
+      avatarRef.current.rotation.y = (debugY * Math.PI) / 180;
+    } else {
+      avatarRef.current.rotation.y = 0;
+    }
   });
 
   // Refs for smooth spine aiming interpolation
@@ -436,8 +452,8 @@ export function DefaultAvatar({
 
   // Upper body aiming - rotate spine bone to follow camera pitch
   useFrame((_, delta) => {
-    // Read cameraPitch directly from store (updates every frame)
-    const cameraPitch = useCombatStore.getState().cameraPitch;
+    // Read cameraPitch from singleton (avoids per-frame store overhead)
+    const cameraPitch = combatFrameData.cameraPitch;
 
     // Only track spine when weapon equipped and (always tracking OR aiming)
     const shouldTrackSpine = controls.spineAimEnabled && weapon && (controls.spineAimAlways || isAiming);
@@ -558,8 +574,9 @@ export function DefaultAvatar({
     crouchRifleIdleGltf.animations, crouchRifleWalkGltf.animations,
     crouchPistolIdleGltf.animations, crouchPistolWalkGltf.animations,
     hipsCorrection,
-    // IMPORTANT: Re-run when bone prefix is detected to ensure correct track naming
-    boneInfo.prefix,
+    // NOTE: Bone prefix is read from ref (set synchronously in sceneData useMemo),
+    // so no need to depend on boneInfo.prefix state which would cause double-render
+    sceneData,
   ]);
 
   // Setup animations
@@ -600,7 +617,10 @@ export function DefaultAvatar({
     fsmInput
   );
 
-  // Update current animation state for Leva display
+  // Update FSM state ref for immediate access in useFrame (avoids React state lag)
+  currentStateRef.current = currentState;
+
+  // Update current animation state for Leva display (async - only for UI)
   useEffect(() => {
     setCurrentAnimState(currentState);
   }, [currentState]);
@@ -651,6 +671,8 @@ export function DefaultAvatar({
       {isPlayer && <EquipmentAttachment avatarRef={avatarRef} />}
     </group>
   );
-}
+}, arePropsEqual);
 
+// Re-export the memoized component with the original name
+export const DefaultAvatar = DefaultAvatarInner;
 export default DefaultAvatar;

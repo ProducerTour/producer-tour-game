@@ -28,7 +28,8 @@ const CONFIG = {
   TURN_THRESHOLD: 0.7,    // Dot product threshold for turn detection (~45°, was 0.5/~60°)
 
   // Rotation
-  ROTATION_SPEED: 22,     // Faster character rotation (increased from 18)
+  ROTATION_SPEED: 25,     // Character rotation speed (higher = faster turn)
+  ROTATION_SNAP_THRESHOLD: 0.05, // Snap to target when diff is below this (radians, ~3°)
 
   // Velocity limits
   MAX_VELOCITY: 15,
@@ -186,9 +187,18 @@ export function useCharacterMovement() {
           // Face movement direction
           const targetAngle = Math.atan2(moveDir.x, moveDir.z);
           let diff = targetAngle - facingAngle.current;
+          // Normalize to [-PI, PI]
           while (diff > Math.PI) diff -= Math.PI * 2;
           while (diff < -Math.PI) diff += Math.PI * 2;
-          facingAngle.current += diff * Math.min(1, delta * CONFIG.ROTATION_SPEED);
+
+          // Snap to target when close enough to prevent perpetual small offset
+          if (Math.abs(diff) < CONFIG.ROTATION_SNAP_THRESHOLD) {
+            facingAngle.current = targetAngle;
+          } else {
+            // Frame-rate independent exponential decay (deterministic for multiplayer)
+            const rotationT = 1 - Math.exp(-CONFIG.ROTATION_SPEED * delta);
+            facingAngle.current += diff * rotationT;
+          }
         }
       }
 

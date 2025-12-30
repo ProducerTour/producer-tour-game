@@ -4,6 +4,7 @@
  */
 
 import { create } from 'zustand';
+import { npcTimers } from '../../../lib/utils/TimerManager';
 
 export type NPCBehavior = 'idle' | 'patrol' | 'follow' | 'flee' | 'attack' | 'wander';
 export type NPCState = 'idle' | 'walking' | 'running' | 'talking' | 'dead';
@@ -111,6 +112,9 @@ export const useNPCStore = create<NPCStore>((set, get) => ({
   },
 
   removeNPC: (id) => {
+    // Cancel any pending respawn timer for this NPC
+    npcTimers.clearTimeout(`respawn-${id}`);
+
     const npcs = new Map(get().npcs);
     npcs.delete(id);
     set({ npcs });
@@ -134,12 +138,16 @@ export const useNPCStore = create<NPCStore>((set, get) => ({
     set({ npcs });
   },
 
-  clearAllNPCs: () =>
+  clearAllNPCs: () => {
+    // Cancel all NPC-related timers
+    npcTimers.clearAll();
+
     set({
       npcs: new Map(),
       selectedNPC: null,
       activeDialogue: null,
-    }),
+    });
+  },
 
   // State changes
   setNPCPosition: (id, position) => {
@@ -186,9 +194,9 @@ export const useNPCStore = create<NPCStore>((set, get) => ({
     });
     set({ npcs });
 
-    // Schedule respawn if configured
+    // Schedule respawn if configured (keyed to cancel if NPC is removed)
     if (isDead && npc.respawnTime && npc.respawnTime > 0) {
-      setTimeout(() => {
+      npcTimers.setTimeout(`respawn-${id}`, () => {
         get().respawnNPC(id);
       }, npc.respawnTime);
     }
@@ -306,3 +314,31 @@ export function createPatrolNPC(
 }
 
 export default useNPCStore;
+
+// ============================================================
+// Selectors - Use these to prevent unnecessary re-renders
+// ============================================================
+
+/** Get all NPC IDs (for iteration without subscribing to full map) */
+export const useNPCIds = () => useNPCStore((s) => Array.from(s.npcs.keys()));
+
+/** Get the currently selected NPC ID */
+export const useSelectedNPCId = () => useNPCStore((s) => s.selectedNPC);
+
+/** Get the active dialogue ID */
+export const useActiveDialogue = () => useNPCStore((s) => s.activeDialogue);
+
+/** Get a specific NPC by ID (use in components that only care about one NPC) */
+export const useNPCById = (id: string) => useNPCStore((s) => s.npcs.get(id));
+
+/** Get count of NPCs */
+export const useNPCCount = () => useNPCStore((s) => s.npcs.size);
+
+/** Get count of hostile NPCs that are alive */
+export const useAliveHostileCount = () => useNPCStore((s) => {
+  let count = 0;
+  s.npcs.forEach((npc) => {
+    if (npc.type === 'hostile' && npc.state !== 'dead') count++;
+  });
+  return count;
+});

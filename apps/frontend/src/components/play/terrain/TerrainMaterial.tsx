@@ -7,9 +7,11 @@
 import { useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { useTexture } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
 import { TEXTURE_SCALE, MAX_HEIGHT, MIN_HEIGHT, WATER_LEVEL } from '../../../lib/terrain';
 import { getTexturePath } from '../../../config/assetPaths';
 import { FogType, DEFAULT_FOG_CONFIG } from '../../../lib/fog';
+import { flashlightData } from '../../../stores/useFlashlightStore';
 
 // Texture paths - uses CDN in production, local in development
 const TEXTURE_PATHS = {
@@ -513,15 +515,11 @@ export interface TerrainMaterialProps {
   ambientGroundColor?: THREE.Color;
 
   // === Spotlight (Flashlight) ===
+  // Note: Position and direction are read from flashlightData singleton
+  // to avoid per-frame prop updates and re-renders
 
   /** Whether spotlight is enabled/on */
   spotlightEnabled?: boolean;
-
-  /** Spotlight world position */
-  spotlightPosition?: THREE.Vector3;
-
-  /** Spotlight direction (normalized) */
-  spotlightDirection?: THREE.Vector3;
 
   /** Spotlight color */
   spotlightColor?: THREE.Color;
@@ -594,9 +592,8 @@ export function useTerrainMaterial({
   ambientSkyColor,
   ambientGroundColor,
   // Spotlight (flashlight) props
+  // Note: Position/direction come from flashlightData singleton, not props
   spotlightEnabled = false,
-  spotlightPosition,
-  spotlightDirection,
   spotlightColor,
   spotlightIntensity = 10.0,
   spotlightDistance = 79.0,
@@ -729,9 +726,10 @@ export function useTerrainMaterial({
         uAmbientGroundColor: { value: ambientGroundColor || DEFAULT_AMBIENT_GROUND },
         uUseDynamicLighting: { value: sunDirection !== undefined },
         // Spotlight (flashlight) uniforms
+        // Position/direction initialized from singleton, updated every frame via useFrame
         uSpotlightEnabled: { value: spotlightEnabled },
-        uSpotlightPosition: { value: spotlightPosition || new THREE.Vector3() },
-        uSpotlightDirection: { value: spotlightDirection || new THREE.Vector3(0, 0, -1) },
+        uSpotlightPosition: { value: flashlightData.worldPosition.clone() },
+        uSpotlightDirection: { value: flashlightData.worldDirection.clone() },
         uSpotlightColor: { value: spotlightColor || new THREE.Color('#fffae6') },
         uSpotlightIntensity: { value: spotlightIntensity },
         uSpotlightDistance: { value: spotlightDistance },
@@ -746,17 +744,20 @@ export function useTerrainMaterial({
   // Note: spotlight props not in deps - updated via useEffect below to avoid recreating material every frame
   }, [grassTextures, rockTextures, sandTextures, grassScale, rockScale, sandScale, simple, debugWeights, fogEnabled, fogType, fogColor, fogNear, fogFar, fogDensity, fogHeightEnabled, fogBaseHeight, fogHeightFalloff, fogMinDensity, sunDirection, sunColor, sunIntensity, ambientSkyColor, ambientGroundColor]);
 
-  // Update spotlight uniforms each frame without recreating material
-  // This is critical for performance since spotlight position changes every frame
+  // Update spotlight position/direction from singleton every frame
+  // This avoids per-frame Zustand updates and React re-renders
+  useFrame(() => {
+    if (material instanceof THREE.ShaderMaterial && material.uniforms && spotlightEnabled) {
+      // Copy position/direction directly from singleton (updated by EquipmentAttachment)
+      material.uniforms.uSpotlightPosition.value.copy(flashlightData.worldPosition);
+      material.uniforms.uSpotlightDirection.value.copy(flashlightData.worldDirection);
+    }
+  });
+
+  // Update spotlight config when props change (infrequent)
   useEffect(() => {
     if (material instanceof THREE.ShaderMaterial && material.uniforms) {
       material.uniforms.uSpotlightEnabled.value = spotlightEnabled;
-      if (spotlightPosition) {
-        material.uniforms.uSpotlightPosition.value.copy(spotlightPosition);
-      }
-      if (spotlightDirection) {
-        material.uniforms.uSpotlightDirection.value.copy(spotlightDirection);
-      }
       if (spotlightColor) {
         material.uniforms.uSpotlightColor.value.copy(spotlightColor);
       }
@@ -766,7 +767,7 @@ export function useTerrainMaterial({
       material.uniforms.uSpotlightPenumbra.value = spotlightPenumbra;
       material.uniforms.uSpotlightDecay.value = spotlightDecay;
     }
-  }, [material, spotlightEnabled, spotlightPosition, spotlightDirection, spotlightColor, spotlightIntensity, spotlightDistance, spotlightAngle, spotlightPenumbra, spotlightDecay]);
+  }, [material, spotlightEnabled, spotlightColor, spotlightIntensity, spotlightDistance, spotlightAngle, spotlightPenumbra, spotlightDecay]);
 
   return material;
 }

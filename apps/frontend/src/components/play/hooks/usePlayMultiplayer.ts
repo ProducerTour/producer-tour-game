@@ -31,9 +31,16 @@ interface UsePlayMultiplayerReturn {
   otherPlayers: Player3D[];
   playerCount: number;
   isConnected: boolean;
+  connectionError: string | null;
   username: string;
   setUsername: (name: string) => void;
   updatePosition: (position: THREE.Vector3, rotation: THREE.Euler, animationState?: string, weaponType?: 'none' | 'rifle' | 'pistol') => void;
+}
+
+// Server acknowledgment response type
+interface ServerAck {
+  success: boolean;
+  error?: string;
 }
 
 export function usePlayMultiplayer({
@@ -48,6 +55,8 @@ export function usePlayMultiplayer({
   const [otherPlayers, setOtherPlayers] = useState<Player3D[]>([]);
   const [playerCount, setPlayerCount] = useState(0);
   const [isInRoom, setIsInRoom] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [username, setLocalUsername] = useState(() => displayName || user?.firstName || '');
 
   // Debug: Log auth state (only when values change, not every render)
@@ -58,12 +67,31 @@ export function usePlayMultiplayer({
 
   // Join/leave room based on enabled state
   useEffect(() => {
-    if (!socket || !isConnected) return;
+    if (!socket || !isConnected) {
+      // Reset state when disconnected
+      if (isInRoom) {
+        setIsInRoom(false);
+        setOtherPlayers([]);
+      }
+      return;
+    }
 
-    if (enabled && !isInRoom) {
-      // Join play room
+    if (enabled && !isInRoom && !isJoining) {
+      // Join play room with acknowledgment callback
       const pilotName = username || `Player_${Math.random().toString(36).slice(2, 6)}`;
       if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Joining play room as:', pilotName);
+
+      setIsJoining(true);
+      setConnectionError(null);
+
+      // Use timeout to handle servers that don't support acknowledgments
+      const joinTimeout = setTimeout(() => {
+        // If no ack received within 5s, assume success (legacy server compatibility)
+        if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Join timeout - assuming success (legacy server)');
+        setIsJoining(false);
+        setIsInRoom(true);
+      }, 5000);
+
       socket.emit('3d:join', {
         username: pilotName,
         color,
@@ -71,20 +99,66 @@ export function usePlayMultiplayer({
         avatarUrl,
         // Send avatarConfig for custom avatar rendering
         ...(avatarConfig && { avatarConfig }),
+      }, (ack: ServerAck | undefined) => {
+        clearTimeout(joinTimeout);
+        setIsJoining(false);
+
+        // Handle acknowledgment if server supports it
+        if (ack === undefined) {
+          // Server doesn't support ack, assume success
+          setIsInRoom(true);
+        } else if (ack.success) {
+          if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Successfully joined room');
+          setIsInRoom(true);
+        } else {
+          console.error('[Play Multiplayer] Failed to join room:', ack.error);
+          setConnectionError(ack.error || 'Failed to join room');
+        }
       });
-      setIsInRoom(true);
     } else if (!enabled && isInRoom) {
       // Leave play room
       if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Leaving play room');
       socket.emit('3d:leave');
       setIsInRoom(false);
       setOtherPlayers([]);
+      setConnectionError(null);
     }
-  }, [enabled, socket, isConnected, isInRoom, username, color, avatarUrl, avatarConfig]);
+  }, [enabled, socket, isConnected, isInRoom, isJoining, username, color, avatarUrl, avatarConfig]);
 
   // Set up socket event listeners
   useEffect(() => {
     if (!socket || !isConnected) return;
+
+    // Handle connection errors
+    const handleConnectError = (error: Error) => {
+      console.error('[Play Multiplayer] Connection error:', error.message);
+      setConnectionError(`Connection error: ${error.message}`);
+      setIsInRoom(false);
+      setIsJoining(false);
+    };
+
+    // Handle disconnection
+    const handleDisconnect = (reason: string) => {
+      if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Disconnected:', reason);
+      setIsInRoom(false);
+      setIsJoining(false);
+      setOtherPlayers([]);
+      if (reason === 'io server disconnect' || reason === 'transport close') {
+        setConnectionError(`Disconnected: ${reason}`);
+      }
+    };
+
+    // Handle reconnection
+    const handleConnect = () => {
+      if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Reconnected');
+      setConnectionError(null);
+    };
+
+    // Handle server errors
+    const handleError = (error: { message?: string }) => {
+      console.error('[Play Multiplayer] Server error:', error);
+      setConnectionError(error.message || 'Server error');
+    };
 
     // Receive initial player list when joining
     const handlePlayers = (players: Player3D[]) => {
@@ -163,6 +237,13 @@ export function usePlayMultiplayer({
       setPlayerCount(count);
     };
 
+    // Connection event listeners
+    socket.on('connect', handleConnect);
+    socket.on('connect_error', handleConnectError);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('error', handleError);
+
+    // Game event listeners
     socket.on('3d:players', handlePlayers);
     socket.on('3d:player-joined', handlePlayerJoined);
     socket.on('3d:player-left', handlePlayerLeft);
@@ -171,6 +252,13 @@ export function usePlayMultiplayer({
     socket.on('3d:player-count', handlePlayerCount);
 
     return () => {
+      // Connection event cleanup
+      socket.off('connect', handleConnect);
+      socket.off('connect_error', handleConnectError);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('error', handleError);
+
+      // Game event cleanup
       socket.off('3d:players', handlePlayers);
       socket.off('3d:player-joined', handlePlayerJoined);
       socket.off('3d:player-left', handlePlayerLeft);
@@ -226,6 +314,7 @@ export function usePlayMultiplayer({
     otherPlayers,
     playerCount,
     isConnected: isConnected && isInRoom,
+    connectionError,
     username,
     setUsername,
     updatePosition,

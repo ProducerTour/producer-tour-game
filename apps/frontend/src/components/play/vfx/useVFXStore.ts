@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import * as THREE from 'three';
+import { vfxTimers } from '../../../lib/utils/TimerManager';
 
 export type VFXType =
   | 'muzzleFlash'
@@ -86,8 +87,8 @@ export const useVFXStore = create<VFXStore>((set, get) => ({
       effects: [...state.effects, effect],
     }));
 
-    // Auto-remove after duration
-    setTimeout(() => {
+    // Auto-remove after duration (keyed to allow cancellation)
+    vfxTimers.setTimeout(`effect-${id}`, () => {
       get().remove(id);
     }, effect.duration);
 
@@ -95,12 +96,19 @@ export const useVFXStore = create<VFXStore>((set, get) => ({
   },
 
   remove: (id) => {
+    // Cancel the auto-remove timer if effect is manually removed
+    vfxTimers.clearTimeout(`effect-${id}`);
+
     set((state) => ({
       effects: state.effects.filter((e) => e.id !== id),
     }));
   },
 
-  clear: () => set({ effects: [] }),
+  clear: () => {
+    // Cancel all VFX timers
+    vfxTimers.clearAll();
+    set({ effects: [] });
+  },
 
   cleanup: () => {
     const now = Date.now();
@@ -149,3 +157,23 @@ export function spawnFootstepDust(position: { x: number; y: number; z: number })
 }
 
 export default useVFXStore;
+
+// ============================================================
+// Selectors - Use these to prevent unnecessary re-renders
+// ============================================================
+
+/** All active effects (use sparingly - updates frequently) */
+export const useVFXEffects = () => useVFXStore((s) => s.effects);
+
+/** Whether VFX system is enabled */
+export const useVFXEnabled = () => useVFXStore((s) => s.isEnabled);
+
+/** Current VFX quality setting */
+export const useVFXQuality = () => useVFXStore((s) => s.quality);
+
+/** Count of active effects */
+export const useVFXCount = () => useVFXStore((s) => s.effects.length);
+
+/** Get effects of a specific type */
+export const useVFXByType = (type: VFXType) =>
+  useVFXStore((s) => s.effects.filter((e) => e.type === type));

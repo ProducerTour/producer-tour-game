@@ -55,6 +55,14 @@ import { useGameSettings } from '../../store/gameSettings.store';
 
 // Import extracted avatar components
 import { PlaceholderAvatar, DefaultAvatar } from './avatars';
+// Error boundaries for crash prevention
+import {
+  AvatarErrorBoundary,
+  TerrainErrorBoundary,
+  NPCErrorBoundary,
+  EnvironmentErrorBoundary,
+  MultiplayerErrorBoundary,
+} from './ErrorBoundaries';
 
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { StaticTerrain, TerrainPhysics } from './terrain';
@@ -169,9 +177,8 @@ export function PlayWorld({
   const weaponType: WeaponType = currentWeapon === 'none' ? null : currentWeapon;
 
   // Flashlight state for terrain shader spotlight illumination
+  // Note: Position/direction now come from flashlightData singleton, not store
   const isFlashlightOn = useFlashlightStore((s) => s.isOn);
-  const flashlightPosition = useFlashlightStore((s) => s.worldPosition);
-  const flashlightDirection = useFlashlightStore((s) => s.worldDirection);
 
   // Lighting state for terrain/grass shader sync
   const lightingStateRef = useRef<LightingState | null>(null);
@@ -497,14 +504,16 @@ export function PlayWorld({
 
       {/* Custom HDRI skybox - equirectangular images */}
       {cityMapControls.skyboxType === 'hdri' && (
-        <Suspense fallback={<color attach="background" args={['#87CEEB']} />}>
-          <HDRISkybox
-            file={cityMapControls.hdriFile}
-            intensity={cityMapControls.hdriIntensity}
-            blur={cityMapControls.hdriBlur}
-            backgroundIntensity={cityMapControls.hdriBackgroundIntensity}
-          />
-        </Suspense>
+        <EnvironmentErrorBoundary>
+          <Suspense fallback={<color attach="background" args={['#87CEEB']} />}>
+            <HDRISkybox
+              file={cityMapControls.hdriFile}
+              intensity={cityMapControls.hdriIntensity}
+              blur={cityMapControls.hdriBlur}
+              backgroundIntensity={cityMapControls.hdriBackgroundIntensity}
+            />
+          </Suspense>
+        </EnvironmentErrorBoundary>
       )}
 
       {/* HDR Environment presets */}
@@ -528,6 +537,7 @@ export function PlayWorld({
           </RigidBody>
 
           {/* Procedural terrain mesh (visual) with chunk-owned grass/trees */}
+          <TerrainErrorBoundary>
           <StaticTerrain
             seed={cityMapControls.terrainSeed}
             radius={cityMapControls.terrainRadius}
@@ -583,12 +593,12 @@ export function PlayWorld({
             ambientGroundColor={lightingStateRef.current?.groundColor}
             timeOfDayFogColor={lightingStateRef.current?.fogColor}
             // Spotlight (flashlight) for terrain illumination
+            // Position/direction now read directly from flashlightData singleton
             spotlightEnabled={isFlashlightOn}
-            spotlightPosition={flashlightPosition}
-            spotlightDirection={flashlightDirection}
             // Grass generation progress callback
             onGrassGenerationProgress={onGrassGenerationProgress}
           />
+          </TerrainErrorBoundary>
 
           {/* Global water plane at sea level - animated shader water */}
           {cityMapControls.waterEnabled && (
@@ -636,36 +646,40 @@ export function PlayWorld({
           {/* Physics Player Controller with animation state */}
           <PhysicsPlayerController onPositionChange={handlePositionChange} isPaused={isPaused}>
             {({ isMoving, isRunning, isGrounded, isJumping, isFalling, isDancing, dancePressed, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring, velocityY }) => (
-              <Suspense fallback={<PlaceholderAvatar isMoving={false} />}>
-                <DefaultAvatar
-                  isMoving={isMoving}
-                  isRunning={isRunning}
-                  isGrounded={isGrounded}
-                  isJumping={isJumping}
-                  isFalling={isFalling}
-                  isDancing={isDancing}
-                  dancePressed={dancePressed}
-                  isCrouching={isCrouching}
-                  isStrafingLeft={isStrafingLeft}
-                  isStrafingRight={isStrafingRight}
-                  isAiming={isAiming}
-                  isFiring={isFiring}
-                  velocityY={velocityY}
-                  weapon={weaponType}
-                  isPlayer
-                />
-              </Suspense>
+              <AvatarErrorBoundary fallback={<PlaceholderAvatar isMoving={false} />}>
+                <Suspense fallback={<PlaceholderAvatar isMoving={false} />}>
+                  <DefaultAvatar
+                    isMoving={isMoving}
+                    isRunning={isRunning}
+                    isGrounded={isGrounded}
+                    isJumping={isJumping}
+                    isFalling={isFalling}
+                    isDancing={isDancing}
+                    dancePressed={dancePressed}
+                    isCrouching={isCrouching}
+                    isStrafingLeft={isStrafingLeft}
+                    isStrafingRight={isStrafingRight}
+                    isAiming={isAiming}
+                    isFiring={isFiring}
+                    velocityY={velocityY}
+                    weapon={weaponType}
+                    isPlayer
+                  />
+                </Suspense>
+              </AvatarErrorBoundary>
             )}
           </PhysicsPlayerController>
 
           {/* NPCs with physics collision */}
-          <NPCManager
-            playerPosition={playerPositionObject}
-            initialNPCs={testNPCs}
-            renderDistance={100}
-            getTerrainHeight={(x, z) => terrainGenerator.getHeight(x, z)}
-            getBiome={(x, z) => terrainGenerator.getBiome(x, z)}
-          />
+          <NPCErrorBoundary>
+            <NPCManager
+              playerPosition={playerPositionObject}
+              initialNPCs={testNPCs}
+              renderDistance={100}
+              getTerrainHeight={(x, z) => terrainGenerator.getHeight(x, z)}
+              getBiome={(x, z) => terrainGenerator.getBiome(x, z)}
+            />
+          </NPCErrorBoundary>
 
           {/* Interactive Campfire - Press E to toggle */}
           {/* Key forces remount when seed changes (auto-placed in sand biome) */}
@@ -692,7 +706,9 @@ export function PlayWorld({
       </Suspense>
 
       {/* Other Players (multiplayer) - outside physics for performance */}
-      <OtherPlayers players={otherPlayers} />
+      <MultiplayerErrorBoundary>
+        <OtherPlayers players={otherPlayers} />
+      </MultiplayerErrorBoundary>
 
       {/* Biome-based ambient audio - crossfades between zones */}
       <AmbientAudioManager

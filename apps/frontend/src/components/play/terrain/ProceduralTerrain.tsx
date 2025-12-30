@@ -500,15 +500,10 @@ export interface StaticTerrainProps {
   onGrassGenerationProgress?: (percent: number) => void;
 
   // === Spotlight (Flashlight) ===
+  // Note: Position/direction now read directly from flashlightData singleton
 
   /** Whether spotlight is enabled/on */
   spotlightEnabled?: boolean;
-
-  /** Spotlight world position */
-  spotlightPosition?: THREE.Vector3;
-
-  /** Spotlight direction (normalized) */
-  spotlightDirection?: THREE.Vector3;
 
   /** Spotlight color */
   spotlightColor?: THREE.Color;
@@ -589,9 +584,8 @@ export function StaticTerrain({
   ambientGroundColor,
   timeOfDayFogColor,
   // Spotlight (flashlight) props
+  // Note: Position/direction now read directly from flashlightData singleton
   spotlightEnabled,
-  spotlightPosition,
-  spotlightDirection,
   spotlightColor,
   spotlightIntensity,
   spotlightDistance,
@@ -665,9 +659,8 @@ export function StaticTerrain({
     ambientSkyColor,
     ambientGroundColor,
     // Spotlight (flashlight) for terrain illumination
+    // Note: Position/direction read directly from flashlightData singleton
     spotlightEnabled,
-    spotlightPosition,
-    spotlightDirection,
     spotlightColor,
     spotlightIntensity,
     spotlightDistance,

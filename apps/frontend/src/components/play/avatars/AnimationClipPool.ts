@@ -113,6 +113,21 @@ class AnimationClipPoolSingleton {
       ? `${prefixToUse}Hips${boneSuffix}.quaternion`
       : 'Hips.quaternion';
 
+    // Check if this animation needs Y-axis correction
+    const yCorrection = ANIMATION_Y_CORRECTIONS[clipName];
+    const needsYCorrection = yCorrection !== undefined && yCorrection !== 0;
+    const yCorrectionQuat = new THREE.Quaternion();
+    if (needsYCorrection) {
+      // Create Y-axis rotation quaternion (convert degrees to radians)
+      yCorrectionQuat.setFromAxisAngle(
+        new THREE.Vector3(0, 1, 0),
+        (yCorrection * Math.PI) / 180
+      );
+      if (DEBUG_POOL) {
+        console.log(`🎬 Applying Y correction of ${yCorrection}° to "${clipName}"`);
+      }
+    }
+
     // Process tracks: remap bone names, filter, and apply corrections
     newClip.tracks = newClip.tracks
       .map(track => {
@@ -146,8 +161,11 @@ class AnimationClipPoolSingleton {
         return track;
       })
       .map(track => {
-        // Apply Hips rotation correction for crouch animations
-        if (preserveHipsRotation && track.name === hipsTrackName) {
+        // Apply Hips rotation corrections
+        if (track.name === hipsTrackName) {
+          if (DEBUG_POOL) {
+            console.log(`🎬 Found Hips track "${track.name}" for "${clipName}", applying corrections: preserveHips=${preserveHipsRotation}, yCorrection=${needsYCorrection ? yCorrection : 'none'}`);
+          }
           const newTrack = track.clone();
           const values = newTrack.values;
           const tempQ = new THREE.Quaternion();
@@ -155,7 +173,17 @@ class AnimationClipPoolSingleton {
           // Apply correction to each keyframe
           for (let i = 0; i < values.length; i += 4) {
             tempQ.set(values[i], values[i + 1], values[i + 2], values[i + 3]);
-            tempQ.premultiply(hipsCorrection);
+
+            // Apply crouch/pitch correction (X-axis)
+            if (preserveHipsRotation) {
+              tempQ.premultiply(hipsCorrection);
+            }
+
+            // Apply Y-axis facing correction
+            if (needsYCorrection) {
+              tempQ.premultiply(yCorrectionQuat);
+            }
+
             values[i] = tempQ.x;
             values[i + 1] = tempQ.y;
             values[i + 2] = tempQ.z;
@@ -177,9 +205,11 @@ class AnimationClipPoolSingleton {
           if (!track.name.endsWith('.quaternion')) {
             return false;
           }
-          // Filter Hips quaternion based on whether we need rotation preserved
+          // Keep Hips quaternion if:
+          // 1. Animation needs Hips rotation preserved (crouch, fire, etc.)
+          // 2. Animation has Y correction defined (needs Hips for rotation fix)
           if (isHipsTrack) {
-            return preserveHipsRotation;
+            return preserveHipsRotation || needsYCorrection;
           }
           return true;
         }
@@ -256,6 +286,42 @@ export const PRESERVE_HIPS_ROTATION_ANIMS = new Set([
   'crouchFireRifleTap', 'crouchRapidFireRifle',
   'rifleReloadStand', 'rifleReloadWalk', 'rifleReloadCrouch',
 ]);
+
+/**
+ * Y-axis rotation corrections for animations that face the wrong direction.
+ * These corrections are applied at the animation data level (Hips bone rotation),
+ * NOT at world-space transform level. This maintains single source of truth for facing.
+ *
+ * Values are in DEGREES. Positive = rotate right, Negative = rotate left.
+ * Adjust these values based on how many degrees each animation is off.
+ *
+ * Example: If rifle_idle faces 45° to the right of where it should,
+ *          set 'rifleIdle': -45 to correct it.
+ */
+export const ANIMATION_Y_CORRECTIONS: Record<string, number> = {
+  // NOTE: Baked Hips bone corrections operate in model-local space (pre-88° X rotation)
+  // For avatar-space corrections, use the debug Y sliders in DefaultAvatar instead
+  // 'rifleIdle': 0,
+  // 'rifleWalk': 0,
+  // 'rifleRun': 0,
+  // 'rifleAimIdle': 0,  // Use debugY slider instead (-57°)
+  // 'rifleFireStill': 0,
+  // 'rifleFireWalk': 0,
+  // 'rifleJump': 0,
+  // Crouch rifle
+  // 'crouchRifleIdle': 0,
+  // 'crouchRifleWalk': 0,
+  // 'crouchRifleStrafeLeft': 0,
+  // 'crouchRifleStrafeRight': 0,
+  // 'rifleFireCrouch': 0,
+  // 'crouchRapidFireRifle': 0,
+  // Pistol animations
+  // 'pistolIdle': 0,
+  // 'pistolWalk': 0,
+  // 'pistolRun': 0,
+  // 'crouchPistolIdle': 0,
+  // 'crouchPistolWalk': 0,
+};
 
 // List of animations that need Hips POSITION preserved (for lowering effect)
 // Without this, crouch animations lose their Y offset and feet float

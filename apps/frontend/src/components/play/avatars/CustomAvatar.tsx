@@ -51,7 +51,7 @@ import { WeaponAttachment, type WeaponType } from '../WeaponAttachment';
 import { EquipmentAttachment } from '../EquipmentAttachment';
 import { HairAttachment } from '../../character-creator/HairAttachment';
 import { useGamePause } from '../context';
-import { useCombatStore } from '../combat/useCombatStore';
+import { combatFrameData } from '../combat/useCombatStore';
 import {
   ANIMATION_CONFIG,
   type AnimationName,
@@ -488,8 +488,8 @@ export function CustomAvatar({
     currentOffsetY.current += (targetOffsetY - currentOffsetY.current) * t;
     avatarRef.current.position.y = currentOffsetY.current;
 
-    // Upper body aiming - use aimPitch prop if provided, otherwise fall back to store
-    const pitch = aimPitch !== 0 ? aimPitch : useCombatStore.getState().cameraPitch;
+    // Upper body aiming - use aimPitch prop if provided, otherwise fall back to singleton
+    const pitch = aimPitch !== 0 ? aimPitch : combatFrameData.cameraPitch;
     const shouldTrackSpine = spineAimEnabled && weaponType && isAiming;
 
     if (spineRef.current && shouldTrackSpine) {

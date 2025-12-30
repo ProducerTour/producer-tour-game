@@ -3,7 +3,7 @@
  * Supports picking up placed objects with E key
  */
 
-import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { usePlacementStore } from '../../../lib/economy/usePlacementStore';
@@ -29,6 +29,9 @@ export function PlacedObjectsManager({ playerPosition }: PlacedObjectsManagerPro
   const holdStartTime = useRef<number | null>(null);
   const animationFrame = useRef<number | null>(null);
 
+  // Pre-allocate Vector3 for distance calculations (avoids GC pressure)
+  const tempObjPos = useMemo(() => new THREE.Vector3(), []);
+
   // Find nearest pickupable object
   useEffect(() => {
     if (!playerPosition || placedObjects.length === 0) {
@@ -39,8 +42,9 @@ export function PlacedObjectsManager({ playerPosition }: PlacedObjectsManagerPro
     let nearest: { id: string; distance: number } | null = null;
 
     for (const obj of placedObjects) {
-      const objPos = new THREE.Vector3(obj.position[0], obj.position[1], obj.position[2]);
-      const distance = playerPosition.distanceTo(objPos);
+      // Reuse pre-allocated vector instead of creating new one each iteration
+      tempObjPos.set(obj.position[0], obj.position[1], obj.position[2]);
+      const distance = playerPosition.distanceTo(tempObjPos);
 
       if (distance <= PICKUP_RANGE) {
         if (!nearest || distance < nearest.distance) {
@@ -50,7 +54,7 @@ export function PlacedObjectsManager({ playerPosition }: PlacedObjectsManagerPro
     }
 
     setNearestPickupId(nearest?.id ?? null);
-  }, [playerPosition, placedObjects]);
+  }, [playerPosition, placedObjects, tempObjPos]);
 
   // Handle pickup completion
   const handlePickup = useCallback(() => {

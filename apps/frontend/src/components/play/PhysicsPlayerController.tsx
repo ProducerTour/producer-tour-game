@@ -8,11 +8,12 @@
 
 import { useRef, useMemo, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { RigidBody, CapsuleCollider, useRapier, type RapierRigidBody } from '@react-three/rapier';
+import { RigidBody, CapsuleCollider, useRapier, type RapierRigidBody, type RapierContext } from '@react-three/rapier';
+import type { Collider } from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import { useControls, folder } from 'leva';
 import { useKeyboardControls } from './hooks/useKeyboardControls';
-import { useCombatStore } from './combat/useCombatStore';
+import { useCombatStore, combatFrameData } from './combat/useCombatStore';
 import { useFlashlightStore } from '../../stores/useFlashlightStore';
 import { useRecoil } from './combat/useRecoil';
 import { useHitDetection } from './combat/useHitDetection';
@@ -132,7 +133,6 @@ export function PhysicsPlayerController({
   const setAiming = useCombatStore((s) => s.setAiming);
   const isFiring = useCombatStore((s) => s.isFiring);
   const setFiring = useCombatStore((s) => s.setFiring);
-  const setCameraPitch = useCombatStore((s) => s.setCameraPitch);
   const reload = useCombatStore((s) => s.reload);
   const takeDamage = useCombatStore((s) => s.takeDamage);
   const isDead = useCombatStore((s) => s.isDead);
@@ -232,6 +232,9 @@ export function PhysicsPlayerController({
   const MIN_FIRE_DURATION = 200; // ms
   const lastFireStart = useRef<number>(0);
 
+  // Ref to track fire key state for timeout closure (avoids stale closure)
+  const fireKeyRef = useRef(false);
+
   // Animation state (React state for children)
   const [animState, setAnimState] = useState<AnimationState>({
     isMoving: false,
@@ -256,13 +259,45 @@ export function PhysicsPlayerController({
   // Movement state
   // Initialize facing away from camera (camera starts at +Z, so face -Z = PI radians)
   const facingAngle = useRef(Math.PI);
-  const lastAnimState = useRef({ isMoving: false, isRunning: false, isGrounded: true });
+
+  // Track last animation state for change detection (avoids unnecessary re-renders)
+  type LastAnimState = {
+    isMoving: boolean;
+    isRunning: boolean;
+    isGrounded: boolean;
+    isJumping: boolean;
+    isFalling: boolean;
+    isLanding: boolean;
+    isDancing: boolean;
+    dancePressed: boolean;
+    isCrouching: boolean;
+    isStrafingLeft: boolean;
+    isStrafingRight: boolean;
+    isAiming: boolean;
+    isFiring: boolean;
+    airState: PlayerAirState;
+  };
+  const lastAnimState = useRef<LastAnimState>({
+    isMoving: false,
+    isRunning: false,
+    isGrounded: true,
+    isJumping: false,
+    isFalling: false,
+    isLanding: false,
+    isDancing: false,
+    dancePressed: false,
+    isCrouching: false,
+    isStrafingLeft: false,
+    isStrafingRight: false,
+    isAiming: false,
+    isFiring: false,
+    airState: PlayerAirState.GROUNDED,
+  });
 
   // Air state is now managed by useAirState hook (single source of truth for jump/fall/land)
 
   // Crouch state for collider adjustment
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const colliderRef = useRef<any>(null);
+  const colliderRef = useRef<Collider | null>(null);
   const isCrouchingRef = useRef(false);
 
   // Aim mode camera transition (0 = normal, 1 = fully aimed)
@@ -288,6 +323,10 @@ export function PhysicsPlayerController({
     // Additional vectors for frame calculations
     camRight: new THREE.Vector3(),
     worldPos: new THREE.Vector3(),
+    // Aim raycast vectors
+    aimRaycaster: new THREE.Raycaster(),
+    aimTarget: new THREE.Vector3(),
+    aimScreenCenter: new THREE.Vector2(0, 0),
   }), []);
 
   // Camera follow state
@@ -482,6 +521,9 @@ export function PhysicsPlayerController({
     }
   }, [keys.reloadPressed, currentWeapon, reload]);
 
+  // Keep fire key ref in sync for timeout closure (avoids stale closure)
+  fireKeyRef.current = keys.fire;
+
   // Track firing state for animation with minimum duration (prevents spam clicking)
   useEffect(() => {
     const shouldFire = keys.fire && currentWeapon !== 'none';
@@ -499,8 +541,8 @@ export function PhysicsPlayerController({
         // Wait for minimum duration before stopping
         const remaining = MIN_FIRE_DURATION - elapsed;
         setTimeout(() => {
-          // Only stop if still not pressing fire
-          if (!keys.fire) {
+          // Use ref instead of keys.fire to get current value (not stale closure)
+          if (!fireKeyRef.current) {
             setFiring(false);
           }
         }, remaining);
@@ -827,6 +869,17 @@ export function PhysicsPlayerController({
     // Update facing angle from hook
     facingAngle.current = movementState.facingAngle;
 
+    // === AIM FACING - Character faces camera direction when aiming ===
+    // In TPS with centered crosshair, the gun should point where the camera looks.
+    // The crosshair represents camera's forward direction, so character faces that way.
+    // Animation-specific offsets (in DefaultAvatar) compensate for animation orientation.
+    if (isAiming) {
+      // Get camera's horizontal facing direction
+      camera.getWorldDirection(cameraDir);
+      const cameraAngle = Math.atan2(cameraDir.x, cameraDir.z);
+      facingAngle.current = cameraAngle;
+    }
+
     // Extract movement state
     const hasInput = movementState.isMoving;
     const wantsToCrouch = movementState.isCrouching;
@@ -1087,8 +1140,8 @@ export function PhysicsPlayerController({
 
     const dancePressed = keys.dancePressed;
 
-    // Update camera pitch in store for spine aiming (updates every frame)
-    setCameraPitch(pitchAngle.current);
+    // Update camera pitch singleton for spine aiming (avoids per-frame store updates)
+    combatFrameData.cameraPitch = pitchAngle.current;
 
     const currentAnimState: AnimationState = {
       isMoving,
@@ -1116,8 +1169,7 @@ export function PhysicsPlayerController({
     }
 
     // Update animation state (only when changed to avoid re-renders)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const lastState = lastAnimState.current as any;
+    const lastState = lastAnimState.current;
     if (
       lastState.isMoving !== isMoving ||
       lastState.isRunning !== isRunning ||
@@ -1135,10 +1187,21 @@ export function PhysicsPlayerController({
       lastState.airState !== currentAirState
     ) {
       lastAnimState.current = {
-        isMoving, isRunning, isGrounded: animIsGrounded, isJumping, isFalling, isLanding,
-        isDancing, dancePressed, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring,
-        airState: currentAirState
-      } as typeof lastAnimState.current;
+        isMoving,
+        isRunning,
+        isGrounded: animIsGrounded,
+        isJumping,
+        isFalling,
+        isLanding,
+        isDancing,
+        dancePressed,
+        isCrouching,
+        isStrafingLeft,
+        isStrafingRight,
+        isAiming,
+        isFiring,
+        airState: currentAirState,
+      };
       setAnimState(currentAnimState);
     }
   });

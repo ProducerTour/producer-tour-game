@@ -8,6 +8,7 @@ import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useCombatStore, WEAPON_CONFIG } from './useCombatStore';
 import { useNPCStore } from '../npc/useNPCStore';
+import { disposeDebugLine } from '../../../lib/utils/threeDisposal';
 
 export interface HitResult {
   hit: boolean;
@@ -132,8 +133,8 @@ export function useHitDetection(options: UseHitDetectionOptions = {}) {
 
     // Debug visualization
     if (options.debug) {
-      // Remove old debug lines
-      debugLines.current.forEach((line) => scene.remove(line));
+      // Remove and dispose old debug lines (prevents GPU memory leak)
+      debugLines.current.forEach((line) => disposeDebugLine(line, scene));
       debugLines.current = [];
 
       // Create debug line
@@ -149,9 +150,10 @@ export function useHitDetection(options: UseHitDetectionOptions = {}) {
       scene.add(line);
       debugLines.current.push(line);
 
-      // Remove after 100ms
+      // Remove and dispose after 100ms (prevents GPU memory leak)
       setTimeout(() => {
-        scene.remove(line);
+        disposeDebugLine(line, scene);
+        debugLines.current = debugLines.current.filter((l) => l !== line);
       }, 100);
     }
 
@@ -242,9 +244,9 @@ export function useHitDetection(options: UseHitDetectionOptions = {}) {
     damageTarget,
   ]);
 
-  // Cleanup debug lines
+  // Cleanup debug lines (with proper disposal to prevent GPU memory leak)
   const cleanup = useCallback(() => {
-    debugLines.current.forEach((line) => scene.remove(line));
+    debugLines.current.forEach((line) => disposeDebugLine(line, scene));
     debugLines.current = [];
   }, [scene]);
 
