@@ -559,14 +559,22 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
 
     // Priority 1: Animated GLB model with Mixamo rig
     // These models keep the 'mixamorig:' prefix on bone names
+    // Note: Scale is applied at parent group level, so we need to offset Y in world units
+    // For scale=0.01 models (centimeter scale), we need ~1.0 Y offset to place feet on ground
     if (data.modelUrl && data.animated) {
+      // Calculate Y offset to compensate for scale
+      // Models at scale 0.01 need their origin (at feet) raised by ~1 unit in world space
+      const avatarYOffset = data.scale && data.scale < 0.1 ? 1.0 / data.scale : 0;
+
       return (
         <Suspense fallback={<NPCPlaceholder color={color} />}>
-          <MixamoAnimatedAvatar
-            url={data.modelUrl}
-            keepMixamoPrefix={true}
-            {...animationProps}
-          />
+          <group position={[0, avatarYOffset, 0]}>
+            <MixamoAnimatedAvatar
+              url={data.modelUrl}
+              keepMixamoPrefix={true}
+              {...animationProps}
+            />
+          </group>
         </Suspense>
       );
     }

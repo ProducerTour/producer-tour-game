@@ -14,6 +14,9 @@ interface DevState {
   speedMultiplier: number;
   gravityMultiplier: number;
 
+  // Avatar selection
+  useXBotAvatar: boolean;
+
   // Debug Visuals
   showHitboxes: boolean;
   showWireframe: boolean;
@@ -43,6 +46,9 @@ interface DevState {
   toggleUnlimitedAmmo: () => void;
   setSpeedMultiplier: (speed: number) => void;
   setGravityMultiplier: (gravity: number) => void;
+
+  // Actions - Avatar
+  toggleXBotAvatar: () => void;
 
   // Actions - Debug Visuals
   toggleHitboxes: () => void;
@@ -79,6 +85,9 @@ const DEFAULT_DEV_STATE = {
   speedMultiplier: 1,
   gravityMultiplier: 1,
 
+  // Avatar selection
+  useXBotAvatar: false,
+
   // Debug Visuals
   showHitboxes: false,
   showWireframe: false,
@@ -112,6 +121,9 @@ export const useDevStore = create<DevState>((set) => ({
   toggleUnlimitedAmmo: () => set((state) => ({ unlimitedAmmo: !state.unlimitedAmmo })),
   setSpeedMultiplier: (speed) => set({ speedMultiplier: Math.max(0.1, Math.min(10, speed)) }),
   setGravityMultiplier: (gravity) => set({ gravityMultiplier: Math.max(0, Math.min(5, gravity)) }),
+
+  // Avatar toggle
+  toggleXBotAvatar: () => set((state) => ({ useXBotAvatar: !state.useXBotAvatar })),
 
   // Debug visual toggles
   toggleHitboxes: () => set((state) => ({ showHitboxes: !state.showHitboxes })),

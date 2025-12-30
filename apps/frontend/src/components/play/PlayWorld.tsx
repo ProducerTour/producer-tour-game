@@ -55,6 +55,8 @@ import { useGameSettings } from '../../store/gameSettings.store';
 
 // Import extracted avatar components
 import { PlaceholderAvatar, DefaultAvatar } from './avatars';
+import { CharacterRenderer, MODELS } from './animation';
+import { useDevStore } from './debug/useDevStore';
 // Error boundaries for crash prevention
 import {
   AvatarErrorBoundary,
@@ -176,6 +178,9 @@ export function PlayWorld({
   const currentWeapon = useCombatStore((s) => s.currentWeapon);
   const weaponType: WeaponType = currentWeapon === 'none' ? null : currentWeapon;
 
+  // Dev store for avatar selection
+  const useXBotAvatar = useDevStore((s) => s.useXBotAvatar);
+
   // Flashlight state for terrain shader spotlight illumination
   // Note: Position/direction now come from flashlightData singleton, not store
   const isFlashlightOn = useFlashlightStore((s) => s.isOn);
@@ -235,6 +240,13 @@ export function PlayWorld({
     const biomeAtSpawn = terrainGenerator.getBiome(spawnPos.x, spawnPos.z);
     console.log(`🎭 NPC spawn: (${spawnPos.x.toFixed(1)}, ${spawnPos.z.toFixed(1)}) height=${spawnPos.y.toFixed(2)}m biome=${biomeAtSpawn}`);
 
+    // Second spawn position for SWAT NPC (offset from bandit)
+    const swatSpawnPos = {
+      x: spawnPos.x + 5,
+      y: terrainGenerator.getHeight(spawnPos.x + 5, spawnPos.z + 3),
+      z: spawnPos.z + 3,
+    };
+
     return [
       createNPC({
         name: 'Bandit',
@@ -249,6 +261,22 @@ export function PlayWorld({
         modelUrl: getModelPath('Bandit/bandit.glb'),
         animated: true, // Has Mixamo rig, use Mixamo animations
         scale: 1,
+        isInteractable: true,
+        interactionRange: 3,
+      }),
+      createNPC({
+        name: 'SWAT Operator',
+        position: swatSpawnPos,
+        spawnPosition: swatSpawnPos,
+        rotation: Math.PI,
+        behavior: 'wander',
+        type: 'friendly',
+        health: 150,
+        maxHealth: 150,
+        respawnTime: 15000,
+        modelUrl: '/assets/avatars/swat_npc.glb',
+        animated: true, // Mixamo-rigged, use Mixamo animations
+        scale: 0.01, // FBX models often need scaling
         isInteractable: true,
         interactionRange: 3,
       }),
@@ -648,23 +676,38 @@ export function PlayWorld({
             {({ isMoving, isRunning, isGrounded, isJumping, isFalling, isDancing, dancePressed, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring, velocityY }) => (
               <AvatarErrorBoundary fallback={<PlaceholderAvatar isMoving={false} />}>
                 <Suspense fallback={<PlaceholderAvatar isMoving={false} />}>
-                  <DefaultAvatar
-                    isMoving={isMoving}
-                    isRunning={isRunning}
-                    isGrounded={isGrounded}
-                    isJumping={isJumping}
-                    isFalling={isFalling}
-                    isDancing={isDancing}
-                    dancePressed={dancePressed}
-                    isCrouching={isCrouching}
-                    isStrafingLeft={isStrafingLeft}
-                    isStrafingRight={isStrafingRight}
-                    isAiming={isAiming}
-                    isFiring={isFiring}
-                    velocityY={velocityY}
-                    weapon={weaponType}
-                    isPlayer
-                  />
+                  {useXBotAvatar ? (
+                    <CharacterRenderer
+                      modelUrl={MODELS.xbot}
+                      isMoving={isMoving}
+                      isRunning={isRunning}
+                      isGrounded={isGrounded}
+                      isJumping={isJumping}
+                      isStrafingLeft={isStrafingLeft}
+                      isStrafingRight={isStrafingRight}
+                      weaponType={weaponType === null ? 'none' : weaponType}
+                      isAiming={isAiming}
+                      isCrouching={isCrouching}
+                    />
+                  ) : (
+                    <DefaultAvatar
+                      isMoving={isMoving}
+                      isRunning={isRunning}
+                      isGrounded={isGrounded}
+                      isJumping={isJumping}
+                      isFalling={isFalling}
+                      isDancing={isDancing}
+                      dancePressed={dancePressed}
+                      isCrouching={isCrouching}
+                      isStrafingLeft={isStrafingLeft}
+                      isStrafingRight={isStrafingRight}
+                      isAiming={isAiming}
+                      isFiring={isFiring}
+                      velocityY={velocityY}
+                      weapon={weaponType}
+                      isPlayer
+                    />
+                  )}
                 </Suspense>
               </AvatarErrorBoundary>
             )}

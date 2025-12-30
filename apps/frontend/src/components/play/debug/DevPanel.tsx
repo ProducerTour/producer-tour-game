@@ -1,10 +1,10 @@
 /**
  * Dev Panel Component
  * Quick access floating panel for dev controls
- * Toggle with F1 key
+ * Toggle with F2 key, draggable by header
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDevStore } from './useDevStore';
 import { useCombatStore } from '../combat/useCombatStore';
 import { useGameSettings } from '../../../store/gameSettings.store';
@@ -14,6 +14,11 @@ export function DevPanel() {
   const devStore = useDevStore();
   const combatStore = useCombatStore();
   const { showWeaponEditor, toggleWeaponEditor } = useGameSettings();
+
+  // Draggable position state
+  const [position, setPosition] = useState({ x: window.innerWidth - 280, y: 64 });
+  const isDragging = useRef(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
 
   // Toggle panel with F2 key
   useEffect(() => {
@@ -28,18 +33,74 @@ export function DevPanel() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Handle drag start
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    isDragging.current = true;
+    dragOffset.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    };
+    e.preventDefault();
+  }, [position]);
+
+  // Handle drag move and end
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+
+      const newX = Math.max(0, Math.min(window.innerWidth - 280, e.clientX - dragOffset.current.x));
+      const newY = Math.max(0, Math.min(window.innerHeight - 100, e.clientY - dragOffset.current.y));
+
+      setPosition({ x: newX, y: newY });
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed top-16 right-4 z-40 bg-gray-900/95 border border-gray-700 rounded-lg p-4 font-mono text-sm w-64 shadow-2xl">
-      <div className="flex items-center justify-between mb-4">
+    <div
+      className="fixed z-40 bg-gray-900/95 border border-gray-700 rounded-lg p-4 font-mono text-sm w-64 shadow-2xl"
+      style={{ left: position.x, top: position.y }}
+    >
+      <div
+        className="flex items-center justify-between mb-4 cursor-move select-none"
+        onMouseDown={handleMouseDown}
+      >
         <h3 className="text-green-400 font-bold">Dev Panel</h3>
         <button
           onClick={() => setIsOpen(false)}
           className="text-gray-400 hover:text-white"
+          onMouseDown={(e) => e.stopPropagation()}
         >
           X
         </button>
+      </div>
+
+      {/* Avatar Selection */}
+      <div className="mb-4">
+        <h4 className="text-gray-400 text-xs uppercase mb-2">Avatar</h4>
+        <div className="space-y-2">
+          <ToggleButton
+            label="X Bot (Test)"
+            active={devStore.useXBotAvatar}
+            onClick={devStore.toggleXBotAvatar}
+          />
+        </div>
+        <p className="text-xs text-gray-500 mt-1">
+          {devStore.useXBotAvatar ? 'Using X Bot (Mixamo)' : 'Using SWAT Operator'}
+        </p>
       </div>
 
       {/* Cheats Section */}
