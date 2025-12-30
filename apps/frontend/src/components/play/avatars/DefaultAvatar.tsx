@@ -24,6 +24,7 @@ import {
 } from '../hooks/useAnimationStateMachine';
 import { WeaponAttachment, type WeaponType } from '../WeaponAttachment';
 import { EquipmentAttachment } from '../EquipmentAttachment';
+import { useCombatStore } from '../combat/useCombatStore';
 
 // Default avatar model path
 const DEFAULT_AVATAR_PATH = '/assets/avatars/swat_operator.glb';
@@ -93,6 +94,7 @@ export function DefaultAvatar({
   const avatarRef = useRef<THREE.Group>(null);
   const skeletonHelperRef = useRef<THREE.SkeletonHelper | null>(null);
   const boxHelperRef = useRef<THREE.BoxHelper | null>(null);
+  const spineRef = useRef<THREE.Bone | null>(null);  // For upper body aiming
 
   // Detected bone structure
   const [boneInfo, setBoneInfo] = useState({
@@ -158,14 +160,39 @@ export function DefaultAvatar({
       }, { disabled: false }),
     }, { collapsed: true }),
 
-    // Weapon state rotation corrections (from MixamoAnimatedAvatar)
+    // Character lean/tilt per animation state (fixes leaning back when running)
+    'Character Lean': folder({
+      leanLerpSpeed: { value: 8, min: 1, max: 20, step: 1, label: 'Lerp Speed' },
+      idleLeanX: { value: 0, min: -30, max: 30, step: 1, label: 'Idle Lean X°' },
+      walkLeanX: { value: 0, min: -30, max: 30, step: 1, label: 'Walk Lean X°' },
+      runLeanX: { value: 18, min: -30, max: 30, step: 1, label: 'Run Lean X°' },
+      aimLeanX: { value: 0, min: -30, max: 30, step: 1, label: 'Aim Lean X°' },
+      fireLeanX: { value: 0, min: -30, max: 30, step: 1, label: 'Fire Lean X°' },
+    }, { collapsed: false }),
+
+    // Weapon state rotation corrections (Y axis - horizontal facing)
     'Weapon Offsets': folder({
       lerpSpeed: { value: 8, min: 1, max: 20, step: 1, label: 'Lerp Speed' },
       rifleIdleRotY: { value: -45, min: -90, max: 90, step: 1, label: 'Rifle Idle Y°' },
       rifleWalkRotY: { value: -45, min: -90, max: 90, step: 1, label: 'Rifle Walk Y°' },
       rifleRunRotY: { value: 0, min: -90, max: 90, step: 1, label: 'Rifle Run Y°' },
+      rifleAimIdleRotY: { value: -50, min: -90, max: 90, step: 1, label: 'Rifle Aim Idle Y°' },
+      rifleAimWalkRotY: { value: -41, min: -90, max: 90, step: 1, label: 'Rifle Aim Walk Y°' },
+      rifleFireRotY: { value: 0, min: -90, max: 90, step: 1, label: 'Rifle Fire Y°' },
       pistolIdleRotY: { value: -45, min: -90, max: 90, step: 1, label: 'Pistol Idle Y°' },
       pistolWalkRotY: { value: 0, min: -90, max: 90, step: 1, label: 'Pistol Walk Y°' },
+      pistolAimIdleRotY: { value: 0, min: -90, max: 90, step: 1, label: 'Pistol Aim Idle Y°' },
+      pistolAimWalkRotY: { value: 0, min: -90, max: 90, step: 1, label: 'Pistol Aim Walk Y°' },
+      pistolFireRotY: { value: 0, min: -90, max: 90, step: 1, label: 'Pistol Fire Y°' },
+    }, { collapsed: true }),
+
+    // Spine aiming - upper body follows camera pitch when weapon equipped
+    'Spine Aim': folder({
+      spineAimEnabled: { value: true, label: 'Enable Spine Aim' },
+      spineAimAlways: { value: true, label: 'Track Mouse Always' },
+      spineAimMultiplier: { value: 1.0, min: 0, max: 1.5, step: 0.05, label: 'Pitch Multiplier' },
+      spineAimMaxAngle: { value: 45, min: 15, max: 75, step: 5, label: 'Max Angle°' },
+      spineAimSmoothing: { value: 10, min: 2, max: 20, step: 1, label: 'Smoothing' },
     }, { collapsed: true }),
   }, [boneInfo, currentAnimState]);
 
@@ -218,6 +245,13 @@ export function DefaultAvatar({
       }
       if ((child as THREE.Bone).isBone) {
         bones.push(child.name);
+        // Find spine bone for upper body aiming (prefer Spine2 for more visible effect)
+        const boneName = child.name.toLowerCase();
+        if (boneName.includes('spine2') || boneName.includes('spine1')) {
+          if (boneName.includes('spine2') || !spineRef.current) {
+            spineRef.current = child as THREE.Bone;
+          }
+        }
       }
       if ((child as THREE.SkinnedMesh).isSkinnedMesh) {
         const mesh = child as THREE.SkinnedMesh;
@@ -315,46 +349,129 @@ export function DefaultAvatar({
     }
   });
 
-  // Refs for smooth weapon rotation interpolation
+  // Refs for smooth weapon rotation and lean interpolation
   const currentWeaponRotY = useRef(0);
+  const currentLeanX = useRef(0);
 
-  // Apply weapon rotation corrections per animation state (from MixamoAnimatedAvatar)
+  // Apply weapon rotation and character lean per animation state
   useFrame((_, delta) => {
     if (!avatarRef.current) return;
 
-    // Determine target Y rotation based on current animation state
+    // Determine target Y rotation and lean based on current animation state
     let targetRotY = 0;
+    let targetLeanX = 0;
 
-    // Rifle states
-    if (currentAnimState === 'rifleIdle' || currentAnimState === 'rifleAimIdle') {
-      targetRotY = controls.rifleIdleRotY;
-    } else if (currentAnimState === 'rifleWalk' || currentAnimState === 'rifleAimWalk') {
-      targetRotY = controls.rifleWalkRotY;
-    } else if (currentAnimState === 'rifleRun') {
-      targetRotY = controls.rifleRunRotY;
-    } else if (currentAnimState.startsWith('rifleFire')) {
-      targetRotY = controls.rifleIdleRotY; // Use idle rotation for firing
+    // Categorize animation state
+    const isFireState = currentAnimState.startsWith('rifleFire') || currentAnimState.startsWith('pistolFire');
+    const isAimState = currentAnimState.includes('Aim');
+    const isRunState = currentAnimState.includes('Run') || currentAnimState === 'running';
+    const isWalkState = currentAnimState.includes('Walk') || currentAnimState === 'walking';
+    const isIdleState = currentAnimState === 'idle' || currentAnimState.endsWith('Idle');
+
+    // === WEAPON ROTATION (Y axis) ===
+    if (isFireState) {
+      // Firing: use fire-specific rotation
+      if (currentAnimState.startsWith('rifleFire')) {
+        targetRotY = controls.rifleFireRotY;
+      } else {
+        targetRotY = controls.pistolFireRotY;
+      }
+    } else if (isAimState) {
+      // Aiming: differentiate between aim idle and aim walk
+      const isAimWalking = currentAnimState.includes('Walk') || currentAnimState.includes('walk');
+      if (currentAnimState.includes('rifle') || currentAnimState.includes('Rifle')) {
+        targetRotY = isAimWalking ? controls.rifleAimWalkRotY : controls.rifleAimIdleRotY;
+      } else {
+        targetRotY = isAimWalking ? controls.pistolAimWalkRotY : controls.pistolAimIdleRotY;
+      }
+    } else {
+      // Hip-fire states: use standard weapon offsets
+      if (currentAnimState === 'rifleIdle') {
+        targetRotY = controls.rifleIdleRotY;
+      } else if (currentAnimState === 'rifleWalk') {
+        targetRotY = controls.rifleWalkRotY;
+      } else if (currentAnimState === 'rifleRun') {
+        targetRotY = controls.rifleRunRotY;
+      } else if (currentAnimState === 'pistolIdle') {
+        targetRotY = controls.pistolIdleRotY;
+      } else if (currentAnimState === 'pistolWalk' || currentAnimState === 'pistolRun') {
+        targetRotY = controls.pistolWalkRotY;
+      } else if (currentAnimState === 'crouchRifleIdle' || currentAnimState === 'crouchRifleWalk') {
+        targetRotY = controls.rifleIdleRotY;
+      } else if (currentAnimState === 'crouchPistolIdle' || currentAnimState === 'crouchPistolWalk') {
+        targetRotY = controls.pistolIdleRotY;
+      }
     }
-    // Pistol states
-    else if (currentAnimState === 'pistolIdle') {
-      targetRotY = controls.pistolIdleRotY;
-    } else if (currentAnimState === 'pistolWalk' || currentAnimState === 'pistolRun') {
-      targetRotY = controls.pistolWalkRotY;
-    }
-    // Crouch + weapon states
-    else if (currentAnimState.startsWith('crouchRifle')) {
-      targetRotY = controls.rifleIdleRotY;
-    } else if (currentAnimState.startsWith('crouchPistol')) {
-      targetRotY = controls.pistolIdleRotY;
+
+    // === CHARACTER LEAN (X axis) ===
+    if (isFireState) {
+      targetLeanX = controls.fireLeanX;
+    } else if (isAimState) {
+      targetLeanX = controls.aimLeanX;
+    } else if (isRunState) {
+      targetLeanX = controls.runLeanX;
+    } else if (isWalkState) {
+      targetLeanX = controls.walkLeanX;
+    } else if (isIdleState) {
+      targetLeanX = controls.idleLeanX;
     }
 
     // Smooth lerp towards target rotation
     const t = 1 - Math.exp(-controls.lerpSpeed * delta);
     currentWeaponRotY.current += (targetRotY - currentWeaponRotY.current) * t;
 
-    // Apply additional Y rotation to avatar (combines with base rotation from controls)
+    const leanT = 1 - Math.exp(-controls.leanLerpSpeed * delta);
+    currentLeanX.current += (targetLeanX - currentLeanX.current) * leanT;
+
+    // Apply rotations to avatar
     const weaponRotYRad = (currentWeaponRotY.current * Math.PI) / 180;
+    const leanXRad = (currentLeanX.current * Math.PI) / 180;
     avatarRef.current.rotation.y = weaponRotYRad;
+    avatarRef.current.rotation.x = leanXRad;
+  });
+
+  // Refs for smooth spine aiming interpolation
+  const currentSpinePitch = useRef(0);
+  const baseSpineRotationX = useRef(0);
+
+  // Upper body aiming - rotate spine bone to follow camera pitch
+  useFrame((_, delta) => {
+    // Read cameraPitch directly from store (updates every frame)
+    const cameraPitch = useCombatStore.getState().cameraPitch;
+
+    // Only track spine when weapon equipped and (always tracking OR aiming)
+    const shouldTrackSpine = controls.spineAimEnabled && weapon && (controls.spineAimAlways || isAiming);
+
+    if (spineRef.current && shouldTrackSpine) {
+      // Capture the animation's base rotation BEFORE we modify it
+      baseSpineRotationX.current = spineRef.current.rotation.x;
+
+      // Calculate target spine pitch based on camera pitch
+      // cameraPitch is negative when looking up, positive when looking down
+      const maxAngleRad = (controls.spineAimMaxAngle * Math.PI) / 180;
+      const targetSpinePitch = Math.max(-maxAngleRad, Math.min(maxAngleRad,
+        cameraPitch * controls.spineAimMultiplier
+      ));
+
+      // Smooth interpolation for natural movement
+      const spineT = 1 - Math.exp(-controls.spineAimSmoothing * delta);
+      currentSpinePitch.current += (targetSpinePitch - currentSpinePitch.current) * spineT;
+
+      // Apply offset FROM BASE rotation (prevents 360 accumulation)
+      spineRef.current.rotation.x = baseSpineRotationX.current + currentSpinePitch.current;
+    } else if (spineRef.current) {
+      // Capture base rotation for return-to-neutral
+      baseSpineRotationX.current = spineRef.current.rotation.x;
+
+      // Smoothly return to neutral when no weapon equipped
+      const returnT = 1 - Math.exp(-controls.spineAimSmoothing * delta);
+      currentSpinePitch.current *= (1 - returnT);
+
+      // Only apply if there's significant rotation to avoid jitter
+      if (Math.abs(currentSpinePitch.current) > 0.001) {
+        spineRef.current.rotation.x = baseSpineRotationX.current + currentSpinePitch.current;
+      }
+    }
   });
 
   // Hips correction quaternion
