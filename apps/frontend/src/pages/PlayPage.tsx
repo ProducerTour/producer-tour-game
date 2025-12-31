@@ -17,6 +17,7 @@ import {
   Play,
   Save,
   UserRoundCog,
+  Server,
 } from 'lucide-react';
 import { Leva } from 'leva';
 import { PlayWorld, type PlayerInfo } from '../components/play/PlayWorld';
@@ -36,7 +37,9 @@ import { userApi, avatarApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
 import type { CharacterConfig } from '../lib/character/types';
 import { useGameSettings, SHADOW_MAP_SIZES } from '../store/gameSettings.store';
-import { useSocket } from '../hooks/useSocket';
+import { useSocket, switchServer } from '../hooks/useSocket';
+import ServerBrowser from '../components/ServerBrowser';
+import { GameServer } from '../stores/serverStore';
 import { useServerVersion } from '../hooks/useServerVersion';
 import { DEFAULT_WORLD_CONFIG } from '../lib/config';
 // Grass now loads progressively - store no longer needed for blocking
@@ -131,12 +134,14 @@ function PauseMenu({
   onResume,
   onSettings,
   onCustomize,
+  onSwitchServer,
   onQuit,
   stats,
 }: {
   onResume: () => void;
   onSettings: () => void;
   onCustomize: () => void;
+  onSwitchServer: () => void;
   onQuit: () => void;
   stats: { level: number; xp: number; maxXp: number; playTime: number };
 }) {
@@ -217,6 +222,16 @@ function PauseMenu({
               >
                 <Settings className="w-5 h-5" />
                 Settings
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onSwitchServer}
+                className="w-full py-3 px-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+              >
+                <Server className="w-5 h-5" />
+                Switch Server
               </motion.button>
 
               <motion.button
@@ -722,6 +737,7 @@ export default function PlayPage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(savedState.current?.avatarUrl || null);
   const [avatarConfig, setAvatarConfig] = useState<CharacterConfig | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [showServerBrowser, setShowServerBrowser] = useState(false);
   // Adaptive DPR - starts at 1.5, scales down on low FPS, up on high FPS
   const [dpr, setDpr] = useState(1);
   const [isMuted, _setIsMuted] = useState(savedState.current?.settings?.isMuted ?? false);
@@ -1047,7 +1063,7 @@ export default function PlayPage() {
 
       {/* Pause Menu */}
       <AnimatePresence>
-        {isPaused && !showSettings && (
+        {isPaused && !showSettings && !showServerBrowser && (
           <PauseMenu
             onResume={() => {
               setIsPaused(false);
@@ -1055,6 +1071,7 @@ export default function PlayPage() {
             }}
             onSettings={() => setShowSettings(true)}
             onCustomize={() => navigate('/character-creator')}
+            onSwitchServer={() => setShowServerBrowser(true)}
             onQuit={() => navigate('/')}
             stats={playerStats}
           />
@@ -1069,6 +1086,19 @@ export default function PlayPage() {
           />
         )}
       </AnimatePresence>
+
+      {/* Server Browser */}
+      {showServerBrowser && (
+        <ServerBrowser
+          isInGame={true}
+          onClose={() => setShowServerBrowser(false)}
+          onJoin={(server: GameServer) => {
+            setShowServerBrowser(false);
+            setIsPaused(false);
+            switchServer(server.host, server.port);
+          }}
+        />
+      )}
 
       {/* Character Creator Button - Top Right */}
       {!showWelcome && (

@@ -3008,3 +3008,27 @@ model UserAvatar {
   @@index([userId])
   @@map("user_avatars")
 }
+
+// ========================================
+// GAME SERVERS - Server Browser
+// ========================================
+
+model GameServer {
+  id            String    @id @default(cuid())
+  name          String    // Display name: "US West - Free Roam"
+  host          String    // Hostname or IP: "us-west.producer.tour"
+  port          Int       @default(3000)
+  region        String    // Region code: "us-west", "eu-central", "asia"
+  gameMode      String    @default("free-roam")
+  maxPlayers    Int       @default(50)
+  playerCount   Int       @default(0)
+  status        String    @default("online") // online, offline, maintenance
+  lastHeartbeat DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([region])
+  @@index([status])
+  @@map("game_servers")
+}

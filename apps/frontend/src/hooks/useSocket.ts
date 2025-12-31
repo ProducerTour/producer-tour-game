@@ -2,7 +2,57 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/auth.store';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+// Default socket URL
+const DEFAULT_SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+
+// Current active socket URL (can be changed for server switching)
+let currentSocketUrl = DEFAULT_SOCKET_URL;
+let socketUrlVersion = 0;
+
+/**
+ * Get the current socket URL
+ */
+export const getSocketUrl = () => currentSocketUrl;
+
+/**
+ * Switch to a different game server
+ * This will disconnect from the current server and connect to the new one
+ */
+export const switchServer = (host: string, port: number) => {
+  // Construct new URL
+  const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+  const newUrl = `${protocol}://${host}:${port}`;
+
+  if (newUrl !== currentSocketUrl) {
+    currentSocketUrl = newUrl;
+    socketUrlVersion++;
+    console.log(`🔄 Switching server to: ${newUrl}`);
+
+    // Store in localStorage for reconnection
+    localStorage.setItem('selected-server-url', newUrl);
+
+    // Dispatch event to trigger reconnect
+    window.dispatchEvent(new CustomEvent('socket:server-changed', { detail: { url: newUrl } }));
+  }
+};
+
+/**
+ * Reset to default server (for local development or fallback)
+ */
+export const resetToDefaultServer = () => {
+  currentSocketUrl = DEFAULT_SOCKET_URL;
+  socketUrlVersion++;
+  localStorage.removeItem('selected-server-url');
+  window.dispatchEvent(new CustomEvent('socket:server-changed', { detail: { url: DEFAULT_SOCKET_URL } }));
+};
+
+// Initialize from localStorage on module load
+if (typeof window !== 'undefined') {
+  const savedUrl = localStorage.getItem('selected-server-url');
+  if (savedUrl) {
+    currentSocketUrl = savedUrl;
+  }
+}
 
 // Guest mode state - allows multiplayer testing without auth (dev only)
 // Using a global counter to trigger reconnects
@@ -111,6 +161,7 @@ export function useSocket(): UseSocketReturn {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Map<string, Set<string>>>(new Map());
   const [guestModeState, setGuestModeState] = useState(guestModeEnabled);
+  const [serverUrl, setServerUrl] = useState(currentSocketUrl);
 
   // Listen for guest mode changes
   useEffect(() => {
@@ -119,6 +170,16 @@ export function useSocket(): UseSocketReturn {
     };
     window.addEventListener('socket:guest-mode-changed', handleGuestModeChange);
     return () => window.removeEventListener('socket:guest-mode-changed', handleGuestModeChange);
+  }, []);
+
+  // Listen for server changes
+  useEffect(() => {
+    const handleServerChange = (event: CustomEvent<{ url: string }>) => {
+      console.log('🔄 Server change detected:', event.detail.url);
+      setServerUrl(event.detail.url);
+    };
+    window.addEventListener('socket:server-changed', handleServerChange as EventListener);
+    return () => window.removeEventListener('socket:server-changed', handleServerChange as EventListener);
   }, []);
 
   // Callbacks refs to avoid stale closures
@@ -149,7 +210,7 @@ export function useSocket(): UseSocketReturn {
     }
 
     // Create socket connection - use guest auth if no token
-    const socket = io(SOCKET_URL, {
+    const socket = io(serverUrl, {
       auth: guestModeState ? { guest: true } : { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -254,7 +315,7 @@ export function useSocket(): UseSocketReturn {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [user, token, guestModeState]);
+  }, [user, token, guestModeState, serverUrl]);
 
   const joinConversation = useCallback((conversationId: string) => {
     socketRef.current?.emit('conversation:join', conversationId);

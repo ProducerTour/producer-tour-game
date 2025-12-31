@@ -495,6 +495,19 @@ export function initializeSocket(httpServer: HttpServer): Server {
     // Set up chunk streaming handlers for play room
     setupChunkHandlers(io!, socket);
 
+    // Server info event - returns info about this game server
+    socket.on('server:info', () => {
+      const serverInfo = {
+        id: process.env.GAME_SERVER_ID || 'local-dev',
+        name: process.env.GAME_SERVER_NAME || 'Local Development',
+        region: process.env.GAME_SERVER_REGION || 'local',
+        version: SERVER_VERSION,
+        playerCount: players3D.size,
+        maxPlayers: parseInt(process.env.GAME_SERVER_MAX_PLAYERS || '50'),
+      };
+      socket.emit('server:info', serverInfo);
+    });
+
     // Handle joining a specific conversation
     socket.on('conversation:join', async (conversationId: string) => {
       try {

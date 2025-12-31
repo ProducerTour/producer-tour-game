@@ -522,6 +522,67 @@ async function main() {
   }
   console.log('✅ Created achievements:', achievements.length);
 
+  // Seed Game Servers
+  const gameServers = [
+    {
+      id: 'us-west-1',
+      name: 'US West - Free Roam',
+      host: 'us-west.producer.tour',
+      port: 3000,
+      region: 'us-west',
+      gameMode: 'free-roam',
+      maxPlayers: 50,
+      status: 'online',
+    },
+    {
+      id: 'us-east-1',
+      name: 'US East - Free Roam',
+      host: 'us-east.producer.tour',
+      port: 3000,
+      region: 'us-east',
+      gameMode: 'free-roam',
+      maxPlayers: 50,
+      status: 'online',
+    },
+    {
+      id: 'eu-central-1',
+      name: 'EU Central - Free Roam',
+      host: 'eu.producer.tour',
+      port: 3000,
+      region: 'eu-central',
+      gameMode: 'free-roam',
+      maxPlayers: 50,
+      status: 'online',
+    },
+    {
+      id: 'asia-1',
+      name: 'Asia - Free Roam',
+      host: 'asia.producer.tour',
+      port: 3000,
+      region: 'asia',
+      gameMode: 'free-roam',
+      maxPlayers: 50,
+      status: 'online',
+    },
+  ];
+
+  for (const server of gameServers) {
+    await prisma.gameServer.upsert({
+      where: { id: server.id },
+      update: {
+        name: server.name,
+        host: server.host,
+        port: server.port,
+        region: server.region,
+        gameMode: server.gameMode,
+        maxPlayers: server.maxPlayers,
+        status: server.status,
+      },
+      create: server,
+    });
+  }
+  console.log('✅ Created game servers:', gameServers.length);
+
   console.log('✨ Seeding completed!');
 }
 

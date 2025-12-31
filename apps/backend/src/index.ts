@@ -22,6 +22,7 @@ import feedRoutes from './routes/feed.routes';
 import notificationRoutes from './routes/notification.routes';
 import pushRoutes from './routes/push.routes';
 import settingsRoutes from './routes/settings.routes';
+import serversRoutes from './routes/servers.routes';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -108,6 +109,7 @@ app.use('/api/feed', feedRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/servers', serversRoutes);
 
 // Error handling
 app.use(notFoundHandler);
