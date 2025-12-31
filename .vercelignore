@@ -11,3 +11,17 @@ dist
 .gitignore
 README.md
 *.md
+
+# Large assets (served from R2 CDN)
+apps/frontend/public/models
+apps/frontend/public/animations
+apps/frontend/public/assets/avatars
+apps/frontend/public/textures
+apps/frontend/public/videos
+apps/frontend/public/.wrangler
+apps/frontend/ios
+
+# Large file types
+*.mp4
+*.glb
+*.fbx
