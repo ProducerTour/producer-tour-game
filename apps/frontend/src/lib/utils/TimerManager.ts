@@ -17,10 +17,10 @@ type TimerCallback = () => void;
 export class TimerManager {
   private timers = new Map<string, ReturnType<typeof setTimeout>>();
   private intervals = new Map<string, ReturnType<typeof setInterval>>();
-  private name: string;
 
-  constructor(name: string = 'default') {
-    this.name = name;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  constructor(_name: string = 'default') {
+    // Name reserved for future debugging/logging
   }
 
   /**

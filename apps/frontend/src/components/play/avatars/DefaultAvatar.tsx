@@ -468,8 +468,12 @@ const DefaultAvatarInner = memo(function DefaultAvatar({
   // Apply character lean based on movement state
   // NOTE: Y rotation is handled EXCLUSIVELY by PhysicsPlayerController (single source of truth)
   // Read from animationState singleton directly to avoid stale props
+  // IMPORTANT: Only apply to player avatar - remote players use their own animation state
   useFrame((_, delta) => {
     if (!avatarRef.current) return;
+
+    // Skip lean logic for non-player avatars (they don't use the singleton)
+    if (!isPlayer) return;
 
     // Read directly from singleton (avoids stale prop closures)
     const { isMoving: moving, isRunning: running, isAiming: aiming, isFiring: firing } = animationState;
@@ -526,7 +530,11 @@ const DefaultAvatarInner = memo(function DefaultAvatar({
   const baseSpineRotationX = useRef(0);
 
   // Upper body aiming - rotate spine bone to follow camera pitch
+  // Only applies to player avatar - remote players don't send camera pitch
   useFrame((_, delta) => {
+    // Skip spine tracking for non-player avatars (no camera pitch data)
+    if (!isPlayer) return;
+
     // Read cameraPitch from singleton (avoids per-frame store overhead)
     const cameraPitch = combatFrameData.cameraPitch;
 

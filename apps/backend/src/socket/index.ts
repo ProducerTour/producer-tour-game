@@ -427,7 +427,17 @@ export function initializeSocket(httpServer: HttpServer): Server {
   io.use(async (socket: AuthenticatedSocket, next) => {
     try {
       const token = socket.handshake.auth.token || socket.handshake.query.token;
-      console.log(`🔐 Socket auth attempt from ${socket.id}, hasToken: ${!!token}`);
+      const isGuest = socket.handshake.auth.guest === true;
+      console.log(`🔐 Socket auth attempt from ${socket.id}, hasToken: ${!!token}, isGuest: ${isGuest}`);
+
+      // Allow guest connections for multiplayer testing (dev mode only)
+      if (isGuest && process.env.NODE_ENV !== 'production') {
+        const guestId = `guest_${socket.id.slice(0, 8)}`;
+        console.log(`👤 Socket ${socket.id} connected as guest: ${guestId}`);
+        socket.userId = guestId;
+        socket.userRole = 'GUEST';
+        return next();
+      }
 
       if (!token) {
         console.log(`❌ Socket ${socket.id} rejected: No token provided`);

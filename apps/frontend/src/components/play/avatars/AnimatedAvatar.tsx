@@ -346,7 +346,7 @@ export function AnimatedAvatar({
           const skinnedMesh = child as THREE.SkinnedMesh;
           if (skinnedMesh.skeleton) {
             const helper = new THREE.SkeletonHelper(skinnedMesh);
-            helper.visible = debugState.showSkeleton;
+            helper.visible = true;
             skeletonHelperRef.current = helper;
             threeScene.add(helper);
           }

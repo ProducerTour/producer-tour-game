@@ -12,6 +12,7 @@ import { TEXTURE_SCALE, MAX_HEIGHT, MIN_HEIGHT, WATER_LEVEL } from '../../../lib
 import { getTexturePath } from '../../../config/assetPaths';
 import { FogType, DEFAULT_FOG_CONFIG } from '../../../lib/fog';
 import { flashlightData } from '../../../stores/useFlashlightStore';
+import { lightingState } from '../lighting/useLightingStore';
 
 // Texture paths - uses CDN in production, local in development
 const TEXTURE_PATHS = {
@@ -741,14 +742,25 @@ export function useTerrainMaterial({
     });
 
     return shaderMat;
-  // Note: spotlight props not in deps - updated via useEffect below to avoid recreating material every frame
-  }, [grassTextures, rockTextures, sandTextures, grassScale, rockScale, sandScale, simple, debugWeights, fogEnabled, fogType, fogColor, fogNear, fogFar, fogDensity, fogHeightEnabled, fogBaseHeight, fogHeightFalloff, fogMinDensity, sunDirection, sunColor, sunIntensity, ambientSkyColor, ambientGroundColor]);
+  // Note: spotlight and lighting props not in deps - updated via useFrame from singletons
+  // This prevents expensive material recreation when lighting changes
+  }, [grassTextures, rockTextures, sandTextures, grassScale, rockScale, sandScale, simple, debugWeights, fogEnabled, fogType, fogColor, fogNear, fogFar, fogDensity, fogHeightEnabled, fogBaseHeight, fogHeightFalloff, fogMinDensity]);
 
-  // Update spotlight position/direction from singleton every frame
-  // This avoids per-frame Zustand updates and React re-renders
+  // Update lighting and spotlight from singletons every frame
+  // This avoids per-frame React re-renders - reads directly from shared state
   useFrame(() => {
-    if (material instanceof THREE.ShaderMaterial && material.uniforms && spotlightEnabled) {
-      // Copy position/direction directly from singleton (updated by EquipmentAttachment)
+    if (!(material instanceof THREE.ShaderMaterial) || !material.uniforms) return;
+
+    // Update lighting from singleton (written by GameLighting every 100ms)
+    material.uniforms.uSunDirection.value.copy(lightingState.sunDirection);
+    material.uniforms.uSunColor.value.copy(lightingState.sunColor);
+    material.uniforms.uSunIntensity.value = lightingState.sunIntensity;
+    material.uniforms.uAmbientSkyColor.value.copy(lightingState.skyColor);
+    material.uniforms.uAmbientGroundColor.value.copy(lightingState.groundColor);
+    material.uniforms.uUseDynamicLighting.value = true;
+
+    // Update spotlight from singleton (written by EquipmentAttachment)
+    if (spotlightEnabled) {
       material.uniforms.uSpotlightPosition.value.copy(flashlightData.worldPosition);
       material.uniforms.uSpotlightDirection.value.copy(flashlightData.worldDirection);
     }

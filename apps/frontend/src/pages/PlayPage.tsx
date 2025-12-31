@@ -21,6 +21,7 @@ import {
 import { Leva } from 'leva';
 import { PlayWorld, type PlayerInfo } from '../components/play/PlayWorld';
 import { useTerrainPreloader } from '../components/play/hooks/useTerrainPreloader';
+import { GameProvider, GameLoop } from '../lib/game';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { Crosshair, HotbarHUD, DeathOverlay } from '../components/play/hud';
 import { GTAMinimap, CreatorWorldLoadingScreen } from '../components/play/ui';
@@ -1119,41 +1120,45 @@ export default function PlayPage() {
 
       {/* 3D Canvas - mounts when shaders ready so grass can generate in background */}
       {shadersReady && (
-        <ErrorBoundary fallback="fullPage">
-          <Suspense fallback={<CreatorWorldLoadingScreen progress={100} message="Initializing 3D..." />}>
-            <Canvas
-              camera={{ position: [0, 8, 20], fov: 50, far: 800 }}
-              shadows="soft"
-              gl={{
-                antialias: false,
-                alpha: false,
-                powerPreference: 'high-performance',
-                depth: true,
-                stencil: false,
-              }}
-              dpr={dpr}
-            >
-              {/* Auto-adjust quality based on frame rate */}
-              <PerformanceMonitor
-                onIncline={() => setDpr(Math.min(2, dpr + 0.25))}
-                onDecline={() => setDpr(Math.max(0.75, dpr - 0.25))}
-                flipflops={3}
-                onFallback={() => setDpr(1)}
-              />
-              {/* FPS/Performance stats - toggle via settings or /fps command */}
-              {showFps && <Stats />}
-              <PlayWorld
-                isPaused={showInventory || isPaused}
-                onPlayerPositionChange={(pos) => setPlayerCoords({ x: pos.x, y: pos.y, z: pos.z })}
-                onPlayerRotationChange={setPlayerRotation}
-                onTerrainSettingsChange={setTerrainSettings}
-                onPlayersChange={setOnlinePlayers}
-                preloadedTerrain={preloadedTerrain}
-                onGrassGenerationProgress={handleGrassGenerationProgress}
-              />
-            </Canvas>
-          </Suspense>
-        </ErrorBoundary>
+        <GameProvider autoStart={true}>
+          <ErrorBoundary fallback="fullPage">
+            <Suspense fallback={<CreatorWorldLoadingScreen progress={100} message="Initializing 3D..." />}>
+              <Canvas
+                camera={{ position: [0, 8, 20], fov: 50, far: 800 }}
+                shadows="soft"
+                gl={{
+                  antialias: false,
+                  alpha: false,
+                  powerPreference: 'high-performance',
+                  depth: true,
+                  stencil: false,
+                }}
+                dpr={dpr}
+              >
+                {/* Game engine loop - syncs with R3F render frame */}
+                <GameLoop debug={import.meta.env.DEV} />
+                {/* Auto-adjust quality based on frame rate */}
+                <PerformanceMonitor
+                  onIncline={() => setDpr(Math.min(2, dpr + 0.25))}
+                  onDecline={() => setDpr(Math.max(0.75, dpr - 0.25))}
+                  flipflops={3}
+                  onFallback={() => setDpr(1)}
+                />
+                {/* FPS/Performance stats - toggle via settings or /fps command */}
+                {showFps && <Stats />}
+                <PlayWorld
+                  isPaused={showInventory || isPaused}
+                  onPlayerPositionChange={(pos) => setPlayerCoords({ x: pos.x, y: pos.y, z: pos.z })}
+                  onPlayerRotationChange={setPlayerRotation}
+                  onTerrainSettingsChange={setTerrainSettings}
+                  onPlayersChange={setOnlinePlayers}
+                  preloadedTerrain={preloadedTerrain}
+                  onGrassGenerationProgress={handleGrassGenerationProgress}
+                />
+              </Canvas>
+            </Suspense>
+          </ErrorBoundary>
+        </GameProvider>
       )}
 
       {/* Game HUD Overlays - only show when fully loaded */}

@@ -85,7 +85,7 @@ export function useBoneDetection(
 
   const result = useMemo(() => {
     // Clone scene for this instance (allows multiple avatars from same source)
-    const clone = SkeletonUtils.clone(originalScene);
+    const clone = SkeletonUtils.clone(originalScene) as THREE.Group;
 
     const bones: string[] = [];
     const skinnedMeshes: THREE.SkinnedMesh[] = [];

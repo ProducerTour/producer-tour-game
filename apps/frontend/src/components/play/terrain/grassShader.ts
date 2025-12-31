@@ -523,7 +523,7 @@ export function createGrassUniforms(): Record<string, { value: unknown }> {
 
     // Grass-specific uniforms (SimonDev exact)
     grassSize: { value: new THREE.Vector2(0.1, 1.5) },  // GRASS_WIDTH, GRASS_HEIGHT
-    grassParams: { value: new THREE.Vector4(6, 14, 100, 0) },  // segments, vertices, terrainHeight, offset
+    grassParams: { value: new THREE.Vector4(4, 10, 100, 0) },  // segments (4), vertices (10), terrainHeight, offset
     grassDraw: { value: new THREE.Vector4(15, 100, 0, 0) },  // LOD_DIST, MAX_DIST
     time: { value: 0 },
     playerPos: { value: new THREE.Vector3() },
@@ -545,8 +545,65 @@ export function createGrassUniforms(): Record<string, { value: unknown }> {
   };
 }
 
+// PERF: Cached shader program - pre-compiled to avoid frame stutter on first grass render
+// Shader compilation happens the first time a material is used in a render pass.
+// By creating and caching a template material, we ensure the shader is compiled once
+// and reused for all grass instances (only uniforms differ).
+let cachedGrassMaterial: THREE.ShaderMaterial | null = null;
+
+/**
+ * Get a cached grass shader material.
+ * PERF: Returns a cached material with the shader already compiled.
+ * Each GrassManager instance should clone() this and set its own uniforms.
+ */
+export function getCachedGrassMaterial(): THREE.ShaderMaterial {
+  if (!cachedGrassMaterial) {
+    cachedGrassMaterial = new THREE.ShaderMaterial({
+      uniforms: THREE.UniformsUtils.merge([
+        THREE.UniformsLib.lights,
+        THREE.UniformsLib.fog,
+        createGrassUniforms(),
+      ]),
+      vertexShader: grassVertexShader,
+      fragmentShader: grassFragmentShader,
+      lights: true,
+      fog: false,  // We use custom fog
+      side: THREE.DoubleSide,
+      transparent: true,
+    });
+    console.log('🌾 Grass shader material cached');
+  }
+  return cachedGrassMaterial;
+}
+
+/**
+ * Pre-compile the grass shader by forcing WebGL to compile it.
+ * Call this during loading phase with a valid WebGL renderer.
+ * @param renderer - Three.js WebGLRenderer instance
+ */
+export function precompileGrassShader(renderer: THREE.WebGLRenderer): void {
+  const material = getCachedGrassMaterial();
+  // Force shader compilation by calling compile() on the material
+  // This requires a dummy geometry and camera
+  const dummyGeo = new THREE.PlaneGeometry(1, 1);
+  const dummyMesh = new THREE.Mesh(dummyGeo, material);
+  const dummyScene = new THREE.Scene();
+  dummyScene.add(dummyMesh);
+  const dummyCamera = new THREE.PerspectiveCamera();
+
+  // compile() forces shader compilation without rendering
+  renderer.compile(dummyScene, dummyCamera);
+
+  // Cleanup
+  dummyGeo.dispose();
+  dummyScene.remove(dummyMesh);
+  console.log('🌾 Grass shader pre-compiled');
+}
+
 export default {
   vertexShader: grassVertexShader,
   fragmentShader: grassFragmentShader,
   createUniforms: createGrassUniforms,
+  getCachedMaterial: getCachedGrassMaterial,
+  precompile: precompileGrassShader,
 };

@@ -111,7 +111,8 @@ export function BaseWorld({
 
       {/* Physics World with Character Controller */}
       <Suspense fallback={null}>
-        <Physics gravity={[0, -20, 0]} timeStep={1/60} debug={physicsDebug}>
+        {/* PERF: 30Hz physics with interpolation - halves physics CPU time */}
+        <Physics gravity={[0, -20, 0]} timeStep={1/30} interpolate debug={physicsDebug}>
           {/* Default Ground Collider */}
           <RigidBody type="fixed" colliders={false}>
             <CuboidCollider args={[groundSize / 2, 0.1, groundSize / 2]} position={[0, -0.1, 0]} />

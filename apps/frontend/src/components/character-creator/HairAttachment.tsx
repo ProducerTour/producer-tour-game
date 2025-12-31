@@ -11,7 +11,7 @@ import * as THREE from 'three';
 import { HAIR_STYLES } from '../../lib/character/defaults';
 
 // Debug logging
-const DEBUG_HAIR = true;
+const DEBUG_HAIR = false;
 
 // Head bone names for different skeleton types
 const HEAD_BONE_NAMES = [

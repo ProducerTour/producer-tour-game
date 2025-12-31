@@ -6,10 +6,12 @@
  * See ARCHITECTURE_ANALYSIS.md and REFACTOR_PLAN.md for design rationale.
  */
 
-import { useRef, useMemo, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { useRef, useMemo, useEffect, useCallback, type ReactNode } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { RigidBody, CapsuleCollider, useRapier, type RapierRigidBody, type RapierContext } from '@react-three/rapier';
-import type { Collider } from '@dimforge/rapier3d-compat';
+import { RigidBody, CapsuleCollider, useRapier, type RapierRigidBody } from '@react-three/rapier';
+// Note: Using 'any' for Collider due to type version mismatches between @react-three/rapier and @dimforge/rapier3d-compat
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Collider = any;
 import * as THREE from 'three';
 import { useControls, folder } from 'leva';
 import { useKeyboardControls } from './hooks/useKeyboardControls';
@@ -27,6 +29,10 @@ import { useSlopeAlignment } from './hooks/useSlopeAlignment';
 // Terrain-aware footstep audio
 import { useTerrainFootsteps } from './audio/useTerrainFootsteps';
 import { terrainGenerator } from '../../lib/terrain';
+// Animation state store - React-less pattern (like useLightingStore)
+import { animationState, updateAnimationState, PlayerAirState } from './hooks/useAnimationStore';
+// Engine integration - sync player state to EntityStore
+import { usePlayerSync } from '../../lib/game';
 
 // Movement constants now in useCharacterMovement hook
 // JUMP_FORCE calculated to ensure clear separation from ground detection threshold
@@ -69,14 +75,9 @@ const FALL_DAMAGE = {
   LETHAL_DISTANCE: 15,    // Distance that guarantees death
 };
 
-// === PLAYER AIR STATE - Single authoritative state for animation ===
-// Replaces multiple timing variables to prevent race conditions
-export enum PlayerAirState {
-  GROUNDED = 'grounded',   // On solid ground
-  JUMPING = 'jumping',     // User-initiated jump (ascending or early descent)
-  FALLING = 'falling',     // Uncontrolled fall (walked off edge OR late descent)
-  LANDING = 'landing',     // Just touched down (brief window for landing animation)
-}
+// PlayerAirState is now imported from useAnimationStore to avoid circular dependencies
+// Re-export for backwards compatibility
+export { PlayerAirState } from './hooks/useAnimationStore';
 
 // Animation state passed to children
 export interface AnimationState {
@@ -182,6 +183,9 @@ export function PhysicsPlayerController({
   const movementCalculator = useCharacterMovement();
   const slopeAlignment = useSlopeAlignment();
 
+  // Engine integration - sync player state to EntityStore
+  const { syncToStore } = usePlayerSync();
+
   // Terrain-aware footstep sounds (auto-detects biome/surface)
   const terrainFootsteps = useTerrainFootsteps({
     terrainGen: terrainGenerator,
@@ -235,26 +239,9 @@ export function PhysicsPlayerController({
   // Ref to track fire key state for timeout closure (avoids stale closure)
   const fireKeyRef = useRef(false);
 
-  // Animation state (React state for children)
-  const [animState, setAnimState] = useState<AnimationState>({
-    isMoving: false,
-    isRunning: false,
-    isGrounded: true,
-    isJumping: false,
-    isFalling: false,
-    isLanding: false,
-    isDancing: false,
-    dancePressed: false,
-    isCrouching: false,
-    isStrafingLeft: false,
-    isStrafingRight: false,
-    isAiming: false,
-    isFiring: false,
-    velocity: 0,
-    velocityY: 0,
-    aimPitch: 0,
-    airState: PlayerAirState.GROUNDED,
-  });
+  // Animation state is now stored in the singleton animationState store
+  // (imported from useAnimationStore.ts) to avoid React re-renders.
+  // Children read directly from animationState in their useFrame loops.
 
   // Movement state
   // Initialize facing away from camera (camera starts at +Z, so face -Z = PI radians)
@@ -832,7 +819,7 @@ export function PhysicsPlayerController({
         onPositionChange(position.clone(), rotation.clone(), noclipAnimState);
       }
 
-      setAnimState(noclipAnimState);
+      updateAnimationState(noclipAnimState);
       return; // Skip normal physics
     } else {
       // Restore gravity when exiting noclip
@@ -1202,12 +1189,29 @@ export function PhysicsPlayerController({
         isFiring,
         airState: currentAirState,
       };
-      setAnimState(currentAnimState);
+      updateAnimationState(currentAnimState);
     }
+
+    // Sync player state to engine EntityStore
+    // This enables engine systems (AnimationSystem, etc.) to process player data
+    syncToStore({
+      posX: position.x,
+      posY: position.y,
+      posZ: position.z,
+      rotY: facingAngle.current,
+      velX: vx,
+      velY: vy,
+      velZ: vz,
+      grounded: animIsGrounded,
+      airState: airStateResult.state,
+      crouching: isCrouching,
+      sprinting: keys.sprint,
+    });
   });
 
   // Support both render prop and regular children
-  const renderedChildren = typeof children === 'function' ? children(animState) : children;
+  // Note: animationState is the singleton store, not React state
+  const renderedChildren = typeof children === 'function' ? children(animationState) : children;
 
   return (
     <RigidBody

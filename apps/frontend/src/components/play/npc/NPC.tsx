@@ -20,6 +20,58 @@ import { MixamoAnimatedAvatar } from '../avatars';
 import { useGamePause } from '../context';
 import { BiomeType } from '../../../lib/terrain/BiomeLookupTable';
 
+// PERF: Shared materials for NPC rendering - prevents per-NPC material instantiation
+// Key format: "color" for basic, "color-emissive-0.1" for standard with emissive
+const npcMaterialCache = new Map<string, THREE.Material>();
+
+// PERF: Shared geometries for NPC LOD rendering
+const npcGeometries = {
+  // LOD1 (distant): reduced segment count
+  capsuleLOD1: new THREE.CapsuleGeometry(0.3, 1, 4, 8),
+  sphereLOD1: new THREE.SphereGeometry(0.25, 8, 8),
+  // LOD0 (full detail)
+  capsuleLOD0: new THREE.CapsuleGeometry(0.3, 1, 8, 16),
+  sphereLOD0: new THREE.SphereGeometry(0.25, 16, 16),
+  // Placeholder
+  placeholder: new THREE.CapsuleGeometry(0.3, 1, 8, 16),
+};
+
+function getSharedNPCBasicMaterial(color: string): THREE.MeshBasicMaterial {
+  const key = `basic-${color}`;
+  let mat = npcMaterialCache.get(key);
+  if (!mat) {
+    mat = new THREE.MeshBasicMaterial({ color });
+    npcMaterialCache.set(key, mat);
+  }
+  return mat as THREE.MeshBasicMaterial;
+}
+
+function getSharedNPCStandardMaterial(color: string, emissiveIntensity: number): THREE.MeshStandardMaterial {
+  // Round emissive to 0.1 or 0.3 to limit cache entries
+  const roundedEmissive = emissiveIntensity > 0.2 ? 0.3 : 0.1;
+  const key = `standard-${color}-${roundedEmissive}`;
+  let mat = npcMaterialCache.get(key);
+  if (!mat) {
+    mat = new THREE.MeshStandardMaterial({
+      color,
+      emissive: new THREE.Color(color),
+      emissiveIntensity: roundedEmissive,
+    });
+    npcMaterialCache.set(key, mat);
+  }
+  return mat as THREE.MeshStandardMaterial;
+}
+
+function getSharedNPCPlaceholderMaterial(color: string): THREE.MeshStandardMaterial {
+  const key = `placeholder-${color}`;
+  let mat = npcMaterialCache.get(key);
+  if (!mat) {
+    mat = new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.5 });
+    npcMaterialCache.set(key, mat);
+  }
+  return mat as THREE.MeshStandardMaterial;
+}
+
 // Biomes that NPCs can safely walk on (grass-like biomes)
 const WALKABLE_BIOMES = new Set<BiomeType>([
   BiomeType.GRASSLAND,
@@ -121,13 +173,12 @@ interface NPCProps {
 
 /**
  * Simple placeholder while avatar loads
+ * PERF: Uses shared geometry and material from pools
  */
 function NPCPlaceholder({ color }: { color: string }) {
+  const mat = useMemo(() => getSharedNPCPlaceholderMaterial(color), [color]);
   return (
-    <mesh position={[0, 0.9, 0]}>
-      <capsuleGeometry args={[COLLIDER_RADIUS, 1, 8, 16]} />
-      <meshStandardMaterial color={color} transparent opacity={0.5} />
-    </mesh>
+    <mesh position={[0, 0.9, 0]} geometry={npcGeometries.placeholder} material={mat} />
   );
 }
 
@@ -533,8 +584,10 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
   const renderBody = () => {
     // LOD: Use simple capsule when far from player (saves GPU/CPU)
     // This skips expensive avatar loading, animation, and Suspense overhead
+    // PERF: Uses shared geometries and materials from pools
     if (distanceToPlayer > LOD_FULL_AVATAR_DISTANCE) {
       // LOD1: Simple capsule for distant NPCs
+      const basicMat = getSharedNPCBasicMaterial(color);
       return (
         <>
           <mesh
@@ -542,15 +595,10 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
             position={[0, 0.9, 0]}
             onClick={handleClick}
             userData={{ targetId: data.id }}
-          >
-            {/* Reduced geometry for distant NPCs: 4 segments instead of 8/16 */}
-            <capsuleGeometry args={[COLLIDER_RADIUS, 1, 4, 8]} />
-            <meshBasicMaterial color={color} />
-          </mesh>
-          <mesh position={[0, 1.7, 0]}>
-            <sphereGeometry args={[0.25, 8, 8]} />
-            <meshBasicMaterial color={color} />
-          </mesh>
+            geometry={npcGeometries.capsuleLOD1}
+            material={basicMat}
+          />
+          <mesh position={[0, 1.7, 0]} geometry={npcGeometries.sphereLOD1} material={basicMat} />
         </>
       );
     }
@@ -601,6 +649,10 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
     }
 
     // Fallback: simple capsule body (for NPCs with no avatar defined)
+    // PERF: Uses shared geometries and materials from pools
+    const emissiveIntensity = data.isInteractable && distanceToPlayer <= data.interactionRange ? 0.3 : 0.1;
+    const capsuleMat = getSharedNPCStandardMaterial(color, emissiveIntensity);
+    const headMat = getSharedNPCStandardMaterial(color, 0.1);
     return (
       <>
         <mesh
@@ -608,18 +660,10 @@ export function NPC({ data, playerPosition, onInteract, serverControlled = false
           position={[0, 0.9, 0]}
           onClick={handleClick}
           userData={{ targetId: data.id }}
-        >
-          <capsuleGeometry args={[COLLIDER_RADIUS, 1, 8, 16]} />
-          <meshStandardMaterial
-            color={color}
-            emissive={color}
-            emissiveIntensity={data.isInteractable && distanceToPlayer <= data.interactionRange ? 0.3 : 0.1}
-          />
-        </mesh>
-        <mesh position={[0, 1.7, 0]}>
-          <sphereGeometry args={[0.25, 16, 16]} />
-          <meshStandardMaterial color={color} />
-        </mesh>
+          geometry={npcGeometries.capsuleLOD0}
+          material={capsuleMat}
+        />
+        <mesh position={[0, 1.7, 0]} geometry={npcGeometries.sphereLOD0} material={headMat} />
       </>
     );
   };

@@ -88,9 +88,20 @@ export function usePlayMultiplayer({
 
   // Join/leave room based on enabled state
   useEffect(() => {
+    if (DEBUG_MULTIPLAYER) {
+      console.log('[Play Multiplayer] Join effect state:', {
+        hasSocket: !!socket,
+        isConnected,
+        enabled,
+        isInRoom,
+        isJoining,
+      });
+    }
+
     if (!socket || !isConnected) {
       // Reset state when disconnected
       if (isInRoom) {
+        if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Resetting state - socket disconnected');
         setIsInRoom(false);
         setOtherPlayers([]);
         remotePlayersStore.clear();

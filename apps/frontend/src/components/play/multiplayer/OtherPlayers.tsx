@@ -10,9 +10,63 @@ import { getPooledClipRPM } from '../avatars/AnimationClipPool';
 import { useGamePause } from '../context';
 import type { CharacterConfig } from '../../../lib/character/types';
 import CustomAvatar from '../avatars/CustomAvatar';
+import { DefaultAvatar } from '../avatars/DefaultAvatar';
 
 // Debug logging - set to false to reduce console spam
 const DEBUG_OTHER_PLAYERS = false;
+
+// PERF: Shared material pools - prevent per-player material instantiation
+// Each unique color gets ONE material instance shared across all players
+const ringMaterialCache = new Map<string, THREE.MeshBasicMaterial>();
+const capsuleMaterialCache = new Map<string, THREE.MeshStandardMaterial>();
+const headMaterialCache = new Map<string, THREE.MeshStandardMaterial>();
+const haloMaterialCache = new Map<string, THREE.MeshStandardMaterial>();
+// Weapon materials - shared per weapon type, not per player
+const weaponMaterialCache = new Map<string, THREE.MeshStandardMaterial[]>();
+
+// PERF: Shared geometries - created once at module level, reused across all instances
+const sharedGeometries = {
+  ring: new THREE.RingGeometry(0.4, 0.7, 32),
+  capsule: new THREE.CapsuleGeometry(0.25, 0.6, 8, 16),
+  sphere: new THREE.SphereGeometry(0.2, 16, 16),
+  torus: new THREE.TorusGeometry(0.22, 0.03, 8, 16, Math.PI),
+};
+
+function getSharedRingMaterial(color: string): THREE.MeshBasicMaterial {
+  let mat = ringMaterialCache.get(color);
+  if (!mat) {
+    mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4 });
+    ringMaterialCache.set(color, mat);
+  }
+  return mat;
+}
+
+function getSharedCapsuleMaterial(color: string): THREE.MeshStandardMaterial {
+  let mat = capsuleMaterialCache.get(color);
+  if (!mat) {
+    mat = new THREE.MeshStandardMaterial({ color: '#1a1a2e', emissive: new THREE.Color(color), emissiveIntensity: 0.2 });
+    capsuleMaterialCache.set(color, mat);
+  }
+  return mat;
+}
+
+function getSharedHeadMaterial(color: string): THREE.MeshStandardMaterial {
+  let mat = headMaterialCache.get(color);
+  if (!mat) {
+    mat = new THREE.MeshStandardMaterial({ color, emissive: new THREE.Color(color), emissiveIntensity: 0.3 });
+    headMaterialCache.set(color, mat);
+  }
+  return mat;
+}
+
+function getSharedHaloMaterial(color: string): THREE.MeshStandardMaterial {
+  let mat = haloMaterialCache.get(color);
+  if (!mat) {
+    mat = new THREE.MeshStandardMaterial({ color, emissive: new THREE.Color(color), emissiveIntensity: 0.5 });
+    haloMaterialCache.set(color, mat);
+  }
+  return mat;
+}
 
 // Render distance constants
 const FULL_RENDER_DISTANCE = 30; // Full animated avatar within this range
@@ -109,9 +163,41 @@ const WEAPON_TRANSFORMS = {
   },
 };
 
+// PERF: Get or create shared weapon materials (one set per weapon type, not per player)
+// Materials are reused across ALL remote players with same weapon
+function getSharedWeaponMaterials(weaponType: 'rifle' | 'pistol', originalScene: THREE.Object3D): THREE.MeshStandardMaterial[] {
+  let cached = weaponMaterialCache.get(weaponType);
+  if (cached) return cached;
+
+  // Create new materials based on the original scene's materials
+  const materials: THREE.MeshStandardMaterial[] = [];
+  originalScene.traverse((child) => {
+    if ((child as THREE.Mesh).isMesh) {
+      const mesh = child as THREE.Mesh;
+      if (mesh.material) {
+        const originalMat = mesh.material as THREE.MeshStandardMaterial;
+        const mat = new THREE.MeshStandardMaterial({
+          color: originalMat.color?.clone() ?? new THREE.Color(0x333333),
+          map: originalMat.map,
+          normalMap: originalMat.normalMap,
+          roughnessMap: originalMat.roughnessMap,
+          metalnessMap: originalMat.metalnessMap,
+          metalness: 0.8,
+          roughness: 0.3,
+        });
+        materials.push(mat);
+      }
+    }
+  });
+
+  weaponMaterialCache.set(weaponType, materials);
+  return materials;
+}
+
 // Weapon component for other players
 // This component attaches the weapon directly to the bone (not via JSX)
 // Returns null - weapon is added to scene graph via bone.add()
+// PERF: Uses shared materials from pool - NOT cloned per player
 function OtherPlayerWeapon({
   weaponType,
   parentBone,
@@ -128,18 +214,20 @@ function OtherPlayerWeapon({
       return;
     }
 
-    // Clone the weapon scene
+    // Get shared materials for this weapon type
+    const sharedMaterials = getSharedWeaponMaterials(weaponType, scene);
+    let matIndex = 0;
+
+    // Clone the weapon scene (geometry only, reuse materials)
     const weaponClone = scene.clone(true);
     weaponClone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
         const mesh = child as THREE.Mesh;
-        if (mesh.material) {
-          const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
-          mat.metalness = 0.8;
-          mat.roughness = 0.3;
-          mesh.material = mat;
+        // PERF: Assign shared material instead of cloning
+        if (mesh.material && matIndex < sharedMaterials.length) {
+          mesh.material = sharedMaterials[matIndex++];
         }
       }
     });
@@ -399,35 +487,27 @@ function FullAnimatedAvatar({
         </Suspense>
       )}
 
-      {/* Glow ring */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <ringGeometry args={[0.4, 0.7, 32]} />
-        <meshBasicMaterial color={color} transparent opacity={0.4} />
-      </mesh>
+      {/* Glow ring - PERF: uses shared material and geometry */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} geometry={sharedGeometries.ring} material={getSharedRingMaterial(color)} />
     </group>
   );
 }
 
 // Simple avatar for distant players (no animations loaded)
+// PERF: Uses shared materials from pool - ONE material instance per unique color
 function SimpleAvatar({ color }: { color: string }) {
+  // Get shared materials (cached by color)
+  const ringMat = useMemo(() => getSharedRingMaterial(color), [color]);
+  const capsuleMat = useMemo(() => getSharedCapsuleMaterial(color), [color]);
+  const headMat = useMemo(() => getSharedHeadMaterial(color), [color]);
+  const haloMat = useMemo(() => getSharedHaloMaterial(color), [color]);
+
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <ringGeometry args={[0.4, 0.7, 32]} />
-        <meshBasicMaterial color={color} transparent opacity={0.4} />
-      </mesh>
-      <mesh position={[0, 0.9, 0]} castShadow>
-        <capsuleGeometry args={[0.25, 0.6, 8, 16]} />
-        <meshStandardMaterial color="#1a1a2e" emissive={color} emissiveIntensity={0.2} />
-      </mesh>
-      <mesh position={[0, 1.6, 0]} castShadow>
-        <sphereGeometry args={[0.2, 16, 16]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} />
-      </mesh>
-      <mesh position={[0, 1.7, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <torusGeometry args={[0.22, 0.03, 8, 16, Math.PI]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
-      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} geometry={sharedGeometries.ring} material={ringMat} />
+      <mesh position={[0, 0.9, 0]} castShadow geometry={sharedGeometries.capsule} material={capsuleMat} />
+      <mesh position={[0, 1.6, 0]} castShadow geometry={sharedGeometries.sphere} material={headMat} />
+      <mesh position={[0, 1.7, 0]} rotation={[0, 0, Math.PI / 2]} geometry={sharedGeometries.torus} material={haloMat} />
       <pointLight position={[0, 1, 0]} intensity={0.3} color={color} distance={3} />
     </group>
   );
@@ -493,6 +573,9 @@ const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
         (newAnimState !== currentAnimState.current || newWeaponType !== currentWeaponType.current) &&
         now - lastAnimUpdate.current > ANIM_UPDATE_INTERVAL
       ) {
+        if (DEBUG_OTHER_PLAYERS) {
+          console.log(`[OtherPlayer ${player.id.slice(0, 8)}] Animation: ${newAnimState}, Weapon: ${newWeaponType}`);
+        }
         currentAnimState.current = newAnimState;
         currentWeaponType.current = newWeaponType;
         lastAnimUpdate.current = now;
@@ -582,11 +665,8 @@ const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
             weaponType={mappedWeaponType}
             isPlayer={false}
           />
-          {/* Color indicator ring for custom avatars */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-            <ringGeometry args={[0.4, 0.7, 32]} />
-            <meshBasicMaterial color={player.color} transparent opacity={0.4} />
-          </mesh>
+          {/* Color indicator ring for custom avatars - PERF: shared geometry/material */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} geometry={sharedGeometries.ring} material={getSharedRingMaterial(player.color)} />
         </Suspense>
       );
     }
@@ -605,8 +685,24 @@ const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
       );
     }
 
-    // Default to simple avatar
-    return <SimpleAvatar color={player.color} />;
+    // Default to DefaultAvatar (swat_operator) for players without custom avatars
+    const mappedWeapon = weaponType === 'none' ? null : weaponType;
+    return (
+      <Suspense fallback={<SimpleAvatar color={player.color} />}>
+        <DefaultAvatar
+          isPlayer={false}
+          isMoving={isMoving}
+          isRunning={isRunning}
+          isGrounded={!isJumping}  // Grounded when not jumping
+          isCrouching={isCrouching}
+          isDancing={isDancing}
+          isJumping={isJumping}
+          weapon={mappedWeapon}
+        />
+        {/* Color indicator ring - PERF: shared geometry/material */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} geometry={sharedGeometries.ring} material={getSharedRingMaterial(player.color)} />
+      </Suspense>
+    );
   };
 
   return (

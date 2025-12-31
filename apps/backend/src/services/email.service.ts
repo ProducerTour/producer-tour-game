@@ -104,9 +104,9 @@ class EmailService {
           user: SMTP_USER,
           pass: SMTP_PASS,
         },
-        // Debugging
-        logger: true,
-        debug: true,
+        // Debugging (disabled in production)
+        logger: false,
+        debug: false,
         // Connection settings
         connectionTimeout: 10000, // 10 seconds
         greetingTimeout: 10000,

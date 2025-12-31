@@ -4,6 +4,29 @@ import { useAuthStore } from '../store/auth.store';
 
 const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
 
+// Guest mode state - allows multiplayer testing without auth (dev only)
+// Using a global counter to trigger reconnects
+let guestModeEnabled = false;
+let guestModeVersion = 0;
+export const enableGuestMode = () => {
+  guestModeEnabled = true;
+  guestModeVersion++;
+  console.log('👤 Guest mode enabled for multiplayer testing');
+  // Dispatch event to trigger reconnect
+  window.dispatchEvent(new CustomEvent('socket:guest-mode-changed'));
+};
+export const disableGuestMode = () => {
+  guestModeEnabled = false;
+  guestModeVersion++;
+  window.dispatchEvent(new CustomEvent('socket:guest-mode-changed'));
+};
+export const isGuestMode = () => guestModeEnabled;
+
+// Expose to window for easy console testing (dev only)
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
+  (window as unknown as { enableGuestMode: typeof enableGuestMode }).enableGuestMode = enableGuestMode;
+}
+
 interface Message {
   id: string;
   conversationId: string;
@@ -87,6 +110,16 @@ export function useSocket(): UseSocketReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Map<string, Set<string>>>(new Map());
+  const [guestModeState, setGuestModeState] = useState(guestModeEnabled);
+
+  // Listen for guest mode changes
+  useEffect(() => {
+    const handleGuestModeChange = () => {
+      setGuestModeState(guestModeEnabled);
+    };
+    window.addEventListener('socket:guest-mode-changed', handleGuestModeChange);
+    return () => window.removeEventListener('socket:guest-mode-changed', handleGuestModeChange);
+  }, []);
 
   // Callbacks refs to avoid stale closures
   const messageCallbacks = useRef<Set<(message: Message) => void>>(new Set());
@@ -97,8 +130,10 @@ export function useSocket(): UseSocketReturn {
   const renameCallbacks = useRef<Set<(data: ConversationRenamed) => void>>(new Set());
 
   useEffect(() => {
-    if (!user || !token) {
-      console.log('🔌 Socket not connecting:', { hasUser: !!user, hasToken: !!token });
+    const canConnect = (user && token) || guestModeState;
+
+    if (!canConnect) {
+      console.log('🔌 Socket not connecting:', { hasUser: !!user, hasToken: !!token, guestMode: guestModeState });
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -106,11 +141,16 @@ export function useSocket(): UseSocketReturn {
       }
       return;
     }
-    console.log('🔌 Socket connecting for user:', user.id?.slice(0, 8) + '...');
 
-    // Create socket connection
+    if (guestModeState) {
+      console.log('🔌 Socket connecting as guest...');
+    } else {
+      console.log('🔌 Socket connecting for user:', user?.id?.slice(0, 8) + '...');
+    }
+
+    // Create socket connection - use guest auth if no token
     const socket = io(SOCKET_URL, {
-      auth: { token },
+      auth: guestModeState ? { guest: true } : { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 5,
@@ -214,7 +254,7 @@ export function useSocket(): UseSocketReturn {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [user, token]);
+  }, [user, token, guestModeState]);
 
   const joinConversation = useCallback((conversationId: string) => {
     socketRef.current?.emit('conversation:join', conversationId);

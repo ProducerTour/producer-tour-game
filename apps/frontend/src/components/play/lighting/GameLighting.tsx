@@ -20,6 +20,7 @@ import {
   formatTime,
   getTimePeriodName,
 } from './DayNightCycle';
+import { updateLightingState } from './useLightingStore';
 
 // Shadow map sizes for quality presets
 export const SHADOW_MAP_SIZES = {
@@ -188,6 +189,10 @@ export function GameLighting({
     currentHour: 10,
   });
 
+  // Throttle light COLOR updates only (shadows still update every frame)
+  const lastLightUpdateRef = useRef(0);
+  const LIGHT_UPDATE_INTERVAL = 100; // ms - only update light colors every 100ms
+
   // Day/Night cycle state
   const currentHour = useDayNightCycleStore(state => state.currentHour);
   const tick = useDayNightCycleStore(state => state.tick);
@@ -278,29 +283,42 @@ export function GameLighting({
   const shadowMapSize = SHADOW_MAP_SIZES[shadowQuality] || SHADOW_MAP_SIZES.medium;
   const shadowsActive = shadowsEnabled && shadowMapSize > 0;
 
-  // Tick the day/night cycle and update lights each frame
+  // Tick the day/night cycle and update lights (THROTTLED color updates for performance)
   useFrame((_, delta) => {
-    // Tick the cycle
-    tick(delta);
+    const now = performance.now();
 
-    // Update directional light (sun)
+    // Tick the cycle only if enabled
+    if (dayNightCycleEnabled && timeOfDay === 'cycle') {
+      tick(delta);
+    }
+
+    // ALWAYS update shadow position every frame (prevents flickering)
+    if (directionalLightRef.current && playerPosition && shadowsActive) {
+      const light = directionalLightRef.current;
+      light.target.position.set(playerPosition.x, 0, playerPosition.z);
+      light.target.updateMatrixWorld();
+      light.position.set(
+        playerPosition.x + lightingParams.sunPosition.x,
+        lightingParams.sunPosition.y,
+        playerPosition.z + lightingParams.sunPosition.z
+      );
+    }
+
+    // Throttle COLOR/INTENSITY updates - only update every LIGHT_UPDATE_INTERVAL ms
+    const timeSinceLastUpdate = now - lastLightUpdateRef.current;
+    if (timeSinceLastUpdate < LIGHT_UPDATE_INTERVAL) {
+      return; // Skip color updates
+    }
+    lastLightUpdateRef.current = now;
+
+    // Update directional light colors/intensity
     if (directionalLightRef.current) {
       const light = directionalLightRef.current;
-
-      // Update light color and intensity dynamically
       light.color.set(lightingParams.sunColor);
       light.intensity = lightingParams.sunIntensity;
 
-      // Position light - follow player if available
-      if (playerPosition && shadowsActive) {
-        light.target.position.set(playerPosition.x, 0, playerPosition.z);
-        light.target.updateMatrixWorld();
-        light.position.set(
-          playerPosition.x + lightingParams.sunPosition.x,
-          lightingParams.sunPosition.y,
-          playerPosition.z + lightingParams.sunPosition.z
-        );
-      } else {
+      // Set position if no player (static scene)
+      if (!playerPosition || !shadowsActive) {
         light.position.set(
           lightingParams.sunPosition.x,
           lightingParams.sunPosition.y,
@@ -334,27 +352,30 @@ export function GameLighting({
     }
 
     // Update lighting state for external consumers (terrain/grass shaders)
-    if (onLightingUpdate) {
-      const state = lightingStateRef.current;
+    // Always update the singleton store (no React re-renders)
+    const state = lightingStateRef.current;
 
-      // Calculate normalized sun direction
-      state.sunDirection.set(
-        lightingParams.sunPosition.x,
-        lightingParams.sunPosition.y,
-        lightingParams.sunPosition.z
-      ).normalize();
+    // Calculate normalized sun direction
+    state.sunDirection.set(
+      lightingParams.sunPosition.x,
+      lightingParams.sunPosition.y,
+      lightingParams.sunPosition.z
+    ).normalize();
 
-      // Update colors
-      state.sunColor.set(lightingParams.sunColor);
-      state.sunIntensity = lightingParams.sunIntensity;
-      state.skyColor.set(lightingParams.skyColor);
-      state.groundColor.set(lightingParams.groundColor);
-      state.fogColor.set(lightingParams.fogColor);
-      state.ambientIntensity = lightingParams.ambientIntensity;
-      state.currentHour = currentHour;
+    // Update colors
+    state.sunColor.set(lightingParams.sunColor);
+    state.sunIntensity = lightingParams.sunIntensity;
+    state.skyColor.set(lightingParams.skyColor);
+    state.groundColor.set(lightingParams.groundColor);
+    state.fogColor.set(lightingParams.fogColor);
+    state.ambientIntensity = lightingParams.ambientIntensity;
+    state.currentHour = currentHour;
 
-      onLightingUpdate(state);
-    }
+    // Update singleton store (for direct reads without React)
+    updateLightingState(state);
+
+    // Also call legacy callback if provided (for backwards compatibility)
+    onLightingUpdate?.(state);
   });
 
   // Configure shadow properties when light mounts

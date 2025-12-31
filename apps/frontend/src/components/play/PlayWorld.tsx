@@ -186,14 +186,14 @@ export function PlayWorld({
   const isFlashlightOn = useFlashlightStore((s) => s.isOn);
 
   // Lighting state for terrain/grass shader sync
+  // NOTE: lightingStateRef is still used but no longer triggers re-renders.
+  // ProceduralTerrain reads from lightingState singleton directly.
   const lightingStateRef = useRef<LightingState | null>(null);
-  const [, setLightingUpdate] = useState(0); // Force re-render when lighting changes
 
-  // Callback to receive lighting updates from GameLighting
+  // Callback to receive lighting updates from GameLighting (no re-render)
   const handleLightingUpdate = useCallback((state: LightingState) => {
     lightingStateRef.current = state;
-    // Trigger re-render to update terrain material uniforms
-    setLightingUpdate(n => n + 1);
+    // No re-render! ProceduralTerrain reads from singleton store directly.
   }, []);
 
   // Initialize combat sounds (plays weapon SFX on fire/reload)
@@ -557,7 +557,8 @@ export function PlayWorld({
       {/* Physics World - Suspense needed for Rapier WASM loading */}
       {/* Press F3 to toggle debug visualization */}
       <Suspense fallback={null}>
-        <Physics gravity={[0, -20, 0]} timeStep={1/60} debug={physicsDebug}>
+        {/* PERF: 30Hz physics with interpolation - halves physics CPU time */}
+        <Physics gravity={[0, -20, 0]} timeStep={1/30} interpolate debug={physicsDebug}>
 
           {/* Safety floor - catches player if they somehow fall through terrain */}
           <RigidBody type="fixed" colliders={false}>
@@ -673,7 +674,7 @@ export function PlayWorld({
 
           {/* Physics Player Controller with animation state */}
           <PhysicsPlayerController onPositionChange={handlePositionChange} isPaused={isPaused}>
-            {({ isMoving, isRunning, isGrounded, isJumping, isFalling, isDancing, dancePressed, isCrouching, isStrafingLeft, isStrafingRight, isAiming, isFiring, velocityY }) => (
+            {({ isMoving, isRunning, isGrounded, isJumping, isCrouching, isStrafingLeft, isStrafingRight, isAiming }) => (
               <AvatarErrorBoundary fallback={<PlaceholderAvatar isMoving={false} />}>
                 <Suspense fallback={<PlaceholderAvatar isMoving={false} />}>
                   {useXBotAvatar ? (
@@ -690,20 +691,9 @@ export function PlayWorld({
                       isCrouching={isCrouching}
                     />
                   ) : (
+                    // Player avatar reads animation state from singleton (no props needed)
+                    // This avoids React re-renders when animation state changes
                     <DefaultAvatar
-                      isMoving={isMoving}
-                      isRunning={isRunning}
-                      isGrounded={isGrounded}
-                      isJumping={isJumping}
-                      isFalling={isFalling}
-                      isDancing={isDancing}
-                      dancePressed={dancePressed}
-                      isCrouching={isCrouching}
-                      isStrafingLeft={isStrafingLeft}
-                      isStrafingRight={isStrafingRight}
-                      isAiming={isAiming}
-                      isFiring={isFiring}
-                      velocityY={velocityY}
                       weapon={weaponType}
                       isPlayer
                     />

@@ -8,7 +8,8 @@
   },
   "workspaces": [
     "apps/backend",
-    "apps/frontend"
+    "apps/frontend",
+    "packages/*"
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=apps/backend\" \"npm run dev --workspace=apps/frontend\"",
@@ -20,7 +21,8 @@
     "db:studio": "npm run db:studio --workspace=apps/backend",
     "db:migrate": "npm run db:migrate --workspace=apps/backend",
     "db:generate": "npm run db:generate --workspace=apps/backend",
-    "typecheck": "npm run typecheck --workspaces"
+    "typecheck": "npm run typecheck --workspaces",
+    "validate:assets": "npx tsx scripts/validateAssets.ts"
   },
   "keywords": [
     "music",

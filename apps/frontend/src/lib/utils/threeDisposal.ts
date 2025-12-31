@@ -27,7 +27,9 @@ export function disposeMaterial(material: THREE.Material): void {
   if (mat.lightMap) mat.lightMap.dispose();
   if (mat.bumpMap) mat.bumpMap.dispose();
   if (mat.normalMap) mat.normalMap.dispose();
-  if (mat.specularMap) (mat as THREE.MeshPhongMaterial).specularMap?.dispose();
+  if ('specularMap' in mat && (mat as { specularMap?: THREE.Texture }).specularMap) {
+    (mat as { specularMap?: THREE.Texture }).specularMap?.dispose();
+  }
   if (mat.envMap) mat.envMap.dispose();
   if (mat.alphaMap) mat.alphaMap.dispose();
   if (mat.aoMap) mat.aoMap.dispose();

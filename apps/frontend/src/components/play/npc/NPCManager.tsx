@@ -4,11 +4,15 @@
  * Supports both local AI and server-controlled NPCs for multiplayer sync
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { useNPCStore, type NPCData } from './useNPCStore';
 import { NPC } from './NPC';
 import { useNPCSync } from './useNPCSync';
 import type { BiomeType } from '../../../lib/terrain/BiomeLookupTable';
+
+// Visibility check interval (ms) - throttle to avoid per-frame recalculation
+const VISIBILITY_CHECK_INTERVAL = 100;
 
 interface NPCManagerProps {
   playerPosition?: { x: number; y: number; z: number };
@@ -56,21 +60,63 @@ export function NPCManager({
     };
   }, [multiplayerEnabled, initialNPCs, addNPCs]); // Re-run when NPCs change
 
-  // Filter NPCs by render distance (squared distance check for performance)
-  const visibleNPCs: NPCData[] = [];
-  npcs.forEach((npc) => {
-    if (!playerPosition) {
-      visibleNPCs.push(npc);
-      return;
-    }
+  // Throttled visibility check - only recalculate every 100ms instead of every frame
+  const [visibleNPCs, setVisibleNPCs] = useState<NPCData[]>([]);
+  const lastCheckRef = useRef(0);
+  const visibleIdsRef = useRef<Set<string>>(new Set());
+  const playerPosRef = useRef(playerPosition);
 
-    const dx = npc.position.x - playerPosition.x;
-    const dz = npc.position.z - playerPosition.z;
-    const distSq = dx * dx + dz * dz;
+  // Keep player position ref updated (no re-render)
+  playerPosRef.current = playerPosition;
 
-    if (distSq <= renderDistance * renderDistance) {
-      visibleNPCs.push(npc);
+  // Compute visible NPCs - extracted for reuse
+  const computeVisibleNPCs = useCallback(() => {
+    const pos = playerPosRef.current;
+    const renderDistSq = renderDistance * renderDistance;
+    const newVisibleIds = new Set<string>();
+    const result: NPCData[] = [];
+
+    npcs.forEach((npc) => {
+      if (!pos) {
+        newVisibleIds.add(npc.id);
+        result.push(npc);
+        return;
+      }
+
+      const dx = npc.position.x - pos.x;
+      const dz = npc.position.z - pos.z;
+      const distSq = dx * dx + dz * dz;
+
+      if (distSq <= renderDistSq) {
+        newVisibleIds.add(npc.id);
+        result.push(npc);
+      }
+    });
+
+    // Only update state if visibility actually changed
+    const oldIds = visibleIdsRef.current;
+    const changed =
+      newVisibleIds.size !== oldIds.size ||
+      [...newVisibleIds].some((id) => !oldIds.has(id));
+
+    if (changed) {
+      visibleIdsRef.current = newVisibleIds;
+      setVisibleNPCs(result);
     }
+  }, [npcs, renderDistance]);
+
+  // Initial computation and when NPCs change
+  useEffect(() => {
+    computeVisibleNPCs();
+  }, [computeVisibleNPCs]);
+
+  // Throttled visibility check in frame loop
+  useFrame(() => {
+    const now = performance.now();
+    if (now - lastCheckRef.current < VISIBILITY_CHECK_INTERVAL) return;
+    lastCheckRef.current = now;
+
+    computeVisibleNPCs();
   });
 
 
