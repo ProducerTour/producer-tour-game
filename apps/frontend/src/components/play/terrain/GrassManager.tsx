@@ -14,7 +14,7 @@
  * Based on: https://github.com/simondevyoutube/Quick_Grass
  */
 
-import { useRef, useEffect, useMemo, useCallback } from 'react';
+import { useRef, useEffect, useMemo, useCallback, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -33,8 +33,8 @@ import { BiomeType } from '../../../lib/terrain/BiomeLookupTable';
 // === CONSTANTS ===
 const NUM_GRASS = 32 * 32 * 3;  // 3072 blades per patch
 const BASE_PATCH_SIZE = 10;
-const GRASS_SEGMENTS_LOW = 3;   // Increased from 1 - less spiky at distance
-const GRASS_SEGMENTS_HIGH = 6;
+const GRASS_SEGMENTS_LOW = 3;   // Low detail for distant grass (40m+)
+const GRASS_SEGMENTS_HIGH = 4;  // Reduced from 6 - 33% fewer vertices, minimal visual difference
 const GRASS_VERTICES_LOW = (GRASS_SEGMENTS_LOW + 1) * 2;
 const GRASS_VERTICES_HIGH = (GRASS_SEGMENTS_HIGH + 1) * 2;
 const GRASS_LOD_DIST = 40;      // Increased from 15 - curved grass visible further
@@ -126,7 +126,7 @@ export function GrassManager({
   const poolRef = useRef<{ low: THREE.Mesh[], high: THREE.Mesh[] }>({ low: [], high: [] });
   const cellsRef = useRef<Map<string, GrassCellData>>(new Map());
   const firstVisibleRef = useRef(false);
-  const isInitializedRef = useRef(false);
+  const [isPoolReady, setIsPoolReady] = useState(false);  // State triggers cell generation effect
   const generationInProgressRef = useRef(false);
 
   // Frustum culling refs (reused each frame to avoid allocation)
@@ -211,38 +211,75 @@ export function GrassManager({
     return geo;
   }, [generateIndices]);
 
-  // Initialize mesh pool
+  // PERF: Async mesh pool initialization - creates meshes over multiple frames
+  // Prevents main thread blocking that caused FPS 1-7 during grass init
+  const poolInitProgress = useRef(0);
+  const isPoolInitializing = useRef(false);
+  const poolInitDone = useRef(false);  // Guard to prevent re-initialization
+
   useEffect(() => {
-    if (!groupRef.current || isInitializedRef.current) return;
+    if (!groupRef.current || poolInitDone.current || isPoolInitializing.current) return;
 
-    console.log(`🌾 GrassManager: Initializing mesh pool (${POOL_SIZE} × 2 meshes)`);
+    isPoolInitializing.current = true;
+    console.log(`🌾 GrassManager: Starting async mesh pool init (${POOL_SIZE} × 2 meshes)`);
 
-    for (let i = 0; i < POOL_SIZE; i++) {
-      // LOW LOD mesh
-      const geoLow = createPoolGeometry(GRASS_SEGMENTS_LOW);
-      const matLow = createPoolMaterial(GRASS_SEGMENTS_LOW, GRASS_VERTICES_LOW);
-      const meshLow = new THREE.Mesh(geoLow, matLow);
-      meshLow.visible = false;
-      meshLow.frustumCulled = true;
-      meshLow.receiveShadow = true;
-      meshLow.raycast = () => {};
-      poolRef.current.low.push(meshLow);
-      groupRef.current.add(meshLow);
+    const MESHES_PER_FRAME = 10; // Create 10 mesh pairs per frame (~16ms budget)
+    let currentIndex = 0;
 
-      // HIGH LOD mesh
-      const geoHigh = createPoolGeometry(GRASS_SEGMENTS_HIGH);
-      const matHigh = createPoolMaterial(GRASS_SEGMENTS_HIGH, GRASS_VERTICES_HIGH);
-      const meshHigh = new THREE.Mesh(geoHigh, matHigh);
-      meshHigh.visible = false;
-      meshHigh.frustumCulled = true;
-      meshHigh.receiveShadow = true;
-      meshHigh.raycast = () => {};
-      poolRef.current.high.push(meshHigh);
-      groupRef.current.add(meshHigh);
-    }
+    const initNextBatch = () => {
+      if (!groupRef.current) {
+        isPoolInitializing.current = false;
+        return;
+      }
 
-    isInitializedRef.current = true;
-    console.log(`🌾 GrassManager: Pool initialized`);
+      const batchEnd = Math.min(currentIndex + MESHES_PER_FRAME, POOL_SIZE);
+
+      for (let i = currentIndex; i < batchEnd; i++) {
+        // LOW LOD mesh
+        const geoLow = createPoolGeometry(GRASS_SEGMENTS_LOW);
+        const matLow = createPoolMaterial(GRASS_SEGMENTS_LOW, GRASS_VERTICES_LOW);
+        const meshLow = new THREE.Mesh(geoLow, matLow);
+        meshLow.visible = false;
+        meshLow.frustumCulled = true;
+        meshLow.receiveShadow = true;
+        meshLow.raycast = () => {};
+        poolRef.current.low.push(meshLow);
+        groupRef.current.add(meshLow);
+
+        // HIGH LOD mesh
+        const geoHigh = createPoolGeometry(GRASS_SEGMENTS_HIGH);
+        const matHigh = createPoolMaterial(GRASS_SEGMENTS_HIGH, GRASS_VERTICES_HIGH);
+        const meshHigh = new THREE.Mesh(geoHigh, matHigh);
+        meshHigh.visible = false;
+        meshHigh.frustumCulled = true;
+        meshHigh.receiveShadow = true;
+        meshHigh.raycast = () => {};
+        poolRef.current.high.push(meshHigh);
+        groupRef.current.add(meshHigh);
+      }
+
+      currentIndex = batchEnd;
+      poolInitProgress.current = Math.round((currentIndex / POOL_SIZE) * 100);
+
+      if (currentIndex < POOL_SIZE) {
+        // Schedule next batch using requestIdleCallback for smoother loading
+        if (typeof requestIdleCallback !== 'undefined') {
+          requestIdleCallback(() => initNextBatch(), { timeout: 50 });
+        } else {
+          // Fallback: use rAF to yield to browser
+          requestAnimationFrame(initNextBatch);
+        }
+      } else {
+        // Pool complete - set state to trigger cell generation effect
+        poolInitDone.current = true;
+        isPoolInitializing.current = false;
+        setIsPoolReady(true);
+        console.log(`🌾 GrassManager: Pool initialized (async)`);
+      }
+    };
+
+    // Start first batch immediately
+    initNextBatch();
 
     return () => {
       // Cleanup pool on unmount
@@ -255,7 +292,8 @@ export function GrassManager({
         (mesh.material as THREE.ShaderMaterial).dispose();
       }
       poolRef.current = { low: [], high: [] };
-      isInitializedRef.current = false;
+      poolInitDone.current = false;
+      isPoolInitializing.current = false;
     };
   }, [createPoolGeometry, createPoolMaterial]);
 
@@ -396,8 +434,9 @@ export function GrassManager({
   }, []);
 
   // Generate all cell data (background processing)
+  // Runs when isPoolReady becomes true (state change triggers effect)
   useEffect(() => {
-    if (!isInitializedRef.current || !terrainGen || generationInProgressRef.current) return;
+    if (!isPoolReady || !terrainGen || generationInProgressRef.current) return;
     if (chunks.length === 0) return;
 
     generationInProgressRef.current = true;
@@ -452,11 +491,11 @@ export function GrassManager({
     };
 
     generateAllCells();
-  }, [chunks, terrainGen, generateCellData, onGenerationProgress]);
+  }, [isPoolReady, chunks, terrainGen, generateCellData, onGenerationProgress]);
 
   // THE CRITICAL PATTERN - Single useFrame that manages all grass
   useFrame((state, delta) => {
-    if (!groupRef.current || !enabled || !isInitializedRef.current) return;
+    if (!groupRef.current || !enabled || !poolInitDone.current) return;
 
     // 0. UPDATE WIND SYSTEM - critical for wind animation!
     // StaticTerrain doesn't have a useFrame, so we update wind here

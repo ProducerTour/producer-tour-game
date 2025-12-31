@@ -25,9 +25,23 @@ import {
 import { WeaponAttachment, type WeaponType } from '../WeaponAttachment';
 import { EquipmentAttachment } from '../EquipmentAttachment';
 import { combatFrameData } from '../combat/useCombatStore';
+// Animation state singleton - read directly in useFrame to avoid stale props
+import { animationState, getAnimationVersion } from '../hooks/useAnimationStore';
 
 // Default avatar model path
 const DEFAULT_AVATAR_PATH = '/assets/avatars/swat_operator.glb';
+
+// PERF: Module-level cache for cloned scenes (survives component remounts and context recovery)
+// Key: URL, Value: { scene, boneData, timestamp }
+// This prevents the "Avatar loaded" spam (8+ times) during WebGL context loss/recovery
+const avatarCloneCache = new Map<string, {
+  scene: THREE.Object3D;
+  boneData: { prefix: string; suffix: string; boneCount: number; meshCount: number };
+  timestamp: number;
+}>();
+
+// Cache entries older than 5 minutes are considered stale
+const CLONE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 // Animation URLs derived from config
 const ANIMATIONS = Object.fromEntries(
@@ -134,8 +148,16 @@ const DefaultAvatarInner = memo(function DefaultAvatar({
   const detectedBonePrefixRef = useRef<'none' | 'mixamorig' | 'mixamorig:'>('none');
   const detectedBoneSuffixRef = useRef<string>('');
 
+  // Note: Module-level avatarCloneCache is used instead of per-component cache
+  // This survives component remounts and WebGL context recovery
+
   // FSM state ref for immediate access in useFrame (avoids React state async lag)
   const currentStateRef = useRef<string>('idle');
+
+  // Track singleton version to trigger FSM updates for player avatar
+  // This allows animation state changes to propagate without full component re-renders
+  const lastAnimVersionRef = useRef(0);
+  const [animVersionTrigger, setAnimVersionTrigger] = useState(0);
 
   // Comprehensive Leva controls
   const controls = useControls('🎮 Avatar', {
@@ -262,7 +284,43 @@ const DefaultAvatarInner = memo(function DefaultAvatar({
   const crouchPistolWalkGltf = useGLTF(ANIMATIONS.crouchPistolWalk);
 
   // Clone scene and detect bone structure
+  // PERF: Uses module-level URL-based cache to survive context recovery
   const sceneData = useMemo(() => {
+    const now = Date.now();
+
+    // Check module-level cache first (survives context loss/recovery)
+    const cached = avatarCloneCache.get(DEFAULT_AVATAR_PATH);
+    if (cached && (now - cached.timestamp) < CLONE_CACHE_TTL_MS) {
+      // Verify the cached scene is still valid (not disposed)
+      let isValid = true;
+      cached.scene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          if (mesh.geometry && (mesh.geometry as THREE.BufferGeometry).index === null &&
+              Object.keys((mesh.geometry as THREE.BufferGeometry).attributes).length === 0) {
+            isValid = false; // Geometry was disposed
+          }
+        }
+      });
+
+      if (isValid) {
+        // Update refs for animation processing
+        const prefix = cached.boneData.prefix === 'Standard' ? 'none' : cached.boneData.prefix;
+        detectedBonePrefixRef.current = prefix as 'none' | 'mixamorig' | 'mixamorig:';
+        detectedBoneSuffixRef.current = cached.boneData.suffix;
+
+        // Return cached data (prevents "Avatar loaded" spam during context recovery)
+        return {
+          scene: cached.scene,
+          skeleton: null, // Skeleton already bound
+          detectedPrefix: cached.boneData.prefix,
+          detectedSuffix: cached.boneData.suffix,
+          detectedBoneCount: cached.boneData.boneCount,
+          detectedMeshCount: cached.boneData.meshCount,
+        };
+      }
+    }
+
     const clone = SkeletonUtils.clone(originalScene);
 
     const bones: string[] = [];
@@ -315,13 +373,26 @@ const DefaultAvatarInner = memo(function DefaultAvatar({
     detectedBonePrefixRef.current = prefix;
     detectedBoneSuffixRef.current = suffix;
 
+    // Cache the clone in module-level cache (survives context recovery)
+    const boneData = {
+      prefix: prefix === 'none' ? 'Standard' : prefix,
+      suffix,
+      boneCount: bones.length,
+      meshCount: skinnedMeshes.length,
+    };
+    avatarCloneCache.set(DEFAULT_AVATAR_PATH, {
+      scene: clone,
+      boneData,
+      timestamp: Date.now(),
+    });
+
     console.log(`🦴 Avatar loaded: ${bones.length} bones, ${skinnedMeshes.length} meshes, prefix: "${prefix}"`);
 
     // Return detected info along with scene (avoids setTimeout race condition)
     return {
       scene: clone,
       skeleton: foundSkeleton,
-      detectedPrefix: prefix === 'none' ? 'Standard' : prefix,
+      detectedPrefix: boneData.prefix,
       detectedSuffix: suffix,
       detectedBoneCount: bones.length,
       detectedMeshCount: skinnedMeshes.length,
@@ -396,18 +467,22 @@ const DefaultAvatarInner = memo(function DefaultAvatar({
 
   // Apply character lean based on movement state
   // NOTE: Y rotation is handled EXCLUSIVELY by PhysicsPlayerController (single source of truth)
+  // Read from animationState singleton directly to avoid stale props
   useFrame((_, delta) => {
     if (!avatarRef.current) return;
 
-    // Determine target lean based on movement props (not animation state)
+    // Read directly from singleton (avoids stale prop closures)
+    const { isMoving: moving, isRunning: running, isAiming: aiming, isFiring: firing } = animationState;
+
+    // Determine target lean based on movement state
     let targetLeanX = 0;
-    if (isFiring) {
+    if (firing) {
       targetLeanX = controls.fireLeanX;
-    } else if (isAiming) {
+    } else if (aiming) {
       targetLeanX = controls.aimLeanX;
-    } else if (isRunning) {
+    } else if (running) {
       targetLeanX = controls.runLeanX;
-    } else if (isMoving) {
+    } else if (moving) {
       targetLeanX = controls.walkLeanX;
     } else {
       targetLeanX = controls.idleLeanX;
@@ -455,8 +530,11 @@ const DefaultAvatarInner = memo(function DefaultAvatar({
     // Read cameraPitch from singleton (avoids per-frame store overhead)
     const cameraPitch = combatFrameData.cameraPitch;
 
+    // Read isAiming from singleton to avoid stale props
+    const { isAiming: aiming } = animationState;
+
     // Only track spine when weapon equipped and (always tracking OR aiming)
-    const shouldTrackSpine = controls.spineAimEnabled && weapon && (controls.spineAimAlways || isAiming);
+    const shouldTrackSpine = controls.spineAimEnabled && weapon && (controls.spineAimAlways || aiming);
 
     if (spineRef.current && shouldTrackSpine) {
       // Capture the animation's base rotation BEFORE we modify it
@@ -487,6 +565,19 @@ const DefaultAvatarInner = memo(function DefaultAvatar({
       if (Math.abs(currentSpinePitch.current) > 0.001) {
         spineRef.current.rotation.x = baseSpineRotationX.current + currentSpinePitch.current;
       }
+    }
+  });
+
+  // For player avatar: Check if animation state singleton has changed
+  // This triggers FSM re-evaluation without full parent re-renders
+  useFrame(() => {
+    if (!isPlayer) return; // Only needed for player avatar
+
+    const currentVersion = getAnimationVersion();
+    if (currentVersion !== lastAnimVersionRef.current) {
+      lastAnimVersionRef.current = currentVersion;
+      // Trigger minimal re-render to update FSM input
+      setAnimVersionTrigger(currentVersion);
     }
   });
 
@@ -589,26 +680,56 @@ const DefaultAvatarInner = memo(function DefaultAvatar({
   }, [actions]);
 
   // Animation state machine input
-  const fsmInput: AnimationInput = useMemo(() => ({
-    isMoving,
-    isRunning,
-    isGrounded,
-    isJumping,
-    isFalling,
-    isCrouching,
-    isDancing,
-    dancePressed,
-    isStrafeLeft: isStrafingLeft,
-    isStrafeRight: isStrafingRight,
-    isAiming,
-    isFiring,
-    isDying,
-    weapon: (weapon ?? 'none') as FSMWeaponType,
-    velocityY,
-  }), [
+  // For player avatars, read from singleton to avoid React re-renders
+  // For non-player avatars (NPCs, remote players), use props
+  const fsmInput: AnimationInput = useMemo(() => {
+    if (isPlayer) {
+      // Read from singleton - no React dependency, no re-renders
+      const state = animationState;
+      return {
+        isMoving: state.isMoving,
+        isRunning: state.isRunning,
+        isGrounded: state.isGrounded,
+        isJumping: state.isJumping,
+        isFalling: state.isFalling,
+        isCrouching: state.isCrouching,
+        isDancing: state.isDancing,
+        dancePressed: state.dancePressed,
+        isStrafeLeft: state.isStrafingLeft,
+        isStrafeRight: state.isStrafingRight,
+        isAiming: state.isAiming,
+        isFiring: state.isFiring,
+        isDying,
+        weapon: (weapon ?? 'none') as FSMWeaponType,
+        velocityY: state.velocityY,
+      };
+    }
+    // Non-player: use props (for NPCs, remote players)
+    return {
+      isMoving,
+      isRunning,
+      isGrounded,
+      isJumping,
+      isFalling,
+      isCrouching,
+      isDancing,
+      dancePressed,
+      isStrafeLeft: isStrafingLeft,
+      isStrafeRight: isStrafingRight,
+      isAiming,
+      isFiring,
+      isDying,
+      weapon: (weapon ?? 'none') as FSMWeaponType,
+      velocityY,
+    };
+  }, [
+    // For player: animVersionTrigger causes re-memo when singleton changes
+    // The singleton values are then read fresh
+    isPlayer, weapon, isDying, animVersionTrigger,
+    // Non-player props (only used when !isPlayer)
     isMoving, isRunning, isGrounded, isJumping, isFalling,
     isCrouching, isDancing, dancePressed, isStrafingLeft,
-    isStrafingRight, isAiming, isFiring, isDying, weapon, velocityY,
+    isStrafingRight, isAiming, isFiring, velocityY,
   ]);
 
   // Use animation state machine

@@ -1,9 +1,10 @@
-import { useRef, useEffect, useMemo, Suspense, useState, memo } from 'react';
+import { useRef, useMemo, Suspense, useState, memo, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Billboard, Text, useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
 import type { Player3D } from '../hooks/usePlayMultiplayer';
+import { getRemotePlayer } from '../hooks/useRemotePlayersStore';
 import { ANIMATION_CONFIG } from '../animations.config';
 import { getPooledClipRPM } from '../avatars/AnimationClipPool';
 import { useGamePause } from '../context';
@@ -19,7 +20,8 @@ const MAX_RENDER_DISTANCE = 100; // Don't render beyond this
 const LOD_UPDATE_INTERVAL = 500; // Check distance every 500ms
 
 // Snapshot interpolation constants
-const INTERPOLATION_DELAY = 100;
+// NOTE: 50ms delay provides snappier feel vs 100ms, requires stable 20Hz updates
+const INTERPOLATION_DELAY = 50;
 const MAX_BUFFER_SIZE = 20;
 
 interface PositionSnapshot {
@@ -436,6 +438,7 @@ interface OtherPlayerProps {
 }
 
 // Memoized to prevent re-renders when other players update
+// Position and animation are read from singleton store in useFrame (no React re-renders)
 const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
@@ -443,40 +446,64 @@ const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
   const [lod, setLod] = useState<'full' | 'simple' | 'hidden'>('simple');
   const lastLodCheck = useRef(0);
 
+  // Interpolation buffer for smooth movement
   const positionBuffer = useRef<PositionSnapshot[]>([]);
   const lastReceivedPos = useRef({ x: player.position.x, y: player.position.y, z: player.position.z });
-  const lastReceivedRot = useRef(player.rotation.y);
   const interpolatedPos = useRef(new THREE.Vector3(player.position.x, player.position.y, player.position.z));
   const interpolatedRot = useRef(player.rotation.y);
 
-  useEffect(() => {
-    const posChanged =
-      player.position.x !== lastReceivedPos.current.x ||
-      player.position.y !== lastReceivedPos.current.y ||
-      player.position.z !== lastReceivedPos.current.z;
-
-    if (posChanged) {
-      positionBuffer.current.push({
-        pos: new THREE.Vector3(player.position.x, player.position.y, player.position.z),
-        rot: player.rotation.y,
-        time: Date.now(),
-      });
-
-      if (positionBuffer.current.length > MAX_BUFFER_SIZE) {
-        positionBuffer.current.shift();
-      }
-
-      lastReceivedPos.current = { ...player.position };
-      lastReceivedRot.current = player.rotation.y;
-    }
-  }, [player.position.x, player.position.y, player.position.z, player.rotation.y]);
+  // Animation state ref - updated in useFrame from store, used for rendering
+  const currentAnimState = useRef<string>(player.animationState || 'idle');
+  const currentWeaponType = useRef<'none' | 'rifle' | 'pistol'>(player.weaponType || 'none');
+  // Trigger re-render when animation changes (throttled)
+  const [, setAnimVersion] = useState(0);
+  const lastAnimUpdate = useRef(0);
+  const ANIM_UPDATE_INTERVAL = 100; // Only update React every 100ms for animations
 
   useFrame((_, delta) => {
     if (isPaused || !groupRef.current) return;
 
+    // Read latest position from store (no React re-render needed!)
+    const storePlayer = getRemotePlayer(player.id);
+    if (storePlayer) {
+      const posChanged =
+        storePlayer.position.x !== lastReceivedPos.current.x ||
+        storePlayer.position.y !== lastReceivedPos.current.y ||
+        storePlayer.position.z !== lastReceivedPos.current.z;
+
+      if (posChanged) {
+        positionBuffer.current.push({
+          pos: new THREE.Vector3(storePlayer.position.x, storePlayer.position.y, storePlayer.position.z),
+          rot: storePlayer.rotation.y,
+          time: Date.now(),
+        });
+
+        if (positionBuffer.current.length > MAX_BUFFER_SIZE) {
+          positionBuffer.current.shift();
+        }
+
+        lastReceivedPos.current = { ...storePlayer.position };
+      }
+
+      // Update animation state from store (throttled React update)
+      const now = Date.now();
+      const newAnimState = storePlayer.animationState || 'idle';
+      const newWeaponType = storePlayer.weaponType || 'none';
+      if (
+        (newAnimState !== currentAnimState.current || newWeaponType !== currentWeaponType.current) &&
+        now - lastAnimUpdate.current > ANIM_UPDATE_INTERVAL
+      ) {
+        currentAnimState.current = newAnimState;
+        currentWeaponType.current = newWeaponType;
+        lastAnimUpdate.current = now;
+        setAnimVersion((v) => v + 1); // Trigger re-render for avatar
+      }
+    }
+
     const buffer = positionBuffer.current;
     const renderTime = Date.now() - INTERPOLATION_DELAY;
 
+    // Clean old snapshots
     const cutoffTime = Date.now() - 1000;
     while (buffer.length > 0 && buffer[0].time < cutoffTime) {
       buffer.shift();
@@ -494,9 +521,6 @@ const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
       const latest = buffer[buffer.length - 1];
       interpolatedPos.current.copy(latest.pos);
       interpolatedRot.current = latest.rot;
-    } else {
-      interpolatedPos.current.set(player.position.x, player.position.y, player.position.z);
-      interpolatedRot.current = player.rotation.y;
     }
 
     const smoothingSpeed = 12;
@@ -526,8 +550,10 @@ const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
   // Don't render if too far
   if (lod === 'hidden') return null;
 
-  // Parse animation state for CustomAvatar props
-  const animState = player.animationState || 'idle';
+  // Parse animation state for CustomAvatar props (using refs updated in useFrame)
+  // animVersion dependency ensures re-render when animation changes
+  const animState = currentAnimState.current;
+  const weaponType = currentWeaponType.current;
   const isMoving = animState.includes('walk') || animState.includes('Walk') || animState.includes('running') || animState.includes('Run');
   const isRunning = animState.includes('running') || animState.includes('Run');
   const isCrouching = animState.includes('crouch') || animState.includes('Crouch');
@@ -543,7 +569,7 @@ const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
     // Prefer CustomAvatar if avatarConfig is present
     if (player.avatarConfig) {
       // Convert 'none' to null for WeaponType compatibility
-      const mappedWeaponType = player.weaponType === 'none' ? null : player.weaponType;
+      const mappedWeaponType = weaponType === 'none' ? null : weaponType;
       return (
         <Suspense fallback={<SimpleAvatar color={player.color} />}>
           <CustomAvatar
@@ -572,8 +598,8 @@ const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
           <FullAnimatedAvatar
             url={player.avatarUrl}
             color={player.color}
-            animationState={player.animationState}
-            weaponType={player.weaponType}
+            animationState={animState}
+            weaponType={weaponType}
           />
         </Suspense>
       );
@@ -602,20 +628,15 @@ const OtherPlayer = memo(function OtherPlayer({ player }: OtherPlayerProps) {
     </group>
   );
 }, (prevProps, nextProps) => {
-  // Custom comparison to check if player data actually changed
+  // Only compare structural data - position/animation come from store via useFrame
   const prev = prevProps.player;
   const next = nextProps.player;
   return (
     prev.id === next.id &&
-    prev.position.x === next.position.x &&
-    prev.position.y === next.position.y &&
-    prev.position.z === next.position.z &&
-    prev.rotation.y === next.rotation.y &&
-    prev.animationState === next.animationState &&
-    prev.weaponType === next.weaponType &&
     prev.avatarUrl === next.avatarUrl &&
     prev.avatarConfig === next.avatarConfig &&
-    prev.color === next.color
+    prev.color === next.color &&
+    prev.username === next.username
   );
 });
 

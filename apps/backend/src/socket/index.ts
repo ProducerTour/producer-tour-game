@@ -5,6 +5,11 @@ import { prisma } from '../lib/prisma';
 import { emailService } from '../services/email.service';
 import { pushService } from '../services/push.service';
 import { notificationService } from '../services/notification.service';
+import { setupChunkHandlers } from './chunkHandlers';
+import {
+  decodeMovement,
+  encodeBroadcastMovement,
+} from '../lib/binaryProtocol';
 // Productivity tracking removed - game-only fork
 
 interface AuthenticatedSocket extends Socket {
@@ -477,6 +482,9 @@ export function initializeSocket(httpServer: HttpServer): Server {
     // Join user's conversation rooms
     joinUserConversations(socket, userId);
 
+    // Set up chunk streaming handlers for play room
+    setupChunkHandlers(io!, socket);
+
     // Handle joining a specific conversation
     socket.on('conversation:join', async (conversationId: string) => {
       try {
@@ -886,6 +894,64 @@ export function initializeSocket(httpServer: HttpServer): Server {
           ...(data.animationState && { animationState: data.animationState }),
           ...(data.weaponType !== undefined && { weaponType: data.weaponType }),
         });
+      }
+    });
+
+    // Animation/weapon state update (sent separately from position for efficiency)
+    // Only sent when state changes, so JSON is fine (small, infrequent)
+    socket.on('3d:update-state', (data: {
+      animationState?: string;
+      weaponType?: 'none' | 'rifle' | 'pistol';
+    }) => {
+      const player = players3D.get(socket.id);
+      if (player) {
+        if (data.animationState !== undefined) {
+          player.animationState = data.animationState;
+        }
+        if (data.weaponType !== undefined) {
+          player.weaponType = data.weaponType;
+        }
+        player.lastUpdate = Date.now();
+
+        // Broadcast to others in same room
+        const socketRoom = getSocketRoom(player.room);
+        socket.to(socketRoom).emit('3d:player-state', {
+          id: socket.id,
+          ...(data.animationState !== undefined && { animationState: data.animationState }),
+          ...(data.weaponType !== undefined && { weaponType: data.weaponType }),
+        });
+      }
+    });
+
+    // Binary movement update (24 bytes) - 4-6x more efficient than JSON
+    // Layout: posX(4) + posY(4) + posZ(4) + rotY(4) + velX(4) + velZ(4) = 24 bytes
+    socket.on('3d:update-bin', (data: Buffer | ArrayBuffer) => {
+      const player = players3D.get(socket.id);
+      if (!player) return;
+
+      try {
+        const buffer = data instanceof Buffer ? data : Buffer.from(data);
+        const movement = decodeMovement(buffer);
+
+        // Update player state
+        player.position = { x: movement.posX, y: movement.posY, z: movement.posZ };
+        player.rotation = { x: 0, y: movement.rotY, z: 0 };
+        player.lastUpdate = Date.now();
+
+        // Broadcast binary to others (60 bytes: 36 byte ID + 24 byte movement)
+        const socketRoom = getSocketRoom(player.room);
+        const broadcast = encodeBroadcastMovement(
+          socket.id,
+          movement.posX,
+          movement.posY,
+          movement.posZ,
+          movement.rotY,
+          movement.velX,
+          movement.velZ
+        );
+        socket.to(socketRoom).emit('3d:player-moved-bin', broadcast);
+      } catch (err) {
+        console.error('[Socket] Binary decode error:', err);
       }
     });
 

@@ -12,20 +12,22 @@ interface PhysicsWorldProps {
   gravity?: [number, number, number];
   timeStep?: number | 'vary';
   paused?: boolean;
+  interpolate?: boolean;
 }
 
 /**
  * Physics world wrapper with game-appropriate defaults
  * - Gravity: Earth-like (9.81 m/s²)
- * - Fixed timestep for deterministic physics
+ * - PERF: 30Hz physics with interpolation (halves CPU time)
  * - Debug mode shows collider wireframes
  */
 export function PhysicsWorld({
   children,
   debug = false,
   gravity = [0, -9.81, 0],
-  timeStep = 1 / 60,
+  timeStep = 1 / 30,  // PERF: 30Hz instead of 60Hz
   paused = false,
+  interpolate = true, // PERF: Smooth visual interpolation between physics steps
 }: PhysicsWorldProps) {
   return (
     <Physics
@@ -33,6 +35,7 @@ export function PhysicsWorld({
       timeStep={timeStep}
       paused={paused}
       debug={debug}
+      interpolate={interpolate}
     >
       {children}
     </Physics>

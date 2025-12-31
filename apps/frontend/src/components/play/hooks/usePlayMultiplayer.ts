@@ -4,9 +4,16 @@ import { useAuthStore } from '../../../store/auth.store';
 import { usePlayerStore } from '../../../store/player.store';
 import * as THREE from 'three';
 import type { CharacterConfig } from '../../../lib/character/types';
+// Binary protocol for efficient network packets
+import { encodeMovement } from '@producer-tour/engine';
+// Singleton store for remote players (avoids React re-renders for position updates)
+import { remotePlayersStore, type RemotePlayerData } from './useRemotePlayersStore';
 
 // Debug logging - set to false to reduce console spam
 const DEBUG_MULTIPLAYER = false;
+
+// Use binary protocol for movement updates (4-6x bandwidth reduction)
+const USE_BINARY_PROTOCOL = true;
 
 export interface Player3D {
   id: string;
@@ -65,6 +72,20 @@ export function usePlayMultiplayer({
   const lastPositionUpdate = useRef(0);
   const positionUpdateInterval = 50; // 20 updates per second
 
+  // Track last sent animation state to only send on change
+  const lastAnimationState = useRef<string | undefined>(undefined);
+  const lastWeaponType = useRef<'none' | 'rifle' | 'pistol' | undefined>(undefined);
+
+  // Subscribe to structural changes (join/leave) in the store
+  // This triggers React re-renders ONLY when player list structure changes
+  useEffect(() => {
+    const unsubscribe = remotePlayersStore.subscribeStructural(() => {
+      // Get fresh player list from store
+      setOtherPlayers(remotePlayersStore.getAllPlayers());
+    });
+    return unsubscribe;
+  }, []);
+
   // Join/leave room based on enabled state
   useEffect(() => {
     if (!socket || !isConnected) {
@@ -72,6 +93,7 @@ export function usePlayMultiplayer({
       if (isInRoom) {
         setIsInRoom(false);
         setOtherPlayers([]);
+        remotePlayersStore.clear();
       }
       return;
     }
@@ -121,6 +143,7 @@ export function usePlayMultiplayer({
       socket.emit('3d:leave');
       setIsInRoom(false);
       setOtherPlayers([]);
+      remotePlayersStore.clear();
       setConnectionError(null);
     }
   }, [enabled, socket, isConnected, isInRoom, isJoining, username, color, avatarUrl, avatarConfig]);
@@ -161,30 +184,26 @@ export function usePlayMultiplayer({
     };
 
     // Receive initial player list when joining
-    const handlePlayers = (players: Player3D[]) => {
+    // Uses singleton store - triggers React update via subscription
+    const handlePlayers = (players: RemotePlayerData[]) => {
       if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Received players list:', players.length);
-      setOtherPlayers(players);
+      remotePlayersStore.setPlayers(players);
     };
 
-    // New player joined
-    const handlePlayerJoined = (player: Player3D) => {
+    // New player joined - triggers React update via subscription
+    const handlePlayerJoined = (player: RemotePlayerData) => {
       if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Player joined:', player.username);
-      setOtherPlayers((prev) => {
-        // Avoid duplicates
-        if (prev.find((p) => p.id === player.id)) {
-          return prev;
-        }
-        return [...prev, player];
-      });
+      remotePlayersStore.addPlayer(player);
     };
 
-    // Player left
+    // Player left - triggers React update via subscription
     const handlePlayerLeft = ({ id }: { id: string }) => {
       if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Player left:', id);
-      setOtherPlayers((prev) => prev.filter((p) => p.id !== id));
+      remotePlayersStore.removePlayer(id);
     };
 
-    // Player moved (high frequency - no logging)
+    // Player moved (high frequency - NO React re-render!)
+    // Updates store directly, OtherPlayer reads in useFrame
     const handlePlayerMoved = (data: {
       id: string;
       position: { x: number; y: number; z: number };
@@ -192,20 +211,43 @@ export function usePlayMultiplayer({
       animationState?: string;
       weaponType?: 'none' | 'rifle' | 'pistol';
     }) => {
-      setOtherPlayers((prev) =>
-        prev.map((p) =>
-          p.id === data.id
-            ? {
-                ...p,
-                position: data.position,
-                rotation: data.rotation,
-                ...(data.animationState && { animationState: data.animationState }),
-                ...(data.weaponType !== undefined && { weaponType: data.weaponType }),
-                lastUpdate: Date.now(),
-              }
-            : p
-        )
-      );
+      remotePlayersStore.updatePosition(data.id, data.position, data.rotation);
+      if (data.animationState || data.weaponType !== undefined) {
+        remotePlayersStore.updateState(data.id, data.animationState, data.weaponType);
+      }
+    };
+
+    // Binary player moved (60 bytes: 36 byte ID + 24 byte movement)
+    // 4-6x more efficient than JSON, NO React re-render!
+    const handlePlayerMovedBin = (data: ArrayBuffer | Buffer) => {
+      try {
+        const buffer = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+        const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+
+        // Decode player ID (36 chars)
+        let playerId = '';
+        for (let i = 0; i < 36; i++) {
+          const char = view.getUint8(i);
+          if (char === 0) break;
+          playerId += String.fromCharCode(char);
+        }
+
+        // Decode movement data
+        const posX = view.getFloat32(36, true);
+        const posY = view.getFloat32(40, true);
+        const posZ = view.getFloat32(44, true);
+        const rotY = view.getFloat32(48, true);
+        // velX and velZ at 52 and 56 (for future use with interpolation)
+
+        // Update store directly - no React re-render!
+        remotePlayersStore.updatePosition(
+          playerId,
+          { x: posX, y: posY, z: posZ },
+          { x: 0, y: rotY, z: 0 }
+        );
+      } catch (err) {
+        console.error('[Play Multiplayer] Binary decode error:', err);
+      }
     };
 
     // Player updated (username, avatar, etc)
@@ -216,19 +258,16 @@ export function usePlayMultiplayer({
       avatarUrl?: string;
       avatarConfig?: CharacterConfig;
     }) => {
-      setOtherPlayers((prev) =>
-        prev.map((p) =>
-          p.id === data.id
-            ? {
-                ...p,
-                ...(data.username && { username: data.username }),
-                ...(data.color && { color: data.color }),
-                ...(data.avatarUrl && { avatarUrl: data.avatarUrl }),
-                ...(data.avatarConfig && { avatarConfig: data.avatarConfig }),
-              }
-            : p
-        )
-      );
+      remotePlayersStore.updateMetadata(data.id, data);
+    };
+
+    // Player animation/weapon state changed (NO React re-render)
+    const handlePlayerState = (data: {
+      id: string;
+      animationState?: string;
+      weaponType?: 'none' | 'rifle' | 'pistol';
+    }) => {
+      remotePlayersStore.updateState(data.id, data.animationState, data.weaponType);
     };
 
     // Player count update
@@ -248,6 +287,8 @@ export function usePlayMultiplayer({
     socket.on('3d:player-joined', handlePlayerJoined);
     socket.on('3d:player-left', handlePlayerLeft);
     socket.on('3d:player-moved', handlePlayerMoved);
+    socket.on('3d:player-moved-bin', handlePlayerMovedBin); // Binary protocol
+    socket.on('3d:player-state', handlePlayerState); // Animation/weapon state (separate from position)
     socket.on('3d:player-updated', handlePlayerUpdated);
     socket.on('3d:player-count', handlePlayerCount);
 
@@ -263,6 +304,8 @@ export function usePlayMultiplayer({
       socket.off('3d:player-joined', handlePlayerJoined);
       socket.off('3d:player-left', handlePlayerLeft);
       socket.off('3d:player-moved', handlePlayerMoved);
+      socket.off('3d:player-moved-bin', handlePlayerMovedBin);
+      socket.off('3d:player-state', handlePlayerState);
       socket.off('3d:player-updated', handlePlayerUpdated);
       socket.off('3d:player-count', handlePlayerCount);
     };
@@ -275,24 +318,58 @@ export function usePlayMultiplayer({
         if (DEBUG_MULTIPLAYER) console.log('[Play Multiplayer] Cleanup: leaving room');
         socket.emit('3d:leave');
       }
+      remotePlayersStore.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update position (throttled)
+  // Uses binary protocol when enabled (4-6x bandwidth reduction)
+  // Animation state is sent separately only when it changes
   const updatePosition = useCallback(
     (position: THREE.Vector3, rotation: THREE.Euler, animationState?: string, weaponType?: 'none' | 'rifle' | 'pistol') => {
       if (!socket || !isInRoom) return;
 
       const now = Date.now();
-      if (now - lastPositionUpdate.current < positionUpdateInterval) return;
+      const shouldThrottle = now - lastPositionUpdate.current < positionUpdateInterval;
 
-      socket.emit('3d:update', {
-        position: { x: position.x, y: position.y, z: position.z },
-        rotation: { x: rotation.x, y: rotation.y, z: rotation.z },
-        ...(animationState && { animationState }),
-        ...(weaponType !== undefined && { weaponType }),
-      });
+      // Always check for animation/weapon state changes (send separately from position)
+      const animChanged = animationState !== lastAnimationState.current;
+      const weaponChanged = weaponType !== undefined && weaponType !== lastWeaponType.current;
+
+      if (animChanged || weaponChanged) {
+        // Send animation/weapon update separately (infrequent, JSON is fine)
+        socket.emit('3d:update-state', {
+          ...(animChanged && { animationState }),
+          ...(weaponChanged && { weaponType }),
+        });
+        if (animChanged) lastAnimationState.current = animationState;
+        if (weaponChanged) lastWeaponType.current = weaponType;
+      }
+
+      // Throttle position updates
+      if (shouldThrottle) return;
+
+      if (USE_BINARY_PROTOCOL) {
+        // Binary: 24 bytes vs ~120-140 bytes JSON
+        const buffer = encodeMovement(
+          position.x,
+          position.y,
+          position.z,
+          rotation.y, // Only Y rotation for characters
+          0, // velX (can be added later for prediction)
+          0  // velZ
+        );
+        socket.emit('3d:update-bin', buffer);
+      } else {
+        // JSON fallback
+        socket.emit('3d:update', {
+          position: { x: position.x, y: position.y, z: position.z },
+          rotation: { x: rotation.x, y: rotation.y, z: rotation.z },
+          ...(animationState && { animationState }),
+          ...(weaponType !== undefined && { weaponType }),
+        });
+      }
 
       lastPositionUpdate.current = now;
     },
