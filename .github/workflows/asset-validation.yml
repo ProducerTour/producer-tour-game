@@ -1,0 +1,101 @@
+name: Asset Validation
+
+on:
+  pull_request:
+    paths:
+      - 'apps/frontend/public/assets/**'
+      - 'apps/frontend/public/models/**'
+      - 'scripts/validateAssets.ts'
+  push:
+    paths:
+      - 'apps/frontend/public/assets/**'
+      - 'apps/frontend/public/models/**'
+    branches:
+      - main
+
+jobs:
+  validate-assets:
+    name: Validate GLB Assets
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run asset validation
+        id: validate
+        run: |
+          npx tsx scripts/validateAssets.ts --json > validation-output.json 2>&1 || true
+
+          # Check if there are errors
+          if [ -f validation-errors.json ]; then
+            echo "has_errors=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_errors=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload validation results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-results
+          path: |
+            validation-output.json
+            validation-errors.json
+          if-no-files-found: ignore
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && steps.validate.outputs.has_errors == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let comment = '## Asset Validation Failed\n\n';
+
+            try {
+              const errors = JSON.parse(fs.readFileSync('validation-errors.json', 'utf8'));
+
+              comment += '| File | Issues |\n';
+              comment += '|------|--------|\n';
+
+              for (const result of errors) {
+                const file = result.file.replace(process.cwd() + '/', '');
+                const issues = result.errors.map(e => `- ${e}`).join('<br>');
+                comment += `| \`${file}\` | ${issues} |\n`;
+              }
+
+              comment += '\n### How to fix\n\n';
+              comment += '1. Run `npm run validate:assets` locally to see full details\n';
+              comment += '2. Use the Blender prep script: `tools/blender/mixamo_export_prep.py`\n';
+              comment += '3. See `docs/ASSET_STANDARDS.md` for asset requirements\n';
+            } catch (e) {
+              comment += 'Error reading validation results: ' + e.message;
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail if errors
+        if: steps.validate.outputs.has_errors == 'true'
+        run: |
+          echo "Asset validation failed. See validation-errors.json for details."
+          cat validation-errors.json
+          exit 1
+
+      - name: Success message
+        if: steps.validate.outputs.has_errors == 'false'
+        run: echo "All assets validated successfully!"

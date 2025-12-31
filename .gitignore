@@ -83,3 +83,9 @@ apps/frontend/ios/DerivedData/
 apps/frontend/public/animations/
 apps/frontend/public/models/
 scripts/blender/addons/CharMorph-db.zip
+
+# Wrangler
+.wrangler/
+
+# Validation output
+validation-errors.json
